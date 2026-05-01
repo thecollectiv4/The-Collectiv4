@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { LogOut, Edit3, Ticket, Calendar, MapPin, Clock } from 'lucide-react'
+import { LogOut, Edit3, Calendar, MapPin, Clock } from 'lucide-react'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
@@ -22,159 +22,110 @@ export default function Profile() {
       setProfile(data)
       setForm({ display_name: data.display_name || '', bio: data.bio || '', handle: data.handle || '' })
     } else {
-      // Create profile for new user
-      const newProfile = {
-        id: user.id,
-        display_name: user.email.split('@')[0],
-        bio: '',
-        handle: '',
-        city: 'Houston',
-      }
-      await supabase.from('profiles').insert(newProfile)
-      setProfile(newProfile)
-      setForm({ display_name: newProfile.display_name, bio: '', handle: '' })
-      setEditing(true) // New user, open edit mode
+      const np = { id: user.id, display_name: user.email.split('@')[0], bio: '', handle: '', city: 'Houston' }
+      await supabase.from('profiles').insert(np)
+      setProfile(np)
+      setForm({ display_name: np.display_name, bio: '', handle: '' })
+      setEditing(true)
     }
   }
 
   const saveProfile = async () => {
-    await supabase.from('profiles').update({
-      display_name: form.display_name,
-      bio: form.bio,
-      handle: form.handle,
-    }).eq('id', user.id)
+    await supabase.from('profiles').update(form).eq('id', user.id)
     setProfile(prev => ({ ...prev, ...form }))
     setEditing(false)
   }
 
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+  const inputStyle = {
+    width: '100%', background: '#0A0A0A', border: '1px solid #1A1A1A',
+    borderRadius: '10px', padding: '14px 16px', color: '#FFF',
+    fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
   }
 
-  if (!profile) {
-    return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#5A5248', fontSize: '13px' }}>Loading...</div>
-      </div>
-    )
-  }
+  if (!profile) return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontFamily: 'DM Mono', fontSize: '11px', color: '#333' }}>Loading...</div>
+    </div>
+  )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0E0D0B' }}>
-      {/* Header area */}
-      <div style={{
-        height: '120px',
-        background: 'linear-gradient(135deg, #1A0A04 0%, #0E0D0B 50%, #1A1210 100%)',
-        position: 'relative',
-      }}>
-        <button onClick={handleSignOut} style={{
-          position: 'absolute', top: '16px', right: '16px',
-          background: 'rgba(26,24,20,0.8)', border: '1px solid #2A2825',
+    <div style={{ minHeight: '100vh', background: '#000' }}>
+      {/* Header */}
+      <div style={{ height: '100px', background: '#0A0A0A', position: 'relative' }}>
+        <button onClick={async () => { await signOut(); navigate('/') }} style={{
+          position: 'absolute', top: '14px', right: '14px',
+          background: 'none', border: '1px solid #222',
           borderRadius: '8px', padding: '6px 14px',
-          color: '#9A9288', fontSize: '11px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '6px',
-          fontFamily: 'DM Sans',
+          color: '#555', fontSize: '11px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans',
         }}>
-          <LogOut size={12} /> Sign Out
+          <LogOut size={11} /> Out
         </button>
       </div>
 
       {/* Avatar */}
-      <div style={{ padding: '0 24px', marginTop: '-36px' }}>
+      <div style={{ padding: '0 28px', marginTop: '-30px' }}>
         <div style={{
-          width: '72px', height: '72px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #2A2420, #1A1210)',
-          border: '3px solid #0E0D0B', outline: '2px solid #C05A2A',
+          width: '60px', height: '60px', borderRadius: '50%',
+          background: '#111', border: '3px solid #000',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'Bebas Neue', fontSize: '28px', color: '#C05A2A',
+          fontFamily: 'Bebas Neue', fontSize: '24px', color: '#FFF',
         }}>
           {(profile.display_name || '?')[0].toUpperCase()}
         </div>
       </div>
 
-      {/* Profile info */}
-      <div style={{ padding: '16px 24px' }}>
+      {/* Info */}
+      <div style={{ padding: '16px 28px' }}>
         {editing ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#5A5248', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                Name
-              </label>
-              <input
-                type="text" placeholder="Your name"
-                value={form.display_name}
-                onChange={e => setForm(p => ({ ...p, display_name: e.target.value }))}
-                style={{
-                  width: '100%', background: '#1A1814', border: '1px solid #2A2825',
-                  borderRadius: '10px', padding: '12px', color: '#F4F0E8',
-                  fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
-                }}
-              />
+              <label style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '0.2em', color: '#444', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>NAME</label>
+              <input type="text" placeholder="Your name" value={form.display_name}
+                onChange={e => setForm(p => ({ ...p, display_name: e.target.value }))} style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#5A5248', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                Handle
-              </label>
-              <input
-                type="text" placeholder="@yourhandle"
-                value={form.handle}
-                onChange={e => setForm(p => ({ ...p, handle: e.target.value }))}
-                style={{
-                  width: '100%', background: '#1A1814', border: '1px solid #2A2825',
-                  borderRadius: '10px', padding: '12px', color: '#F4F0E8',
-                  fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
-                }}
-              />
+              <label style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '0.2em', color: '#444', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>HANDLE</label>
+              <input type="text" placeholder="@yourhandle" value={form.handle}
+                onChange={e => setForm(p => ({ ...p, handle: e.target.value }))} style={inputStyle} />
             </div>
             <div>
-              <label style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#5A5248', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
-                Bio
-              </label>
-              <textarea
-                placeholder="What do you do? What are you about?"
-                value={form.bio}
+              <label style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '0.2em', color: '#444', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>BIO</label>
+              <textarea placeholder="What do you do?" value={form.bio} rows={3}
                 onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
-                rows={3}
-                style={{
-                  width: '100%', background: '#1A1814', border: '1px solid #2A2825',
-                  borderRadius: '10px', padding: '12px', color: '#F4F0E8',
-                  fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
-                  resize: 'vertical',
-                }}
-              />
+                style={{ ...inputStyle, resize: 'vertical' }} />
             </div>
             <button onClick={saveProfile} style={{
-              background: '#C05A2A', border: 'none', borderRadius: '12px',
-              padding: '14px', color: '#F4F0E8', fontFamily: 'Bebas Neue',
-              fontSize: '16px', letterSpacing: '0.06em', cursor: 'pointer',
+              background: '#FFF', border: 'none', borderRadius: '10px',
+              padding: '14px', color: '#000', fontWeight: 600,
+              fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans',
             }}>
-              SAVE PROFILE
+              Save
             </button>
           </div>
         ) : (
           <>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: '#F4F0E8', letterSpacing: '0.04em' }}>
+                <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: '#FFF', letterSpacing: '0.02em' }}>
                   {profile.display_name || 'Set your name'}
                 </div>
                 {profile.handle && (
-                  <div style={{ fontSize: '13px', color: '#9A9288', marginTop: '2px' }}>
-                    @{profile.handle} · Houston
+                  <div style={{ fontFamily: 'DM Mono', fontSize: '12px', color: '#555', marginTop: '2px' }}>
+                    @{profile.handle}
                   </div>
                 )}
               </div>
               <button onClick={() => setEditing(true)} style={{
-                background: 'none', border: '1px solid #2A2825', borderRadius: '8px',
-                padding: '6px 12px', color: '#9A9288', fontSize: '11px', cursor: 'pointer',
+                background: 'none', border: '1px solid #222', borderRadius: '8px',
+                padding: '6px 14px', color: '#555', fontSize: '11px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans',
               }}>
-                <Edit3 size={12} /> Edit
+                <Edit3 size={11} /> Edit
               </button>
             </div>
             {profile.bio && (
-              <div style={{ fontSize: '13px', color: '#9A9288', marginTop: '10px', lineHeight: 1.5 }}>
+              <div style={{ fontSize: '13px', color: '#666', marginTop: '10px', lineHeight: 1.6 }}>
                 {profile.bio}
               </div>
             )}
@@ -182,70 +133,47 @@ export default function Profile() {
         )}
       </div>
 
-      {/* Ticket Section */}
-      <div style={{ padding: '8px 24px 100px' }}>
-        <div style={{
-          fontSize: '10px', letterSpacing: '0.2em', color: '#5A5248',
-          textTransform: 'uppercase', fontWeight: 600, marginBottom: '14px'
-        }}>
-          Your Ticket
+      {/* Divider */}
+      <div style={{ height: '1px', background: '#1A1A1A', margin: '8px 28px' }} />
+
+      {/* Ticket */}
+      <div style={{ padding: '24px 28px 100px' }}>
+        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '0.3em', color: '#444', textTransform: 'uppercase', marginBottom: '16px' }}>
+          YOUR TICKET
         </div>
 
         <div style={{
-          background: 'linear-gradient(135deg, #1A1210 0%, #2A1A10 100%)',
-          border: '1px solid rgba(192,90,42,0.2)',
-          borderRadius: '16px', padding: '24px', position: 'relative',
+          border: '1px solid #1A1A1A', borderRadius: '12px',
           overflow: 'hidden',
         }}>
-          {/* Decorative circle */}
-          <div style={{
-            position: 'absolute', top: '-20px', right: '-20px',
-            width: '100px', height: '100px', borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(192,90,42,0.15) 0%, transparent 70%)',
-          }} />
-
-          <div style={{ position: 'relative', zIndex: 1 }}>
-            <div style={{
-              fontFamily: 'Bebas Neue', fontSize: '22px', color: '#F4F0E8',
-              letterSpacing: '0.04em',
-            }}>
-              RAN BY <span style={{ color: '#C05A2A' }}>ARTISTS</span>
+          <div style={{ padding: '24px', background: '#0A0A0A' }}>
+            <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: '#FFF', letterSpacing: '0.02em' }}>
+              RAN BY ARTISTS
             </div>
-            <div style={{ fontSize: '11px', color: '#5A5248', marginTop: '4px' }}>
-              May Edition
+            <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#444', marginTop: '4px', letterSpacing: '0.08em' }}>
+              MAY EDITION
             </div>
 
-            <div style={{
-              display: 'flex', gap: '20px', marginTop: '20px',
-            }}>
+            <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
               {[
-                { icon: Calendar, text: 'May 30' },
+                { icon: Calendar, text: 'MAY 30' },
                 { icon: Clock, text: '10PM' },
-                { icon: MapPin, text: 'Houston' },
+                { icon: MapPin, text: 'HTX' },
               ].map(({ icon: Icon, text }, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9A9288' }}>
-                  <Icon size={13} style={{ color: '#C05A2A' }} />
-                  {text}
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Icon size={11} strokeWidth={1.2} style={{ color: '#444' }} />
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#666', letterSpacing: '0.06em' }}>{text}</span>
                 </div>
               ))}
             </div>
+          </div>
 
-            {/* Ticket status */}
-            <div style={{
-              marginTop: '20px', padding: '12px 16px',
-              background: 'rgba(90,82,72,0.15)', borderRadius: '10px',
-              border: '1px dashed #2A2825',
-              textAlign: 'center',
-            }}>
-              <div style={{
-                fontFamily: 'DM Mono, monospace', fontSize: '11px',
-                color: '#9A9288', letterSpacing: '0.05em',
-              }}>
-                Tickets go live May 15
-              </div>
-              <div style={{ fontSize: '10px', color: '#5A5248', marginTop: '4px' }}>
-                Early bird from $15
-              </div>
+          <div style={{
+            padding: '16px 24px', borderTop: '1px dashed #1A1A1A',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#555', letterSpacing: '0.06em' }}>
+              Tickets go live May 15 · Early bird $15
             </div>
           </div>
         </div>

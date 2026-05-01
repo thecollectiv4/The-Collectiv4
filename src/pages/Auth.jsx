@@ -14,9 +14,15 @@ export default function Auth() {
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
 
+  const inputStyle = {
+    width: '100%', background: '#0A0A0A', border: '1px solid #1A1A1A',
+    borderRadius: '10px', padding: '14px 16px', color: '#FFF',
+    fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
+    transition: 'border-color 0.2s',
+  }
+
   const handle = async () => {
-    setLoading(true)
-    setError('')
+    setLoading(true); setError('')
     try {
       if (mode === 'signin') {
         const { error } = await signIn(email, password)
@@ -25,35 +31,25 @@ export default function Auth() {
       } else {
         const { error, data } = await signUp(email, password)
         if (error) throw error
-        // If email confirmation required
-        if (data?.user && !data.session) {
-          setSuccess(true)
-        } else {
-          navigate('/')
-        }
+        if (data?.user && !data.session) setSuccess(true)
+        else navigate('/')
       }
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
   }
 
   if (success) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem', background: '#0E0D0B', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🖤</div>
-        <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: '#F4F0E8', letterSpacing: '0.04em', marginBottom: '12px' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 28px', background: '#000', textAlign: 'center' }}>
+        <div style={{ fontFamily: 'Bebas Neue', fontSize: '32px', color: '#FFF', letterSpacing: '0.02em', marginBottom: '12px' }}>
           CHECK YOUR EMAIL
         </div>
-        <div style={{ fontSize: '13px', color: '#9A9288', lineHeight: 1.6, marginBottom: '24px' }}>
-          We sent a confirmation link to <strong style={{ color: '#F4F0E8' }}>{email}</strong>.<br/>
-          Click it and you're in.
+        <div style={{ fontSize: '13px', color: '#666', lineHeight: 1.7, marginBottom: '28px' }}>
+          We sent a confirmation link to <strong style={{ color: '#FFF' }}>{email}</strong>. Click it and you're in.
         </div>
         <button onClick={() => { setSuccess(false); setMode('signin') }} style={{
-          background: 'none', border: '1px solid #2A2825', borderRadius: '10px',
-          padding: '12px', color: '#9A9288', fontSize: '13px', cursor: 'pointer',
-          fontFamily: 'DM Sans',
+          background: 'none', border: '1px solid #333', borderRadius: '10px',
+          padding: '14px', color: '#888', fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans',
         }}>
           Already confirmed? Sign In
         </button>
@@ -62,40 +58,35 @@ export default function Auth() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem', background: '#0E0D0B' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '2rem 28px', background: '#000' }}>
       
-      {/* Back button */}
       <button onClick={() => navigate('/')} style={{
         position: 'absolute', top: '20px', left: '20px',
-        background: 'none', border: 'none', color: '#5A5248',
+        background: 'none', border: 'none', color: '#444',
         cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px',
-        fontSize: '13px', fontFamily: 'DM Sans',
+        fontSize: '12px', fontFamily: 'DM Sans',
       }}>
-        <ArrowLeft size={16} /> Back to event
+        <ArrowLeft size={14} /> Back
       </button>
 
-      {/* Header */}
-      <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'Bebas Neue', fontSize: '2.2rem', letterSpacing: '0.06em', color: '#F4F0E8' }}>
-          THE <span style={{ color: '#C05A2A' }}>COLLECTIV4</span>
+      <div style={{ textAlign: 'center', marginBottom: '36px' }}>
+        <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: '#FFF', letterSpacing: '0.02em' }}>
+          THE COLLECTIV4
         </div>
-        <div style={{ fontSize: '12px', color: '#5A5248', marginTop: '8px', lineHeight: 1.5 }}>
-          {mode === 'signup'
-            ? 'Create your account to get your ticket and join the community.'
-            : 'Welcome back. Sign in to access the event.'
-          }
+        <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#444', marginTop: '8px', letterSpacing: '0.15em' }}>
+          {mode === 'signup' ? 'CREATE YOUR ACCOUNT' : 'WELCOME BACK'}
         </div>
       </div>
 
-      <div style={{ background: '#1A1814', border: '1px solid #2A2825', borderRadius: 16, padding: '1.5rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {/* Toggle */}
-        <div style={{ display: 'flex', marginBottom: '1.25rem', background: '#0E0D0B', borderRadius: 10, padding: 4 }}>
+        <div style={{ display: 'flex', background: '#0A0A0A', borderRadius: '10px', padding: '3px', marginBottom: '8px' }}>
           {['signup', 'signin'].map(m => (
             <button key={m} onClick={() => { setMode(m); setError('') }} style={{
-              flex: 1, background: mode === m ? '#C05A2A' : 'transparent',
-              border: 'none', borderRadius: 8, padding: '10px',
-              color: mode === m ? '#F4F0E8' : '#5A5248',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans',
+              flex: 1, background: mode === m ? '#FFF' : 'transparent',
+              border: 'none', borderRadius: '8px', padding: '10px',
+              color: mode === m ? '#000' : '#444',
+              fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'DM Sans',
               transition: 'all 0.2s',
             }}>
               {m === 'signin' ? 'Sign In' : 'Sign Up'}
@@ -103,52 +94,38 @@ export default function Auth() {
           ))}
         </div>
 
-        {/* Name field (signup only) */}
         {mode === 'signup' && (
           <input type="text" placeholder="Your name" value={name}
-            onChange={e => setName(e.target.value)}
-            style={{
-              width: '100%', background: '#0E0D0B', border: '1px solid #2A2825',
-              borderRadius: 10, padding: '13px 16px', color: '#F4F0E8',
-              fontFamily: 'DM Sans', fontSize: '14px', marginBottom: '10px', outline: 'none',
-            }} />
+            onChange={e => setName(e.target.value)} style={inputStyle} />
         )}
 
         <input type="email" placeholder="Email" value={email}
-          onChange={e => setEmail(e.target.value)}
-          style={{
-            width: '100%', background: '#0E0D0B', border: '1px solid #2A2825',
-            borderRadius: 10, padding: '13px 16px', color: '#F4F0E8',
-            fontFamily: 'DM Sans', fontSize: '14px', marginBottom: '10px', outline: 'none',
-          }} />
+          onChange={e => setEmail(e.target.value)} style={inputStyle} />
 
-        <input type="password" placeholder="Password (min 6 characters)" value={password}
+        <input type="password" placeholder="Password" value={password}
           onChange={e => setPassword(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handle()}
-          style={{
-            width: '100%', background: '#0E0D0B', border: '1px solid #2A2825',
-            borderRadius: 10, padding: '13px 16px', color: '#F4F0E8',
-            fontFamily: 'DM Sans', fontSize: '14px', marginBottom: '1rem', outline: 'none',
-          }} />
+          style={inputStyle} />
 
         {error && (
-          <div style={{ color: '#E05A3A', fontSize: '12px', marginBottom: '12px', padding: '8px 12px', background: 'rgba(224,90,58,0.1)', borderRadius: '8px' }}>
+          <div style={{ fontSize: '12px', color: '#C05A2A', padding: '10px 14px', background: 'rgba(192,90,42,0.08)', borderRadius: '8px' }}>
             {error}
           </div>
         )}
 
         <button onClick={handle} disabled={loading} style={{
-          width: '100%', background: '#C05A2A', border: 'none', borderRadius: 12,
-          padding: '15px', color: '#F4F0E8', fontWeight: 600,
+          width: '100%', background: '#FFF', border: 'none', borderRadius: '10px',
+          padding: '16px', color: '#000', fontWeight: 600,
           fontSize: '14px', cursor: 'pointer', fontFamily: 'DM Sans',
-          opacity: loading ? 0.7 : 1, transition: 'opacity 0.15s',
+          opacity: loading ? 0.6 : 1, transition: 'opacity 0.15s',
+          marginTop: '4px',
         }}>
-          {loading ? 'Loading...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+          {loading ? '...' : mode === 'signin' ? 'Sign In' : 'Create Account'}
         </button>
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '11px', color: '#3A3428' }}>
-        By joining you agree to keep it real. 🖤
+      <div style={{ textAlign: 'center', marginTop: '28px', fontFamily: 'DM Mono, monospace', fontSize: '9px', color: '#333', letterSpacing: '0.1em' }}>
+        ART · MUSIC · FASHION · EVENTS
       </div>
     </div>
   )

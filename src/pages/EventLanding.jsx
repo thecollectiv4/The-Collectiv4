@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { MapPin, Clock, Calendar, ChevronRight, Ticket, Users, Check } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, Music, Palette, Shirt, Printer } from 'lucide-react'
 
 const LINEUP = [
-  { name: 'MADOU', role: 'DJ', tag: 'House / Deep', img: null },
-  { name: 'PATO', role: 'DJ', tag: 'House / Techno', handle: '@patoduranc', img: null },
-  { name: 'MELLIZOS', role: 'DJ', tag: 'House', img: null },
-  { name: 'CLTV4 EXPERIENCE', role: 'Live', tag: 'Art + Fashion + Sound', img: null },
+  { name: 'MADOU', role: 'DJ SET', tag: 'House · Deep' },
+  { name: 'PATO', role: 'DJ SET', tag: 'House · Techno', handle: '@patoduranc' },
+  { name: 'MELLIZOS', role: 'DJ SET', tag: 'House' },
+  { name: 'CLTV4 EXPERIENCE', role: 'LIVE', tag: 'Art · Fashion · Sound' },
 ]
 
 const TIERS = [
-  { name: 'Early Bird', price: 15, status: 'available', desc: 'Limited first wave' },
-  { name: 'General', price: 25, status: 'soon', desc: 'Standard entry' },
-  { name: 'Door', price: 40, status: 'soon', desc: 'Night of the event' },
+  { name: 'EARLY BIRD', price: 15, status: 'available', note: 'Limited' },
+  { name: 'GENERAL', price: 25, status: 'soon', note: 'Coming soon' },
+  { name: 'DOOR', price: 40, status: 'soon', note: 'Night of' },
 ]
 
 export default function EventLanding() {
@@ -22,15 +22,11 @@ export default function EventLanding() {
   const navigate = useNavigate()
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [hasTicket, setHasTicket] = useState(false)
-  const [scrollY, setScrollY] = useState(0)
 
   useEffect(() => {
-    // Get attendee count
     supabase.from('tickets').select('id', { count: 'exact', head: true })
-      .then(({ count }) => setAttendeeCount(count || 12))
-      .catch(() => setAttendeeCount(12))
-
-    // Check if current user has ticket
+      .then(({ count }) => setAttendeeCount(count || 14))
+      .catch(() => setAttendeeCount(14))
     if (user) {
       supabase.from('tickets').select('id').eq('user_id', user.id).single()
         .then(({ data }) => setHasTicket(!!data))
@@ -38,177 +34,182 @@ export default function EventLanding() {
     }
   }, [user])
 
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener('scroll', handleScroll, { passive: true })
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
   const handleGetTicket = () => {
-    if (!user) {
-      navigate('/auth')
-    } else {
-      // TODO: Stripe checkout
-      alert('Stripe checkout coming soon — ticketing goes live May 15')
-    }
+    if (!user) navigate('/auth')
+    else alert('Stripe checkout coming soon — tickets go live May 15')
   }
 
   const daysUntil = Math.max(0, Math.ceil((new Date('2026-05-30') - new Date()) / 86400000))
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0E0D0B' }}>
+    <div style={{ background: '#000', minHeight: '100vh' }}>
 
-      {/* HERO */}
+      {/* ═══════ HERO ═══════ */}
       <div style={{
-        position: 'relative', height: '420px', overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1A0A04 0%, #0E0D0B 40%, #1A1210 70%, #2A1008 100%)',
+        position: 'relative', minHeight: '460px',
+        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+        padding: '0 28px 36px', overflow: 'hidden',
       }}>
-        {/* Grain overlay */}
+        {/* Background gradient */}
         <div style={{
-          position: 'absolute', inset: 0, opacity: 0.15,
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\'/%3E%3C/svg%3E")',
+          position: 'absolute', inset: 0,
+          background: 'linear-gradient(180deg, #0A0A0A 0%, #000 30%, #0A0604 60%, #000 100%)',
         }} />
 
-        {/* Rust glow */}
+        {/* Subtle glow */}
         <div style={{
-          position: 'absolute', bottom: '-80px', left: '50%', transform: `translateX(-50%) translateY(${scrollY * 0.2}px)`,
-          width: '300px', height: '300px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(192,90,42,0.25) 0%, transparent 70%)',
-          filter: 'blur(60px)',
+          position: 'absolute', bottom: '0', left: '50%', transform: 'translateX(-50%)',
+          width: '200px', height: '200px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(192,90,42,0.12) 0%, transparent 70%)',
+          filter: 'blur(80px)',
         }} />
 
-        {/* Content */}
-        <div style={{ position: 'relative', zIndex: 2, padding: '48px 24px 24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
-          
-          {/* Date badge */}
-          <div style={{
-            position: 'absolute', top: '20px', right: '20px',
-            background: 'rgba(192,90,42,0.15)', border: '1px solid rgba(192,90,42,0.3)',
-            borderRadius: '8px', padding: '6px 12px',
-            fontFamily: 'DM Mono, monospace', fontSize: '11px', color: '#C05A2A',
-            letterSpacing: '0.05em'
+        {/* Noise texture */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.04,
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+        }} />
+
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          {/* Countdown pill */}
+          <div className="fade-up" style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            border: '1px solid #333', borderRadius: '100px', padding: '6px 16px',
+            marginBottom: '32px',
           }}>
-            {daysUntil} DAYS
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C05A2A', animation: 'pulse 2s infinite' }} />
+            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: '#888', letterSpacing: '0.08em' }}>
+              {daysUntil} DAYS OUT
+            </span>
           </div>
 
-          {/* Brand */}
-          <div style={{ fontSize: '10px', letterSpacing: '0.25em', color: '#5A5248', textTransform: 'uppercase', marginBottom: '12px', fontWeight: 600 }}>
+          {/* Presents */}
+          <div className="fade-up-1" style={{
+            fontFamily: 'DM Sans', fontSize: '11px', letterSpacing: '0.3em',
+            color: '#555', textTransform: 'uppercase', fontWeight: 500, marginBottom: '16px',
+          }}>
             The Collectiv4 presents
           </div>
 
-          {/* Title */}
-          <h1 style={{
-            fontFamily: 'Bebas Neue, sans-serif', fontSize: '52px', lineHeight: 0.9,
-            color: '#F4F0E8', letterSpacing: '0.02em', margin: 0
+          {/* Main title */}
+          <h1 className="fade-up-2" style={{
+            fontFamily: 'Bebas Neue, sans-serif',
+            fontSize: '72px', lineHeight: 0.88, letterSpacing: '-1px',
+            color: '#FFF', margin: 0, fontWeight: 400,
           }}>
-            RAN BY<br/>
-            <span style={{ color: '#C05A2A' }}>ARTISTS</span>
+            RAN BY<br/>ARTISTS
           </h1>
 
-          <div style={{ fontSize: '13px', color: '#9A9288', marginTop: '14px', letterSpacing: '0.02em', lineHeight: 1.5 }}>
+          {/* Tagline */}
+          <p className="fade-up-3" style={{
+            fontSize: '13px', color: '#666', lineHeight: 1.6,
+            marginTop: '20px', maxWidth: '300px',
+          }}>
             House music. Live art. Fashion. Culture.<br/>
             One room. One night. No bullshit.
-          </div>
+          </p>
 
-          {/* Meta row */}
-          <div style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
+          {/* Meta */}
+          <div className="fade-up-4" style={{ display: 'flex', gap: '24px', marginTop: '24px' }}>
             {[
-              { icon: Calendar, text: 'May 30, 2026' },
+              { icon: Calendar, text: 'MAY 30' },
               { icon: Clock, text: '10PM — 2AM' },
-              { icon: MapPin, text: 'Houston · TBA' },
+              { icon: MapPin, text: 'HOUSTON' },
             ].map(({ icon: Icon, text }, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9A9288' }}>
-                <Icon size={14} strokeWidth={1.5} style={{ color: '#C05A2A' }} />
-                {text}
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Icon size={12} strokeWidth={1.4} style={{ color: '#555' }} />
+                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#888', letterSpacing: '0.06em' }}>{text}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* CTA STICKY or INLINE */}
-      <div style={{ padding: '20px 24px', borderBottom: '1px solid #1A1814' }}>
+      {/* ═══════ CTA ═══════ */}
+      <div style={{ padding: '0 28px 32px' }}>
         {hasTicket ? (
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            background: 'rgba(46,107,26,0.15)', border: '1px solid rgba(46,107,26,0.3)',
-            borderRadius: '14px', padding: '16px',
+            border: '1px solid rgba(46,107,26,0.4)', borderRadius: '12px', padding: '18px',
           }}>
-            <Check size={20} style={{ color: '#4CAF50' }} />
-            <span style={{ color: '#4CAF50', fontWeight: 600, fontSize: '14px' }}>You're in. See you May 30.</span>
+            <Check size={18} style={{ color: '#4CAF50' }} />
+            <span style={{ color: '#4CAF50', fontWeight: 500, fontSize: '14px' }}>You're in. See you May 30.</span>
           </div>
         ) : (
           <button onClick={handleGetTicket} style={{
-            width: '100%', background: '#C05A2A', border: 'none', borderRadius: '14px',
-            padding: '18px', color: '#F4F0E8', fontFamily: 'Bebas Neue, sans-serif',
-            fontSize: '20px', letterSpacing: '0.08em', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            transition: 'transform 0.15s, opacity 0.15s',
+            width: '100%', background: '#FFF', border: 'none', borderRadius: '12px',
+            padding: '18px 24px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            transition: 'opacity 0.15s',
           }}
           onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
           onMouseOut={e => e.currentTarget.style.opacity = '1'}
           >
-            <Ticket size={20} />
-            GET YOUR TICKET
-            <span style={{ fontSize: '14px', opacity: 0.8, fontFamily: 'DM Sans', fontWeight: 400 }}>from $15</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Ticket size={18} style={{ color: '#000' }} />
+              <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: '#000', letterSpacing: '0.06em' }}>
+                GET YOUR TICKET
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '13px', color: '#666' }}>from $15</span>
+              <ArrowRight size={16} style={{ color: '#000' }} />
+            </div>
           </button>
         )}
 
-        {/* Attendee count */}
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          marginTop: '12px', fontSize: '12px', color: '#5A5248'
+          marginTop: '14px', fontSize: '11px', color: '#444',
         }}>
-          <Users size={14} />
-          <span><strong style={{ color: '#9A9288' }}>{attendeeCount}</strong> people going</span>
-          {user && <span style={{ color: '#C05A2A', cursor: 'pointer', fontSize: '11px' }} onClick={() => navigate('/attendees')}>See who →</span>}
+          <Users size={12} />
+          <span><strong style={{ color: '#888' }}>{attendeeCount}</strong> confirmed</span>
+          {user && (
+            <span onClick={() => navigate('/attendees')} style={{ color: '#888', cursor: 'pointer', marginLeft: '4px' }}>
+              · View all →
+            </span>
+          )}
         </div>
       </div>
 
-      {/* LINEUP */}
-      <div style={{ padding: '28px 24px' }}>
+      {/* ═══════ DIVIDER ═══════ */}
+      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
+
+      {/* ═══════ LINEUP ═══════ */}
+      <div style={{ padding: '36px 28px' }}>
         <div style={{
-          fontSize: '10px', letterSpacing: '0.2em', color: '#5A5248',
-          textTransform: 'uppercase', fontWeight: 600, marginBottom: '16px'
+          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
+          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
         }}>
-          Lineup
+          LINEUP
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
           {LINEUP.map((artist, i) => (
             <div key={i} style={{
-              display: 'flex', alignItems: 'center', gap: '14px',
-              padding: '14px 16px', borderRadius: '12px',
-              background: i % 2 === 0 ? '#1A1814' : 'transparent',
-              transition: 'background 0.15s',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '18px 0',
+              borderBottom: i < LINEUP.length - 1 ? '1px solid #1A1A1A' : 'none',
             }}>
-              {/* Avatar placeholder */}
-              <div style={{
-                width: '44px', height: '44px', borderRadius: '50%',
-                background: `linear-gradient(135deg, #2A2420 0%, #1A1210 100%)`,
-                border: '1px solid #2A2825',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'Bebas Neue', fontSize: '16px', color: '#C05A2A',
-              }}>
-                {artist.name[0]}
-              </div>
-
-              <div style={{ flex: 1 }}>
+              <div>
                 <div style={{
-                  fontFamily: 'Bebas Neue, sans-serif', fontSize: '18px',
-                  color: '#F4F0E8', letterSpacing: '0.04em'
+                  fontFamily: 'Bebas Neue', fontSize: '28px', color: '#FFF',
+                  letterSpacing: '0.02em', lineHeight: 1,
                 }}>
                   {artist.name}
                 </div>
-                <div style={{ fontSize: '11px', color: '#5A5248', marginTop: '1px' }}>
-                  {artist.role} · {artist.tag}
+                <div style={{
+                  fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#555',
+                  marginTop: '4px', letterSpacing: '0.04em',
+                }}>
+                  {artist.tag}
                 </div>
               </div>
 
               <div style={{
-                fontSize: '9px', letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: '#C05A2A', fontWeight: 600,
-                background: 'rgba(192,90,42,0.1)', padding: '4px 10px', borderRadius: '20px',
+                fontFamily: 'DM Mono, monospace', fontSize: '9px',
+                letterSpacing: '0.1em', color: '#666',
+                border: '1px solid #333', padding: '4px 12px', borderRadius: '100px',
               }}>
                 {artist.role}
               </div>
@@ -217,129 +218,150 @@ export default function EventLanding() {
         </div>
       </div>
 
-      {/* TICKET TIERS */}
-      <div style={{ padding: '4px 24px 28px' }}>
+      {/* ═══════ DIVIDER ═══════ */}
+      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
+
+      {/* ═══════ TICKETS ═══════ */}
+      <div style={{ padding: '36px 28px' }}>
         <div style={{
-          fontSize: '10px', letterSpacing: '0.2em', color: '#5A5248',
-          textTransform: 'uppercase', fontWeight: 600, marginBottom: '16px'
+          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
+          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
         }}>
-          Tickets
+          TICKETS
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {TIERS.map((tier, i) => (
             <div key={i} style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '16px 18px', borderRadius: '12px',
-              background: '#1A1814', border: `1px solid ${tier.status === 'available' ? 'rgba(192,90,42,0.3)' : '#2A2825'}`,
+              padding: '18px 20px', borderRadius: '12px',
+              border: `1px solid ${tier.status === 'available' ? '#333' : '#1A1A1A'}`,
+              background: tier.status === 'available' ? '#0A0A0A' : 'transparent',
             }}>
               <div>
                 <div style={{
-                  fontFamily: 'Bebas Neue', fontSize: '16px', color: '#F4F0E8',
-                  letterSpacing: '0.04em'
+                  fontFamily: 'Bebas Neue', fontSize: '18px', color: '#FFF',
+                  letterSpacing: '0.04em',
                 }}>
                   {tier.name}
                 </div>
-                <div style={{ fontSize: '11px', color: '#5A5248', marginTop: '2px' }}>
-                  {tier.desc}
+                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: '#555', marginTop: '2px', letterSpacing: '0.06em' }}>
+                  {tier.note}
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
-                <div style={{
-                  fontFamily: 'Bebas Neue', fontSize: '24px',
-                  color: tier.status === 'available' ? '#C05A2A' : '#5A5248',
+              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{
+                  fontFamily: 'Bebas Neue', fontSize: '28px',
+                  color: tier.status === 'available' ? '#FFF' : '#333',
                 }}>
                   ${tier.price}
-                </div>
-                <div style={{
-                  fontSize: '9px', textTransform: 'uppercase', letterSpacing: '0.08em',
-                  color: tier.status === 'available' ? '#C05A2A' : '#5A5248',
-                  fontWeight: 600,
-                }}>
-                  {tier.status === 'available' ? '● Available' : 'Coming soon'}
-                </div>
+                </span>
+                {tier.status === 'available' && (
+                  <div style={{
+                    width: '8px', height: '8px', borderRadius: '50%',
+                    background: '#C05A2A',
+                  }} />
+                )}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ABOUT THE EXPERIENCE */}
-      <div style={{ padding: '4px 24px 28px' }}>
+      {/* ═══════ DIVIDER ═══════ */}
+      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
+
+      {/* ═══════ THE EXPERIENCE ═══════ */}
+      <div style={{ padding: '36px 28px' }}>
         <div style={{
-          fontSize: '10px', letterSpacing: '0.2em', color: '#5A5248',
-          textTransform: 'uppercase', fontWeight: 600, marginBottom: '16px'
+          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
+          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
         }}>
-          The Experience
+          THE EXPERIENCE
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: '#1A1A1A', borderRadius: '12px', overflow: 'hidden' }}>
           {[
-            { label: 'House Music', desc: 'Curated sets all night' },
-            { label: 'Live Painting', desc: 'Art created in real time' },
-            { label: 'Fashion Pop-Up', desc: 'Local brands + merch' },
-            { label: 'Screen Printing', desc: 'Custom prints on the spot' },
-          ].map((item, i) => (
+            { icon: Music, label: 'HOUSE MUSIC', desc: 'Curated sets all night' },
+            { icon: Palette, label: 'LIVE ART', desc: 'Painted in real time' },
+            { icon: Shirt, label: 'FASHION', desc: 'Local brands & merch' },
+            { icon: Printer, label: 'SCREEN PRINT', desc: 'Custom prints live' },
+          ].map(({ icon: Icon, label, desc }, i) => (
             <div key={i} style={{
-              background: '#1A1814', borderRadius: '12px', padding: '16px',
-              border: '1px solid #2A2825',
+              background: '#0A0A0A', padding: '24px 18px',
+              display: 'flex', flexDirection: 'column', gap: '10px',
             }}>
-              <div style={{
-                fontFamily: 'Bebas Neue', fontSize: '14px', color: '#F4F0E8',
-                letterSpacing: '0.04em', marginBottom: '4px'
-              }}>
-                {item.label}
-              </div>
-              <div style={{ fontSize: '11px', color: '#5A5248', lineHeight: 1.4 }}>
-                {item.desc}
+              <Icon size={18} strokeWidth={1.2} style={{ color: '#555' }} />
+              <div>
+                <div style={{ fontFamily: 'Bebas Neue', fontSize: '14px', color: '#FFF', letterSpacing: '0.04em' }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>
+                  {desc}
+                </div>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* EDITION 1 PROOF */}
-      <div style={{
-        padding: '28px 24px', borderTop: '1px solid #1A1814',
-        textAlign: 'center'
-      }}>
+      {/* ═══════ DIVIDER ═══════ */}
+      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
+
+      {/* ═══════ PROOF / EDITION 1 ═══════ */}
+      <div style={{ padding: '48px 28px', textAlign: 'center' }}>
         <div style={{
-          fontSize: '10px', letterSpacing: '0.2em', color: '#5A5248',
-          textTransform: 'uppercase', fontWeight: 600, marginBottom: '16px'
+          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
+          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
         }}>
-          Edition 1 — April 4, 2026
+          EDITION 01 · APRIL 4, 2026
         </div>
+
         <div style={{
-          fontFamily: 'Bebas Neue', fontSize: '42px', color: '#C05A2A',
-          lineHeight: 1
+          fontFamily: 'Bebas Neue', fontSize: '80px', color: '#FFF',
+          lineHeight: 0.9, letterSpacing: '-2px',
         }}>
           223
         </div>
-        <div style={{ fontSize: '12px', color: '#5A5248', marginTop: '4px' }}>
+        <div style={{
+          fontSize: '13px', color: '#555', marginTop: '8px', lineHeight: 1.5,
+        }}>
           people in one room, feeling the same thing.
         </div>
+
         <div style={{
-          fontSize: '13px', color: '#9A9288', marginTop: '16px',
-          fontStyle: 'italic', lineHeight: 1.5
+          marginTop: '24px', padding: '20px',
+          border: '1px solid #1A1A1A', borderRadius: '12px',
         }}>
-          "We built something real. That is the foundation."
+          <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.7, fontStyle: 'italic' }}>
+            We built something real. 220 people in a room all feeling the same thing. That is the foundation.
+          </p>
+          <div style={{ fontSize: '11px', color: '#444', marginTop: '12px' }}>
+            — Sanman Studios, Houston
+          </div>
         </div>
       </div>
 
-      {/* FOOTER */}
+      {/* ═══════ FOOTER ═══════ */}
       <div style={{
-        padding: '28px 24px 120px', borderTop: '1px solid #1A1814',
-        textAlign: 'center'
+        padding: '36px 28px 120px',
+        borderTop: '1px solid #1A1A1A',
+        textAlign: 'center',
       }}>
         <div style={{
-          fontFamily: 'Bebas Neue', fontSize: '18px', color: '#F4F0E8',
-          letterSpacing: '0.06em', marginBottom: '8px'
+          fontFamily: 'Bebas Neue', fontSize: '24px', color: '#FFF',
+          letterSpacing: '0.02em',
         }}>
-          THE <span style={{ color: '#C05A2A' }}>COLLECTIV4</span>
+          THE COLLECTIV4
         </div>
-        <div style={{ fontSize: '11px', color: '#5A5248', lineHeight: 1.6 }}>
-          Houston's creative infrastructure.<br/>
+        <div style={{
+          fontFamily: 'DM Mono, monospace', fontSize: '10px',
+          color: '#444', marginTop: '8px', letterSpacing: '0.1em',
+        }}>
+          ART · MUSIC · FASHION · EVENTS
+        </div>
+        <div style={{ fontSize: '12px', color: '#333', marginTop: '16px' }}>
           @thecollectiv4
         </div>
       </div>
