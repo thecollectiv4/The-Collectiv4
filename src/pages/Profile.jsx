@@ -1,121 +1,254 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
-import { db } from '@/api/supabase'
-import { Settings, Grid, Briefcase, Star } from 'lucide-react'
+import { supabase } from '@/api/supabase'
+import { LogOut, Edit3, Ticket, Calendar, MapPin, Clock } from 'lucide-react'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
+  const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
-  const [posts, setPosts] = useState([])
-  const [tab, setTab] = useState('works')
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState({ display_name: '', bio: '', handle: '' })
 
   useEffect(() => {
-    // Load seed profile for demo
-    db.profiles().select('*').eq('username', 'patoduranc').single()
-      .then(({ data }) => { if (data) setProfile(data) })
-    db.posts().select('*').eq('author_id', 'seed_pato')
-      .then(({ data }) => { if (data) setPosts(data) })
-  }, [])
+    if (!user) { navigate('/auth'); return }
+    loadProfile()
+  }, [user])
 
-  const tabs = [
-    { key: 'works',    label: 'Works',    icon: Grid      },
-    { key: 'services', label: 'Services', icon: Briefcase },
-    { key: 'culture',  label: 'Culture',  icon: Star      },
-  ]
+  const loadProfile = async () => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+    if (data) {
+      setProfile(data)
+      setForm({ display_name: data.display_name || '', bio: data.bio || '', handle: data.handle || '' })
+    } else {
+      // Create profile for new user
+      const newProfile = {
+        id: user.id,
+        display_name: user.email.split('@')[0],
+        bio: '',
+        handle: '',
+        city: 'Houston',
+      }
+      await supabase.from('profiles').insert(newProfile)
+      setProfile(newProfile)
+      setForm({ display_name: newProfile.display_name, bio: '', handle: '' })
+      setEditing(true) // New user, open edit mode
+    }
+  }
 
-  const demoProfile = profile || {
-    full_name: 'Pato Duran', username: 'patoduranc',
-    bio: 'DJ & founder of The Collectiv4. Building the creative infrastructure Houston never had.',
-    city: 'Houston', roles: ['DJ', 'Founder', 'Creative Director'],
-    interests: ['House Music', 'Culture', 'Events', 'Community', 'Entrepreneurship'],
-    followers: Array(847).fill(''), following: Array(312).fill(''),
+  const saveProfile = async () => {
+    await supabase.from('profiles').update({
+      display_name: form.display_name,
+      bio: form.bio,
+      handle: form.handle,
+    }).eq('id', user.id)
+    setProfile(prev => ({ ...prev, ...form }))
+    setEditing(false)
+  }
+
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/')
+  }
+
+  if (!profile) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#5A5248', fontSize: '13px' }}>Loading...</div>
+      </div>
+    )
   }
 
   return (
-    <div style={{ paddingBottom: '1rem' }}>
-      {/* Cover */}
-      <div style={{ height: 140, background: 'linear-gradient(135deg, #1A1208, #2A1A08)', position: 'relative', borderBottom: '3px solid #C05A2A' }}>
-        <button onClick={signOut} style={{ position: 'absolute', top: 12, right: 12, background: 'rgba(0,0,0,0.5)', border: '1px solid #2A2825', borderRadius: 8, padding: '6px 10px', color: '#9A9288', cursor: 'pointer', fontSize: '0.7rem' }}>
-          Sign Out
+    <div style={{ minHeight: '100vh', background: '#0E0D0B' }}>
+      {/* Header area */}
+      <div style={{
+        height: '120px',
+        background: 'linear-gradient(135deg, #1A0A04 0%, #0E0D0B 50%, #1A1210 100%)',
+        position: 'relative',
+      }}>
+        <button onClick={handleSignOut} style={{
+          position: 'absolute', top: '16px', right: '16px',
+          background: 'rgba(26,24,20,0.8)', border: '1px solid #2A2825',
+          borderRadius: '8px', padding: '6px 14px',
+          color: '#9A9288', fontSize: '11px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          fontFamily: 'DM Sans',
+        }}>
+          <LogOut size={12} /> Sign Out
         </button>
       </div>
 
-      <div style={{ padding: '0 1rem' }}>
-        {/* Avatar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: -28, marginBottom: '0.75rem' }}>
-          <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#C05A2A', border: '3px solid #0E0D0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '1.8rem', color: '#F4F0E8' }}>
-            P
-          </div>
-          <button style={{ background: 'transparent', border: '1px solid #C05A2A', borderRadius: 8, padding: '7px 16px', color: '#C05A2A', fontSize: '0.78rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans' }}>
-            Edit Profile
-          </button>
+      {/* Avatar */}
+      <div style={{ padding: '0 24px', marginTop: '-36px' }}>
+        <div style={{
+          width: '72px', height: '72px', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #2A2420, #1A1210)',
+          border: '3px solid #0E0D0B', outline: '2px solid #C05A2A',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'Bebas Neue', fontSize: '28px', color: '#C05A2A',
+        }}>
+          {(profile.display_name || '?')[0].toUpperCase()}
         </div>
+      </div>
 
-        {/* Info */}
-        <div style={{ marginBottom: '0.75rem' }}>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.4rem', letterSpacing: '0.04em', color: '#F4F0E8' }}>{demoProfile.full_name}</div>
-          <div style={{ fontSize: '0.78rem', color: '#9A9288', marginBottom: '0.5rem' }}>@{demoProfile.username} · {demoProfile.city}</div>
-          <p style={{ fontSize: '0.82rem', color: '#E2DDD4', lineHeight: 1.5, margin: '0 0 0.75rem' }}>{demoProfile.bio}</p>
-        </div>
-
-        {/* Roles */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.75rem' }}>
-          {demoProfile.roles?.map(r => (
-            <span key={r} style={{ background: '#C05A2A22', color: '#C05A2A', fontSize: '0.68rem', padding: '3px 10px', borderRadius: 20, border: '1px solid #C05A2A44' }}>{r}</span>
-          ))}
-        </div>
-
-        {/* Stats */}
-        <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid #2A2825' }}>
-          {[
-            { label: 'Followers', val: demoProfile.followers?.length || 847 },
-            { label: 'Following', val: demoProfile.following?.length || 312 },
-            { label: 'Events',    val: 4 },
-          ].map(s => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '1.4rem', color: '#F4F0E8' }}>{s.val}</div>
-              <div style={{ fontSize: '0.65rem', color: '#9A9288', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{s.label}</div>
+      {/* Profile info */}
+      <div style={{ padding: '16px 24px' }}>
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#5A5248', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                Name
+              </label>
+              <input
+                type="text" placeholder="Your name"
+                value={form.display_name}
+                onChange={e => setForm(p => ({ ...p, display_name: e.target.value }))}
+                style={{
+                  width: '100%', background: '#1A1814', border: '1px solid #2A2825',
+                  borderRadius: '10px', padding: '12px', color: '#F4F0E8',
+                  fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
+                }}
+              />
             </div>
-          ))}
-        </div>
-
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-          {tabs.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex: 1, background: tab === t.key ? '#C05A2A' : 'transparent', border: `1px solid ${tab === t.key ? '#C05A2A' : '#2A2825'}`, borderRadius: 8, padding: '8px 4px', color: tab === t.key ? '#F4F0E8' : '#9A9288', fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'DM Sans', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-              <t.icon size={13} /> {t.label}
+            <div>
+              <label style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#5A5248', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                Handle
+              </label>
+              <input
+                type="text" placeholder="@yourhandle"
+                value={form.handle}
+                onChange={e => setForm(p => ({ ...p, handle: e.target.value }))}
+                style={{
+                  width: '100%', background: '#1A1814', border: '1px solid #2A2825',
+                  borderRadius: '10px', padding: '12px', color: '#F4F0E8',
+                  fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
+                }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '10px', letterSpacing: '0.1em', color: '#5A5248', textTransform: 'uppercase', fontWeight: 600, marginBottom: '4px', display: 'block' }}>
+                Bio
+              </label>
+              <textarea
+                placeholder="What do you do? What are you about?"
+                value={form.bio}
+                onChange={e => setForm(p => ({ ...p, bio: e.target.value }))}
+                rows={3}
+                style={{
+                  width: '100%', background: '#1A1814', border: '1px solid #2A2825',
+                  borderRadius: '10px', padding: '12px', color: '#F4F0E8',
+                  fontFamily: 'DM Sans', fontSize: '14px', outline: 'none',
+                  resize: 'vertical',
+                }}
+              />
+            </div>
+            <button onClick={saveProfile} style={{
+              background: '#C05A2A', border: 'none', borderRadius: '12px',
+              padding: '14px', color: '#F4F0E8', fontFamily: 'Bebas Neue',
+              fontSize: '16px', letterSpacing: '0.06em', cursor: 'pointer',
+            }}>
+              SAVE PROFILE
             </button>
-          ))}
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: '#F4F0E8', letterSpacing: '0.04em' }}>
+                  {profile.display_name || 'Set your name'}
+                </div>
+                {profile.handle && (
+                  <div style={{ fontSize: '13px', color: '#9A9288', marginTop: '2px' }}>
+                    @{profile.handle} · Houston
+                  </div>
+                )}
+              </div>
+              <button onClick={() => setEditing(true)} style={{
+                background: 'none', border: '1px solid #2A2825', borderRadius: '8px',
+                padding: '6px 12px', color: '#9A9288', fontSize: '11px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans',
+              }}>
+                <Edit3 size={12} /> Edit
+              </button>
+            </div>
+            {profile.bio && (
+              <div style={{ fontSize: '13px', color: '#9A9288', marginTop: '10px', lineHeight: 1.5 }}>
+                {profile.bio}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Ticket Section */}
+      <div style={{ padding: '8px 24px 100px' }}>
+        <div style={{
+          fontSize: '10px', letterSpacing: '0.2em', color: '#5A5248',
+          textTransform: 'uppercase', fontWeight: 600, marginBottom: '14px'
+        }}>
+          Your Ticket
         </div>
 
-        {/* Tab content */}
-        {tab === 'works' && (
-          <div>
-            {posts.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#9A9288', padding: '2rem', fontSize: '0.85rem' }}>No works yet</div>
-            ) : posts.map(p => (
-              <div key={p.id} style={{ background: '#1A1814', border: '1px solid #2A2825', borderRadius: 10, padding: '0.875rem', marginBottom: '0.5rem' }}>
-                <p style={{ fontSize: '0.82rem', color: '#E2DDD4', margin: 0, lineHeight: 1.5 }}>{p.content}</p>
+        <div style={{
+          background: 'linear-gradient(135deg, #1A1210 0%, #2A1A10 100%)',
+          border: '1px solid rgba(192,90,42,0.2)',
+          borderRadius: '16px', padding: '24px', position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Decorative circle */}
+          <div style={{
+            position: 'absolute', top: '-20px', right: '-20px',
+            width: '100px', height: '100px', borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(192,90,42,0.15) 0%, transparent 70%)',
+          }} />
+
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{
+              fontFamily: 'Bebas Neue', fontSize: '22px', color: '#F4F0E8',
+              letterSpacing: '0.04em',
+            }}>
+              RAN BY <span style={{ color: '#C05A2A' }}>ARTISTS</span>
+            </div>
+            <div style={{ fontSize: '11px', color: '#5A5248', marginTop: '4px' }}>
+              May Edition
+            </div>
+
+            <div style={{
+              display: 'flex', gap: '20px', marginTop: '20px',
+            }}>
+              {[
+                { icon: Calendar, text: 'May 30' },
+                { icon: Clock, text: '10PM' },
+                { icon: MapPin, text: 'Houston' },
+              ].map(({ icon: Icon, text }, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#9A9288' }}>
+                  <Icon size={13} style={{ color: '#C05A2A' }} />
+                  {text}
+                </div>
+              ))}
+            </div>
+
+            {/* Ticket status */}
+            <div style={{
+              marginTop: '20px', padding: '12px 16px',
+              background: 'rgba(90,82,72,0.15)', borderRadius: '10px',
+              border: '1px dashed #2A2825',
+              textAlign: 'center',
+            }}>
+              <div style={{
+                fontFamily: 'DM Mono, monospace', fontSize: '11px',
+                color: '#9A9288', letterSpacing: '0.05em',
+              }}>
+                Tickets go live May 15
               </div>
-            ))}
+              <div style={{ fontSize: '10px', color: '#5A5248', marginTop: '4px' }}>
+                Early bird from $15
+              </div>
+            </div>
           </div>
-        )}
-
-        {tab === 'services' && (
-          <div style={{ background: '#1A1814', border: '1px solid #2A2825', borderRadius: 10, padding: '1rem' }}>
-            <div style={{ fontWeight: 500, color: '#F4F0E8', marginBottom: 4 }}>DJ Sets & Event Curation</div>
-            <div style={{ fontSize: '0.75rem', color: '#9A9288', marginBottom: 8 }}>DJ sets, event programming, and creative direction for cultural events.</div>
-            <div style={{ color: '#C05A2A', fontFamily: 'Bebas Neue', fontSize: '1.1rem' }}>$250/hr</div>
-          </div>
-        )}
-
-        {tab === 'culture' && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {demoProfile.interests?.map(i => (
-              <span key={i} style={{ background: '#1A1814', border: '1px solid #2A2825', color: '#E2DDD4', fontSize: '0.72rem', padding: '4px 12px', borderRadius: 20 }}>{i}</span>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
     </div>
   )
