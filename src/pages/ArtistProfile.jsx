@@ -7,7 +7,8 @@ const ARTISTS = {
     role: 'Painter · Visual Artist',
     location: 'Houston, TX',
     bio: "Visual storyteller bringing raw emotion to canvas. Isaac's work lives at the intersection of street culture and fine art — bold, unapologetic, and deeply personal. His pieces anchor the gallery for Ran By Artists Edition 002.",
-    contributions: ['Gallery Featured Artist — RBA 002', 'Flyer design — Edition 001 & 002', 'Original paintings on display and for sale'],
+    contributions: ['Gallery Featured Artist — RBA 002', 'Flyer design — Edition 001 & 002', 'Original paintings on display and for sale', 'Founder — Stained Vase'],
+    founded: { name: 'STAINED VASE', slug: 'stained-vase', role: 'Brand', accent: '#D4A040' },
     initial: 'I',
     accent: '#8A2040',
   },
@@ -50,7 +51,7 @@ const ARTISTS = {
     initial: 'SV',
     accent: '#D4A040',
     isBrand: true,
-    owner: { name: 'Stained Vase Team', role: 'Founders', location: 'Houston, TX' },
+    owner: { name: 'Isaac Lagarda', slug: 'isaac-lagarda', role: 'Founder', location: 'Houston, TX' },
   },
   'arlo-espresso': {
     name: 'ARLO ESPRESSO CLUB',
@@ -142,15 +143,38 @@ export default function ArtistProfile() {
           <>
             <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${artist.accent}20,transparent)`,marginBottom:'28px'}} />
             <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream)',marginBottom:'16px'}}>FOUNDED BY</div>
-            <div style={{padding:'16px',border:`1px solid ${artist.accent}20`,borderRadius:'12px',background:`${artist.accent}06`,marginBottom:'32px',display:'flex',alignItems:'center',gap:'14px'}}>
+            <div onClick={()=>artist.owner.slug&&navigate('/artist/'+artist.owner.slug)} style={{padding:'16px',border:`1px solid ${artist.accent}20`,borderRadius:'12px',background:`${artist.accent}06`,marginBottom:'32px',display:'flex',alignItems:'center',gap:'14px',cursor:artist.owner.slug?'pointer':'default',transition:'all .2s'}}
+              onMouseOver={e=>{if(artist.owner.slug){e.currentTarget.style.borderColor=artist.accent+'50';e.currentTarget.style.transform='translateX(4px)'}}}
+              onMouseOut={e=>{if(artist.owner.slug){e.currentTarget.style.borderColor=artist.accent+'20';e.currentTarget.style.transform='translateX(0)'}}}>
               <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--bg-raised)',border:`1px solid ${artist.accent}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'18px',color:artist.accent}}>
                 {artist.owner.name[0]}
               </div>
-              <div>
+              <div style={{flex:1}}>
                 <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{artist.owner.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'9px',color:artist.accent,letterSpacing:'.04em',marginTop:'2px'}}>{artist.owner.role}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'1px'}}>{artist.owner.location}</div>
               </div>
+              {artist.owner.slug && <ArrowLeft size={14} style={{color:artist.accent,transform:'rotate(180deg)',opacity:.5}} />}
+            </div>
+          </>
+        )}
+
+        {/* Founded section for artists who own brands */}
+        {artist.founded && (
+          <>
+            <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${artist.accent}20,transparent)`,marginBottom:'28px'}} />
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream)',marginBottom:'16px'}}>FOUNDER OF</div>
+            <div onClick={()=>navigate('/artist/'+artist.founded.slug)} style={{padding:'16px',border:`1px solid ${artist.founded.accent}20`,borderRadius:'12px',background:`${artist.founded.accent}06`,marginBottom:'32px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=artist.founded.accent+'50';e.currentTarget.style.transform='translateX(4px)'}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor=artist.founded.accent+'20';e.currentTarget.style.transform='translateX(0)'}}>
+              <div style={{width:'44px',height:'44px',borderRadius:'16px',background:'var(--bg-raised)',border:`1px solid ${artist.founded.accent}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:artist.founded.accent}}>
+                SV
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{artist.founded.name}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:artist.founded.accent,letterSpacing:'.04em',marginTop:'2px'}}>{artist.founded.role}</div>
+              </div>
+              <ArrowLeft size={14} style={{color:artist.founded.accent,transform:'rotate(180deg)',opacity:.5}} />
             </div>
           </>
         )}
