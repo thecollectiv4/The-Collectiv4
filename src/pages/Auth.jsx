@@ -5,30 +5,23 @@ import { ArrowLeft } from 'lucide-react'
 
 export default function Auth() {
   const [mode, setMode] = useState('signup')
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
   const inp = { width:'100%', background:'var(--bg-card)', border:'1px solid var(--border-hi)', borderRadius:'10px', padding:'14px 16px', color:'var(--cream)', fontFamily:'DM Sans', fontSize:'14px', outline:'none' }
 
   const handle = async () => {
+    if (mode==='signup' && !name.trim()) { setError('Name is required'); return }
     setLoading(true); setError('')
     try {
       if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate('/') }
-      else { const {error,data}=await signUp(email,password); if(error)throw error; if(data?.user&&!data.session)setSuccess(true); else navigate('/') }
+      else { const {error}=await signUp(email,password,name.trim()); if(error)throw error; navigate('/') }
     } catch(e){ setError(e.message) } finally{ setLoading(false) }
   }
-
-  if (success) return (
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'var(--bg)',textAlign:'center'}}>
-      <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--cream)',letterSpacing:'.02em',marginBottom:'12px'}}>CHECK YOUR EMAIL</div>
-      <div style={{fontSize:'13px',color:'var(--cream-mid)',lineHeight:1.7,marginBottom:'28px'}}>We sent a confirmation link to <strong style={{color:'var(--cream)'}}>{email}</strong>.</div>
-      <button onClick={()=>{setSuccess(false);setMode('signin')}} style={{background:'none',border:'1px solid var(--border-hi)',borderRadius:'10px',padding:'14px',color:'var(--cream-mid)',fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans'}}>Already confirmed? Sign In</button>
-    </div>
-  )
 
   return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'var(--bg)'}}>
@@ -47,6 +40,7 @@ export default function Auth() {
             </button>
           ))}
         </div>
+        {mode==='signup'&&<input type="text" placeholder="Your name" value={name} onChange={e=>setName(e.target.value)} style={inp}/>}
         <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={inp}/>
         <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handle()} style={inp}/>
         {error&&<div style={{fontSize:'12px',color:'var(--rust)',padding:'10px 14px',background:'var(--rust-dim)',borderRadius:'8px'}}>{error}</div>}
