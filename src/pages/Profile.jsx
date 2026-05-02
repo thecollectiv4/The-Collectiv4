@@ -29,13 +29,19 @@ export default function Profile() {
 
   return (
     <div style={{background:'var(--bg)',minHeight:'100vh'}}>
-      <div style={{height:'140px',paddingTop:'env(safe-area-inset-top, 20px)',background:'linear-gradient(160deg,#2A1408,#1A0A04,#0D0A04)',position:'relative',overflow:'visible'}}>
-        <button onClick={async()=>{await signOut();navigate('/')}} style={{position:'absolute',top:'20px',right:'14px',background:'none',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-low)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',zIndex:2}}>
-          <LogOut size={11}/> Out
+      {/* Header matching Event page */}
+      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PROFILE</div>
+        <button onClick={async()=>{await signOut();navigate('/')}} style={{background:'none',border:'1px solid rgba(255,255,255,.12)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-mid)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
+          <LogOut size={11}/> Sign Out
         </button>
       </div>
-      <div style={{padding:'0 28px',marginTop:'-36px',position:'relative',zIndex:3}}>
-        <div style={{width:'72px',height:'72px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid rgba(255,255,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'30px',color:'var(--cream)'}}>
+      {/* Hero gradient */}
+      <div style={{height:'100px',background:'linear-gradient(160deg,#1C1810,#141008,#0D0A04)',position:'relative',overflow:'visible'}}>
+        <div style={{position:'absolute',top:'-20px',right:'-20px',width:'160px',height:'160px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)',filter:'blur(40px)'}} />
+      </div>
+      <div style={{padding:'0 28px',marginTop:'-40px',position:'relative',zIndex:3}}>
+        <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'34px',color:'var(--cream)',boxShadow:'0 4px 20px rgba(0,0,0,.4)'}}>
           {(profile.display_name||'?')[0].toUpperCase()}
         </div>
       </div>
