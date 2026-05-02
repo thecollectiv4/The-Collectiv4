@@ -1,12 +1,11 @@
 import { Outlet, NavLink } from 'react-router-dom'
-import { CalendarDays, Users, MessageCircle, User } from 'lucide-react'
+import { CalendarDays, Users, User } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 
 const tabs = [
-  { to: '/',          icon: CalendarDays,  label: 'Event'   },
-  { to: '/attendees', icon: Users,         label: 'Going'   },
-  { to: '/chat',      icon: MessageCircle, label: 'Chat'    },
-  { to: '/profile',   icon: User,          label: 'Profile' },
+  { to: '/',          icon: CalendarDays,  label: 'Event'     },
+  { to: '/community', icon: Users,         label: 'Community' },
+  { to: '/profile',   icon: User,          label: 'Profile'   },
 ]
 
 export default function Layout() {
@@ -32,7 +31,7 @@ export default function Layout() {
               {({ isActive }) => (
                 <div style={{
                   display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
-                  padding:'8px 18px',
+                  padding:'8px 24px',
                   color: isActive ? '#F2E6D0' : '#686058',
                   transition:'all 0.2s',
                   position:'relative',

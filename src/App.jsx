@@ -2,12 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
 import Layout from '@/components/Layout'
 import EventLanding from '@/pages/EventLanding'
-import Attendees from '@/pages/Attendees'
-import EventChat from '@/pages/EventChat'
+import Community from '@/pages/Community'
 import Profile from '@/pages/Profile'
 import Auth from '@/pages/Auth'
-import DJProfile from '@/pages/DJProfile'
-import AttendeeProfile from '@/pages/AttendeeProfile'
 import ExperienceDetail from '@/pages/ExperienceDetail'
 import PastEditions from '@/pages/PastEditions'
 import ArtistProfile from '@/pages/ArtistProfile'
@@ -21,15 +18,15 @@ export default function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<EventLanding />} />
-            <Route path="attendees" element={<Attendees />} />
-            <Route path="chat" element={<EventChat />} />
+            <Route path="community" element={<Community />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="dj/:handle" element={<DJProfile />} />
-            <Route path="attendee/:id" element={<AttendeeProfile />} />
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
             <Route path="artist/:slug" element={<ArtistProfile />} />
             <Route path="scanner" element={<DoorScanner />} />
+            {/* Redirects from old routes */}
+            <Route path="attendees" element={<Navigate to="/community" />} />
+            <Route path="chat" element={<Navigate to="/community" />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
