@@ -56,7 +56,7 @@ export default function ExperienceDetail() {
   const IconComp = ICON_MAP[exp.iconName]
 
   return (
-    <div style={{background:'var(--bg)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#161210 0%,#12100C 20%,#0D0A06 50%,#0D0A04 100%)',minHeight:'100vh'}}>
       <div style={{position:'relative',height:'240px',background:exp.gradient,overflow:'hidden'}}>
         <div style={{position:'absolute',inset:0,background:exp.color}}/>
         <div style={{position:'absolute',bottom:'-60px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}22 0%,transparent 70%)`,filter:'blur(60px)'}} />

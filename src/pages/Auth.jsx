@@ -24,7 +24,7 @@ export default function Auth() {
   }
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'var(--bg)'}}>
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'linear-gradient(180deg,#161210 0%,#12100C 30%,#0D0A04 100%)'}}>
       <button onClick={()=>navigate('/')} style={{position:'absolute',top:'20px',left:'20px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',fontFamily:'DM Sans'}}>
         <ArrowLeft size={14}/> Back
       </button>

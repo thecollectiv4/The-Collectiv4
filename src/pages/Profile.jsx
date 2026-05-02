@@ -29,7 +29,7 @@ export default function Profile() {
   if(!profile) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-low)'}}>Loading...</div></div>
 
   return (
-    <div style={{background:'var(--bg)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#161210 0%,#12100C 20%,#0D0A06 50%,#0D0A04 100%)',minHeight:'100vh'}}>
       {/* Header */}
       <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PROFILE</div>

@@ -64,7 +64,7 @@ export default function ArtistProfile() {
   )
 
   return (
-    <div style={{background:'var(--bg)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#161210 0%,#12100C 20%,#0D0A06 50%,#0D0A04 100%)',minHeight:'100vh'}}>
       {/* Header */}
       <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button onClick={()=>navigate(-1)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer',display:'flex',alignItems:'center'}}>

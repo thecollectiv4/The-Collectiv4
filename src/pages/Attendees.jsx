@@ -26,7 +26,7 @@ export default function Attendees() {
   )
 
   return (
-    <div style={{background:'var(--bg)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#161210 0%,#12100C 20%,#0D0A06 50%,#0D0A04 100%)',minHeight:'100vh'}}>
       <div style={{padding:'20px 28px 16px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase'}}>Ran By Artists · May 30</div>
         <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--cream)',letterSpacing:'.02em',marginTop:'6px'}}>WHO'S GOING</div>
