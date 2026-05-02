@@ -84,9 +84,12 @@ export default function ArtistProfile() {
           <div style={{fontFamily:'DM Mono',fontSize:'10px',color:artist.accent,letterSpacing:'.06em',marginTop:'8px'}}>{artist.role}</div>
           <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.04em'}}>{artist.location}</div>
           {artist.ig && (
-            <div style={{marginTop:'12px',display:'inline-flex',alignItems:'center',gap:'6px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'100px',padding:'6px 14px',fontSize:'11px',color:'var(--cream-mid)'}}>
+            <a href={`https://instagram.com/${artist.ig.replace('@','')}`} target="_blank" rel="noopener"
+              style={{marginTop:'12px',display:'inline-flex',alignItems:'center',gap:'6px',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'100px',padding:'6px 14px',fontSize:'11px',color:'var(--cream-mid)',textDecoration:'none',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,.12)';e.currentTarget.style.borderColor='rgba(255,255,255,.2)'}}
+              onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,.06)';e.currentTarget.style.borderColor='rgba(255,255,255,.1)'}}>
               <Instagram size={12}/> {artist.ig}
-            </div>
+            </a>
           )}
         </div>
       </div>

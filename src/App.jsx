@@ -11,6 +11,7 @@ import AttendeeProfile from '@/pages/AttendeeProfile'
 import ExperienceDetail from '@/pages/ExperienceDetail'
 import PastEditions from '@/pages/PastEditions'
 import ArtistProfile from '@/pages/ArtistProfile'
+import DoorScanner from '@/pages/DoorScanner'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
             <Route path="artist/:slug" element={<ArtistProfile />} />
+            <Route path="scanner" element={<DoorScanner />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
