@@ -38,7 +38,7 @@ const EXPERIENCES = {
     details:["Houston-based designers only","Limited and exclusive pieces","Direct from the makers — no middlemen","Collab merch with RBA branding available"],
     artists:[
       { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#8A2040', role:'Artist · Designer', desc:'Bringing his visual world into wearable art. Original designs that bridge street culture and fine art.' },
-      { name:'Stained Vase', color:'#D4A040', role:'Brand Partner', desc:'Houston-based brand turning identity into fabric. Exclusive pieces designed for this edition.' },
+      { name:'Stained Vase', slug:'stained-vase', color:'#D4A040', role:'Brand Partner', desc:'Houston-based brand turning identity into fabric. Exclusive pieces designed for this edition.' },
     ],
   },
   'screen-printing': {
@@ -50,7 +50,7 @@ const EXPERIENCES = {
     details:["Printed live on-site","Limited quantities — first come, first served","RBA 002 exclusive designs","Collab artist pieces available"],
     artists:[
       { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#8A2040', role:'Artist · Designer', desc:'Original artwork translated into screen-printed pieces. Each design is exclusive to this edition.' },
-      { name:'Stained Vase', color:'#D4A040', role:'Brand Partner', desc:'Collab designs merging Stained Vase aesthetic with the RBA universe. Limited run, one night only.' },
+      { name:'Stained Vase', slug:'stained-vase', color:'#D4A040', role:'Brand Partner', desc:'Collab designs merging Stained Vase aesthetic with the RBA universe. Limited run, one night only.' },
     ],
   },
 }

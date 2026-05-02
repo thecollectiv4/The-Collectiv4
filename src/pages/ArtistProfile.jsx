@@ -40,6 +40,29 @@ const ARTISTS = {
     initial: 'D',
     accent: '#D4A040',
   },
+  'stained-vase': {
+    name: 'STAINED VASE',
+    ig: '@stainedvase',
+    role: 'Brand Partner',
+    location: 'Houston, TX',
+    bio: "Houston-born brand turning identity into fabric. Every piece is a statement — rooted in culture, designed for the streets. Official brand partner for Ran By Artists.",
+    contributions: ['Brand Partner — RBA Edition 001 & 002', 'Fashion Pop-Up — Exclusive pieces', 'Screen Printing Collab — Limited edition designs'],
+    initial: 'SV',
+    accent: '#D4A040',
+    isBrand: true,
+    owner: { name: 'Stained Vase Team', role: 'Founders', location: 'Houston, TX' },
+  },
+  'arlo-espresso': {
+    name: 'ARLO ESPRESSO CLUB',
+    ig: '@arloespressoclub',
+    role: 'Brand Partner',
+    location: 'Houston, TX',
+    bio: "Coffee as culture. Arlo brings specialty espresso to the creative scene — fueling late nights and early mornings. Official sponsor and community partner for Ran By Artists.",
+    contributions: ['Brand Partner — RBA Edition 001 & 002', 'On-site espresso bar', 'Community hub partnership'],
+    initial: 'A',
+    accent: '#8A6030',
+    isBrand: true,
+  },
   'madou': {
     name: 'MADOU',
     ig: '@natemadou',
@@ -70,16 +93,19 @@ export default function ArtistProfile() {
         <button onClick={()=>navigate(-1)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer',display:'flex',alignItems:'center'}}>
           <ArrowLeft size={18}/>
         </button>
-        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>ARTIST</div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>{artist.isBrand?'BRAND':'ARTIST'}</div>
       </div>
 
       {/* Hero */}
       <div style={{padding:'40px 28px 32px',textAlign:'center',position:'relative',overflow:'hidden'}}>
         <div style={{position:'absolute',top:'0',left:'50%',transform:'translateX(-50%)',width:'300px',height:'300px',borderRadius:'50%',background:`radial-gradient(circle,${artist.accent}15 0%,transparent 70%)`,filter:'blur(60px)'}} />
         <div style={{position:'relative',zIndex:2}}>
-          <div style={{width:'90px',height:'90px',borderRadius:'50%',background:'var(--bg-raised)',border:`2px solid ${artist.accent}40`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'38px',color:artist.accent,margin:'0 auto 16px',boxShadow:`0 0 24px ${artist.accent}15`}}>
+          <div style={{width:'90px',height:'90px',borderRadius:artist.isBrand?'16px':'50%',background:'var(--bg-raised)',border:`2px solid ${artist.accent}40`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:artist.initial.length>1?'24px':'38px',color:artist.accent,margin:'0 auto 16px',boxShadow:`0 0 24px ${artist.accent}15`}}>
             {artist.initial}
           </div>
+          {artist.isBrand && (
+            <div style={{display:'inline-block',fontFamily:'DM Mono',fontSize:'8px',color:artist.accent,background:`${artist.accent}12`,border:`1px solid ${artist.accent}25`,borderRadius:'100px',padding:'3px 10px',letterSpacing:'.1em',marginBottom:'8px'}}>BRAND PARTNER</div>
+          )}
           <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{artist.name}</div>
           <div style={{fontFamily:'DM Mono',fontSize:'10px',color:artist.accent,letterSpacing:'.06em',marginTop:'8px'}}>{artist.role}</div>
           <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.04em'}}>{artist.location}</div>
@@ -110,6 +136,24 @@ export default function ArtistProfile() {
             </div>
           ))}
         </div>
+
+        {/* Owner section for brands */}
+        {artist.owner && (
+          <>
+            <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${artist.accent}20,transparent)`,marginBottom:'28px'}} />
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream)',marginBottom:'16px'}}>FOUNDED BY</div>
+            <div style={{padding:'16px',border:`1px solid ${artist.accent}20`,borderRadius:'12px',background:`${artist.accent}06`,marginBottom:'32px',display:'flex',alignItems:'center',gap:'14px'}}>
+              <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--bg-raised)',border:`1px solid ${artist.accent}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'18px',color:artist.accent}}>
+                {artist.owner.name[0]}
+              </div>
+              <div>
+                <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{artist.owner.name}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:artist.accent,letterSpacing:'.04em',marginTop:'2px'}}>{artist.owner.role}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'1px'}}>{artist.owner.location}</div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Back to event */}
         <button onClick={()=>navigate('/')} style={{width:'100%',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'12px',padding:'14px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'13px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',transition:'all .2s'}}
