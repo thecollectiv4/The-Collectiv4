@@ -102,15 +102,13 @@ export default function Community() {
             )}
           </div>
         ) : (
-          <div onClick={()=>navigate('/')} style={{padding:'20px',borderRadius:'16px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',cursor:'pointer',display:'flex',alignItems:'center',gap:'14px',transition:'all .2s'}}
-            onMouseOver={e=>e.currentTarget.style.borderColor='rgba(242,230,208,.2)'}
-            onMouseOut={e=>e.currentTarget.style.borderColor='var(--border-hi)'}>
+          <div style={{padding:'20px',borderRadius:'16px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',gap:'14px'}}>
             <div style={{width:'48px',height:'48px',borderRadius:'12px',background:'rgba(242,230,208,.04)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center'}}>
               <Ticket size={22} strokeWidth={1.4} style={{color:'var(--cream-low)'}} />
             </div>
             <div style={{flex:1}}>
-              <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)'}}>GET YOUR TICKET</div>
-              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px'}}>From $15 · May 30</div>
+              <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)'}}>RAN BY ARTISTS 002</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px'}}>May 30 · Houston</div>
             </div>
           </div>
         )}
