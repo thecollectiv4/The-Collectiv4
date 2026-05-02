@@ -1,4 +1,4 @@
-import { Outlet, NavLink } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { CalendarDays, Users, User } from 'lucide-react'
 
 const tabs = [
@@ -7,7 +7,24 @@ const tabs = [
   { to: '/profile',   icon: User,          label: 'Profile'   },
 ]
 
+function NavTab({ to, icon: Icon, label, active }) {
+  const navigate = useNavigate()
+  return (
+    <div onClick={() => navigate(to)} style={{
+      display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
+      padding:'4px 20px', cursor:'pointer',
+      color: active ? '#F2E6D0' : '#686058',
+      WebkitTapHighlightColor:'transparent',
+    }}>
+      <Icon size={22} strokeWidth={active ? 2.2 : 1.4} />
+      <span style={{ fontSize:'10px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase' }}>{label}</span>
+    </div>
+  )
+}
+
 export default function Layout() {
+  const location = useLocation()
+  
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh', background:'var(--bg)' }}>
       <main style={{ flex:1, paddingBottom:'100px' }}>
@@ -21,22 +38,9 @@ export default function Layout() {
         zIndex:9999,
         paddingTop:'10px',
         paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
-        WebkitBackdropFilter:'blur(20px)',
-        backdropFilter:'blur(20px)',
       }}>
-        {tabs.map(({ to, icon: Icon, label }) => (
-          <NavLink key={to} to={to} end={to==='/'} style={{textDecoration:'none',WebkitTapHighlightColor:'transparent'}}>
-            {({ isActive }) => (
-              <div style={{
-                display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
-                padding:'4px 20px',
-                color: isActive ? '#F2E6D0' : '#686058',
-              }}>
-                <Icon size={22} strokeWidth={isActive ? 2.2 : 1.4} />
-                <span style={{ fontSize:'10px', fontWeight:isActive?700:500, letterSpacing:'0.06em', textTransform:'uppercase' }}>{label}</span>
-              </div>
-            )}
-          </NavLink>
+        {tabs.map(({ to, icon, label }) => (
+          <NavTab key={to} to={to} icon={icon} label={label} active={to === '/' ? location.pathname === '/' : location.pathname.startsWith(to)} />
         ))}
       </nav>
     </div>
