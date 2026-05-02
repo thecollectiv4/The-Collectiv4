@@ -187,6 +187,28 @@ export default function EventLanding() {
       </div>
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
+      {/* TICKETS */}
+      <div style={{padding:'36px 28px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--gold)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
+        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+          {TIERS.map((t,i)=>(
+            <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
+              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--rust-dim)':'transparent',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.3)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
+              onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='rgba(208,96,32,.18)'}}} onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.3)';e.currentTarget.style.background='var(--rust-dim)'}}}>
+              <div>
+                <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--rust)':'var(--cream-low)'}}>${t.price}</span>
+                {t.status==='available'&&<ArrowRight size={14} style={{color:'var(--rust)'}} />}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
+
       {/* LINEUP */}
       <div style={{padding:'36px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
@@ -203,28 +225,6 @@ export default function EventLanding() {
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
                 <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream)',background:'rgba(242,230,208,.08)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
                 <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
-
-      {/* TICKETS */}
-      <div style={{padding:'36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--gold)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
-        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-          {TIERS.map((t,i)=>(
-            <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
-              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--rust-dim)':'transparent',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.3)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
-              onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='rgba(208,96,32,.18)'}}} onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.3)';e.currentTarget.style.background='var(--rust-dim)'}}}>
-              <div>
-                <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
-                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--rust)':'var(--cream-low)'}}>${t.price}</span>
-                {t.status==='available'&&<ArrowRight size={14} style={{color:'var(--rust)'}} />}
               </div>
             </div>
           ))}
