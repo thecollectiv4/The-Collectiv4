@@ -24,8 +24,9 @@ const EXPERIENCES = {
     details:["Curated original works on display","Art available for purchase","Meet the artists in person","Pieces created specifically for this edition"],
     artists:[
       { name:'Isaac Lagarda', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
-      { name:'Pato Durán', role:'Founder · DJ · The Collectiv4', desc:'Curating the visual identity and spatial design of the gallery experience.' },
-      { name:'Diego Villaseñor', role:'Founder · Artist · Creative Director', desc:'Co-founder of The Collectiv4. Visual artist and creative director shaping the collective's identity and digital experience.' },
+      { name:'Drecol', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
+      { name:'Pato Durán', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
+      { name:'Diego Villaseñor', role:'Founder · Artist · Creative Director', desc:'Co-founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
     ],
   },
   'fashion': {
