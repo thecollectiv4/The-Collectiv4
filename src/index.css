@@ -5,23 +5,28 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap');
 
 :root {
-  /* Basquiat-inspired warm dark palette */
-  --bg:         #0D0A04;   /* Main bg — dark warm canvas */
-  --bg-warm:    #161108;   /* Section bg */
-  --bg-card:    #1E1608;   /* Cards */
-  --bg-raised:  #261C0A;   /* Raised surfaces */
-  --cream:      #EAD9B4;   /* Primary text — warm parchment */
-  --cream-mid:  #A89070;   /* Secondary text */
-  --cream-low:  #5E4830;   /* Muted */
-  --cream-ghost:#38280E;   /* Ghost */
-  --rust:       #C85A18;   /* Brand accent */
-  --gold:       #C89030;   /* Warm gold */
-  --gold-dim:   rgba(200,144,48,0.15);
-  --rust-dim:   rgba(200,90,24,0.15);
-  --sage:       #4A5A38;   /* Muted sage */
-  --border:     #2A1E0C;   /* Dark warm border */
-  --border-hi:  #3E2E14;   /* Brighter border */
-  --success:    #4A7A2A;
+  --bg:         #0D0A04;
+  --bg-warm:    #1A1208;
+  --bg-card:    #221A0C;
+  --bg-raised:  #2E2210;
+  --cream:      #F0E0C0;
+  --cream-mid:  #B89868;
+  --cream-low:  #6A5030;
+  --cream-ghost:#3A2A10;
+  --rust:       #D06020;
+  --rust-light: #E87830;
+  --gold:       #D4A040;
+  --gold-dim:   rgba(212,160,64,0.15);
+  --rust-dim:   rgba(208,96,32,0.12);
+  --sage:       #5A7A3A;
+  --sage-dim:   rgba(90,122,58,0.12);
+  --wine:       #8A2040;
+  --wine-dim:   rgba(138,32,64,0.12);
+  --indigo:     #3A4A8A;
+  --indigo-dim: rgba(58,74,138,0.12);
+  --border:     #302010;
+  --border-hi:  #4A3818;
+  --success:    #5A9A30;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -50,6 +55,7 @@ a { color: inherit; text-decoration: none; }
 }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 
 .fade-up   { animation: fadeUp 0.55s ease forwards; }
 .fade-up-1 { animation: fadeUp 0.55s ease 0.1s forwards; opacity: 0; }

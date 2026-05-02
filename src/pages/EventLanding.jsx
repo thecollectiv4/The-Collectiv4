@@ -2,19 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Brush, Frame, Scissors, Layers } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers } from 'lucide-react'
 
-const ICON_MAP = { Brush, Frame, Scissors, Layers }
+const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
 const LINEUP = [
   { handle:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
   { handle:'patoduranc', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
 ]
 const EXPERIENCES = [
-  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Brush' },
-  { slug:'gallery', label:'GALLERY', short:'Original works by the painter on display. Art you can feel.', iconName:'Frame' },
-  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', iconName:'Scissors' },
-  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', iconName:'Layers' },
+  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Paintbrush', accent:'#D06020', bg:'rgba(208,96,32,.08)' },
+  { slug:'gallery', label:'GALLERY', short:'Original works by the painter on display. Art you can feel.', iconName:'Frame', accent:'#8A2040', bg:'rgba(138,32,64,.08)' },
+  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', iconName:'Shirt', accent:'#D4A040', bg:'rgba(212,160,64,.08)' },
+  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', iconName:'Layers', accent:'#5A9A30', bg:'rgba(90,122,58,.08)' },
 ]
 const TIERS = [
   { id:'early-bird', name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
@@ -141,52 +141,52 @@ export default function EventLanding() {
           {user&&<span onClick={()=>navigate('/attendees')} style={{color:'var(--rust)',cursor:'pointer',marginLeft:'4px'}}>· See who →</span>}
         </div>
       </div>
-      <div style={{height:'1px',background:'var(--border)',margin:'0 28px'}} />
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,var(--rust)30,transparent)',margin:'0 28px'}} />
 
       {/* LINEUP */}
       <div style={{padding:'36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--rust)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
         <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
           {LINEUP.map((a,i)=>(
             <div key={i} onClick={()=>navigate('/dj/'+a.handle)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border)',cursor:'pointer',transition:'border-color .2s'}}
-              onMouseOver={e=>e.currentTarget.style.borderColor='var(--border-hi)'} onMouseOut={e=>e.currentTarget.style.borderColor='var(--border)'}>
-              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--gold)',flexShrink:0}}>{a.name[0]}</div>
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',cursor:'pointer',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='var(--rust-dim)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.background='var(--bg-card)'}}>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'var(--rust-dim)',border:'2px solid var(--rust)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--rust)',flexShrink:0}}>{a.name[0]}</div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
-                <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
-                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--rust)',border:'1px solid rgba(200,90,24,.3)',padding:'3px 10px',borderRadius:'100px',letterSpacing:'.08em'}}>{a.role}</span>
-                <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--rust)',background:'var(--rust-dim)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
+                <ChevronRight size={14} style={{color:'var(--rust)'}} />
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{height:'1px',background:'var(--border)',margin:'0 28px'}} />
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,var(--gold)30,transparent)',margin:'0 28px'}} />
 
       {/* TICKETS */}
       <div style={{padding:'36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--gold)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
           {TIERS.map((t,i)=>(
             <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
-              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--bg-card)':'transparent',border:'1px solid '+(t.status==='available'?'var(--border-hi)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'border-color .2s'}}
-              onMouseOver={e=>{if(t.status==='available')e.currentTarget.style.borderColor='var(--rust)'}} onMouseOut={e=>{if(t.status==='available')e.currentTarget.style.borderColor='var(--border-hi)'}}>
+              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--rust-dim)':'transparent',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.3)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
+              onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='rgba(208,96,32,.18)'}}} onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.3)';e.currentTarget.style.background='var(--rust-dim)'}}}>
               <div>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
-                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--cream)':'var(--cream-low)'}}>${t.price}</span>
+                <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--rust)':'var(--cream-low)'}}>${t.price}</span>
                 {t.status==='available'&&<ArrowRight size={14} style={{color:'var(--rust)'}} />}
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div style={{height:'1px',background:'var(--border)',margin:'0 28px'}} />
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,var(--cream-low)30,transparent)',margin:'0 28px'}} />
 
       {/* EXPERIENCES */}
       <div style={{padding:'36px 28px'}}>
@@ -194,14 +194,16 @@ export default function EventLanding() {
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
           {EXPERIENCES.map((exp,i)=>(
             <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'20px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border)',cursor:'pointer',transition:'border-color .2s'}}
-              onMouseOver={e=>e.currentTarget.style.borderColor='var(--border-hi)'} onMouseOut={e=>e.currentTarget.style.borderColor='var(--border)'}>
-              {(()=>{ const IconComp = ICON_MAP[exp.iconName]; return <IconComp size={22} strokeWidth={1.4} style={{color:'var(--cream)',flexShrink:0}} /> })()}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'18px',borderRadius:'12px',background:exp.bg,border:`1px solid ${exp.accent}30`,cursor:'pointer',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=exp.accent+'60';e.currentTarget.style.background=exp.accent+'18'}} onMouseOut={e=>{e.currentTarget.style.borderColor=exp.accent+'30';e.currentTarget.style.background=exp.bg}}>
+              <div style={{width:'44px',height:'44px',borderRadius:'12px',background:exp.accent+'18',border:`1px solid ${exp.accent}30`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                {(()=>{ const IconComp = ICON_MAP[exp.iconName]; return <IconComp size={20} strokeWidth={1.6} style={{color:exp.accent}} /> })()}
+              </div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.04em'}}>{exp.label}</div>
                 <div style={{fontSize:'12px',color:'var(--cream-mid)',marginTop:'3px',lineHeight:1.4}}>{exp.short}</div>
               </div>
-              <ChevronRight size={16} style={{color:'var(--cream-low)',flexShrink:0}} />
+              <ChevronRight size={16} style={{color:exp.accent,flexShrink:0}} />
             </div>
           ))}
         </div>
