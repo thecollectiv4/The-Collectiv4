@@ -33,7 +33,7 @@ export default function Layout() {
                 <div style={{
                   display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
                   padding:'8px 18px',
-                  color: isActive ? '#FFFFFF' : '#8A7A68',
+                  color: isActive ? '#FFFFFF' : '#9A9490',
                   transition:'all 0.2s',
                   position:'relative',
                 }}>
