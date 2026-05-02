@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2 } from 'lucide-react'
 
 const LINEUP = [
   { handle:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
@@ -14,21 +14,53 @@ const EXPERIENCES = [
   { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', icon:'🖨️' },
 ]
 const TIERS = [
-  { name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
-  { name:'GENERAL', price:25, status:'soon', note:'Available May 15' },
-  { name:'DOOR', price:40, status:'soon', note:'Night of the event' },
+  { id:'early-bird', name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
+  { id:'general', name:'GENERAL', price:25, status:'soon', note:'Available May 15' },
+  { id:'door', name:'DOOR', price:40, status:'soon', note:'Night of the event' },
 ]
 
 export default function EventLanding() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [hasTicket, setHasTicket] = useState(false)
+  const [checkingOut, setCheckingOut] = useState(false)
+  const [ticketStatus, setTicketStatus] = useState(null) // 'success' | 'cancelled'
+
+  useEffect(() => {
+    const status = searchParams.get('ticket')
+    if (status === 'success') setTicketStatus('success')
+    if (status === 'cancelled') setTicketStatus('cancelled')
+  }, [searchParams])
+
   useEffect(() => {
     supabase.from('tickets').select('id',{count:'exact',head:true}).then(({count})=>setAttendeeCount(count||18)).catch(()=>setAttendeeCount(18))
     if(user) supabase.from('tickets').select('id').eq('user_id',user.id).single().then(({data})=>setHasTicket(!!data)).catch(()=>{})
   },[user])
   const days = Math.max(0,Math.ceil((new Date('2026-05-30')-new Date())/86400000))
+
+  async function handleCheckout(tierId) {
+    if (!user) { navigate('/auth'); return }
+    setCheckingOut(true)
+    try {
+      const res = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tier: tierId, email: user.email }),
+      })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert(data.error || 'Something went wrong. Try again.')
+        setCheckingOut(false)
+      }
+    } catch (err) {
+      alert('Connection error. Try again.')
+      setCheckingOut(false)
+    }
+  }
 
   return (
     <div style={{background:'var(--bg)',minHeight:'100vh'}}>
@@ -67,18 +99,29 @@ export default function EventLanding() {
 
       {/* CTA */}
       <div style={{padding:'0 28px 32px'}}>
-        {hasTicket ? (
+        {ticketStatus === 'success' && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(74,122,42,.4)',borderRadius:'12px',padding:'18px',background:'rgba(74,122,42,.06)',marginBottom:'12px'}}>
+            <Check size={16} style={{color:'#6ABF4A'}} />
+            <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. Check your email for your ticket. See you May 30.</span>
+          </div>
+        )}
+        {ticketStatus === 'cancelled' && (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(200,90,24,.4)',borderRadius:'12px',padding:'18px',background:'rgba(200,90,24,.06)',marginBottom:'12px'}}>
+            <span style={{color:'var(--rust)',fontWeight:500,fontSize:'14px'}}>Checkout cancelled. No charge was made.</span>
+          </div>
+        )}
+        {hasTicket || ticketStatus === 'success' ? (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(74,122,42,.4)',borderRadius:'12px',padding:'18px',background:'rgba(74,122,42,.06)'}}>
             <Check size={16} style={{color:'#6ABF4A'}} />
             <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. See you May 30.</span>
           </div>
         ) : (
-          <button onClick={()=>!user?navigate('/auth'):alert('Tickets go live May 15')}
-            style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'opacity .15s'}}
-            onMouseOver={e=>e.currentTarget.style.opacity='.9'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>
+          <button onClick={()=>handleCheckout('early-bird')} disabled={checkingOut}
+            style={{width:'100%',background:checkingOut?'var(--cream-low)':'var(--cream)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'opacity .15s'}}
+            onMouseOver={e=>{if(!checkingOut)e.currentTarget.style.opacity='.9'}} onMouseOut={e=>e.currentTarget.style.opacity='1'}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-              <Ticket size={18} style={{color:'var(--bg)'}} />
-              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>GET YOUR TICKET</span>
+              {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
+              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING TO CHECKOUT...' : 'GET YOUR TICKET'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <span style={{fontSize:'12px',color:'#6A5040',fontWeight:500}}>from $15</span>
@@ -121,14 +164,16 @@ export default function EventLanding() {
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
           {TIERS.map((t,i)=>(
-            <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--bg-card)':'transparent',border:'1px solid '+(t.status==='available'?'var(--border-hi)':'var(--border)')}}>
+            <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
+              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--bg-card)':'transparent',border:'1px solid '+(t.status==='available'?'var(--border-hi)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'border-color .2s'}}
+              onMouseOver={e=>{if(t.status==='available')e.currentTarget.style.borderColor='var(--rust)'}} onMouseOut={e=>{if(t.status==='available')e.currentTarget.style.borderColor='var(--border-hi)'}}>
               <div>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
                 <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--cream)':'var(--cream-low)'}}>${t.price}</span>
-                {t.status==='available'&&<div style={{width:'7px',height:'7px',borderRadius:'50%',background:'var(--rust)'}} />}
+                {t.status==='available'&&<ArrowRight size={14} style={{color:'var(--rust)'}} />}
               </div>
             </div>
           ))}
