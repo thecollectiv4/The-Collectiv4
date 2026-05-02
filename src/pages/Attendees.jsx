@@ -47,11 +47,11 @@ export default function Attendees() {
             {attendees.map((a,i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:'14px',padding:'16px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none'}}>
                 <div style={{width:'40px',height:'40px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--gold)',flexShrink:0}}>
-                  {(a.email||'?')[0].toUpperCase()}
+                  {(a.buyer_email||'?')[0].toUpperCase()}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:'14px',fontWeight:500,color:'var(--cream)'}}>{a.email?.split('@')[0] || 'Attendee'}</div>
-                  <div style={{fontSize:'11px',color:'var(--cream-low)',marginTop:'2px'}}>{a.tier?.toUpperCase()} ticket</div>
+                  <div style={{fontSize:'14px',fontWeight:500,color:'var(--cream)'}}>{a.buyer_name||a.buyer_email?.split('@')[0] || 'Attendee'}</div>
+                  <div style={{fontSize:'11px',color:'var(--cream-low)',marginTop:'2px'}}>{'EARLY BIRD'} ticket</div>
                 </div>
                 <span style={{fontFamily:'DM Mono',fontSize:'8px',letterSpacing:'.1em',color:'var(--cream-mid)',border:'1px solid var(--border-hi)',padding:'3px 10px',borderRadius:'100px',flexShrink:0}}>GOING</span>
               </div>

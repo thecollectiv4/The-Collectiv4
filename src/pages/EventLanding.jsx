@@ -38,7 +38,7 @@ export default function EventLanding() {
   }, [searchParams])
 
   useEffect(() => {
-    supabase.from('tickets').select('id',{count:'exact',head:true}).then(({count})=>setAttendeeCount(count||0)).catch(()=>setAttendeeCount(0))
+    supabase.from('tickets').select('id',{count:'exact',head:true}).eq('status','confirmed').then(({count})=>setAttendeeCount(count||0)).catch(()=>setAttendeeCount(0))
     if(user) supabase.from('tickets').select('id').eq('user_id',user.id).single().then(({data})=>setHasTicket(!!data)).catch(()=>{})
   },[user])
   const days = Math.max(0,Math.ceil((new Date('2026-05-30')-new Date())/86400000))

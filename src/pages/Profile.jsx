@@ -20,19 +20,19 @@ export default function Profile() {
 
   const load = async () => {
     const {data} = await supabase.from('profiles').select('*').eq('id',user.id).single()
-    if(data){ setProfile(data); setForm({display_name:data.display_name||'',bio:data.bio||'',handle:data.handle||''}) }
+    if(data){ setProfile(data); setForm({display_name:data.full_name||'',bio:data.bio||'',handle:data.username||''}) }
     else {
       const nm = user.user_metadata?.full_name || user.email.split('@')[0]
-      const np={id:user.id,display_name:nm,bio:'',handle:'',city:'Houston',avatar_url:''}
+      const np={id:user.id,full_name:nm,username:'',bio:'',city:'Houston',avatar_url:''}
       await supabase.from('profiles').insert(np)
-      setProfile(np); setForm({display_name:nm,bio:'',handle:''}); setEditing(true)
+      setProfile(np); setForm({display_name:nm,bio:'',handle:''})
     }
     // Load ticket
-    const {data:tk} = await supabase.from('tickets').select('*').eq('email',user.email).eq('status','confirmed').single()
+    const {data:tk} = await supabase.from('tickets').select('*').eq('buyer_email',user.email).eq('status','confirmed').single()
     if(tk) setTicket(tk)
   }
 
-  const save = async () => { await supabase.from('profiles').update(form).eq('id',user.id); setProfile(p=>({...p,...form})); setEditing(false) }
+  const save = async () => { await supabase.from('profiles').update({full_name:form.display_name,username:form.handle,bio:form.bio}).eq('id',user.id); setProfile(p=>({...p,...form})); setEditing(false) }
 
   const uploadPhoto = async (e) => {
     const file = e.target.files[0]
@@ -156,7 +156,7 @@ export default function Profile() {
                   {copied ? <Check size={14} style={{color:'#00D54B'}} /> : <Copy size={14} style={{color:'var(--cream-low)'}} />}
                 </button>
               </div>
-              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>{ticket.tier?.toUpperCase()} · ${(ticket.amount_paid/100).toFixed(0)} PAID</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>{'EARLY BIRD'} · ${(ticket.price_paid||0).toFixed(0)} PAID</div>
             </div>
             <div style={{padding:'14px 24px',borderTop:'1px dashed var(--border-hi)',background:'rgba(0,213,75,.03)',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
               <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00D54B',boxShadow:'0 0 6px rgba(0,213,75,.4)'}} />
