@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { LogOut, Edit3, Calendar, MapPin, Clock, ChevronRight, Sparkles, Camera, Check, Instagram } from 'lucide-react'
+import { LogOut, Edit3, Calendar, MapPin, Clock, ChevronRight, Sparkles, Camera, Copy, Check } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 
 export default function Profile() {
@@ -10,50 +10,53 @@ export default function Profile() {
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
   const [editing, setEditing] = useState(false)
-  const [form, setForm] = useState({display_name:'',bio:'',handle:'',instagram:''})
-  const [uploading, setUploading] = useState(false)
+  const [form, setForm] = useState({display_name:'',bio:'',handle:''})
   const [ticket, setTicket] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
 
   useEffect(()=>{ if(!user){navigate('/auth');return} load() },[user])
 
   const load = async () => {
     const {data} = await supabase.from('profiles').select('*').eq('id',user.id).single()
-    if(data){ setProfile(data); setForm({display_name:data.display_name||'',bio:data.bio||'',handle:data.handle||'',instagram:data.instagram||''}) }
+    if(data){ setProfile(data); setForm({display_name:data.display_name||'',bio:data.bio||'',handle:data.handle||''}) }
     else {
       const nm = user.user_metadata?.full_name || user.email.split('@')[0]
-      const np={id:user.id,display_name:nm,bio:'',handle:'',city:'Houston',instagram:'',avatar_url:''}
+      const np={id:user.id,display_name:nm,bio:'',handle:'',city:'Houston',avatar_url:''}
       await supabase.from('profiles').insert(np)
-      setProfile(np); setForm({display_name:nm,bio:'',handle:'',instagram:''}); setEditing(true)
+      setProfile(np); setForm({display_name:nm,bio:'',handle:''}); setEditing(true)
     }
-    // Check for ticket
+    // Load ticket
     const {data:tk} = await supabase.from('tickets').select('*').eq('email',user.email).eq('status','confirmed').single()
     if(tk) setTicket(tk)
   }
 
-  const save = async () => {
-    await supabase.from('profiles').update(form).eq('id',user.id)
-    setProfile(p=>({...p,...form})); setEditing(false)
-  }
+  const save = async () => { await supabase.from('profiles').update(form).eq('id',user.id); setProfile(p=>({...p,...form})); setEditing(false) }
 
   const uploadPhoto = async (e) => {
-    const file = e.target.files?.[0]
-    if(!file) return
+    const file = e.target.files[0]
+    if (!file) return
     setUploading(true)
     try {
-      const ext = file.name.split('.').pop()
-      const path = `avatars/${user.id}.${ext}`
-      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
-      if(upErr) throw upErr
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path)
-      const avatar_url = urlData.publicUrl + '?t=' + Date.now()
-      await supabase.from('profiles').update({ avatar_url }).eq('id', user.id)
-      setProfile(p=>({...p, avatar_url}))
-    } catch(err) {
-      console.error('Upload error:', err)
-      alert('Could not upload photo. Try a smaller image.')
+      // Convert to base64 for simplicity (works without storage bucket)
+      const reader = new FileReader()
+      reader.onload = async (ev) => {
+        const url = ev.target.result
+        await supabase.from('profiles').update({avatar_url: url}).eq('id',user.id)
+        setProfile(p=>({...p, avatar_url: url}))
+        setUploading(false)
+      }
+      reader.readAsDataURL(file)
+    } catch(err) { setUploading(false) }
+  }
+
+  const copyQR = () => {
+    if(ticket?.qr_code) {
+      navigator.clipboard.writeText(ticket.qr_code)
+      setCopied(true)
+      setTimeout(()=>setCopied(false),2000)
     }
-    setUploading(false)
   }
 
   const inp = {width:'100%',background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'10px',padding:'14px 16px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'14px',outline:'none',transition:'border-color .2s'}
@@ -82,19 +85,20 @@ export default function Profile() {
               {(profile.display_name||'?')[0].toUpperCase()}
             </div>
           )}
-          <div style={{position:'absolute',bottom:'0',right:'0',width:'28px',height:'28px',borderRadius:'50%',background:'var(--cream)',display:'flex',alignItems:'center',justifyContent:'center',border:'2px solid var(--bg)',transition:'transform .2s'}}
-            onMouseOver={e=>e.currentTarget.style.transform='scale(1.1)'} onMouseOut={e=>e.currentTarget.style.transform='scale(1)'}>
-            {uploading ? <div style={{width:'12px',height:'12px',border:'2px solid var(--bg)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin .6s linear infinite'}}/> : <Camera size={12} style={{color:'var(--bg)'}}/>}
+          <div style={{position:'absolute',bottom:'0',right:'0',width:'28px',height:'28px',borderRadius:'50%',background:'var(--bg-card)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}
+            onMouseOver={e=>e.currentTarget.style.borderColor='var(--cream-low)'}
+            onMouseOut={e=>e.currentTarget.style.borderColor='var(--border-hi)'}>
+            <Camera size={12} style={{color:'var(--cream-mid)'}} />
           </div>
-          <input ref={fileRef} type="file" accept="image/*" onChange={uploadPhoto} style={{display:'none'}} />
+          <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={uploadPhoto} />
+          {uploading && <div style={{position:'absolute',inset:0,borderRadius:'50%',background:'rgba(10,9,8,.7)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'10px',color:'var(--cream-mid)'}}>...</div>}
         </div>
       </div>
 
-      {/* Profile info */}
       <div style={{padding:'16px 28px'}}>
         {editing?(
           <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
-            {[['NAME','Your name','display_name','text'],['HANDLE','@yourhandle','handle','text'],['INSTAGRAM','@instagram','instagram','text'],['BIO','What do you do?','bio','textarea']].map(([lbl,ph,key,type])=>(
+            {[['NAME','Your name','display_name','text'],['HANDLE','@yourhandle','handle','text'],['BIO','What do you do?','bio','textarea']].map(([lbl,ph,key,type])=>(
               <div key={key}>
                 <label style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'6px',display:'block'}}>{lbl}</label>
                 {type==='textarea'?(
@@ -117,15 +121,7 @@ export default function Profile() {
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
               <div>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em'}}>{profile.display_name||'Set your name'}</div>
-                <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px',flexWrap:'wrap'}}>
-                  {profile.handle&&<span style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-mid)'}}>@{profile.handle}</span>}
-                  {profile.instagram&&(
-                    <a href={`https://instagram.com/${profile.instagram.replace('@','')}`} target="_blank" rel="noopener" style={{display:'flex',alignItems:'center',gap:'4px',fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-mid)',textDecoration:'none',transition:'color .2s'}}
-                      onMouseOver={e=>e.currentTarget.style.color='var(--cream)'} onMouseOut={e=>e.currentTarget.style.color='var(--cream-mid)'}>
-                      <Instagram size={11}/> {profile.instagram}
-                    </a>
-                  )}
-                </div>
+                {profile.handle&&<div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-mid)',marginTop:'2px'}}>@{profile.handle} · Houston</div>}
               </div>
               <button onClick={()=>setEditing(true)} style={{background:'rgba(242,230,208,.04)',border:'1px solid rgba(242,230,208,.12)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-mid)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',transition:'all .2s'}}
                 onMouseOver={e=>{e.currentTarget.style.background='rgba(242,230,208,.1)';e.currentTarget.style.borderColor='rgba(242,230,208,.25)'}}
@@ -140,33 +136,38 @@ export default function Profile() {
 
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(242,230,208,.06),transparent)',margin:'8px 28px'}}/>
 
-      {/* Your Ticket with QR */}
+      {/* YOUR TICKET with QR */}
       <div style={{padding:'24px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'16px'}}>YOUR TICKET</div>
         {ticket ? (
-          <div style={{border:'1px solid var(--border-hi)',borderRadius:'14px',overflow:'hidden',transition:'all .3s'}}>
+          <div style={{border:'1px solid var(--border-hi)',borderRadius:'14px',overflow:'hidden'}}>
             <div style={{padding:'24px',background:'var(--bg-card)',textAlign:'center'}}>
-              <div style={{fontFamily:'Bebas Neue',fontSize:'24px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS <span style={{color:'#D06020'}}>002</span></div>
-              <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.08em'}}>MAY 30, 2026 · HOUSTON</div>
-              <div style={{margin:'20px auto',width:'fit-content',padding:'12px',background:'#fff',borderRadius:'12px'}}>
+              <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em',marginBottom:'4px'}}>RAN BY ARTISTS <span style={{color:'#D06020'}}>002</span></div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em',marginBottom:'20px'}}>MAY 30, 2026 · HOUSTON</div>
+              
+              {/* QR Code */}
+              <div style={{display:'inline-block',padding:'16px',background:'#FFFFFF',borderRadius:'12px',marginBottom:'16px'}}>
                 <QRCodeSVG value={ticket.qr_code || 'RBA2-TICKET'} size={140} level="H" />
               </div>
-              <div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-mid)',letterSpacing:'.06em',marginTop:'8px'}}>{ticket.qr_code}</div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',marginTop:'12px'}}>
-                <Check size={12} style={{color:'#00D54B'}} />
-                <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#00D54B',letterSpacing:'.06em'}}>CONFIRMED</span>
+              
+              <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'8px'}}>
+                <span style={{fontFamily:'DM Mono',fontSize:'12px',color:'var(--cream)',letterSpacing:'.04em',fontWeight:600}}>{ticket.qr_code}</span>
+                <button onClick={copyQR} style={{background:'none',border:'none',cursor:'pointer',padding:'4px',display:'flex',alignItems:'center'}}>
+                  {copied ? <Check size={14} style={{color:'#00D54B'}} /> : <Copy size={14} style={{color:'var(--cream-low)'}} />}
+                </button>
               </div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>{ticket.tier?.toUpperCase()} · ${(ticket.amount_paid/100).toFixed(0)} PAID</div>
             </div>
-            <div style={{padding:'14px 24px',borderTop:'1px dashed var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.06em'}}>{ticket.tier?.toUpperCase()} TICKET</div>
-              <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)'}}>Show at door</div>
+            <div style={{padding:'14px 24px',borderTop:'1px dashed var(--border-hi)',background:'rgba(0,213,75,.03)',display:'flex',alignItems:'center',justifyContent:'center',gap:'8px'}}>
+              <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00D54B',boxShadow:'0 0 6px rgba(0,213,75,.4)'}} />
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#00D54B',letterSpacing:'.06em',fontWeight:600}}>CONFIRMED</span>
             </div>
           </div>
         ) : (
           <div style={{border:'1px solid var(--border-hi)',borderRadius:'14px',overflow:'hidden',cursor:'pointer',transition:'all .3s'}}
             onClick={()=>navigate('/')}
-            onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.2)';e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.4)'}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
+            onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.2)';e.currentTarget.style.transform='translateY(-2px)'}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.transform='translateY(0)'}}>
             <div style={{padding:'24px',background:'var(--bg-card)'}}>
               <div style={{fontFamily:'Bebas Neue',fontSize:'24px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS <span style={{color:'#D06020'}}>002</span></div>
               <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.08em'}}>MAY EDITION</div>
@@ -180,7 +181,7 @@ export default function Profile() {
               </div>
             </div>
             <div style={{padding:'14px 24px',borderTop:'1px dashed var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-              <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.06em'}}>No ticket yet</div>
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.06em'}}>Get your ticket · from $15</span>
               <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
             </div>
           </div>
