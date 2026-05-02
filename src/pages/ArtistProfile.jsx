@@ -41,6 +41,10 @@ const ARTISTS = {
     contributions: ['Founder — The Collectiv4', 'Visual & Creative Direction', 'Artist — Digital & Mixed Media', 'European Expansion — Long-term Vision'],
     initial: 'D',
     accent: '#D4A040',
+    foundedMultiple: [
+      { name: 'THE COLLECTIV4', slug: 'the-collectiv4', role: 'Creative Ecosystem', accent: '#F2E6D0' },
+      { name: 'VISURELIC', slug: 'visurelic', role: 'Creative Studio', accent: '#D4A040' },
+    ],
   },
   'visurelic': {
     name: 'VISURELIC',
