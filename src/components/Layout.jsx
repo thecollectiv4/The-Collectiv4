@@ -16,7 +16,8 @@ export default function Layout() {
   const { user } = useAuth()
   const prevIdx = useRef(0)
   const [transClass, setTransClass] = useState('page-transition')
-  const [showAuth, setShowAuth] = useState(false)
+  const [showAuth, setShowAuth] = useState(!user)
+  const [authDismissed, setAuthDismissed] = useState(false)
 
   const currentIdx = tabs.findIndex(t => t.to === '/' ? location.pathname === '/' : location.pathname.startsWith(t.to))
   const isSubPage = currentIdx === -1
@@ -35,7 +36,7 @@ export default function Layout() {
   }, [location.pathname])
 
   const handleTabClick = (tab) => {
-    if (tab.requiresAuth && !user) {
+    if (!user) {
       setShowAuth(true)
     } else {
       navigate(tab.to)
@@ -50,8 +51,9 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* Auth Modal */}
-      {showAuth && <AuthModal onClose={()=>setShowAuth(false)} />}
+      {/* Auth Modal - shows on first load when not signed in */}
+      {showAuth && !user && <AuthModal onClose={()=>{setShowAuth(false);setAuthDismissed(true)}} />}
+      {/* Also show if they try to navigate without auth after dismissing */}
 
       {/* Nav - always visible */}
       <nav style={{
