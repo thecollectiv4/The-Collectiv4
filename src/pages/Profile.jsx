@@ -29,7 +29,7 @@ export default function Profile() {
 
   return (
     <div style={{background:'var(--bg)',minHeight:'100vh'}}>
-      <div style={{height:'100px',background:'linear-gradient(160deg,#1C1106,#0D0A04)',position:'relative'}}>
+      <div style={{height:'120px',paddingTop:'env(safe-area-inset-top, 16px)',background:'linear-gradient(160deg,#2A1408,#1A0A04,#0D0A04)',position:'relative'}}>
         <button onClick={async()=>{await signOut();navigate('/')}} style={{position:'absolute',top:'14px',right:'14px',background:'none',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-low)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
           <LogOut size={11}/> Out
         </button>

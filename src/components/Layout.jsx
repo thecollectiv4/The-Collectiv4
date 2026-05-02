@@ -32,20 +32,20 @@ export default function Layout() {
               {({ isActive }) => (
                 <div style={{
                   display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
-                  padding:'10px 20px',
-                  color: isActive ? 'var(--cream)' : '#5A544A',
+                  padding:'8px 18px',
+                  color: isActive ? 'var(--cream)' : '#B89868',
                   transition:'all 0.2s',
                   position:'relative',
                 }}>
                   {isActive && <div style={{position:'absolute',top:'-2px',left:'50%',transform:'translateX(-50%)',width:'28px',height:'2px',background:'var(--rust)'}} />}
                   <div style={{
                     width:'36px', height:'36px', borderRadius:'10px',
-                    background: isActive ? 'rgba(192,90,42,.15)' : 'transparent',
-                    border: isActive ? '1px solid rgba(192,90,42,.3)' : '1px solid transparent',
+                    background: isActive ? 'rgba(208,96,32,.15)' : 'transparent',
+                    border: isActive ? '1px solid rgba(208,96,32,.3)' : '1px solid transparent',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     transition:'all 0.2s',
                   }}>
-                    <Icon size={20} strokeWidth={isActive ? 2.2 : 1.2} />
+                    <Icon size={20} strokeWidth={isActive ? 2.4 : 1.6} />
                   </div>
                   <span style={{ fontSize:'9px', fontWeight:isActive?700:500, letterSpacing:'0.08em', textTransform:'uppercase' }}>{label}</span>
                 </div>
