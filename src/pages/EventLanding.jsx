@@ -9,9 +9,10 @@ const LINEUP = [
   { handle:'patoduranc', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
 ]
 const EXPERIENCES = [
-  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', icon:'🎨' },
-  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', icon:'👗' },
-  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', icon:'🖨️' },
+  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', icon:'◐' },
+  { slug:'gallery', label:'GALLERY', short:'Original works by the painter on display. Art you can feel.', icon:'◧' },
+  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', icon:'△' },
+  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', icon:'▣' },
 ]
 const TIERS = [
   { id:'early-bird', name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
