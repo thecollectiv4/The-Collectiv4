@@ -195,9 +195,9 @@ export default function EventLanding() {
             <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'rgba(242,230,208,.04)',border:'1px solid rgba(242,230,208,.1)',cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.25)';e.currentTarget.style.background='rgba(242,230,208,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.1)';e.currentTarget.style.background='rgba(242,230,208,.04)'}}>
-              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'rgba(242,230,208,.06)',border:'2px solid rgba(242,230,208,.15)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',flexShrink:0}}>{a.name[0]}</div>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'rgba(208,96,32,.1)',border:'2px solid rgba(208,96,32,.35)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#D06020',flexShrink:0}}>{a.name[0]}</div>
               <div style={{flex:1}}>
-                <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'#D06020',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
+                <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
