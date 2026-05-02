@@ -97,11 +97,9 @@ export default function EventLanding() {
       </div>
 
       {/* HERO */}
-      <div style={{position:'relative',minHeight:'520px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',overflow:'hidden',paddingTop:'48px'}}>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(180deg,#1A1610 0%,#161210 40%,transparent 100%)'}} />
+      <div style={{position:'relative',minHeight:'520px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',paddingTop:'48px'}}>
         <div style={{position:'absolute',bottom:'-80px',left:'20%',width:'280px',height:'280px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)',filter:'blur(80px)'}} />
         <div style={{position:'absolute',top:'80px',right:'-20px',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.03) 0%,transparent 70%)',filter:'blur(60px)'}} />
-        <div style={{position:'absolute',inset:0,opacity:.04,backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}} />
         <div style={{position:'relative',zIndex:2}}>
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
             <div onClick={()=>navigate('/editions')} style={{border:'1px solid rgba(255,255,255,.2)',borderRadius:'100px',padding:'5px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.1em',cursor:'pointer',transition:'all .2s',background:'rgba(255,255,255,.04)'}}
@@ -176,7 +174,7 @@ export default function EventLanding() {
           {user&&<span onClick={()=>navigate('/attendees')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
         </div>
       </div>
-      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,var(--rust)30,transparent)',margin:'0 28px'}} />
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
       {/* LINEUP */}
       <div style={{padding:'36px 28px'}}>
@@ -199,7 +197,7 @@ export default function EventLanding() {
           ))}
         </div>
       </div>
-      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,var(--gold)30,transparent)',margin:'0 28px'}} />
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
       {/* TICKETS */}
       <div style={{padding:'36px 28px'}}>
@@ -221,7 +219,7 @@ export default function EventLanding() {
           ))}
         </div>
       </div>
-      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,var(--cream-low)30,transparent)',margin:'0 28px'}} />
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
       {/* EXPERIENCES */}
       <div style={{padding:'36px 28px'}}>
