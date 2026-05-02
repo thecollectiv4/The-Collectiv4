@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { LogOut, Edit3, Calendar, MapPin, Clock } from 'lucide-react'
+import { LogOut, Edit3, Calendar, MapPin, Clock, ChevronRight, Sparkles } from 'lucide-react'
 
 export default function Profile() {
   const { user, signOut } = useAuth()
@@ -17,22 +17,26 @@ export default function Profile() {
     const {data} = await supabase.from('profiles').select('*').eq('id',user.id).single()
     if(data){ setProfile(data); setForm({display_name:data.display_name||'',bio:data.bio||'',handle:data.handle||''}) }
     else {
-      const np={id:user.id,display_name:user.email.split('@')[0],bio:'',handle:'',city:'Houston'}
+      const nm = user.user_metadata?.full_name || user.email.split('@')[0]
+      const np={id:user.id,display_name:nm,bio:'',handle:'',city:'Houston'}
       await supabase.from('profiles').insert(np)
-      setProfile(np); setForm({display_name:np.display_name,bio:'',handle:''}); setEditing(true)
+      setProfile(np); setForm({display_name:nm,bio:'',handle:''}); setEditing(true)
     }
   }
   const save = async () => { await supabase.from('profiles').update(form).eq('id',user.id); setProfile(p=>({...p,...form})); setEditing(false) }
-  const inp = {width:'100%',background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'10px',padding:'14px 16px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'14px',outline:'none'}
+  const inp = {width:'100%',background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'10px',padding:'14px 16px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'14px',outline:'none',transition:'border-color .2s'}
 
   if(!profile) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-low)'}}>Loading...</div></div>
 
   return (
     <div style={{background:'var(--bg)',minHeight:'100vh'}}>
-      {/* Header matching Event page */}
+      {/* Header */}
       <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PROFILE</div>
-        <button onClick={async()=>{await signOut();navigate('/')}} style={{background:'none',border:'1px solid rgba(255,255,255,.12)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-mid)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
+        <button onClick={async()=>{await signOut();navigate('/')}}
+          style={{background:'rgba(220,38,38,.08)',border:'1px solid rgba(220,38,38,.25)',borderRadius:'8px',padding:'6px 14px',color:'#EF4444',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',transition:'all .2s'}}
+          onMouseOver={e=>{e.currentTarget.style.background='rgba(220,38,38,.2)';e.currentTarget.style.borderColor='rgba(220,38,38,.5)'}}
+          onMouseOut={e=>{e.currentTarget.style.background='rgba(220,38,38,.08)';e.currentTarget.style.borderColor='rgba(220,38,38,.25)'}}>
           <LogOut size={11}/> Sign Out
         </button>
       </div>
@@ -41,7 +45,9 @@ export default function Profile() {
         <div style={{position:'absolute',top:'-20px',right:'-20px',width:'160px',height:'160px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)',filter:'blur(40px)'}} />
       </div>
       <div style={{padding:'0 28px',marginTop:'-40px',position:'relative',zIndex:3}}>
-        <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'34px',color:'var(--cream)',boxShadow:'0 4px 20px rgba(0,0,0,.4)'}}>
+        <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'34px',color:'var(--cream)',boxShadow:'0 4px 20px rgba(0,0,0,.4)',transition:'outline-color .3s'}}
+          onMouseOver={e=>e.currentTarget.style.outlineColor='rgba(255,255,255,.5)'}
+          onMouseOut={e=>e.currentTarget.style.outlineColor='rgba(255,255,255,.2)'}>
           {(profile.display_name||'?')[0].toUpperCase()}
         </div>
       </div>
@@ -52,13 +58,19 @@ export default function Profile() {
               <div key={key}>
                 <label style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'6px',display:'block'}}>{lbl}</label>
                 {type==='textarea'?(
-                  <textarea placeholder={ph} value={form[key]} rows={3} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} style={{...inp,resize:'vertical'}}/>
+                  <textarea placeholder={ph} value={form[key]} rows={3} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} style={{...inp,resize:'vertical'}}
+                    onFocus={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.3)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-hi)'}/>
                 ):(
-                  <input type="text" placeholder={ph} value={form[key]} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} style={inp}/>
+                  <input type="text" placeholder={ph} value={form[key]} onChange={e=>setForm(p=>({...p,[key]:e.target.value}))} style={inp}
+                    onFocus={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.3)'} onBlur={e=>e.currentTarget.style.borderColor='var(--border-hi)'}/>
                 )}
               </div>
             ))}
-            <button onClick={save} style={{background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px',color:'var(--bg)',fontWeight:600,fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans'}}>Save</button>
+            <button onClick={save} style={{background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px',color:'var(--bg)',fontWeight:600,fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(242,232,208,.2)'}}
+              onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
+              Save
+            </button>
           </div>
         ):(
           <>
@@ -67,7 +79,9 @@ export default function Profile() {
                 <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em'}}>{profile.display_name||'Set your name'}</div>
                 {profile.handle&&<div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-mid)',marginTop:'2px'}}>@{profile.handle} · Houston</div>}
               </div>
-              <button onClick={()=>setEditing(true)} style={{background:'none',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-low)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
+              <button onClick={()=>setEditing(true)} style={{background:'rgba(255,255,255,.04)',border:'1px solid rgba(255,255,255,.12)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-mid)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',transition:'all .2s'}}
+                onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,.1)';e.currentTarget.style.borderColor='rgba(255,255,255,.25)'}}
+                onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,.04)';e.currentTarget.style.borderColor='rgba(255,255,255,.12)'}}>
                 <Edit3 size={11}/> Edit
               </button>
             </div>
@@ -75,25 +89,44 @@ export default function Profile() {
           </>
         )}
       </div>
-      <div style={{height:'1px',background:'var(--border)',margin:'8px 28px'}}/>
+      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)',margin:'8px 28px'}}/>
       <div style={{padding:'24px 28px 100px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'16px'}}>YOUR TICKET</div>
-        <div style={{border:'1px solid var(--border-hi)',borderRadius:'12px',overflow:'hidden'}}>
+        <div style={{border:'1px solid var(--border-hi)',borderRadius:'14px',overflow:'hidden',transition:'all .3s',cursor:'pointer'}}
+          onClick={()=>navigate('/')}
+          onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(255,255,255,.2)';e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.4)'}}
+          onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           <div style={{padding:'24px',background:'var(--bg-card)'}}>
             <div style={{fontFamily:'Bebas Neue',fontSize:'24px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS <span style={{color:'var(--gold)'}}>002</span></div>
             <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.08em'}}>MAY EDITION</div>
             <div style={{display:'flex',gap:'20px',marginTop:'20px'}}>
               {[[Calendar,'MAY 30'],[Clock,'10PM'],[MapPin,'HTX']].map(([Icon,text],i)=>(
                 <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                  <Icon size={11} strokeWidth={1.2} style={{color:'var(--cream-low)'}}/>
+                  <Icon size={11} strokeWidth={1.2} style={{color:'var(--cream)'}}/>
                   <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.06em'}}>{text}</span>
                 </div>
               ))}
             </div>
           </div>
-          <div style={{padding:'16px 24px',borderTop:'1px dashed var(--border)',textAlign:'center'}}>
+          <div style={{padding:'14px 24px',borderTop:'1px dashed var(--border-hi)',background:'rgba(255,255,255,.02)',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
             <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.06em'}}>Tickets go live May 15 · Early bird $15</div>
+            <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
           </div>
+        </div>
+
+        {/* Past editions link */}
+        <div style={{marginTop:'16px',border:'1px solid var(--border)',borderRadius:'12px',padding:'16px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer',transition:'all .2s'}}
+          onClick={()=>navigate('/editions')}
+          onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(255,215,0,.3)';e.currentTarget.style.background='rgba(255,215,0,.04)'}}
+          onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='transparent'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+            <Sparkles size={14} style={{color:'#FFD700'}} />
+            <div>
+              <div style={{fontSize:'12px',fontWeight:600,color:'var(--cream)'}}>Past Editions</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px'}}>1 event attended</div>
+            </div>
+          </div>
+          <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
         </div>
       </div>
     </div>
