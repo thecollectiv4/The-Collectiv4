@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { Lock, Send, MessageCircle, Users, ChevronDown } from 'lucide-react'
+import { Lock, Send, MessageCircle, Users, Ticket, Copy, Check } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 export default function Community() {
   const { user } = useAuth()
@@ -12,27 +13,32 @@ export default function Community() {
   const [messages, setMessages] = useState([])
   const [newMsg, setNewMsg] = useState('')
   const [loading, setLoading] = useState(true)
+  const [ticket, setTicket] = useState(null)
+  const [copied, setCopied] = useState(false)
+  const [showQR, setShowQR] = useState(false)
   const bottomRef = useRef(null)
 
   useEffect(() => {
-    // Load attendees
     supabase.from('tickets').select('*').eq('status','confirmed').order('created_at',{ascending:false})
       .then(({data}) => { setAttendees(data||[]); setLoading(false) })
       .catch(() => setLoading(false))
 
-    // Load chat messages
     supabase.from('chat_messages').select('*').order('created_at',{ascending:true}).limit(100)
       .then(({data}) => setMessages(data||[]))
       .catch(() => {})
 
-    // Realtime chat
+    if (user?.email) {
+      supabase.from('tickets').select('*').eq('buyer_email',user.email).eq('status','confirmed').maybeSingle()
+        .then(({data}) => { if(data) setTicket(data) })
+    }
+
     const channel = supabase.channel('community-chat').on('postgres_changes',
       { event:'INSERT', schema:'public', table:'chat_messages' },
       (payload) => setMessages(prev => [...prev, payload.new])
     ).subscribe()
 
     return () => supabase.removeChannel(channel)
-  }, [])
+  }, [user])
 
   useEffect(() => { if(tab==='chat') bottomRef.current?.scrollIntoView({behavior:'smooth'}) }, [messages, tab])
 
@@ -48,29 +54,69 @@ export default function Community() {
   if (!user) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'var(--bg)'}}>
       <Lock size={24} strokeWidth={1.2} style={{color:'var(--cream-low)',marginBottom:'20px'}}/>
-      <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',marginBottom:'8px'}}>JOIN THE COMMUNITY</div>
-      <div style={{fontSize:'13px',color:'var(--cream-mid)',marginBottom:'28px',lineHeight:1.6}}>Create an account to see who's going and chat with other attendees.</div>
+      <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',marginBottom:'8px'}}>JOIN THE COMMUNITY</div>
+      <div style={{fontSize:'13px',color:'var(--cream-mid)',marginBottom:'28px',lineHeight:1.6}}>Get your ticket to connect with other attendees.</div>
       <button onClick={()=>navigate('/auth')} style={{background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px 36px',color:'var(--bg)',fontFamily:'DM Sans',fontSize:'13px',fontWeight:600,cursor:'pointer'}}>Join</button>
     </div>
   )
 
   return (
     <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
-      {/* Event card header */}
+
+      {/* YOUR TICKET */}
       <div style={{padding:'20px 28px 0'}}>
-        <div onClick={()=>navigate('/')} style={{padding:'16px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',cursor:'pointer',display:'flex',alignItems:'center',gap:'14px',transition:'all .2s'}}
-          onMouseOver={e=>e.currentTarget.style.borderColor='rgba(242,230,208,.2)'}
-          onMouseOut={e=>e.currentTarget.style.borderColor='var(--border-hi)'}>
-          <div style={{width:'44px',height:'44px',borderRadius:'10px',background:'rgba(208,96,32,.08)',border:'1px solid rgba(208,96,32,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'16px',color:'#D06020',flexShrink:0}}>002</div>
-          <div style={{flex:1}}>
-            <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS</div>
-            <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>MAY 30 · 10PM · HOUSTON</div>
+        {ticket ? (
+          <div style={{border:'1px solid var(--border-hi)',borderRadius:'16px',overflow:'hidden',background:'var(--bg-card)'}}>
+            {/* Ticket header - always visible */}
+            <div onClick={()=>setShowQR(!showQR)} style={{padding:'20px',cursor:'pointer',display:'flex',alignItems:'center',gap:'14px',transition:'all .2s'}}
+              onMouseOver={e=>e.currentTarget.style.background='rgba(242,230,208,.02)'}
+              onMouseOut={e=>e.currentTarget.style.background='transparent'}>
+              <div style={{width:'48px',height:'48px',borderRadius:'12px',background:'rgba(208,96,32,.08)',border:'1px solid rgba(208,96,32,.2)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                <Ticket size={22} strokeWidth={1.4} style={{color:'#D06020'}} />
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:'Bebas Neue',fontSize:'20px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS <span style={{color:'#D06020'}}>002</span></div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>MAY 30 · 10PM · HOUSTON</div>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00D54B',boxShadow:'0 0 6px rgba(0,213,75,.4)'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'#00D54B',fontWeight:600}}>CONFIRMED</span>
+              </div>
+            </div>
+
+            {/* QR Code - expandable */}
+            {showQR && (
+              <div style={{padding:'0 20px 24px',textAlign:'center',animation:'fadeUp .3s ease'}}>
+                <div style={{height:'1px',background:'var(--border)',marginBottom:'20px'}} />
+                <div style={{display:'inline-block',padding:'16px',background:'#FFFFFF',borderRadius:'14px',marginBottom:'14px'}}>
+                  <QRCodeSVG value={ticket.qr_code||'RBA2-TICKET'} size={160} level="H" />
+                </div>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginBottom:'6px'}}>
+                  <span style={{fontFamily:'DM Mono',fontSize:'13px',color:'var(--cream)',letterSpacing:'.04em',fontWeight:600}}>{ticket.qr_code}</span>
+                  <button onClick={(e)=>{e.stopPropagation();navigator.clipboard.writeText(ticket.qr_code);setCopied(true);setTimeout(()=>setCopied(false),2000)}} style={{background:'none',border:'none',cursor:'pointer',padding:'4px'}}>
+                    {copied ? <Check size={14} style={{color:'#00D54B'}} /> : <Copy size={14} style={{color:'var(--cream-low)'}} />}
+                  </button>
+                </div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>Show this at the door</div>
+              </div>
+            )}
           </div>
-          <ChevronDown size={16} style={{color:'var(--cream-low)',transform:'rotate(-90deg)'}} />
-        </div>
+        ) : (
+          <div onClick={()=>navigate('/')} style={{padding:'20px',borderRadius:'16px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',cursor:'pointer',display:'flex',alignItems:'center',gap:'14px',transition:'all .2s'}}
+            onMouseOver={e=>e.currentTarget.style.borderColor='rgba(242,230,208,.2)'}
+            onMouseOut={e=>e.currentTarget.style.borderColor='var(--border-hi)'}>
+            <div style={{width:'48px',height:'48px',borderRadius:'12px',background:'rgba(242,230,208,.04)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <Ticket size={22} strokeWidth={1.4} style={{color:'var(--cream-low)'}} />
+            </div>
+            <div style={{flex:1}}>
+              <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)'}}>GET YOUR TICKET</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px'}}>From $15 · May 30</div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Tabs: Going / Chat */}
+      {/* Going / Chat tabs */}
       <div style={{padding:'16px 28px 0',display:'flex',gap:'4px'}}>
         {[['going','Going',Users,attendees.length],['chat','Chat',MessageCircle,messages.length]].map(([id,label,Icon,count])=>(
           <button key={id} onClick={()=>setTab(id)} style={{
@@ -89,7 +135,7 @@ export default function Community() {
 
       {/* Content */}
       {tab === 'going' ? (
-        <div style={{padding:'16px 28px 100px',flex:1}}>
+        <div style={{padding:'12px 28px 100px',flex:1}}>
           {loading ? (
             <div style={{textAlign:'center',padding:'40px',color:'var(--cream-low)',fontSize:'13px'}}>Loading...</div>
           ) : attendees.length === 0 ? (
@@ -99,17 +145,16 @@ export default function Community() {
             </div>
           ) : (
             <div>
-              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.15em',marginBottom:'12px',marginTop:'8px'}}>{attendees.length} CONFIRMED</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.15em',marginBottom:'8px'}}>{attendees.length} CONFIRMED</div>
               {attendees.map((a,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none'}}>
-                  <div style={{width:'38px',height:'38px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'15px',color:'var(--cream)',flexShrink:0}}>
+                <div key={i} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none'}}>
+                  <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',flexShrink:0}}>
                     {(a.buyer_email||'?')[0].toUpperCase()}
                   </div>
                   <div style={{flex:1}}>
-                    <div style={{fontSize:'14px',fontWeight:500,color:'var(--cream)'}}>{a.buyer_name||a.buyer_email?.split('@')[0]||'Attendee'}</div>
-                    <div style={{fontSize:'11px',color:'var(--cream-low)',marginTop:'1px'}}>EARLY BIRD ticket</div>
+                    <div style={{fontSize:'13px',fontWeight:500,color:'var(--cream)'}}>{a.buyer_name||a.buyer_email?.split('@')[0]||'Attendee'}</div>
                   </div>
-                  <span style={{fontFamily:'DM Mono',fontSize:'8px',letterSpacing:'.1em',color:'#00D54B',background:'rgba(0,213,75,.06)',border:'1px solid rgba(0,213,75,.15)',padding:'3px 10px',borderRadius:'100px'}}>GOING</span>
+                  <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'#00D54B',background:'rgba(0,213,75,.06)',border:'1px solid rgba(0,213,75,.15)',padding:'3px 8px',borderRadius:'100px'}}>GOING</span>
                 </div>
               ))}
             </div>
@@ -117,7 +162,7 @@ export default function Community() {
         </div>
       ) : (
         <>
-          <div style={{flex:1,padding:'16px 28px 130px',overflowY:'auto'}}>
+          <div style={{flex:1,padding:'12px 28px 130px',overflowY:'auto'}}>
             {messages.length === 0 ? (
               <div style={{textAlign:'center',padding:'40px'}}>
                 <MessageCircle size={24} strokeWidth={1.2} style={{color:'var(--cream-low)',marginBottom:'12px'}}/>
