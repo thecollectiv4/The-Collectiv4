@@ -7,8 +7,8 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
 const LINEUP = [
-  { handle:'madou', slug:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
-  { handle:'patoduranc', slug:'pato-duran', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
+  { handle:'madou', slug:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou', color:'#5A9A30' },
+  { handle:'patoduranc', slug:'pato-duran', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc', color:'#6080FF' },
 ]
 const EXPERIENCES = [
   { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Paintbrush', accent:'#D06020', bg:'rgba(208,96,32,.04)' },
@@ -89,9 +89,9 @@ export default function EventLanding() {
 
       {/* HEADER */}
       <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(8,8,8,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,230,208,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'#80FFB0',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#F2E6D0',animation:'pulse 2s infinite',boxShadow:'0 0 8px rgba(242,230,208,.4)'}}/>
+          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite',boxShadow:'0 0 10px rgba(0,230,118,.5)'}}/>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
         </div>
       </div>
@@ -106,21 +106,21 @@ export default function EventLanding() {
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
             {/* Edition badge - golden glow */}
             <div onClick={()=>navigate('/editions')} style={{
-              border:'1px solid rgba(242,230,208,.3)',borderRadius:'100px',padding:'6px 16px',
-              fontFamily:'DM Mono',fontSize:'10px',color:'#F2E6D0',letterSpacing:'.1em',
+              border:'1px solid rgba(255,180,50,.35)',borderRadius:'100px',padding:'6px 16px',
+              fontFamily:'DM Mono',fontSize:'10px',color:'#FFB432',letterSpacing:'.1em',
               cursor:'pointer',transition:'all .2s',
-              background:'linear-gradient(135deg,rgba(242,230,208,.06),rgba(242,230,208,.03))',
-              boxShadow:'0 0 12px rgba(242,230,208,.06)',
+              background:'linear-gradient(135deg,rgba(255,180,50,.08),rgba(255,180,50,.03))',
+              boxShadow:'0 0 12px rgba(255,180,50,.1)',
             }}
-              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(242,230,208,.15),rgba(242,230,208,.08))';e.currentTarget.style.boxShadow='0 0 20px rgba(242,230,208,.12)';e.currentTarget.style.borderColor='rgba(242,230,208,.5)'}}
-              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(242,230,208,.06),rgba(242,230,208,.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(242,230,208,.06)';e.currentTarget.style.borderColor='rgba(242,230,208,.3)'}}>
+              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(255,180,50,.15),rgba(255,180,50,.08))';e.currentTarget.style.boxShadow='0 0 20px rgba(255,180,50,.15)';e.currentTarget.style.borderColor='rgba(255,180,50,.6)'}}
+              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(255,180,50,.08),rgba(255,180,50,.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(255,180,50,.1)';e.currentTarget.style.borderColor='rgba(255,180,50,.35)'}}>
               EDITION 002
             </div>
             {/* Countdown - green accent */}
-            <div style={{border:'1px solid rgba(242,230,208,.15)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',background:'rgba(242,230,208,.03)',animation:'countPulse 3s infinite'}}
+            <div style={{border:'1px solid rgba(0,230,118,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',background:'rgba(0,230,118,.04)',animation:'countPulse 3s infinite'}}
               onMouseOver={()=>setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#F2E6D0',animation:'pulse 2s infinite',boxShadow:'0 0 6px rgba(242,230,208,.4)'}} />
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.06em'}}>
+              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite',boxShadow:'0 0 8px rgba(0,230,118,.5)'}} />
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#80FFB0',letterSpacing:'.06em'}}>
                 {showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
               </span>
             </div>
@@ -189,20 +189,20 @@ export default function EventLanding() {
 
       {/* LINEUP */}
       <div style={{padding:'36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--rust)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
         <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
           {LINEUP.map((a,i)=>(
             <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',cursor:'pointer',transition:'all .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='var(--rust-dim)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.background='var(--bg-card)'}}>
-              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'var(--rust-dim)',border:'2px solid var(--rust)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--rust)',flexShrink:0}}>{a.name[0]}</div>
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:`${a.color}08`,border:`1px solid ${a.color}20`,cursor:'pointer',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=a.color+'50';e.currentTarget.style.background=a.color+'12'}} onMouseOut={e=>{e.currentTarget.style.borderColor=a.color+'20';e.currentTarget.style.background=a.color+'08'}}>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:`${a.color}12`,border:`2px solid ${a.color}40`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:a.color,flexShrink:0}}>{a.name[0]}</div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
-                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--rust)',background:'var(--rust-dim)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
-                <ChevronRight size={14} style={{color:'var(--rust)'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:a.color,background:`${a.color}12`,padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
+                <ChevronRight size={14} style={{color:a.color,opacity:.5}} />
               </div>
             </div>
           ))}

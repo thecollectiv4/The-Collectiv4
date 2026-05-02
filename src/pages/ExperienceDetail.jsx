@@ -12,7 +12,7 @@ const EXPERIENCES = {
     artistNote:"Drecol takes the stage as the live painter for Edition 002, creating work in real time as the music plays. Expect raw, expressive work — nothing cleaned up for a gallery.",
     details:["Original work created live during the event","All pieces available for purchase on the night","Artists present to talk about their work"],
     artists:[
-      { name:'Drecol', slug:'drecol', role:'Live Painter · Featured Artist', desc:'Painting live as the music plays. Each piece is a one-of-one record of the night — created in the room, in the moment.' },
+      { name:'Drecol', slug:'drecol', color:'#D06020', role:'Live Painter · Featured Artist', desc:'Painting live as the music plays. Each piece is a one-of-one record of the night — created in the room, in the moment.' },
     ],
   },
   'gallery': {
@@ -23,10 +23,10 @@ const EXPERIENCES = {
     artistNote:"Each piece was selected to reflect the energy of this edition. The gallery is a living part of the event — walk through it, talk about it, feel it.",
     details:["Curated original works on display","Art available for purchase","Meet the artists in person","Pieces created specifically for this edition"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
-      { name:'Drecol', slug:'drecol', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
-      { name:'Pato Durán', slug:'pato-duran', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
-      { name:'Diego Villaseñor', slug:'diego-villasenor', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#8A2040', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
+      { name:'Drecol', slug:'drecol', color:'#D06020', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
+      { name:'Pato Durán', slug:'pato-duran', color:'#6080FF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
+      { name:'Diego Villaseñor', slug:'diego-villasenor', color:'#D4A040', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
     ],
   },
   'fashion': {
@@ -95,20 +95,22 @@ export default function ExperienceDetail() {
           <>
             <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'16px'}}>FEATURED ARTISTS</div>
             <div style={{display:'flex',flexDirection:'column',gap:'12px',marginBottom:'32px'}}>
-              {exp.artists.map((a,i)=>(
-                <div key={i} onClick={()=>a.slug&&navigate('/artist/'+a.slug)} style={{padding:'16px',border:`1px solid ${exp.borderColor}`,borderRadius:'12px',background:exp.color,cursor:a.slug?'pointer':'default',transition:'all .2s'}}
-                  onMouseOver={e=>{if(a.slug){e.currentTarget.style.borderColor=exp.accent;e.currentTarget.style.transform='translateX(4px)'}}} onMouseOut={e=>{if(a.slug){e.currentTarget.style.borderColor=exp.borderColor;e.currentTarget.style.transform='translateX(0)'}}}>
+              {exp.artists.map((a,i)=>{
+                const c = a.color || exp.accent
+                return (
+                <div key={i} onClick={()=>a.slug&&navigate('/artist/'+a.slug)} style={{padding:'16px',border:`1px solid ${c}20`,borderRadius:'12px',background:`${c}08`,cursor:a.slug?'pointer':'default',transition:'all .2s'}}
+                  onMouseOver={e=>{if(a.slug){e.currentTarget.style.borderColor=c+'50';e.currentTarget.style.transform='translateX(4px)';e.currentTarget.style.background=c+'12'}}} onMouseOut={e=>{if(a.slug){e.currentTarget.style.borderColor=c+'20';e.currentTarget.style.transform='translateX(0)';e.currentTarget.style.background=c+'08'}}}>
                   <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'8px'}}>
-                    <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:`1px solid ${exp.borderColor}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'15px',color:exp.accent}}>{a.name[0]}</div>
+                    <div style={{width:'36px',height:'36px',borderRadius:'50%',background:`${c}12`,border:`1px solid ${c}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'15px',color:c}}>{a.name[0]}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{a.name}</div>
-                      <div style={{fontFamily:'DM Mono',fontSize:'9px',color:exp.accent,letterSpacing:'.04em',marginTop:'1px'}}>{a.role}</div>
+                      <div style={{fontFamily:'DM Mono',fontSize:'9px',color:c,letterSpacing:'.04em',marginTop:'1px'}}>{a.role}</div>
                     </div>
-                    {a.slug && <ArrowLeft size={14} style={{color:'var(--cream-low)',transform:'rotate(180deg)'}} />}
+                    {a.slug && <ArrowLeft size={14} style={{color:c,transform:'rotate(180deg)',opacity:.5}} />}
                   </div>
                   <div style={{fontSize:'12px',color:'var(--cream-mid)',lineHeight:1.5}}>{a.desc}</div>
                 </div>
-              ))}
+              )})}
             </div>
           </>
         )}

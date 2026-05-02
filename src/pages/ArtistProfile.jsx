@@ -28,7 +28,7 @@ const ARTISTS = {
     bio: "House and techno DJ. Founder of The Collectiv4 and the creative force behind Ran By Artists. From the decks to the big picture — music, venues, brand, platform.",
     contributions: ['Founder — The Collectiv4', 'DJ — RBA Edition 001 & 002', 'Creative Direction — Events & Platform'],
     initial: 'P',
-    accent: '#FFFFFF',
+    accent: '#6080FF',
   },
   'diego-villasenor': {
     name: 'DIEGO VILLASEÑOR',
