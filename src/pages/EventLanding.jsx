@@ -2,17 +2,19 @@ import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2 } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Brush, Frame, Scissors, Layers } from 'lucide-react'
+
+const ICON_MAP = { Brush, Frame, Scissors, Layers }
 
 const LINEUP = [
   { handle:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
   { handle:'patoduranc', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
 ]
 const EXPERIENCES = [
-  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', icon:'◐' },
-  { slug:'gallery', label:'GALLERY', short:'Original works by the painter on display. Art you can feel.', icon:'◧' },
-  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', icon:'△' },
-  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', icon:'▣' },
+  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Brush' },
+  { slug:'gallery', label:'GALLERY', short:'Original works by the painter on display. Art you can feel.', iconName:'Frame' },
+  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', iconName:'Scissors' },
+  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', iconName:'Layers' },
 ]
 const TIERS = [
   { id:'early-bird', name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
@@ -81,9 +83,13 @@ export default function EventLanding() {
             </div>
           </div>
           <div className="fade-up-1" style={{fontSize:'10px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',fontWeight:600,marginBottom:'14px'}}>The Collectiv4 presents</div>
-          <h1 className="fade-up-2" style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'78px',lineHeight:.88,letterSpacing:'-1px',color:'var(--cream)',margin:0}}>
-            RAN BY<br/>ARTISTS
-          </h1>
+          <div className="fade-up-2" style={{margin:0,marginBottom:'4px'}}>
+            <div style={{display:'flex',alignItems:'baseline',gap:'12px'}}>
+              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'82px',lineHeight:.85,letterSpacing:'2px',color:'transparent',WebkitTextStroke:'2px var(--cream)'}}>RAN</span>
+              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'32px',lineHeight:1,letterSpacing:'2px',color:'var(--cream)'}}>BY</span>
+            </div>
+            <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'82px',lineHeight:.85,letterSpacing:'2px',color:'var(--cream)',marginTop:'4px'}}>ARTISTS</div>
+          </div>
           <p className="fade-up-3" style={{fontSize:'14px',color:'var(--cream-mid)',lineHeight:1.65,marginTop:'22px',maxWidth:'320px'}}>
             A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room.
           </p>
@@ -190,7 +196,7 @@ export default function EventLanding() {
             <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'20px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border)',cursor:'pointer',transition:'border-color .2s'}}
               onMouseOver={e=>e.currentTarget.style.borderColor='var(--border-hi)'} onMouseOut={e=>e.currentTarget.style.borderColor='var(--border)'}>
-              <span style={{fontSize:'26px',lineHeight:1,flexShrink:0}}>{exp.icon}</span>
+              {(()=>{ const IconComp = ICON_MAP[exp.iconName]; return <IconComp size={22} strokeWidth={1.4} style={{color:'var(--cream)',flexShrink:0}} /> })()}
               <div style={{flex:1}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.04em'}}>{exp.label}</div>
                 <div style={{fontSize:'12px',color:'var(--cream-mid)',marginTop:'3px',lineHeight:1.4}}>{exp.short}</div>
