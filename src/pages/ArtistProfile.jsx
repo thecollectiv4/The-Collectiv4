@@ -25,7 +25,7 @@ const ARTISTS = {
     ig: '@patoduranc',
     role: 'Founder · DJ · Creative Director',
     location: 'Houston, TX',
-    bio: "Founder of The Collectiv4 — a creative ecosystem built at the intersection of music, art, and community. Behind the decks and behind the vision. Pato curates every detail of Ran By Artists from the lineup to the lighting.",
+    bio: "Pato started The Collectiv4 because Houston's creative scene deserved a home — not a venue, not a brand, but a real ecosystem where artists stop performing for the world and start creating for each other. He DJs because the music is the heartbeat of everything he builds. Every set, every event, every detail exists because he believed a packed room of the right people could change a city's culture. Edition 001 proved him right.",
     contributions: ['Founder — The Collectiv4', 'DJ — RBA Edition 001 & 002', 'Creative Direction — Gallery & Event Design', 'Platform — Collective World'],
     initial: 'P',
     accent: '#FFFFFF',
