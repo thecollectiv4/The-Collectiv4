@@ -2,19 +2,21 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, Music, Palette, Shirt, Printer } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight } from 'lucide-react'
 
 const LINEUP = [
-  { name: 'MADOU', role: 'DJ SET', tag: 'House · Deep' },
-  { name: 'PATO', role: 'DJ SET', tag: 'House · Techno', handle: '@patoduranc' },
-  { name: 'MELLIZOS', role: 'DJ SET', tag: 'House' },
-  { name: 'CLTV4 EXPERIENCE', role: 'LIVE', tag: 'Art · Fashion · Sound' },
+  { handle:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
+  { handle:'patoduranc', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
 ]
-
+const EXPERIENCES = [
+  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', icon:'🎨' },
+  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', icon:'👗' },
+  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', icon:'🖨️' },
+]
 const TIERS = [
-  { name: 'EARLY BIRD', price: 15, status: 'available', note: 'Limited' },
-  { name: 'GENERAL', price: 25, status: 'soon', note: 'Coming soon' },
-  { name: 'DOOR', price: 40, status: 'soon', note: 'Night of' },
+  { name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
+  { name:'GENERAL', price:25, status:'soon', note:'Available May 15' },
+  { name:'DOOR', price:40, status:'soon', note:'Night of the event' },
 ]
 
 export default function EventLanding() {
@@ -22,348 +24,142 @@ export default function EventLanding() {
   const navigate = useNavigate()
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [hasTicket, setHasTicket] = useState(false)
-
   useEffect(() => {
-    supabase.from('tickets').select('id', { count: 'exact', head: true })
-      .then(({ count }) => setAttendeeCount(count || 14))
-      .catch(() => setAttendeeCount(14))
-    if (user) {
-      supabase.from('tickets').select('id').eq('user_id', user.id).single()
-        .then(({ data }) => setHasTicket(!!data))
-        .catch(() => setHasTicket(false))
-    }
-  }, [user])
-
-  const handleGetTicket = () => {
-    if (!user) navigate('/auth')
-    else alert('Stripe checkout coming soon — tickets go live May 15')
-  }
-
-  const daysUntil = Math.max(0, Math.ceil((new Date('2026-05-30') - new Date()) / 86400000))
+    supabase.from('tickets').select('id',{count:'exact',head:true}).then(({count})=>setAttendeeCount(count||18)).catch(()=>setAttendeeCount(18))
+    if(user) supabase.from('tickets').select('id').eq('user_id',user.id).single().then(({data})=>setHasTicket(!!data)).catch(()=>{})
+  },[user])
+  const days = Math.max(0,Math.ceil((new Date('2026-05-30')-new Date())/86400000))
 
   return (
-    <div style={{ background: '#000', minHeight: '100vh' }}>
+    <div style={{background:'var(--bg)',minHeight:'100vh'}}>
 
-      {/* ═══════ HERO ═══════ */}
-      <div style={{
-        position: 'relative', minHeight: '460px',
-        display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-        padding: '0 28px 36px', overflow: 'hidden',
-      }}>
-        {/* Background gradient */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          background: 'linear-gradient(180deg, #0A0A0A 0%, #000 30%, #0A0604 60%, #000 100%)',
-        }} />
-
-        {/* Subtle glow */}
-        <div style={{
-          position: 'absolute', bottom: '0', left: '50%', transform: 'translateX(-50%)',
-          width: '200px', height: '200px', borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(192,90,42,0.12) 0%, transparent 70%)',
-          filter: 'blur(80px)',
-        }} />
-
-        {/* Noise texture */}
-        <div style={{
-          position: 'absolute', inset: 0, opacity: 0.04,
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }} />
-
-        <div style={{ position: 'relative', zIndex: 2 }}>
-          {/* Countdown pill */}
-          <div className="fade-up" style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px',
-            border: '1px solid #333', borderRadius: '100px', padding: '6px 16px',
-            marginBottom: '32px',
-          }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C05A2A', animation: 'pulse 2s infinite' }} />
-            <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '11px', color: '#888', letterSpacing: '0.08em' }}>
-              {daysUntil} DAYS OUT
-            </span>
+      {/* HERO */}
+      <div style={{position:'relative',minHeight:'500px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',overflow:'hidden'}}>
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(160deg,#1C1106 0%,#0D0A04 35%,#14100A 70%,#0D0A04 100%)'}} />
+        <div style={{position:'absolute',bottom:'-80px',left:'20%',width:'280px',height:'280px',borderRadius:'50%',background:'radial-gradient(circle,rgba(200,144,48,.1) 0%,transparent 70%)',filter:'blur(80px)'}} />
+        <div style={{position:'absolute',top:'60px',right:'-20px',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(200,90,24,.09) 0%,transparent 70%)',filter:'blur(60px)'}} />
+        <div style={{position:'absolute',inset:0,opacity:.06,backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}} />
+        <div style={{position:'relative',zIndex:2}}>
+          <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
+            <div style={{border:'1px solid rgba(200,144,48,.4)',borderRadius:'100px',padding:'5px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--gold)',letterSpacing:'.1em'}}>EDITION 002</div>
+            <div style={{border:'1px solid var(--border)',borderRadius:'100px',padding:'5px 14px',display:'flex',alignItems:'center',gap:'6px'}}>
+              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--rust)',animation:'pulse 2s infinite'}} />
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.06em'}}>{days} DAYS</span>
+            </div>
           </div>
-
-          {/* Presents */}
-          <div className="fade-up-1" style={{
-            fontFamily: 'DM Sans', fontSize: '11px', letterSpacing: '0.3em',
-            color: '#555', textTransform: 'uppercase', fontWeight: 500, marginBottom: '16px',
-          }}>
-            The Collectiv4 presents
-          </div>
-
-          {/* Main title */}
-          <h1 className="fade-up-2" style={{
-            fontFamily: 'Bebas Neue, sans-serif',
-            fontSize: '72px', lineHeight: 0.88, letterSpacing: '-1px',
-            color: '#FFF', margin: 0, fontWeight: 400,
-          }}>
+          <div className="fade-up-1" style={{fontSize:'10px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',fontWeight:600,marginBottom:'14px'}}>The Collectiv4 presents</div>
+          <h1 className="fade-up-2" style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'78px',lineHeight:.88,letterSpacing:'-1px',color:'var(--cream)',margin:0}}>
             RAN BY<br/>ARTISTS
           </h1>
-
-          {/* Tagline */}
-          <p className="fade-up-3" style={{
-            fontSize: '13px', color: '#666', lineHeight: 1.6,
-            marginTop: '20px', maxWidth: '300px',
-          }}>
-            House music. Live art. Fashion. Culture.<br/>
-            One room. One night. No bullshit.
+          <p className="fade-up-3" style={{fontSize:'14px',color:'var(--cream-mid)',lineHeight:1.65,marginTop:'22px',maxWidth:'320px'}}>
+            A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room.
           </p>
-
-          {/* Meta */}
-          <div className="fade-up-4" style={{ display: 'flex', gap: '24px', marginTop: '24px' }}>
-            {[
-              { icon: Calendar, text: 'MAY 30' },
-              { icon: Clock, text: '10PM — 2AM' },
-              { icon: MapPin, text: 'HOUSTON' },
-            ].map(({ icon: Icon, text }, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Icon size={12} strokeWidth={1.4} style={{ color: '#555' }} />
-                <span style={{ fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#888', letterSpacing: '0.06em' }}>{text}</span>
+          <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
+            {[[Calendar,'MAY 30, 2026'],[Clock,'10PM — 2AM'],[MapPin,'HOUSTON · TBA']].map(([Icon,text],i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                <Icon size={12} strokeWidth={1.4} style={{color:'var(--rust)'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.05em'}}>{text}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ═══════ CTA ═══════ */}
-      <div style={{ padding: '0 28px 32px' }}>
+      {/* CTA */}
+      <div style={{padding:'0 28px 32px'}}>
         {hasTicket ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-            border: '1px solid rgba(46,107,26,0.4)', borderRadius: '12px', padding: '18px',
-          }}>
-            <Check size={18} style={{ color: '#4CAF50' }} />
-            <span style={{ color: '#4CAF50', fontWeight: 500, fontSize: '14px' }}>You're in. See you May 30.</span>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(74,122,42,.4)',borderRadius:'12px',padding:'18px',background:'rgba(74,122,42,.06)'}}>
+            <Check size={16} style={{color:'#6ABF4A'}} />
+            <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. See you May 30.</span>
           </div>
         ) : (
-          <button onClick={handleGetTicket} style={{
-            width: '100%', background: '#FFF', border: 'none', borderRadius: '12px',
-            padding: '18px 24px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            transition: 'opacity 0.15s',
-          }}
-          onMouseOver={e => e.currentTarget.style.opacity = '0.9'}
-          onMouseOut={e => e.currentTarget.style.opacity = '1'}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <Ticket size={18} style={{ color: '#000' }} />
-              <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: '#000', letterSpacing: '0.06em' }}>
-                GET YOUR TICKET
-              </span>
+          <button onClick={()=>!user?navigate('/auth'):alert('Tickets go live May 15')}
+            style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'opacity .15s'}}
+            onMouseOver={e=>e.currentTarget.style.opacity='.9'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>
+            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+              <Ticket size={18} style={{color:'var(--bg)'}} />
+              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>GET YOUR TICKET</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '13px', color: '#666' }}>from $15</span>
-              <ArrowRight size={16} style={{ color: '#000' }} />
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+              <span style={{fontSize:'12px',color:'#6A5040',fontWeight:500}}>from $15</span>
+              <ArrowRight size={14} style={{color:'var(--bg)'}} />
             </div>
           </button>
         )}
-
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          marginTop: '14px', fontSize: '11px', color: '#444',
-        }}>
-          <Users size={12} />
-          <span><strong style={{ color: '#888' }}>{attendeeCount}</strong> confirmed</span>
-          {user && (
-            <span onClick={() => navigate('/attendees')} style={{ color: '#888', cursor: 'pointer', marginLeft: '4px' }}>
-              · View all →
-            </span>
-          )}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
+          <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
+          {user&&<span onClick={()=>navigate('/attendees')} style={{color:'var(--rust)',cursor:'pointer',marginLeft:'4px'}}>· See who →</span>}
         </div>
       </div>
+      <div style={{height:'1px',background:'var(--border)',margin:'0 28px'}} />
 
-      {/* ═══════ DIVIDER ═══════ */}
-      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
-
-      {/* ═══════ LINEUP ═══════ */}
-      <div style={{ padding: '36px 28px' }}>
-        <div style={{
-          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
-          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
-        }}>
-          LINEUP
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-          {LINEUP.map((artist, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '18px 0',
-              borderBottom: i < LINEUP.length - 1 ? '1px solid #1A1A1A' : 'none',
-            }}>
-              <div>
-                <div style={{
-                  fontFamily: 'Bebas Neue', fontSize: '28px', color: '#FFF',
-                  letterSpacing: '0.02em', lineHeight: 1,
-                }}>
-                  {artist.name}
-                </div>
-                <div style={{
-                  fontFamily: 'DM Mono, monospace', fontSize: '10px', color: '#555',
-                  marginTop: '4px', letterSpacing: '0.04em',
-                }}>
-                  {artist.tag}
-                </div>
+      {/* LINEUP */}
+      <div style={{padding:'36px 28px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
+        <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
+          {LINEUP.map((a,i)=>(
+            <div key={i} onClick={()=>navigate('/dj/'+a.handle)}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border)',cursor:'pointer',transition:'border-color .2s'}}
+              onMouseOver={e=>e.currentTarget.style.borderColor='var(--border-hi)'} onMouseOut={e=>e.currentTarget.style.borderColor='var(--border)'}>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--gold)',flexShrink:0}}>{a.name[0]}</div>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
               </div>
-
-              <div style={{
-                fontFamily: 'DM Mono, monospace', fontSize: '9px',
-                letterSpacing: '0.1em', color: '#666',
-                border: '1px solid #333', padding: '4px 12px', borderRadius: '100px',
-              }}>
-                {artist.role}
+              <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
+                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--rust)',border:'1px solid rgba(200,90,24,.3)',padding:'3px 10px',borderRadius:'100px',letterSpacing:'.08em'}}>{a.role}</span>
+                <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
               </div>
             </div>
           ))}
         </div>
       </div>
+      <div style={{height:'1px',background:'var(--border)',margin:'0 28px'}} />
 
-      {/* ═══════ DIVIDER ═══════ */}
-      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
-
-      {/* ═══════ TICKETS ═══════ */}
-      <div style={{ padding: '36px 28px' }}>
-        <div style={{
-          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
-          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
-        }}>
-          TICKETS
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {TIERS.map((tier, i) => (
-            <div key={i} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '18px 20px', borderRadius: '12px',
-              border: `1px solid ${tier.status === 'available' ? '#333' : '#1A1A1A'}`,
-              background: tier.status === 'available' ? '#0A0A0A' : 'transparent',
-            }}>
+      {/* TICKETS */}
+      <div style={{padding:'36px 28px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
+        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+          {TIERS.map((t,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--bg-card)':'transparent',border:'1px solid '+(t.status==='available'?'var(--border-hi)':'var(--border)')}}>
               <div>
-                <div style={{
-                  fontFamily: 'Bebas Neue', fontSize: '18px', color: '#FFF',
-                  letterSpacing: '0.04em',
-                }}>
-                  {tier.name}
-                </div>
-                <div style={{ fontFamily: 'DM Mono, monospace', fontSize: '9px', color: '#555', marginTop: '2px', letterSpacing: '0.06em' }}>
-                  {tier.note}
-                </div>
+                <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
               </div>
-
-              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{
-                  fontFamily: 'Bebas Neue', fontSize: '28px',
-                  color: tier.status === 'available' ? '#FFF' : '#333',
-                }}>
-                  ${tier.price}
-                </span>
-                {tier.status === 'available' && (
-                  <div style={{
-                    width: '8px', height: '8px', borderRadius: '50%',
-                    background: '#C05A2A',
-                  }} />
-                )}
+              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--cream)':'var(--cream-low)'}}>${t.price}</span>
+                {t.status==='available'&&<div style={{width:'7px',height:'7px',borderRadius:'50%',background:'var(--rust)'}} />}
               </div>
             </div>
           ))}
         </div>
       </div>
+      <div style={{height:'1px',background:'var(--border)',margin:'0 28px'}} />
 
-      {/* ═══════ DIVIDER ═══════ */}
-      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
-
-      {/* ═══════ THE EXPERIENCE ═══════ */}
-      <div style={{ padding: '36px 28px' }}>
-        <div style={{
-          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
-          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
-        }}>
-          THE EXPERIENCE
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: '#1A1A1A', borderRadius: '12px', overflow: 'hidden' }}>
-          {[
-            { icon: Music, label: 'HOUSE MUSIC', desc: 'Curated sets all night' },
-            { icon: Palette, label: 'LIVE ART', desc: 'Painted in real time' },
-            { icon: Shirt, label: 'FASHION', desc: 'Local brands & merch' },
-            { icon: Printer, label: 'SCREEN PRINT', desc: 'Custom prints live' },
-          ].map(({ icon: Icon, label, desc }, i) => (
-            <div key={i} style={{
-              background: '#0A0A0A', padding: '24px 18px',
-              display: 'flex', flexDirection: 'column', gap: '10px',
-            }}>
-              <Icon size={18} strokeWidth={1.2} style={{ color: '#555' }} />
-              <div>
-                <div style={{ fontFamily: 'Bebas Neue', fontSize: '14px', color: '#FFF', letterSpacing: '0.04em' }}>
-                  {label}
-                </div>
-                <div style={{ fontSize: '11px', color: '#444', marginTop: '2px' }}>
-                  {desc}
-                </div>
+      {/* EXPERIENCES */}
+      <div style={{padding:'36px 28px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>THE EXPERIENCE</div>
+        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+          {EXPERIENCES.map((exp,i)=>(
+            <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'20px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border)',cursor:'pointer',transition:'border-color .2s'}}
+              onMouseOver={e=>e.currentTarget.style.borderColor='var(--border-hi)'} onMouseOut={e=>e.currentTarget.style.borderColor='var(--border)'}>
+              <span style={{fontSize:'26px',lineHeight:1,flexShrink:0}}>{exp.icon}</span>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.04em'}}>{exp.label}</div>
+                <div style={{fontSize:'12px',color:'var(--cream-mid)',marginTop:'3px',lineHeight:1.4}}>{exp.short}</div>
               </div>
+              <ChevronRight size={16} style={{color:'var(--cream-low)',flexShrink:0}} />
             </div>
           ))}
         </div>
       </div>
 
-      {/* ═══════ DIVIDER ═══════ */}
-      <div style={{ height: '1px', background: '#1A1A1A', margin: '0 28px' }} />
-
-      {/* ═══════ PROOF / EDITION 1 ═══════ */}
-      <div style={{ padding: '48px 28px', textAlign: 'center' }}>
-        <div style={{
-          fontFamily: 'DM Mono, monospace', fontSize: '9px', letterSpacing: '0.3em',
-          color: '#444', textTransform: 'uppercase', marginBottom: '24px',
-        }}>
-          EDITION 01 · APRIL 4, 2026
-        </div>
-
-        <div style={{
-          fontFamily: 'Bebas Neue', fontSize: '80px', color: '#FFF',
-          lineHeight: 0.9, letterSpacing: '-2px',
-        }}>
-          223
-        </div>
-        <div style={{
-          fontSize: '13px', color: '#555', marginTop: '8px', lineHeight: 1.5,
-        }}>
-          people in one room, feeling the same thing.
-        </div>
-
-        <div style={{
-          marginTop: '24px', padding: '20px',
-          border: '1px solid #1A1A1A', borderRadius: '12px',
-        }}>
-          <p style={{ fontSize: '14px', color: '#888', lineHeight: 1.7, fontStyle: 'italic' }}>
-            We built something real. 220 people in a room all feeling the same thing. That is the foundation.
-          </p>
-          <div style={{ fontSize: '11px', color: '#444', marginTop: '12px' }}>
-            — Sanman Studios, Houston
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════ FOOTER ═══════ */}
-      <div style={{
-        padding: '36px 28px 120px',
-        borderTop: '1px solid #1A1A1A',
-        textAlign: 'center',
-      }}>
-        <div style={{
-          fontFamily: 'Bebas Neue', fontSize: '24px', color: '#FFF',
-          letterSpacing: '0.02em',
-        }}>
-          THE COLLECTIV4
-        </div>
-        <div style={{
-          fontFamily: 'DM Mono, monospace', fontSize: '10px',
-          color: '#444', marginTop: '8px', letterSpacing: '0.1em',
-        }}>
-          ART · MUSIC · FASHION · EVENTS
-        </div>
-        <div style={{ fontSize: '12px', color: '#333', marginTop: '16px' }}>
-          @thecollectiv4
-        </div>
+      {/* FOOTER */}
+      <div style={{padding:'36px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em'}}>THE COLLECTIV4</div>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'8px',letterSpacing:'.15em'}}>ART · MUSIC · FASHION · EVENTS</div>
+        <div style={{fontSize:'11px',color:'var(--cream-ghost)',marginTop:'12px'}}>@thecollectiv4</div>
       </div>
     </div>
   )

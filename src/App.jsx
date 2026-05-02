@@ -6,6 +6,9 @@ import Attendees from '@/pages/Attendees'
 import EventChat from '@/pages/EventChat'
 import Profile from '@/pages/Profile'
 import Auth from '@/pages/Auth'
+import DJProfile from '@/pages/DJProfile'
+import AttendeeProfile from '@/pages/AttendeeProfile'
+import ExperienceDetail from '@/pages/ExperienceDetail'
 
 export default function App() {
   return (
@@ -18,6 +21,9 @@ export default function App() {
             <Route path="attendees" element={<Attendees />} />
             <Route path="chat" element={<EventChat />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="dj/:handle" element={<DJProfile />} />
+            <Route path="attendee/:id" element={<AttendeeProfile />} />
+            <Route path="experience/:slug" element={<ExperienceDetail />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
