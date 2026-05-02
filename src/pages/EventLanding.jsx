@@ -66,6 +66,7 @@ export default function EventLanding() {
   }
 
   const [showCountdown, setShowCountdown] = useState(false)
+  const [ticketOpen, setTicketOpen] = useState(false)
   const [countdown, setCountdown] = useState({d:0,h:0,m:0,s:0})
 
   useEffect(() => {
@@ -184,30 +185,31 @@ export default function EventLanding() {
           <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
           {user&&<span onClick={()=>navigate('/community')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
         </div>
+
+        {/* TICKET TIERS - expandable */}
+        {ticketOpen && (
+          <div style={{marginTop:'16px',display:'flex',flexDirection:'column',gap:'8px',animation:'fadeUp .3s ease'}}>
+            {TIERS.map((t,i)=>(
+              <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(208,96,32,.06)':'rgba(242,230,208,.02)',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
+                onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.5)';e.currentTarget.style.background='rgba(208,96,32,.12)'}}}
+                onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.25)';e.currentTarget.style.background='rgba(208,96,32,.06)'}}}>
+                <div>
+                  <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
+                  <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <span style={{fontFamily:'Bebas Neue',fontSize:'22px',color:t.status==='available'?'#D06020':'var(--cream-low)'}}>{t.doorLabel||'$'+t.price}</span>
+                  {t.status==='available'&&<ArrowRight size={12} style={{color:'#D06020'}} />}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
-      {/* TICKETS */}
-      <div style={{padding:'36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--gold)',textTransform:'uppercase',marginBottom:'22px'}}>TICKETS</div>
-        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-          {TIERS.map((t,i)=>(
-            <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
-              style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 18px',borderRadius:'12px',background:t.status==='available'?'var(--rust-dim)':'transparent',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.3)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
-              onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='rgba(208,96,32,.18)'}}} onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.3)';e.currentTarget.style.background='var(--rust-dim)'}}}>
-              <div>
-                <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
-                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                <span style={{fontFamily:'Bebas Neue',fontSize:'28px',color:t.status==='available'?'var(--rust)':'var(--cream-low)'}}>${t.price}</span>
-                {t.status==='available'&&<ArrowRight size={14} style={{color:'var(--rust)'}} />}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
+
 
       {/* LINEUP */}
       <div style={{padding:'36px 28px'}}>
