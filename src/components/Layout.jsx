@@ -12,7 +12,7 @@ export default function Layout() {
   const { user } = useAuth()
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh', background:'var(--bg)' }}>
-      <main style={{ flex:1, paddingBottom: user ? '72px' : '0' }}>
+      <main style={{ flex:1, paddingBottom: user ? '100px' : '0' }}>
         <Outlet />
       </main>
       {user && (
@@ -23,8 +23,8 @@ export default function Layout() {
           borderTop:'1px solid rgba(242,230,208,.08)',
           boxShadow:'0 -8px 32px rgba(0,0,0,.7)',
           display:'flex', justifyContent:'space-around', alignItems:'center',
-          height:'72px', zIndex:100,
-          paddingBottom:'env(safe-area-inset-bottom, 0px)',
+          height:'auto', minHeight:'72px', zIndex:100,
+          paddingBottom:'max(env(safe-area-inset-bottom, 16px), 16px)', paddingTop:'8px',
         }}>
           {tabs.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} end={to==='/'} style={{textDecoration:'none'}}>
