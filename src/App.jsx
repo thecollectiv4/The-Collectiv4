@@ -10,6 +10,7 @@ import DJProfile from '@/pages/DJProfile'
 import AttendeeProfile from '@/pages/AttendeeProfile'
 import ExperienceDetail from '@/pages/ExperienceDetail'
 import PastEditions from '@/pages/PastEditions'
+import ArtistProfile from '@/pages/ArtistProfile'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="attendee/:id" element={<AttendeeProfile />} />
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
+            <Route path="artist/:slug" element={<ArtistProfile />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

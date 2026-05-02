@@ -7,8 +7,8 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
 const LINEUP = [
-  { handle:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
-  { handle:'patoduranc', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
+  { handle:'madou', slug:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou' },
+  { handle:'patoduranc', slug:'pato-duran', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc' },
 ]
 const EXPERIENCES = [
   { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Paintbrush', accent:'#D06020', bg:'rgba(208,96,32,.08)' },
@@ -182,7 +182,7 @@ export default function EventLanding() {
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--rust)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
         <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
           {LINEUP.map((a,i)=>(
-            <div key={i} onClick={()=>navigate('/dj/'+a.handle)}
+            <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor='var(--rust)';e.currentTarget.style.background='var(--rust-dim)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.background='var(--bg-card)'}}>
               <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'var(--rust-dim)',border:'2px solid var(--rust)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--rust)',flexShrink:0}}>{a.name[0]}</div>
