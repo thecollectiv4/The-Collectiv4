@@ -32,10 +32,10 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { background: var(--bg); }
+html { background: #0A0908; }
 
 body {
-  background: var(--bg);
+  background: #0A0908;
   color: var(--cream);
   font-family: 'DM Sans', -apple-system, sans-serif;
   margin: 0 auto;

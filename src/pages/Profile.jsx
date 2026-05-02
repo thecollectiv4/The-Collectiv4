@@ -29,7 +29,7 @@ export default function Profile() {
   if(!profile) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-low)'}}>Loading...</div></div>
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0B0A09 30%,#0A0908 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh'}}>
       {/* Sign Out floating top right */}
       <div style={{padding:'20px 28px 0',display:'flex',justifyContent:'flex-end'}}>
         <button onClick={async()=>{await signOut();navigate('/')}}

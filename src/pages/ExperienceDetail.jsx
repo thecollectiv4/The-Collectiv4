@@ -56,15 +56,17 @@ export default function ExperienceDetail() {
   const IconComp = ICON_MAP[exp.iconName]
 
   return (
-    <div style={{background:`linear-gradient(180deg, ${exp.accent}12 0%, ${exp.accent}06 20%, #0C0B0A 50%, #0A0908 100%)`,minHeight:'100vh',position:'relative'}}>
-      {/* Ambient color orb */}
-      <div style={{position:'absolute',top:'0',left:'0',width:'100%',height:'600px',background:`radial-gradient(ellipse at 30% 20%, ${exp.accent}10 0%, transparent 60%)`,pointerEvents:'none'}} />
-      <div style={{position:'relative',height:'240px',overflow:'hidden'}}>
-        <div style={{position:'absolute',bottom:'-60px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}15 0%,transparent 70%)`,filter:'blur(60px)'}} />
-        <button onClick={()=>navigate('/')} style={{position:'absolute',top:'16px',left:'16px',background:'rgba(13,10,4,.6)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
+    <div style={{background:`linear-gradient(180deg, ${exp.accent}0A 0%, ${exp.accent}05 15%, ${exp.accent}03 30%, #0A0908 50%, #0A0908 100%)`,minHeight:'100vh',position:'relative'}}>
+      {/* Ambient color orb that extends far down */}
+      <div style={{position:'absolute',top:'0',left:'0',width:'100%',height:'800px',background:`radial-gradient(ellipse at 30% 15%, ${exp.accent}0C 0%, transparent 50%)`,pointerEvents:'none'}} />
+      <div style={{position:'relative',paddingTop:'60px',paddingBottom:'40px',padding:'60px 28px 40px'}}>
+        <div style={{position:'absolute',top:'40px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}10 0%,transparent 70%)`,filter:'blur(60px)'}} />
+        <button onClick={()=>navigate('/')} style={{position:'relative',zIndex:5,background:'rgba(10,9,8,.5)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',marginBottom:'40px',width:'fit-content',transition:'all .2s'}}
+          onMouseOver={e=>{e.currentTarget.style.borderColor='var(--cream-low)';e.currentTarget.style.color='var(--cream)'}}
+          onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.color='var(--cream-mid)'}}>
           <ArrowLeft size={13}/> Back
         </button>
-        <div style={{position:'absolute',bottom:'28px',left:'28px',display:'flex',alignItems:'flex-end',gap:'16px'}}>
+        <div style={{position:'relative',zIndex:2,display:'flex',alignItems:'flex-end',gap:'16px'}}>
           <div style={{width:'56px',height:'56px',borderRadius:'14px',background:exp.color,border:`1px solid ${exp.borderColor}`,display:'flex',alignItems:'center',justifyContent:'center'}}>
             <IconComp size={28} strokeWidth={1.4} style={{color:exp.accent}} />
           </div>
@@ -75,7 +77,7 @@ export default function ExperienceDetail() {
         </div>
       </div>
 
-      <div style={{padding:'32px 28px 120px'}}>
+      <div style={{padding:'0 28px 120px',position:'relative',zIndex:2}}>
         <p style={{fontSize:'15px',color:'var(--cream-mid)',lineHeight:1.75,marginBottom:'28px'}}>{exp.fullDesc}</p>
         <div style={{height:'1px',background:'var(--border)',marginBottom:'28px'}}/>
 
