@@ -9,6 +9,7 @@ import Auth from '@/pages/Auth'
 import DJProfile from '@/pages/DJProfile'
 import AttendeeProfile from '@/pages/AttendeeProfile'
 import ExperienceDetail from '@/pages/ExperienceDetail'
+import PastEditions from '@/pages/PastEditions'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="dj/:handle" element={<DJProfile />} />
             <Route path="attendee/:id" element={<AttendeeProfile />} />
             <Route path="experience/:slug" element={<ExperienceDetail />} />
+            <Route path="editions" element={<PastEditions />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

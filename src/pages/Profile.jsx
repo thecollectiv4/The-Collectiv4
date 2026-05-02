@@ -35,7 +35,7 @@ export default function Profile() {
         </button>
       </div>
       <div style={{padding:'0 28px',marginTop:'-36px',position:'relative',zIndex:3}}>
-        <div style={{width:'72px',height:'72px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid var(--rust)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'30px',color:'var(--gold)'}}>
+        <div style={{width:'72px',height:'72px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid rgba(255,255,255,.3)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'30px',color:'var(--cream)'}}>
           {(profile.display_name||'?')[0].toUpperCase()}
         </div>
       </div>

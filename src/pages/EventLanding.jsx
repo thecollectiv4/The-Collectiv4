@@ -65,24 +65,58 @@ export default function EventLanding() {
     }
   }
 
+  const [showCountdown, setShowCountdown] = useState(false)
+  const [countdown, setCountdown] = useState({d:0,h:0,m:0,s:0})
+
+  useEffect(() => {
+    const tick = () => {
+      const diff = new Date('2026-05-30T22:00:00-05:00') - new Date()
+      if (diff <= 0) return
+      setCountdown({
+        d: Math.floor(diff/86400000),
+        h: Math.floor((diff%86400000)/3600000),
+        m: Math.floor((diff%3600000)/60000),
+        s: Math.floor((diff%60000)/1000),
+      })
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [])
+
   return (
     <div style={{background:'var(--bg)',minHeight:'100vh'}}>
 
+      {/* HEADER */}
+      <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
+        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--accent)',animation:'pulse 2s infinite'}}/>
+          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
+        </div>
+      </div>
+
       {/* HERO */}
-      <div style={{position:'relative',minHeight:'500px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:'linear-gradient(160deg,#1C1106 0%,#0D0A04 35%,#14100A 70%,#0D0A04 100%)'}} />
-        <div style={{position:'absolute',bottom:'-80px',left:'20%',width:'280px',height:'280px',borderRadius:'50%',background:'radial-gradient(circle,rgba(200,144,48,.1) 0%,transparent 70%)',filter:'blur(80px)'}} />
-        <div style={{position:'absolute',top:'60px',right:'-20px',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(200,90,24,.09) 0%,transparent 70%)',filter:'blur(60px)'}} />
-        <div style={{position:'absolute',inset:0,opacity:.06,backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}} />
+      <div style={{position:'relative',minHeight:'520px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',overflow:'hidden',paddingTop:'48px'}}>
+        <div style={{position:'absolute',inset:0,background:'linear-gradient(160deg,#161210 0%,#0D0A04 35%,#12100C 70%,#0D0A04 100%)'}} />
+        <div style={{position:'absolute',bottom:'-80px',left:'20%',width:'280px',height:'280px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)',filter:'blur(80px)'}} />
+        <div style={{position:'absolute',top:'80px',right:'-20px',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.03) 0%,transparent 70%)',filter:'blur(60px)'}} />
+        <div style={{position:'absolute',inset:0,opacity:.04,backgroundImage:"url(\"data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")"}} />
         <div style={{position:'relative',zIndex:2}}>
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
-            <div style={{border:'1px solid rgba(200,144,48,.4)',borderRadius:'100px',padding:'5px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--gold)',letterSpacing:'.1em'}}>EDITION 002</div>
-            <div style={{border:'1px solid var(--border)',borderRadius:'100px',padding:'5px 14px',display:'flex',alignItems:'center',gap:'6px'}}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--rust)',animation:'pulse 2s infinite'}} />
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.06em'}}>{days} DAYS</span>
+            <div onClick={()=>navigate('/editions')} style={{border:'1px solid rgba(255,255,255,.2)',borderRadius:'100px',padding:'5px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.1em',cursor:'pointer',transition:'all .2s',background:'rgba(255,255,255,.04)'}}
+              onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,.1)';e.currentTarget.style.borderColor='rgba(255,255,255,.4)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,.04)';e.currentTarget.style.borderColor='rgba(255,255,255,.2)'}}>
+              EDITION 002
+            </div>
+            <div style={{border:'1px solid rgba(255,255,255,.15)',borderRadius:'100px',padding:'5px 14px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',animation:'countPulse 3s infinite'}}
+              onMouseOver={()=>setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
+              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--accent)',animation:'pulse 2s infinite'}} />
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.06em'}}>
+                {showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
+              </span>
             </div>
           </div>
-          <div className="fade-up-1" style={{fontSize:'10px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',fontWeight:600,marginBottom:'14px'}}>The Collectiv4 presents</div>
+          <div className="fade-up-1" style={{fontSize:'10px',letterSpacing:'.3em',color:'var(--cream-mid)',textTransform:'uppercase',fontWeight:600,marginBottom:'14px'}}>The Collectiv4 presents</div>
           <div className="fade-up-2" style={{margin:0,marginBottom:'4px'}}>
             <div style={{display:'flex',alignItems:'baseline',gap:'12px'}}>
               <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'82px',lineHeight:.85,letterSpacing:'2px',color:'transparent',WebkitTextStroke:'2px var(--cream)'}}>RAN</span>
@@ -96,7 +130,7 @@ export default function EventLanding() {
           <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
             {[[Calendar,'MAY 30, 2026'],[Clock,'10PM — 2AM'],[MapPin,'HOUSTON · TBA']].map(([Icon,text],i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                <Icon size={12} strokeWidth={1.4} style={{color:'var(--rust)'}} />
+                <Icon size={12} strokeWidth={1.4} style={{color:'var(--cream)'}} />
                 <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.05em'}}>{text}</span>
               </div>
             ))}
