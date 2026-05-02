@@ -56,7 +56,7 @@ export default function EventChat() {
   )
 
   return (
-    <div style={{background:'linear-gradient(180deg,#161210 0%,#12100C 20%,#0D0A06 50%,#0D0A04 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+    <div style={{background:'linear-gradient(180deg,#0C0C0C 0%,#0A0A0A 30%,#080808 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
       <div style={{padding:'16px 28px',borderBottom:'1px solid var(--border)',background:'rgba(13,10,4,.94)',backdropFilter:'blur(20px)',position:'sticky',top:0,zIndex:10}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS</div>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.1em'}}>{messages.length} MESSAGES</div>

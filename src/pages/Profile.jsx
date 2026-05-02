@@ -29,25 +29,21 @@ export default function Profile() {
   if(!profile) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-low)'}}>Loading...</div></div>
 
   return (
-    <div style={{background:'linear-gradient(180deg,#161210 0%,#12100C 20%,#0D0A06 50%,#0D0A04 100%)',minHeight:'100vh'}}>
-      {/* Header */}
-      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PROFILE</div>
+    <div style={{background:'linear-gradient(180deg,#0C0C0C 0%,#0A0A0A 30%,#080808 100%)',minHeight:'100vh'}}>
+      {/* Sign Out floating top right */}
+      <div style={{padding:'20px 28px 0',display:'flex',justifyContent:'flex-end'}}>
         <button onClick={async()=>{await signOut();navigate('/')}}
-          style={{background:'rgba(220,38,38,.08)',border:'1px solid rgba(220,38,38,.25)',borderRadius:'8px',padding:'6px 14px',color:'#EF4444',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',transition:'all .2s'}}
-          onMouseOver={e=>{e.currentTarget.style.background='rgba(220,38,38,.2)';e.currentTarget.style.borderColor='rgba(220,38,38,.5)'}}
-          onMouseOut={e=>{e.currentTarget.style.background='rgba(220,38,38,.08)';e.currentTarget.style.borderColor='rgba(220,38,38,.25)'}}>
+          style={{background:'rgba(220,38,38,.06)',border:'1px solid rgba(220,38,38,.2)',borderRadius:'8px',padding:'6px 14px',color:'#EF4444',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',transition:'all .2s'}}
+          onMouseOver={e=>{e.currentTarget.style.background='rgba(220,38,38,.15)';e.currentTarget.style.borderColor='rgba(220,38,38,.4)'}}
+          onMouseOut={e=>{e.currentTarget.style.background='rgba(220,38,38,.06)';e.currentTarget.style.borderColor='rgba(220,38,38,.2)'}}>
           <LogOut size={11}/> Sign Out
         </button>
       </div>
-      {/* Hero gradient */}
-      <div style={{height:'100px',background:'linear-gradient(160deg,#1C1810,#141008,#0D0A04)',position:'relative',overflow:'visible'}}>
-        <div style={{position:'absolute',top:'-20px',right:'-20px',width:'160px',height:'160px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)',filter:'blur(40px)'}} />
-      </div>
-      <div style={{padding:'0 28px',marginTop:'-40px',position:'relative',zIndex:3}}>
-        <div style={{width:'80px',height:'80px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'34px',color:'var(--cream)',boxShadow:'0 4px 20px rgba(0,0,0,.4)',transition:'outline-color .3s'}}
-          onMouseOver={e=>e.currentTarget.style.outlineColor='rgba(255,255,255,.5)'}
-          onMouseOut={e=>e.currentTarget.style.outlineColor='rgba(255,255,255,.2)'}>
+      {/* Avatar */}
+      <div style={{padding:'24px 28px 0',display:'flex',justifyContent:'center'}}>
+        <div style={{width:'90px',height:'90px',borderRadius:'50%',background:'var(--bg-raised)',border:'2px solid rgba(64,224,192,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'38px',color:'var(--accent)',boxShadow:'0 0 24px rgba(64,224,192,.08)',transition:'all .3s'}}
+          onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(64,224,192,.4)';e.currentTarget.style.boxShadow='0 0 32px rgba(64,224,192,.15)'}}
+          onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(64,224,192,.2)';e.currentTarget.style.boxShadow='0 0 24px rgba(64,224,192,.08)'}}>
           {(profile.display_name||'?')[0].toUpperCase()}
         </div>
       </div>

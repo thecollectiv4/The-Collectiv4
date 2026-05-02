@@ -85,10 +85,10 @@ export default function EventLanding() {
   }, [])
 
   return (
-    <div style={{background:'linear-gradient(180deg, #14100C 0%, #120E0A 10%, #100C08 25%, #0E0A08 40%, #0C0808 60%, #0A0808 80%, #0A0808 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg, #0C0C0C 0%, #0A0A0A 30%, #080808 60%, #080808 100%)',minHeight:'100vh'}}>
 
       {/* HEADER */}
-      <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,8,8,.88)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(232,192,112,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(8,8,8,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(64,224,192,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite',boxShadow:'0 0 8px #00E676'}}/>
@@ -99,28 +99,28 @@ export default function EventLanding() {
       {/* HERO */}
       <div style={{position:'relative',minHeight:'540px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',paddingTop:'48px'}}>
         {/* Ambient color orbs */}
-        <div style={{position:'absolute',top:'40px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(208,96,32,.12) 0%,transparent 70%)',filter:'blur(80px)'}} />
-        <div style={{position:'absolute',top:'200px',right:'-40px',width:'250px',height:'250px',borderRadius:'50%',background:'radial-gradient(circle,rgba(160,48,80,.08) 0%,transparent 70%)',filter:'blur(70px)'}} />
-        <div style={{position:'absolute',bottom:'0',left:'30%',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(232,192,112,.06) 0%,transparent 70%)',filter:'blur(90px)'}} />
+        <div style={{position:'absolute',top:'40px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(64,224,192,.06) 0%,transparent 70%)',filter:'blur(80px)'}} />
+        <div style={{position:'absolute',top:'200px',right:'-40px',width:'250px',height:'250px',borderRadius:'50%',background:'radial-gradient(circle,rgba(96,112,224,.05) 0%,transparent 70%)',filter:'blur(70px)'}} />
+        <div style={{position:'absolute',bottom:'0',left:'30%',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(192,64,112,.04) 0%,transparent 70%)',filter:'blur(90px)'}} />
         <div style={{position:'relative',zIndex:2}}>
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
             {/* Edition badge - golden glow */}
             <div onClick={()=>navigate('/editions')} style={{
-              border:'1px solid rgba(232,192,112,.35)',borderRadius:'100px',padding:'6px 16px',
-              fontFamily:'DM Mono',fontSize:'10px',color:'#E8C070',letterSpacing:'.1em',
+              border:'1px solid rgba(64,224,192,.3)',borderRadius:'100px',padding:'6px 16px',
+              fontFamily:'DM Mono',fontSize:'10px',color:'#40E0C0',letterSpacing:'.1em',
               cursor:'pointer',transition:'all .2s',
-              background:'linear-gradient(135deg,rgba(232,192,112,.08),rgba(232,192,112,.04))',
-              boxShadow:'0 0 12px rgba(232,192,112,.08)',
+              background:'linear-gradient(135deg,rgba(64,224,192,.06),rgba(64,224,192,.03))',
+              boxShadow:'0 0 12px rgba(64,224,192,.06)',
             }}
-              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(232,192,112,.18),rgba(232,192,112,.1))';e.currentTarget.style.boxShadow='0 0 20px rgba(232,192,112,.15)';e.currentTarget.style.borderColor='rgba(232,192,112,.6)'}}
-              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(232,192,112,.08),rgba(232,192,112,.04))';e.currentTarget.style.boxShadow='0 0 12px rgba(232,192,112,.08)';e.currentTarget.style.borderColor='rgba(232,192,112,.35)'}}>
+              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(64,224,192,.15),rgba(64,224,192,.08))';e.currentTarget.style.boxShadow='0 0 20px rgba(64,224,192,.12)';e.currentTarget.style.borderColor='rgba(64,224,192,.5)'}}
+              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(64,224,192,.06),rgba(64,224,192,.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(64,224,192,.06)';e.currentTarget.style.borderColor='rgba(64,224,192,.3)'}}>
               EDITION 002
             </div>
             {/* Countdown - green accent */}
             <div style={{border:'1px solid rgba(0,230,118,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',background:'rgba(0,230,118,.04)',animation:'countPulse 3s infinite'}}
               onMouseOver={()=>setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
               <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite',boxShadow:'0 0 6px #00E676'}} />
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#A0E8B8',letterSpacing:'.06em'}}>
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--accent)',letterSpacing:'.06em'}}>
                 {showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
               </span>
             </div>
@@ -167,9 +167,9 @@ export default function EventLanding() {
           </div>
         ) : (
           <button onClick={()=>handleCheckout('early-bird')} disabled={checkingOut}
-            style={{width:'100%',background:checkingOut?'var(--cream-low)':'linear-gradient(135deg,#E8C070,#D4A040)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(232,192,112,.15)'}}
-            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(232,192,112,.25)'}}}
-            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(232,192,112,.15)'}}>
+            style={{width:'100%',background:checkingOut?'var(--cream-low)':'linear-gradient(135deg,#40E0C0,#30C0A0)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(64,224,192,.12)'}}
+            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(64,224,192,.2)'}}}
+            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(64,224,192,.12)'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
               <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING TO CHECKOUT...' : 'GET YOUR TICKET'}</span>
