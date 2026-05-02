@@ -67,22 +67,23 @@ export default function Community() {
 
   // CLOSED STATE — ticket or locked
   if (!open) return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px',position:'relative'}}>
-      {/* Blur overlay when no ticket */}
-      {hasTicket===false && (
-        <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'20px',padding:'28px'}}>
-          <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',textAlign:'center',letterSpacing:'.02em'}}>GET YOUR TICKET<br/>TO UNLOCK</div>
-          <button onClick={()=>navigate('/')} style={{background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px 36px',color:'var(--bg)',fontFamily:'DM Sans',fontSize:'13px',fontWeight:600,cursor:'pointer',transition:'all .2s'}}
-            onMouseOver={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,230,208,.15)'}}
-            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
-            Get Ticket
-          </button>
-        </div>
-      )}
-      <div onClick={()=>hasTicket?setOpen(true):null} style={{
-        filter:hasTicket===false?'blur(8px)':'none',
-        opacity:hasTicket===false?0.4:1,
-        pointerEvents:hasTicket===false?'none':'auto',
+    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
+      <div style={{position:'relative',width:'100%',maxWidth:'360px'}}>
+        {/* Blur overlay text when no ticket */}
+        {hasTicket===false && (
+          <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'20px',borderRadius:'20px'}}>
+            <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#FFFFFF',textAlign:'center',letterSpacing:'.02em',textShadow:'0 2px 20px rgba(0,0,0,.8)'}}>GET YOUR TICKET<br/>TO UNLOCK</div>
+            <button onClick={()=>navigate('/')} style={{background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px 36px',color:'var(--bg)',fontFamily:'DM Sans',fontSize:'13px',fontWeight:600,cursor:'pointer',transition:'all .2s',boxShadow:'0 4px 20px rgba(0,0,0,.4)'}}
+              onMouseOver={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,230,208,.2)'}}
+              onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(0,0,0,.4)'}}>
+              Get Ticket
+            </button>
+          </div>
+        )}
+        <div onClick={()=>hasTicket!==false?setOpen(true):null} style={{
+          filter:hasTicket===false?'blur(6px)':'none',
+          opacity:hasTicket===false?0.35:1,
+          pointerEvents:hasTicket===false?'none':'auto',
         width:'100%',maxWidth:'360px',
         borderRadius:'20px',overflow:'hidden',
         background:'var(--bg-card)',
