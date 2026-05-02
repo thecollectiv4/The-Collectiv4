@@ -9,6 +9,7 @@ import ExperienceDetail from '@/pages/ExperienceDetail'
 import PastEditions from '@/pages/PastEditions'
 import ArtistProfile from '@/pages/ArtistProfile'
 import DoorScanner from '@/pages/DoorScanner'
+import UserProfile from '@/pages/UserProfile'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="editions" element={<PastEditions />} />
             <Route path="artist/:slug" element={<ArtistProfile />} />
             <Route path="scanner" element={<DoorScanner />} />
+            <Route path="user/:id" element={<UserProfile />} />
             {/* Redirects from old routes */}
             <Route path="attendees" element={<Navigate to="/community" />} />
             <Route path="chat" element={<Navigate to="/community" />} />

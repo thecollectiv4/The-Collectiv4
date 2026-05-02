@@ -170,7 +170,9 @@ export default function Community() {
           ) : (
             <div>
               {attendees.map((a,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none'}}>
+                <div key={i} onClick={()=>navigate('/user/'+a.buyer_id)} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none',cursor:'pointer',transition:'all .2s'}}
+                  onMouseOver={e=>{e.currentTarget.style.paddingLeft='8px';e.currentTarget.style.background='rgba(242,230,208,.02)'}}
+                  onMouseOut={e=>{e.currentTarget.style.paddingLeft='0';e.currentTarget.style.background='transparent'}}>
                   <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',flexShrink:0}}>
                     {(a.buyer_name||'?')[0].toUpperCase()}
                   </div>
