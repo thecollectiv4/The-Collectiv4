@@ -23,9 +23,9 @@ const EXPERIENCES = {
     artistNote:"Each piece was selected to reflect the energy of this edition. The gallery is a living part of the event — walk through it, talk about it, feel it.",
     details:["Curated original works on display","Art available for purchase","Meet the artists in person","Pieces created specifically for this edition"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#8A2040', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C83060', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
       { name:'Drecol', slug:'drecol', color:'#D06020', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
-      { name:'Pato Durán', slug:'pato-duran', color:'#6080FF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
+      { name:'Pato Durán', slug:'pato-duran', color:'#4A7AFF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
       { name:'Diego Villaseñor', slug:'diego-villasenor', color:'#D4A040', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
     ],
   },
@@ -37,8 +37,8 @@ const EXPERIENCES = {
     artistNote:"Each brand at the pop-up was personally invited. The selection reflects Houston's creative scene: diverse, authentic, and impossible to find anywhere else in one room.",
     details:["Houston-based designers only","Limited and exclusive pieces","Direct from the makers — no middlemen","Collab merch with RBA branding available"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#8A2040', role:'Artist · Designer', desc:'Bringing his visual world into wearable art. Original designs that bridge street culture and fine art.' },
-      { name:'Stained Vase', slug:'stained-vase', color:'#D4A040', role:'Brand Partner', desc:'Houston-based brand turning identity into fabric. Exclusive pieces designed for this edition.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C83060', role:'Artist · Designer', desc:'Bringing his visual world into wearable art. Original designs that bridge street culture and fine art.' },
+      { name:'Stained Vase', slug:'stained-vase', color:'#C83060', role:'Brand Partner', desc:'Houston-based brand turning identity into fabric. Exclusive pieces designed for this edition.' },
     ],
   },
   'screen-printing': {
@@ -49,8 +49,8 @@ const EXPERIENCES = {
     artistNote:"Designed in collaboration with Houston artists for this edition only. Once the supply runs out, the design is gone. No restocks. No online store. If you're there, you can have it.",
     details:["Printed live on-site","Limited quantities — first come, first served","RBA 002 exclusive designs","Collab artist pieces available"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#8A2040', role:'Artist · Designer', desc:'Original artwork translated into screen-printed pieces. Each design is exclusive to this edition.' },
-      { name:'Stained Vase', slug:'stained-vase', color:'#D4A040', role:'Brand Partner', desc:'Collab designs merging Stained Vase aesthetic with the RBA universe. Limited run, one night only.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C83060', role:'Artist · Designer', desc:'Original artwork translated into screen-printed pieces. Each design is exclusive to this edition.' },
+      { name:'Stained Vase', slug:'stained-vase', color:'#C83060', role:'Brand Partner', desc:'Collab designs merging Stained Vase aesthetic with the RBA universe. Limited run, one night only.' },
     ],
   },
 }

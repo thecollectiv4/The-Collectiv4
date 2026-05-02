@@ -8,9 +8,9 @@ const ARTISTS = {
     location: 'Houston, TX',
     bio: "Visual storyteller bringing raw emotion to canvas. Isaac's work lives at the intersection of street culture and fine art — bold, unapologetic, and deeply personal. His pieces anchor the gallery for Ran By Artists Edition 002.",
     contributions: ['Gallery Featured Artist — RBA 002', 'Flyer design — Edition 001 & 002', 'Original paintings on display and for sale', 'Founder — Stained Vase'],
-    founded: { name: 'STAINED VASE', slug: 'stained-vase', role: 'Brand', accent: '#D4A040' },
+    founded: { name: 'STAINED VASE', slug: 'stained-vase', role: 'Brand', accent: '#C83060' },
     initial: 'I',
-    accent: '#8A2040',
+    accent: '#C83060',
   },
   'drecol': {
     name: 'DRECOL',
@@ -29,7 +29,7 @@ const ARTISTS = {
     bio: "House and techno DJ. Founder of The Collectiv4 and the creative force behind Ran By Artists. From the decks to the big picture — music, venues, brand, platform.",
     contributions: ['Founder — The Collectiv4', 'DJ — RBA Edition 001 & 002', 'Creative Direction — Events & Platform'],
     initial: 'P',
-    accent: '#6080FF',
+    accent: '#4A7AFF',
   },
   'diego-villasenor': {
     name: 'DIEGO VILLASEÑOR',
@@ -49,7 +49,7 @@ const ARTISTS = {
     bio: "Houston-born brand turning identity into fabric. Every piece is a statement — rooted in culture, designed for the streets. Official brand partner for Ran By Artists.",
     contributions: ['Brand Partner — RBA Edition 001 & 002', 'Fashion Pop-Up — Exclusive pieces', 'Screen Printing Collab — Limited edition designs'],
     initial: 'SV',
-    accent: '#D4A040',
+    accent: '#C83060',
     isBrand: true,
     owner: { name: 'Isaac Lagarda', slug: 'isaac-lagarda', role: 'Founder', location: 'Houston, TX' },
   },
@@ -61,7 +61,7 @@ const ARTISTS = {
     bio: "Coffee as culture. Arlo brings specialty espresso to the creative scene — fueling late nights and early mornings. Official sponsor and community partner for Ran By Artists.",
     contributions: ['Brand Partner — RBA Edition 001 & 002', 'On-site espresso bar', 'Community hub partnership'],
     initial: 'A',
-    accent: '#8A6030',
+    accent: '#A07040',
     isBrand: true,
   },
   'madou': {
@@ -72,7 +72,7 @@ const ARTISTS = {
     bio: "Houston-rooted selector. Deep, hypnotic grooves built for rooms that feel alive. Madou reads crowds like poetry — pulling listeners into layered, soulful house that doesn't just make you move, it makes you feel.",
     contributions: ['DJ Set — RBA Edition 001 & 002', 'Founding collaborator — The Collectiv4', 'Deep House · Afro House · Organic House'],
     initial: 'M',
-    accent: '#5A9A30',
+    accent: '#40B060',
   },
 }
 

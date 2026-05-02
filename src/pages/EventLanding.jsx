@@ -7,8 +7,8 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
 const LINEUP = [
-  { handle:'madou', slug:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou', color:'#5A9A30' },
-  { handle:'patoduranc', slug:'pato-duran', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc', color:'#6080FF' },
+  { handle:'madou', slug:'madou', name:'MADOU', role:'DJ SET', tag:'House · Deep', ig:'@natemadou', color:'#40B060' },
+  { handle:'patoduranc', slug:'pato-duran', name:'PATO', role:'DJ SET', tag:'House · Techno', ig:'@patoduranc', color:'#4A7AFF' },
 ]
 const EXPERIENCES = [
   { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Paintbrush', accent:'#D06020', bg:'rgba(208,96,32,.04)' },
