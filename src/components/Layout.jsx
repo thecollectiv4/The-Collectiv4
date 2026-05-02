@@ -20,9 +20,9 @@ export default function Layout() {
         <nav style={{
           position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)',
           width:'100%', maxWidth:'430px',
-          background:'rgba(8,8,8,.95)',
-          borderTop:'1px solid rgba(64,224,192,.1)',
-          boxShadow:'0 -8px 32px rgba(0,0,0,.8)',
+          background:'rgba(10,9,8,.96)',
+          borderTop:'1px solid rgba(242,230,208,.08)',
+          boxShadow:'0 -8px 32px rgba(0,0,0,.7)',
           display:'flex', justifyContent:'space-around', alignItems:'center',
           height:'72px', zIndex:100,
           paddingBottom:'env(safe-area-inset-bottom, 0px)',
@@ -33,15 +33,15 @@ export default function Layout() {
                 <div style={{
                   display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
                   padding:'8px 18px',
-                  color: isActive ? '#40E0C0' : '#606060',
+                  color: isActive ? '#F2E6D0' : '#686058',
                   transition:'all 0.2s',
                   position:'relative',
                 }}>
-                  {isActive && <div style={{position:'absolute',top:'-1px',left:'50%',transform:'translateX(-50%)',width:'28px',height:'2px',background:'#40E0C0',boxShadow:'0 0 8px rgba(64,224,192,.4)'}} />}
+                  {isActive && <div style={{position:'absolute',top:'-1px',left:'50%',transform:'translateX(-50%)',width:'28px',height:'2px',background:'#F2E6D0',boxShadow:'0 0 8px rgba(242,230,208,.3)'}} />}
                   <div style={{
                     width:'36px', height:'36px', borderRadius:'10px',
-                    background: isActive ? 'rgba(64,224,192,.08)' : 'transparent',
-                    border: isActive ? '1px solid rgba(64,224,192,.15)' : '1px solid transparent',
+                    background: isActive ? 'rgba(242,230,208,.08)' : 'transparent',
+                    border: isActive ? '1px solid rgba(242,230,208,.12)' : '1px solid transparent',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     transition:'all 0.2s',
                   }}>

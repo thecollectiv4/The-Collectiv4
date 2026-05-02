@@ -6,7 +6,7 @@ const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 const EXPERIENCES = {
   'live-art': {
     label:'LIVE ART', iconName:'Paintbrush',
-    color:'rgba(208,96,32,.12)', borderColor:'rgba(208,96,32,.35)', accent:'#D06020',
+    color:'rgba(208,96,32,.05)', borderColor:'rgba(208,96,32,.15)', accent:'#D06020',
     gradient:'linear-gradient(160deg,#2A1408,#1A0A04,#0D0A04)',
     fullDesc:"Live painters take over the space as the night unfolds. You don't just see the finished work — you witness its creation. Each stroke synced to the music, each piece a permanent record of this specific night.",
     artistNote:"Drecol takes the stage as the live painter for Edition 002, creating work in real time as the music plays. Expect raw, expressive work — nothing cleaned up for a gallery.",
@@ -17,7 +17,7 @@ const EXPERIENCES = {
   },
   'gallery': {
     label:'GALLERY', iconName:'Frame',
-    color:'rgba(138,32,64,.1)', borderColor:'rgba(138,32,64,.3)', accent:'#8A2040',
+    color:'rgba(138,32,64,.04)', borderColor:'rgba(138,32,64,.12)', accent:'#8A2040',
     gradient:'linear-gradient(160deg,#1A0A14,#120810,#0D0A04)',
     fullDesc:"A curated selection of original works on display throughout the venue. Not behind glass — in the room with you. Art that lives in the same space as the music and the people.",
     artistNote:"Each piece was selected to reflect the energy of this edition. The gallery is a living part of the event — walk through it, talk about it, feel it.",
@@ -31,7 +31,7 @@ const EXPERIENCES = {
   },
   'fashion': {
     label:'FASHION POP-UP', iconName:'Shirt',
-    color:'rgba(212,160,64,.08)', borderColor:'rgba(212,160,64,.25)', accent:'#D4A040',
+    color:'rgba(212,160,64,.04)', borderColor:'rgba(212,160,64,.12)', accent:'#D4A040',
     gradient:'linear-gradient(160deg,#1A1408,#141004,#0D0A04)',
     fullDesc:"A curated selection of Houston's most compelling fashion voices. Independent designers, emerging brands, and makers who turn fabric into identity. Not a mall — a living fashion gallery.",
     artistNote:"Each brand at the pop-up was personally invited. The selection reflects Houston's creative scene: diverse, authentic, and impossible to find anywhere else in one room.",
@@ -39,7 +39,7 @@ const EXPERIENCES = {
   },
   'screen-printing': {
     label:'SCREEN PRINTING', iconName:'Layers',
-    color:'rgba(90,122,58,.1)', borderColor:'rgba(90,122,58,.3)', accent:'#5A9A30',
+    color:'rgba(90,122,58,.04)', borderColor:'rgba(90,122,58,.12)', accent:'#5A9A30',
     gradient:'linear-gradient(160deg,#0C1A08,#0A1204,#0D0A04)',
     fullDesc:"A live screen printing station producing exclusive RBA Edition 002 merch in real time. Watch the process, choose your design, wear it out. Collab pieces from Houston artists — made that night, not before.",
     artistNote:"Designed in collaboration with Houston artists for this edition only. Once the supply runs out, the design is gone. No restocks. No online store. If you're there, you can have it.",
@@ -56,7 +56,7 @@ export default function ExperienceDetail() {
   const IconComp = ICON_MAP[exp.iconName]
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0C0C0C 0%,#0A0A0A 30%,#080808 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0B0A09 30%,#0A0908 100%)',minHeight:'100vh'}}>
       <div style={{position:'relative',height:'240px',background:exp.gradient,overflow:'hidden'}}>
         <div style={{position:'absolute',inset:0,background:exp.color}}/>
         <div style={{position:'absolute',bottom:'-60px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}22 0%,transparent 70%)`,filter:'blur(60px)'}} />

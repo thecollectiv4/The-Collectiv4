@@ -29,7 +29,7 @@ export default function Profile() {
   if(!profile) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontFamily:'DM Mono',fontSize:'11px',color:'var(--cream-low)'}}>Loading...</div></div>
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0C0C0C 0%,#0A0A0A 30%,#080808 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0B0A09 30%,#0A0908 100%)',minHeight:'100vh'}}>
       {/* Sign Out floating top right */}
       <div style={{padding:'20px 28px 0',display:'flex',justifyContent:'flex-end'}}>
         <button onClick={async()=>{await signOut();navigate('/')}}
@@ -41,9 +41,9 @@ export default function Profile() {
       </div>
       {/* Avatar */}
       <div style={{padding:'24px 28px 0',display:'flex',justifyContent:'center'}}>
-        <div style={{width:'90px',height:'90px',borderRadius:'50%',background:'var(--bg-raised)',border:'2px solid rgba(64,224,192,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'38px',color:'var(--accent)',boxShadow:'0 0 24px rgba(64,224,192,.08)',transition:'all .3s'}}
-          onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(64,224,192,.4)';e.currentTarget.style.boxShadow='0 0 32px rgba(64,224,192,.15)'}}
-          onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(64,224,192,.2)';e.currentTarget.style.boxShadow='0 0 24px rgba(64,224,192,.08)'}}>
+        <div style={{width:'90px',height:'90px',borderRadius:'50%',background:'var(--bg-raised)',border:'2px solid rgba(242,230,208,.2)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'38px',color:'var(--accent)',boxShadow:'0 0 24px rgba(242,230,208,.08)',transition:'all .3s'}}
+          onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.4)';e.currentTarget.style.boxShadow='0 0 32px rgba(242,230,208,.15)'}}
+          onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.2)';e.currentTarget.style.boxShadow='0 0 24px rgba(242,230,208,.08)'}}>
           {(profile.display_name||'?')[0].toUpperCase()}
         </div>
       </div>

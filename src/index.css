@@ -5,30 +5,30 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap');
 
 :root {
-  --bg:         #080808;
-  --bg-warm:    #101010;
-  --bg-card:    #141414;
-  --bg-raised:  #1C1C1C;
-  --cream:      #EDEDED;
-  --cream-mid:  #9A9A9A;
-  --cream-low:  #5E5E5E;
-  --cream-ghost:#333333;
-  --accent:     #40E0C0;
-  --accent-dim: rgba(64,224,192,0.06);
-  --accent-mid: rgba(64,224,192,0.12);
-  --gold:       #40E0C0;
-  --gold-dim:   rgba(64,224,192,0.08);
-  --rust:       #E06040;
-  --rust-dim:   rgba(224,96,64,0.08);
-  --sage:       #40C080;
-  --sage-dim:   rgba(64,192,128,0.06);
-  --wine:       #C04070;
-  --wine-dim:   rgba(192,64,112,0.06);
-  --indigo:     #6070E0;
-  --indigo-dim: rgba(96,112,224,0.06);
-  --border:     #1A1A1A;
-  --border-hi:  #2A2A2A;
-  --success:    #40C080;
+  --bg:         #0A0908;
+  --bg-warm:    #121110;
+  --bg-card:    #161514;
+  --bg-raised:  #1E1D1A;
+  --cream:      #F2E6D0;
+  --cream-mid:  #A09888;
+  --cream-low:  #686058;
+  --cream-ghost:#383430;
+  --accent:     #F2E6D0;
+  --accent-dim: rgba(242,230,208,0.06);
+  --accent-mid: rgba(242,230,208,0.12);
+  --gold:       #F2E6D0;
+  --gold-dim:   rgba(242,230,208,0.08);
+  --rust:       #C86040;
+  --rust-dim:   rgba(200,96,64,0.06);
+  --sage:       #5A8A3A;
+  --sage-dim:   rgba(90,138,58,0.06);
+  --wine:       #9A3050;
+  --wine-dim:   rgba(154,48,80,0.06);
+  --indigo:     #5060A0;
+  --indigo-dim: rgba(80,96,160,0.06);
+  --border:     #1C1A18;
+  --border-hi:  #2C2A26;
+  --success:    #5A9A30;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -53,7 +53,7 @@ a { color: inherit; text-decoration: none; }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-@keyframes countPulse { 0%,100% { box-shadow:0 0 0 0 rgba(64,224,192,.15); } 50% { box-shadow:0 0 16px 4px rgba(64,224,192,.08); } }
+@keyframes countPulse { 0%,100% { box-shadow:0 0 0 0 rgba(242,230,208,.12); } 50% { box-shadow:0 0 14px 4px rgba(242,230,208,.06); } }
 @keyframes glowPulse { 0%,100% { opacity:.6; } 50% { opacity:1; } }
 
 .fade-up   { animation: fadeUp 0.55s ease forwards; }
