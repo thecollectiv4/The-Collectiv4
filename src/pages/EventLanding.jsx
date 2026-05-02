@@ -19,7 +19,7 @@ const EXPERIENCES = [
 const TIERS = [
   { id:'early-bird', name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
   { id:'general', name:'GENERAL', price:25, status:'soon', note:'Available May 15' },
-  { id:'door', name:'DOOR', price:40, status:'soon', note:'Night of the event' },
+  { id:'door', name:'DOOR', price:40, status:'soon', note:'Night of the event', doorLabel:'AT DOOR' },
 ]
 
 export default function EventLanding() {
@@ -167,7 +167,7 @@ export default function EventLanding() {
             <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. See you May 30.</span>
           </div>
         ) : (
-          <button onClick={()=>handleCheckout('early-bird')} disabled={checkingOut}
+          <button onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
             style={{width:'100%',background:checkingOut?'var(--cream-low)':'linear-gradient(135deg,#F2E6D0,#E0D0B0)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(242,230,208,.12)'}}
             onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(242,230,208,.2)'}}}
             onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(242,230,208,.12)'}}>
