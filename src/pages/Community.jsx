@@ -13,6 +13,7 @@ export default function Community() {
   const [messages, setMessages] = useState([])
   const [newMsg, setNewMsg] = useState('')
   const [loading, setLoading] = useState(true)
+  const [hasTicket, setHasTicket] = useState(null)
   const bottomRef = useRef(null)
 
   // Map known emails to artist profile slugs
@@ -64,10 +65,10 @@ export default function Community() {
     </div>
   )
 
-  // CLOSED STATE — just the ticket
+  // CLOSED STATE — ticket or locked
   if (!open) return (
     <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
-      <div onClick={()=>setOpen(true)} style={{
+      <div onClick={()=>hasTicket?setOpen(true):navigate('/')} style={{
         width:'100%',maxWidth:'360px',
         borderRadius:'20px',overflow:'hidden',
         background:'var(--bg-card)',
@@ -126,8 +127,8 @@ export default function Community() {
         </div>
 
         {/* Tap hint */}
-        <div style={{padding:'12px',background:'rgba(242,230,208,.03)',borderTop:'1px solid var(--border)',textAlign:'center'}}>
-          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em'}}>TAP TO ENTER</span>
+        <div style={{padding:'12px',background:hasTicket?'rgba(242,230,208,.03)':'rgba(242,230,208,.02)',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:hasTicket?'var(--cream-low)':'var(--cream-ghost)',letterSpacing:'.08em'}}>{hasTicket?'TAP TO ENTER':'GET YOUR TICKET TO UNLOCK'}</span>
         </div>
       </div>
     </div>
