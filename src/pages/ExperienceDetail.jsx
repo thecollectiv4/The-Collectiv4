@@ -56,10 +56,11 @@ export default function ExperienceDetail() {
   const IconComp = ICON_MAP[exp.iconName]
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0B0A09 30%,#0A0908 100%)',minHeight:'100vh'}}>
-      <div style={{position:'relative',height:'240px',background:exp.gradient,overflow:'hidden'}}>
-        <div style={{position:'absolute',inset:0,background:exp.color}}/>
-        <div style={{position:'absolute',bottom:'-60px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}22 0%,transparent 70%)`,filter:'blur(60px)'}} />
+    <div style={{background:`linear-gradient(180deg, ${exp.accent}12 0%, ${exp.accent}06 20%, #0C0B0A 50%, #0A0908 100%)`,minHeight:'100vh',position:'relative'}}>
+      {/* Ambient color orb */}
+      <div style={{position:'absolute',top:'0',left:'0',width:'100%',height:'600px',background:`radial-gradient(ellipse at 30% 20%, ${exp.accent}10 0%, transparent 60%)`,pointerEvents:'none'}} />
+      <div style={{position:'relative',height:'240px',overflow:'hidden'}}>
+        <div style={{position:'absolute',bottom:'-60px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}15 0%,transparent 70%)`,filter:'blur(60px)'}} />
         <button onClick={()=>navigate('/')} style={{position:'absolute',top:'16px',left:'16px',background:'rgba(13,10,4,.6)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
           <ArrowLeft size={13}/> Back
         </button>
