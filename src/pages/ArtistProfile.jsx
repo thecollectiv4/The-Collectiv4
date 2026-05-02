@@ -30,6 +30,7 @@ const ARTISTS = {
     contributions: ['Founder — The Collectiv4', 'DJ — RBA Edition 001 & 002', 'Creative Direction — Events & Platform'],
     initial: 'P',
     accent: '#4A7AFF',
+    founded: { name: 'THE COLLECTIV4', slug: 'the-collectiv4', role: 'Creative Ecosystem', accent: '#F2E6D0' },
   },
   'diego-villasenor': {
     name: 'DIEGO VILLASEÑOR',
@@ -40,6 +41,33 @@ const ARTISTS = {
     contributions: ['Founder — The Collectiv4', 'Visual & Creative Direction', 'Artist — Digital & Mixed Media', 'European Expansion — Long-term Vision'],
     initial: 'D',
     accent: '#D4A040',
+  },
+  'visurelic': {
+    name: 'VISURELIC',
+    ig: '@visurelic',
+    role: 'Creative Studio',
+    location: 'Houston, TX / Valencia, Spain',
+    bio: "Where visual culture meets the future. Visurelic is Diego Villaseñor's personal creative brand — digital art, mixed media, and visual direction that shapes everything The Collectiv4 puts into the world.",
+    contributions: ['Visual identity for The Collectiv4', 'Creative direction — RBA Edition 001 & 002', 'Digital art & mixed media'],
+    initial: 'V',
+    accent: '#D4A040',
+    isBrand: true,
+    owner: { name: 'Diego Villaseñor', slug: 'diego-villasenor', role: 'Founder', location: 'Houston, TX / Valencia, Spain' },
+  },
+  'the-collectiv4': {
+    name: 'THE COLLECTIV4',
+    ig: '@thecollectiv4',
+    role: 'Creative Ecosystem',
+    location: 'Houston, TX',
+    bio: "A Houston-based creative ecosystem operating at the intersection of music, live events, artist collaboration, and community building. Built by artists, for artists.",
+    contributions: ['Ran By Artists — Flagship event series', 'Collective World — Digital platform', 'Artist & brand partnerships', 'Community building across Houston'],
+    initial: 'C4',
+    accent: '#F2E6D0',
+    isBrand: true,
+    owners: [
+      { name: 'Pato Durán', slug: 'pato-duran', role: 'Founder · DJ · Creative Director', color: '#4A7AFF' },
+      { name: 'Diego Villaseñor', slug: 'diego-villasenor', role: 'Founder · Artist · Creative Director', color: '#D4A040' },
+    ],
   },
   'stained-vase': {
     name: 'STAINED VASE',
@@ -159,8 +187,8 @@ export default function ArtistProfile() {
           </>
         )}
 
-        {/* Founded section for artists who own brands */}
-        {artist.founded && (
+        {/* Founded section - single brand */}
+        {artist.founded && !artist.foundedMultiple && (
           <>
             <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${artist.accent}20,transparent)`,marginBottom:'28px'}} />
             <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream)',marginBottom:'16px'}}>FOUNDER OF</div>
@@ -168,13 +196,61 @@ export default function ArtistProfile() {
               onMouseOver={e=>{e.currentTarget.style.borderColor=artist.founded.accent+'50';e.currentTarget.style.transform='translateX(4px)'}}
               onMouseOut={e=>{e.currentTarget.style.borderColor=artist.founded.accent+'20';e.currentTarget.style.transform='translateX(0)'}}>
               <div style={{width:'44px',height:'44px',borderRadius:'16px',background:'var(--bg-raised)',border:`1px solid ${artist.founded.accent}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:artist.founded.accent}}>
-                SV
+                {artist.founded.name.split(' ').map(w=>w[0]).join('').substring(0,2)}
               </div>
               <div style={{flex:1}}>
                 <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{artist.founded.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'9px',color:artist.founded.accent,letterSpacing:'.04em',marginTop:'2px'}}>{artist.founded.role}</div>
               </div>
               <ArrowLeft size={14} style={{color:artist.founded.accent,transform:'rotate(180deg)',opacity:.5}} />
+            </div>
+          </>
+        )}
+
+        {/* Founded section - multiple brands */}
+        {artist.foundedMultiple && (
+          <>
+            <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${artist.accent}20,transparent)`,marginBottom:'28px'}} />
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream)',marginBottom:'16px'}}>FOUNDER OF</div>
+            <div style={{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'32px'}}>
+              {artist.foundedMultiple.map((b,i)=>(
+                <div key={i} onClick={()=>navigate('/artist/'+b.slug)} style={{padding:'16px',border:`1px solid ${b.accent}20`,borderRadius:'12px',background:`${b.accent}06`,display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'all .2s'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=b.accent+'50';e.currentTarget.style.transform='translateX(4px)'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor=b.accent+'20';e.currentTarget.style.transform='translateX(0)'}}>
+                  <div style={{width:'44px',height:'44px',borderRadius:'16px',background:'var(--bg-raised)',border:`1px solid ${b.accent}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:b.accent}}>
+                    {b.name.split(' ').map(w=>w[0]).join('').substring(0,2)}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{b.name}</div>
+                    <div style={{fontFamily:'DM Mono',fontSize:'9px',color:b.accent,letterSpacing:'.04em',marginTop:'2px'}}>{b.role}</div>
+                  </div>
+                  <ArrowLeft size={14} style={{color:b.accent,transform:'rotate(180deg)',opacity:.5}} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
+        {/* Multiple owners section (for org profiles like The Collectiv4) */}
+        {artist.owners && (
+          <>
+            <div style={{height:'1px',background:`linear-gradient(90deg,transparent,${artist.accent}20,transparent)`,marginBottom:'28px'}} />
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream)',marginBottom:'16px'}}>FOUNDED BY</div>
+            <div style={{display:'flex',flexDirection:'column',gap:'8px',marginBottom:'32px'}}>
+              {artist.owners.map((o,i)=>(
+                <div key={i} onClick={()=>navigate('/artist/'+o.slug)} style={{padding:'16px',border:`1px solid ${o.color}20`,borderRadius:'12px',background:`${o.color}06`,display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'all .2s'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor=o.color+'50';e.currentTarget.style.transform='translateX(4px)'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor=o.color+'20';e.currentTarget.style.transform='translateX(0)'}}>
+                  <div style={{width:'44px',height:'44px',borderRadius:'50%',background:'var(--bg-raised)',border:`1px solid ${o.color}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'18px',color:o.color}}>
+                    {o.name[0]}
+                  </div>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{o.name}</div>
+                    <div style={{fontFamily:'DM Mono',fontSize:'9px',color:o.color,letterSpacing:'.04em',marginTop:'2px'}}>{o.role}</div>
+                  </div>
+                  <ArrowLeft size={14} style={{color:o.color,transform:'rotate(180deg)',opacity:.5}} />
+                </div>
+              ))}
             </div>
           </>
         )}
