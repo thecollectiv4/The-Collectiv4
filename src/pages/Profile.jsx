@@ -29,13 +29,13 @@ export default function Profile() {
 
   return (
     <div style={{background:'var(--bg)',minHeight:'100vh'}}>
-      <div style={{height:'120px',paddingTop:'env(safe-area-inset-top, 16px)',background:'linear-gradient(160deg,#2A1408,#1A0A04,#0D0A04)',position:'relative'}}>
-        <button onClick={async()=>{await signOut();navigate('/')}} style={{position:'absolute',top:'14px',right:'14px',background:'none',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-low)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans'}}>
+      <div style={{height:'140px',paddingTop:'env(safe-area-inset-top, 20px)',background:'linear-gradient(160deg,#2A1408,#1A0A04,#0D0A04)',position:'relative',overflow:'visible'}}>
+        <button onClick={async()=>{await signOut();navigate('/')}} style={{position:'absolute',top:'20px',right:'14px',background:'none',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'6px 14px',color:'var(--cream-low)',fontSize:'11px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',zIndex:2}}>
           <LogOut size={11}/> Out
         </button>
       </div>
-      <div style={{padding:'0 28px',marginTop:'-30px'}}>
-        <div style={{width:'60px',height:'60px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'26px',color:'var(--gold)'}}>
+      <div style={{padding:'0 28px',marginTop:'-36px',position:'relative',zIndex:3}}>
+        <div style={{width:'72px',height:'72px',borderRadius:'50%',background:'var(--bg-raised)',border:'3px solid var(--bg)',outline:'2px solid var(--rust)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'30px',color:'var(--gold)'}}>
           {(profile.display_name||'?')[0].toUpperCase()}
         </div>
       </div>
