@@ -9,8 +9,11 @@ const EXPERIENCES = {
     color:'rgba(208,96,32,.12)', borderColor:'rgba(208,96,32,.35)', accent:'#D06020',
     gradient:'linear-gradient(160deg,#2A1408,#1A0A04,#0D0A04)',
     fullDesc:"Live painters take over the space as the night unfolds. You don't just see the finished work — you witness its creation. Each stroke synced to the music, each piece a permanent record of this specific night.",
-    artistNote:"Houston-based visual artists will be on-site throughout the evening creating new work. Their pieces will be available for purchase directly at the event. Expect raw, expressive work — nothing cleaned up for a gallery.",
-    details:["Original work created live during the event","All pieces available for purchase on the night","Artists present to talk about their work","Multiple artists working simultaneously"],
+    artistNote:"Drecol takes the stage as the live painter for Edition 002, creating work in real time as the music plays. Expect raw, expressive work — nothing cleaned up for a gallery.",
+    details:["Original work created live during the event","All pieces available for purchase on the night","Artists present to talk about their work"],
+    artists:[
+      { name:'Drecol', role:'Live Painter · Featured Artist', desc:'Painting live as the music plays. Each piece is a one-of-one record of the night — created in the room, in the moment.' },
+    ],
   },
   'gallery': {
     label:'GALLERY', iconName:'Frame',
@@ -21,8 +24,8 @@ const EXPERIENCES = {
     details:["Curated original works on display","Art available for purchase","Meet the artists in person","Pieces created specifically for this edition"],
     artists:[
       { name:'Isaac Lagarda', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
-      { name:'Pato Durán', role:'Founder · Creative Direction', desc:'Curating the visual identity and spatial design of the gallery experience.' },
-      { name:'Diego Villaseñor', role:'Creative Director · Visurelic', desc:'Visual and digital direction. Bridging physical art with the digital experience.' },
+      { name:'Pato Durán', role:'Founder · DJ · The Collectiv4', desc:'Curating the visual identity and spatial design of the gallery experience.' },
+      { name:'Diego Villaseñor', role:'Founder · Artist · Creative Director', desc:'Co-founder of The Collectiv4. Visual artist and creative director shaping the collective's identity and digital experience.' },
     ],
   },
   'fashion': {

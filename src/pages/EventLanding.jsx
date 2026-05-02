@@ -91,7 +91,7 @@ export default function EventLanding() {
       <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--accent)',animation:'pulse 2s infinite'}}/>
+          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite'}}/>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
         </div>
       </div>
@@ -110,7 +110,7 @@ export default function EventLanding() {
             </div>
             <div style={{border:'1px solid rgba(255,255,255,.15)',borderRadius:'100px',padding:'5px 14px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',animation:'countPulse 3s infinite'}}
               onMouseOver={()=>setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--accent)',animation:'pulse 2s infinite'}} />
+              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite'}} />
               <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.06em'}}>
                 {showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
               </span>
