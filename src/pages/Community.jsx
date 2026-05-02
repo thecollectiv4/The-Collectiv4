@@ -15,6 +15,18 @@ export default function Community() {
   const [loading, setLoading] = useState(true)
   const bottomRef = useRef(null)
 
+  // Map known emails to artist profile slugs
+  const artistMap = {
+    'dievillovalle@gmail.com': 'diego-villasenor',
+    'patduranchacon@icloud.com': 'pato-duran',
+    'patduranchacon@gmail.com': 'pato-duran',
+    'natemadou@gmail.com': 'madou',
+  }
+  const getProfileLink = (a) => {
+    if (artistMap[a.buyer_email]) return '/artist/' + artistMap[a.buyer_email]
+    return '/user/' + a.buyer_id
+  }
+
   useEffect(() => {
     supabase.from('tickets').select('*').eq('status','confirmed').order('created_at',{ascending:false})
       .then(({data}) => { setAttendees(data||[]); setLoading(false) })
@@ -170,7 +182,7 @@ export default function Community() {
           ) : (
             <div>
               {attendees.map((a,i)=>(
-                <div key={i} onClick={()=>navigate('/user/'+a.buyer_id)} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none',cursor:'pointer',transition:'all .2s'}}
+                <div key={i} onClick={()=>navigate(getProfileLink(a))} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none',cursor:'pointer',transition:'all .2s'}}
                   onMouseOver={e=>{e.currentTarget.style.paddingLeft='8px';e.currentTarget.style.background='rgba(242,230,208,.02)'}}
                   onMouseOut={e=>{e.currentTarget.style.paddingLeft='0';e.currentTarget.style.background='transparent'}}>
                   <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',flexShrink:0}}>
