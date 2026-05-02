@@ -26,14 +26,18 @@ export default function Layout() {
           height:'56px', zIndex:100,
         }}>
           {tabs.map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} end={to==='/'} style={({ isActive }) => ({
-              display:'flex', flexDirection:'column', alignItems:'center', gap:'2px',
-              textDecoration:'none', padding:'6px 16px',
-              color: isActive ? 'var(--cream)' : 'var(--cream-low)',
-              transition:'color 0.2s',
-            })}>
-              <Icon size={18} strokeWidth={isActive ? 2.2 : 1.4} />
-              <span style={{ fontSize:'8px', fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase' }}>{label}</span>
+            <NavLink key={to} to={to} end={to==='/'}>
+              {({ isActive }) => (
+                <div style={{
+                  display:'flex', flexDirection:'column', alignItems:'center', gap:'2px',
+                  textDecoration:'none', padding:'6px 16px',
+                  color: isActive ? 'var(--cream)' : 'var(--cream-low)',
+                  transition:'color 0.2s',
+                }}>
+                  <Icon size={18} strokeWidth={isActive ? 2.2 : 1.4} />
+                  <span style={{ fontSize:'8px', fontWeight:600, letterSpacing:'0.12em', textTransform:'uppercase' }}>{label}</span>
+                </div>
+              )}
             </NavLink>
           ))}
         </nav>
