@@ -85,31 +85,42 @@ export default function EventLanding() {
   }, [])
 
   return (
-    <div style={{background:'linear-gradient(180deg, #161210 0%, #12100C 15%, #0E0C08 30%, #0D0A06 50%, #0C0A04 70%, #0D0A04 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg, #14100C 0%, #120E0A 10%, #100C08 25%, #0E0A08 40%, #0C0808 60%, #0A0808 80%, #0A0808 100%)',minHeight:'100vh'}}>
 
       {/* HEADER */}
-      <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,8,8,.88)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(232,192,112,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite'}}/>
+          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite',boxShadow:'0 0 8px #00E676'}}/>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
         </div>
       </div>
 
       {/* HERO */}
-      <div style={{position:'relative',minHeight:'520px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',paddingTop:'48px'}}>
-        <div style={{position:'absolute',bottom:'-80px',left:'20%',width:'280px',height:'280px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.04) 0%,transparent 70%)',filter:'blur(80px)'}} />
-        <div style={{position:'absolute',top:'80px',right:'-20px',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.03) 0%,transparent 70%)',filter:'blur(60px)'}} />
+      <div style={{position:'relative',minHeight:'540px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',paddingTop:'48px'}}>
+        {/* Ambient color orbs */}
+        <div style={{position:'absolute',top:'40px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(208,96,32,.12) 0%,transparent 70%)',filter:'blur(80px)'}} />
+        <div style={{position:'absolute',top:'200px',right:'-40px',width:'250px',height:'250px',borderRadius:'50%',background:'radial-gradient(circle,rgba(160,48,80,.08) 0%,transparent 70%)',filter:'blur(70px)'}} />
+        <div style={{position:'absolute',bottom:'0',left:'30%',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(232,192,112,.06) 0%,transparent 70%)',filter:'blur(90px)'}} />
         <div style={{position:'relative',zIndex:2}}>
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
-            <div onClick={()=>navigate('/editions')} style={{border:'1px solid rgba(255,255,255,.2)',borderRadius:'100px',padding:'5px 14px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.1em',cursor:'pointer',transition:'all .2s',background:'rgba(255,255,255,.04)'}}
-              onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,.1)';e.currentTarget.style.borderColor='rgba(255,255,255,.4)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,.04)';e.currentTarget.style.borderColor='rgba(255,255,255,.2)'}}>
+            {/* Edition badge - golden glow */}
+            <div onClick={()=>navigate('/editions')} style={{
+              border:'1px solid rgba(232,192,112,.35)',borderRadius:'100px',padding:'6px 16px',
+              fontFamily:'DM Mono',fontSize:'10px',color:'#E8C070',letterSpacing:'.1em',
+              cursor:'pointer',transition:'all .2s',
+              background:'linear-gradient(135deg,rgba(232,192,112,.08),rgba(232,192,112,.04))',
+              boxShadow:'0 0 12px rgba(232,192,112,.08)',
+            }}
+              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(232,192,112,.18),rgba(232,192,112,.1))';e.currentTarget.style.boxShadow='0 0 20px rgba(232,192,112,.15)';e.currentTarget.style.borderColor='rgba(232,192,112,.6)'}}
+              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(232,192,112,.08),rgba(232,192,112,.04))';e.currentTarget.style.boxShadow='0 0 12px rgba(232,192,112,.08)';e.currentTarget.style.borderColor='rgba(232,192,112,.35)'}}>
               EDITION 002
             </div>
-            <div style={{border:'1px solid rgba(255,255,255,.15)',borderRadius:'100px',padding:'5px 14px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',animation:'countPulse 3s infinite'}}
+            {/* Countdown - green accent */}
+            <div style={{border:'1px solid rgba(0,230,118,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',background:'rgba(0,230,118,.04)',animation:'countPulse 3s infinite'}}
               onMouseOver={()=>setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite'}} />
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.06em'}}>
+              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00E676',animation:'pulse 2s infinite',boxShadow:'0 0 6px #00E676'}} />
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#A0E8B8',letterSpacing:'.06em'}}>
                 {showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
               </span>
             </div>
@@ -128,7 +139,7 @@ export default function EventLanding() {
           <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
             {[[Calendar,'MAY 30, 2026'],[Clock,'10PM — 2AM'],[MapPin,'HOUSTON · TBA']].map(([Icon,text],i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                <Icon size={12} strokeWidth={1.4} style={{color:'var(--cream)'}} />
+                <Icon size={12} strokeWidth={1.4} style={{color:'var(--accent)'}} />
                 <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.05em'}}>{text}</span>
               </div>
             ))}
@@ -156,9 +167,9 @@ export default function EventLanding() {
           </div>
         ) : (
           <button onClick={()=>handleCheckout('early-bird')} disabled={checkingOut}
-            style={{width:'100%',background:checkingOut?'var(--cream-low)':'var(--cream)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s'}}
-            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,232,208,.2)'}}}
-            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
+            style={{width:'100%',background:checkingOut?'var(--cream-low)':'linear-gradient(135deg,#E8C070,#D4A040)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(232,192,112,.15)'}}
+            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(232,192,112,.25)'}}}
+            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(232,192,112,.15)'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
               <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING TO CHECKOUT...' : 'GET YOUR TICKET'}</span>

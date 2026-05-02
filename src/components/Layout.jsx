@@ -20,8 +20,8 @@ export default function Layout() {
         <nav style={{
           position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)',
           width:'100%', maxWidth:'430px',
-          background:'#0D0A04',
-          borderTop:'1px solid rgba(255,255,255,.12)',
+          background:'rgba(10,8,8,.95)',
+          borderTop:'1px solid rgba(232,192,112,.12)',
           boxShadow:'0 -8px 32px rgba(0,0,0,.8)',
           display:'flex', justifyContent:'space-around', alignItems:'center',
           height:'72px', zIndex:100,
@@ -33,19 +33,19 @@ export default function Layout() {
                 <div style={{
                   display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
                   padding:'8px 18px',
-                  color: isActive ? '#FFFFFF' : '#9A9490',
+                  color: isActive ? '#E8C070' : '#706860',
                   transition:'all 0.2s',
                   position:'relative',
                 }}>
-                  {isActive && <div style={{position:'absolute',top:'-1px',left:'50%',transform:'translateX(-50%)',width:'28px',height:'2px',background:'#FFFFFF'}} />}
+                  {isActive && <div style={{position:'absolute',top:'-1px',left:'50%',transform:'translateX(-50%)',width:'28px',height:'2px',background:'#E8C070',boxShadow:'0 0 8px rgba(232,192,112,.4)'}} />}
                   <div style={{
                     width:'36px', height:'36px', borderRadius:'10px',
-                    background: isActive ? 'rgba(255,255,255,.1)' : 'transparent',
-                    border: isActive ? '1px solid rgba(255,255,255,.15)' : '1px solid transparent',
+                    background: isActive ? 'rgba(232,192,112,.1)' : 'transparent',
+                    border: isActive ? '1px solid rgba(232,192,112,.2)' : '1px solid transparent',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     transition:'all 0.2s',
                   }}>
-                    <Icon size={20} strokeWidth={isActive ? 2.4 : 1.6} />
+                    <Icon size={20} strokeWidth={isActive ? 2.4 : 1.4} />
                   </div>
                   <span style={{ fontSize:'9px', fontWeight:isActive?700:500, letterSpacing:'0.08em', textTransform:'uppercase' }}>{label}</span>
                 </div>
