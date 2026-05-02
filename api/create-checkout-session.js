@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { tier, email, quantity = 1 } = req.body
+    const { tier, email, quantity = 1, userName } = req.body
 
     const tierData = TIERS[tier]
     if (!tierData) {
@@ -48,7 +48,9 @@ export default async function handler(req, res) {
         tier,
         event: 'rba-edition-2',
         event_date: '2026-05-30',
+        user_name: userName || '',
       },
+      billing_address_collection: 'auto',
     }
 
     if (email) {

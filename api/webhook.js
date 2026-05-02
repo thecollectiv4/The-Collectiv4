@@ -54,16 +54,13 @@ export default async function handler(req, res) {
 
       // Create ticket in Supabase
       const { error } = await supabase.from('tickets').insert({
-        email: session.customer_email || session.customer_details?.email,
-        stripe_session_id: session.id,
-        stripe_payment_intent: session.payment_intent,
-        tier: session.metadata?.tier || 'general',
-        amount_paid: session.amount_total,
+        buyer_email: session.customer_email || session.customer_details?.email,
+        buyer_name: session.customer_details?.name || session.metadata?.user_name || null,
+        buyer_id: session.metadata?.user_id || '00000000-0000-0000-0000-000000000000',
+        stripe_payment_id: session.payment_intent,
+        price_paid: session.amount_total,
         qr_code: qrCode,
         status: 'confirmed',
-        event_id: session.metadata?.event || 'rba-edition-2',
-        checked_in: false,
-        created_at: new Date().toISOString(),
       })
 
       if (error) {

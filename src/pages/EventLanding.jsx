@@ -50,7 +50,7 @@ export default function EventLanding() {
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tierId, email: user.email }),
+        body: JSON.stringify({ tier: tierId, email: user.email, userName: user.user_metadata?.full_name || '' }),
       })
       const data = await res.json()
       if (data.url) {
