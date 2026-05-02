@@ -13,7 +13,7 @@ export default function Community() {
   const [messages, setMessages] = useState([])
   const [newMsg, setNewMsg] = useState('')
   const [loading, setLoading] = useState(true)
-  const [hasTicket, setHasTicket] = useState(null)
+  const [hasTicket, setHasTicket] = useState(false)
   const bottomRef = useRef(null)
 
   // Map known emails to artist profile slugs
@@ -70,7 +70,7 @@ export default function Community() {
     <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
       <div style={{position:'relative',width:'100%',maxWidth:'360px'}}>
         {/* Blur overlay text when no ticket */}
-        {hasTicket===false && (
+        {!hasTicket && (
           <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'20px',borderRadius:'20px'}}>
             <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#FFFFFF',textAlign:'center',letterSpacing:'.02em',textShadow:'0 2px 20px rgba(0,0,0,.8)'}}>GET YOUR TICKET<br/>TO UNLOCK</div>
             <button onClick={()=>navigate('/')} style={{background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px 36px',color:'var(--bg)',fontFamily:'DM Sans',fontSize:'13px',fontWeight:600,cursor:'pointer',transition:'all .2s',boxShadow:'0 4px 20px rgba(0,0,0,.4)'}}
@@ -80,10 +80,10 @@ export default function Community() {
             </button>
           </div>
         )}
-        <div onClick={()=>hasTicket!==false?setOpen(true):null} style={{
-          filter:hasTicket===false?'blur(6px)':'none',
-          opacity:hasTicket===false?0.35:1,
-          pointerEvents:hasTicket===false?'none':'auto',
+        <div onClick={()=>hasTicket?setOpen(true):null} style={{
+          filter:!hasTicket?'blur(6px)':'none',
+          opacity:!hasTicket?0.35:1,
+          pointerEvents:!hasTicket?'none':'auto',
         width:'100%',maxWidth:'360px',
         borderRadius:'20px',overflow:'hidden',
         background:'var(--bg-card)',
