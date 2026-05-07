@@ -128,10 +128,10 @@ export default function ExperienceDetail() {
           <p style={{fontSize:'13px',color:'var(--cream-mid)',lineHeight:1.65,fontStyle:'italic'}}>{exp.artistNote}</p>
         </div>
 
-        <button onClick={()=>navigate('/')} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'12px',padding:'16px',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',cursor:'pointer'}}>
+        <div style={{width:'100%',background:'linear-gradient(135deg,#F2E6D0,#E0D0B0)',border:'none',borderRadius:'12px',padding:'16px',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px'}}>
           <Ticket size={16} style={{color:'var(--bg)'}}/>
-          <span style={{fontFamily:'Bebas Neue',fontSize:'17px',color:'var(--bg)',letterSpacing:'.06em'}}>GET YOUR TICKET — FROM $15</span>
-        </button>
+          <span style={{fontFamily:'Bebas Neue',fontSize:'15px',color:'var(--bg)',letterSpacing:'.04em'}}>TICKETS RELEASE FRIDAY MAY 9 · 8 PM CT</span>
+        </div>
       </div>
     </div>
   )
