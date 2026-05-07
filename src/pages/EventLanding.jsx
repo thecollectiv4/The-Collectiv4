@@ -12,7 +12,7 @@ const LINEUP = [
 ]
 const EXPERIENCES = [
   { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Paintbrush', accent:'#D06020', bg:'rgba(208,96,32,.04)' },
-  { slug:'gallery', label:'GALLERY', short:'Original works by the painter on display. Art you can feel.', iconName:'Frame', accent:'#8A2040', bg:'rgba(138,32,64,.04)' },
+  { slug:'gallery', label:'GALLERY', short:'Original works from Houston artists. Walk through it, feel it, take it home.', iconName:'Frame', accent:'#8A2040', bg:'rgba(138,32,64,.04)' },
   { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', iconName:'Shirt', accent:'#D4A040', bg:'rgba(212,160,64,.04)' },
   { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', iconName:'Layers', accent:'#5A9A30', bg:'rgba(90,122,58,.04)' },
 ]
@@ -138,7 +138,7 @@ export default function EventLanding() {
             A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room.
           </p>
           <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
-            {[[Calendar,'MAY 30, 2026'],[Clock,'10PM — 2AM'],[MapPin,'HOUSTON · TBA']].map(([Icon,text],i)=>(
+            {[[Calendar,'MAY 30, 2026'],[Clock,'10PM — 2AM'],[MapPin,'HOUSTON · VENUE REVEAL SOON']].map(([Icon,text],i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 <Icon size={12} strokeWidth={1.4} style={{color:'var(--cream)'}} />
                 <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.05em'}}>{text}</span>
@@ -173,7 +173,7 @@ export default function EventLanding() {
           </div>
         )}
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
-          <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
+          <Users size={12}/><span style={{fontFamily:'DM Mono',fontSize:'10px',letterSpacing:'.04em'}}>PRESALE OPENS FRIDAY · MAY 9 · 8 PM CT</span>
           {user&&<span onClick={()=>navigate('/community')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
         </div>
       </div>
