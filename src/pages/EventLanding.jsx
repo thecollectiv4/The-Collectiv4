@@ -167,45 +167,15 @@ export default function EventLanding() {
             <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. See you May 30.</span>
           </div>
         ) : (
-          <button onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
-            style={{width:'100%',background:checkingOut?'var(--cream-low)':'linear-gradient(135deg,#F2E6D0,#E0D0B0)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(242,230,208,.12)'}}
-            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(242,230,208,.2)'}}}
-            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(242,230,208,.12)'}}>
-            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
-              {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
-              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING TO CHECKOUT...' : 'GET YOUR TICKET'}</span>
-            </div>
-            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-              <span style={{fontSize:'12px',color:'#6A5040',fontWeight:500}}>from $15</span>
-              <ArrowRight size={14} style={{color:'var(--bg)'}} />
-            </div>
-          </button>
+          <div style={{width:'100%',background:'linear-gradient(135deg,#F2E6D0,#E0D0B0)',border:'none',borderRadius:'12px',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',boxShadow:'0 4px 20px rgba(242,230,208,.12)'}}>
+            <Ticket size={18} style={{color:'var(--bg)'}} />
+            <span style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--bg)',letterSpacing:'.04em'}}>TICKETS RELEASE FRIDAY MAY 9 · 8 PM CT</span>
+          </div>
         )}
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
           <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
           {user&&<span onClick={()=>navigate('/community')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
         </div>
-
-        {/* TICKET TIERS - expandable */}
-        {ticketOpen && (
-          <div style={{marginTop:'16px',display:'flex',flexDirection:'column',gap:'8px',animation:'fadeUp .3s ease'}}>
-            {TIERS.map((t,i)=>(
-              <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
-                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(208,96,32,.06)':'rgba(242,230,208,.02)',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
-                onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.5)';e.currentTarget.style.background='rgba(208,96,32,.12)'}}}
-                onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.25)';e.currentTarget.style.background='rgba(208,96,32,.06)'}}}>
-                <div>
-                  <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
-                  <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <span style={{fontFamily:'Bebas Neue',fontSize:'22px',color:t.status==='available'?'#D06020':'var(--cream-low)'}}>{t.doorLabel||'$'+t.price}</span>
-                  {t.status==='available'&&<ArrowRight size={12} style={{color:'#D06020'}} />}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
