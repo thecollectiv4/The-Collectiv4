@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
+import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout'
 import EventLanding from '@/pages/EventLanding'
 import Community from '@/pages/Community'
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </BrowserRouter>
+      <Analytics />
     </AuthProvider>
   )
 }
