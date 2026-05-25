@@ -16,6 +16,27 @@ export default function Community() {
   const [hasTicket, setHasTicket] = useState(false)
   const bottomRef = useRef(null)
 
+  // Lock body scroll when showing ticket card (closed state)
+  useEffect(() => {
+    if (!open) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+      document.body.style.top = '0'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+      document.body.style.top = ''
+    }
+  }, [open])
+
   const artistMap = {
     'dievillovalle@gmail.com': 'diego-villasenor',
     'patduranchacon@icloud.com': 'pato-duran',
