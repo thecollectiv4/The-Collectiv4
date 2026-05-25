@@ -91,9 +91,16 @@ export default function EventLanding() {
       {/* HEADER */}
       <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(8,8,8,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,230,208,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'#FFFFFF',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
-        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00D54B',animation:'pulse 2s infinite',boxShadow:'0 0 10px rgba(0,213,75,.5)'}}/>
-          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
+        <div style={{display:'flex',alignItems:'center',gap:'14px'}}>
+          <div onClick={()=>navigate('/scanner')} style={{cursor:'pointer',padding:'6px',borderRadius:'8px',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',transition:'all .2s'}}
+            onMouseOver={e=>e.currentTarget.style.borderColor='rgba(242,230,208,.2)'}
+            onMouseOut={e=>e.currentTarget.style.borderColor='var(--border-hi)'}>
+            <Scan size={14} style={{color:'var(--cream-mid)'}} />
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+            <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00D54B',animation:'pulse 2s infinite',boxShadow:'0 0 10px rgba(0,213,75,.5)'}}/>
+            <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
+          </div>
         </div>
       </div>
 
