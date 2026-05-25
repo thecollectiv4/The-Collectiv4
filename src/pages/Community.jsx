@@ -15,6 +15,24 @@ export default function Community() {
   const [loading, setLoading] = useState(true)
   const [hasTicket, setHasTicket] = useState(false)
   const bottomRef = useRef(null)
+  const scrollLockRef = useRef(null)
+
+  // Prevent scroll when ticket card is showing (closed state)
+  useEffect(() => {
+    if (!open) {
+      const prevent = (e) => e.preventDefault()
+      scrollLockRef.current = prevent
+      document.addEventListener('touchmove', prevent, { passive: false })
+      document.addEventListener('wheel', prevent, { passive: false })
+    }
+    return () => {
+      if (scrollLockRef.current) {
+        document.removeEventListener('touchmove', scrollLockRef.current)
+        document.removeEventListener('wheel', scrollLockRef.current)
+        scrollLockRef.current = null
+      }
+    }
+  }, [open])
 
 
 
