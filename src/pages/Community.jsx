@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { Lock, Send, MessageCircle, Users, Ticket, ArrowLeft, Scan, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
+import { Lock, Send, MessageCircle, Users, Ticket, ArrowLeft } from 'lucide-react'
 
 export default function Community() {
   const { user } = useAuth()
@@ -15,45 +15,6 @@ export default function Community() {
   const [loading, setLoading] = useState(true)
   const [hasTicket, setHasTicket] = useState(false)
   const bottomRef = useRef(null)
-  const [showScanner, setShowScanner] = useState(false)
-  const [codeInput, setCodeInput] = useState('')
-  const [codeUnlocked, setCodeUnlocked] = useState(false)
-  const [scanResult, setScanResult] = useState(null)
-  const [scanCode, setScanCode] = useState('')
-  const [scanning, setScanning] = useState(false)
-  const html5QrRef = useRef(null)
-  const DOOR_CODE = '4444'
-
-  const startCamera = async () => {
-    try {
-      const { Html5Qrcode } = await import('html5-qrcode')
-      if (html5QrRef.current) await html5QrRef.current.stop().catch(() => {})
-      const scanner = new Html5Qrcode('qr-reader-inline')
-      html5QrRef.current = scanner
-      setScanning(true)
-      await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1 },
-        (text) => { scanner.stop().catch(() => {}); setScanning(false); handleScanResult(text.trim().toUpperCase()) },
-        () => {}
-      )
-    } catch (err) { console.log('Camera error:', err) }
-  }
-
-  const handleScanResult = async (qr) => {
-    setScanCode(qr)
-    const { data, error } = await supabase.from('tickets').select('*').eq('qr_code', qr).single()
-    if (error || !data) {
-      setScanResult({ ok: false, msg: 'Not found', detail: 'Check the code and try again.' })
-    } else if (data.checked_in) {
-      setScanResult({ ok: false, msg: 'Already in', detail: data.buyer_name || 'Already scanned', ticket: data })
-    } else {
-      await supabase.from('tickets').update({ checked_in: true }).eq('id', data.id)
-      setScanResult({ ok: true, msg: 'Welcome in!', detail: data.buyer_name || 'Attendee', ticket: data })
-    }
-  }
-
-  const resetScan = () => { setScanResult(null); setScanCode(''); startCamera() }
 
   const artistMap = {
     'dievillovalle@gmail.com': 'diego-villasenor',
@@ -164,14 +125,9 @@ export default function Community() {
           <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)'}}>RAN BY ARTISTS 002</div>
           <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>JUNE 13 · HOUSTON</div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-          <div onClick={()=>setShowScanner(!showScanner)} style={{cursor:'pointer',padding:'6px',borderRadius:'8px',border:'1px solid '+(showScanner?'rgba(242,230,208,.25)':'var(--border-hi)'),background:showScanner?'rgba(242,230,208,.06)':'transparent',display:'flex',transition:'all .2s'}}>
-            <Scan size={14} style={{color:showScanner?'var(--cream)':'var(--cream-low)'}} />
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
-            <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00D54B'}}/>
-            <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'#00D54B'}}>{attendees.length}</span>
-          </div>
+        <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
+          <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00D54B'}}/>
+          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'#00D54B'}}>{attendees.length}</span>
         </div>
       </div>
       <div style={{padding:'12px 28px 0',display:'flex',gap:'4px'}}>
