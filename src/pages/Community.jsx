@@ -104,7 +104,7 @@ export default function Community() {
     )
 
     return (
-      <div style={{position:'absolute',top:0,left:0,right:0,bottom:'80px',background:'linear-gradient(180deg,#0E0D0C 0%,#0A0908 40%,#0A0908 100%)',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px',overflow:'hidden',touchAction:'none'}}>
+      <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
         {!hasTicket ? (
           <div style={{position:'relative',width:'100%',maxWidth:'360px'}}>
             <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'20px',borderRadius:'20px'}}>
