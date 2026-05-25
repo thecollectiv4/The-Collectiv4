@@ -1,9 +1,9 @@
 
-/* Prevent zoom and horizontal scroll */
+/* Prevent zoom, allow normal scroll */
 html, body {
-  touch-action: pan-y;
-  -ms-touch-action: pan-y;
-  overscroll-behavior: none;
+  touch-action: manipulation;
+  -ms-touch-action: manipulation;
+  overscroll-behavior-x: none;
   overflow-x: hidden;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
