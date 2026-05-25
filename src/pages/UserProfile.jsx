@@ -65,7 +65,7 @@ export default function UserProfile() {
             <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#00D54B',boxShadow:'0 0 6px rgba(0,213,75,.4)',flexShrink:0}} />
             <div>
               <div style={{fontSize:'13px',fontWeight:600,color:'var(--cream)'}}>Going to RBA Edition 002</div>
-              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px'}}>May 30, 2026 · Houston</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px'}}>June 13, 2026 · Houston</div>
             </div>
           </div>
         </div>

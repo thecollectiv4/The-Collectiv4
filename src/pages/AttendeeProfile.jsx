@@ -57,7 +57,7 @@ export default function AttendeeProfile() {
           <div style={{width:'8px',height:'8px',borderRadius:'50%',background:'var(--rust)',flexShrink:0}}/>
           <div>
             <div style={{fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',letterSpacing:'.04em'}}>ATTENDING · RAN BY ARTISTS 002</div>
-            <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'2px'}}>MAY 30, 2026</div>
+            <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'2px'}}>JUNE 13, 2026</div>
           </div>
         </div>
       </div>

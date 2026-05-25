@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { tier, email, quantity = 1, userName } = req.body
+    const { tier, email, quantity = 1, userName, userId } = req.body
 
     const tierData = TIERS[tier]
     if (!tierData) {
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
           currency: 'usd',
           product_data: {
             name: tierData.name,
-            description: 'Ran By Artists Edition 2 — May 30, 2026 · Houston, TX',
+            description: 'Ran By Artists Edition 2 — June 13, 2026 · Houston, TX',
             images: [],
           },
           unit_amount: tierData.price,
@@ -47,9 +47,11 @@ export default async function handler(req, res) {
       metadata: {
         tier,
         event: 'rba-edition-2',
-        event_date: '2026-05-30',
+        event_date: '2026-06-13',
         user_name: userName || '',
+        user_id: userId || '',
       },
+      customer_email: email || undefined,
       billing_address_collection: 'auto',
     }
 

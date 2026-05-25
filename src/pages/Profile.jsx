@@ -155,7 +155,7 @@ export default function Profile() {
           <div style={{border:'1px solid var(--border-hi)',borderRadius:'14px',overflow:'hidden'}}>
             <div style={{padding:'24px',background:'var(--bg-card)',textAlign:'center'}}>
               <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',marginBottom:'4px'}}>RAN BY ARTISTS <span style={{color:'#D06020'}}>002</span></div>
-              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em',marginBottom:'20px'}}>MAY 30, 2026 · HOUSTON</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em',marginBottom:'20px'}}>JUNE 13, 2026 · HOUSTON</div>
               <div style={{display:'inline-block',padding:'16px',background:'#FFFFFF',borderRadius:'12px',marginBottom:'16px'}}>
                 <QRCodeSVG value={ticket.qr_code||'RBA2-TICKET'} size={140} level="H" />
               </div>
@@ -181,7 +181,7 @@ export default function Profile() {
               <div style={{fontFamily:'Bebas Neue',fontSize:'24px',color:'var(--cream)'}}>RAN BY ARTISTS <span style={{color:'#D06020'}}>002</span></div>
               <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.08em'}}>MAY EDITION</div>
               <div style={{display:'flex',gap:'20px',marginTop:'20px'}}>
-                {[[Calendar,'MAY 30'],[Clock,'10PM'],[MapPin,'HTX']].map(([Icon,text],i)=>(
+                {[[Calendar,'JUNE 13'],[Clock,'10PM'],[MapPin,'HTX']].map(([Icon,text],i)=>(
                   <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
                     <Icon size={11} strokeWidth={1.2} style={{color:'var(--cream)'}}/>
                     <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.06em'}}>{text}</span>

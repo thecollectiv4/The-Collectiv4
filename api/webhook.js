@@ -60,7 +60,7 @@ async function sendConfirmationEmail(ticketData) {
         qrCode,
         tier: 'EARLY BIRD',
         amount: pricePaid || 1500,
-        eventDate: 'MAY 30, 2026',
+        eventDate: 'JUNE 13, 2026',
         eventTime: '10 PM – 2 AM',
         venue: 'Houston · Venue reveal soon',
       }),

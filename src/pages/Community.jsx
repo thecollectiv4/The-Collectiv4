@@ -79,7 +79,7 @@ export default function Community() {
         </div>
         <div style={{margin:'0 20px',borderTop:'1px dashed var(--border-hi)'}}/>
         <div style={{padding:'20px 28px',display:'flex',justifyContent:'space-around'}}>
-          {[['MAY 30','DATE'],['10PM','DOORS'],['HTX','CITY']].map(([v,l],i)=>(
+          {[['JUNE 13','DATE'],['10PM','DOORS'],['HTX','CITY']].map(([v,l],i)=>(
             <div key={i} style={{textAlign:'center'}}>
               <div style={{fontFamily:'Bebas Neue',fontSize:'20px',color:'var(--cream)'}}>{v}</div>
               <div style={{fontFamily:'DM Mono',fontSize:'8px',color:'var(--cream-low)',letterSpacing:'.1em'}}>{l}</div>
@@ -123,7 +123,7 @@ export default function Community() {
         <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer'}}><ArrowLeft size={18}/></button>
         <div style={{flex:1}}>
           <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)'}}>RAN BY ARTISTS 002</div>
-          <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>MAY 30 · HOUSTON</div>
+          <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>JUNE 13 · HOUSTON</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
           <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00D54B'}}/>

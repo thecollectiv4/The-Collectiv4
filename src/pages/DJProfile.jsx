@@ -73,7 +73,7 @@ export default function DJProfile() {
         <div style={{marginTop:'32px',padding:'20px',border:'1px solid var(--border-hi)',borderRadius:'12px',background:'var(--bg-card)'}}>
           <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.15em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'8px'}}>PERFORMING AT</div>
           <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS 002</div>
-          <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'4px'}}>MAY 30, 2026 · HOUSTON</div>
+          <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'4px'}}>JUNE 13, 2026 · HOUSTON</div>
           <button onClick={()=>navigate('/')} style={{marginTop:'16px',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'12px 24px',color:'var(--bg)',fontFamily:'Bebas Neue',fontSize:'15px',letterSpacing:'.06em',cursor:'pointer'}}>
             GET TICKET
           </button>

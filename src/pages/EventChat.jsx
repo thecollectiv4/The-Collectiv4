@@ -63,7 +63,7 @@ export default function EventChat() {
       </div>
       <div style={{flex:1,padding:'20px 28px 130px',overflowY:'auto'}}>
         <div style={{textAlign:'center',padding:'14px',marginBottom:'20px',fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',border:'1px solid var(--border)',borderRadius:'10px',letterSpacing:'.04em'}}>
-          Event group chat · Connect before May 30
+          Event group chat · Connect before June 13
         </div>
         {loading ? (
           <div style={{textAlign:'center',padding:'40px',color:'var(--cream-low)',fontSize:'13px'}}>Loading...</div>
