@@ -6,26 +6,12 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
-const LINEUP = [
-  { handle:'madou', slug:'madou', name:'MADOU', role:'DJ', tag:'House · Deep', ig:'@natemadou', color:'#40B060' },
-  { handle:'patoduranc', slug:'pato-duran', name:'PATO', role:'DJ', tag:'House · Techno', ig:'@patoduranc', color:'#4A7AFF' },
-]
-const EXPERIENCES = [
-  { slug:'live-art', label:'LIVE ART', short:'Paintings created in real time as the music plays.', iconName:'Paintbrush', accent:'#D06020', bg:'rgba(208,96,32,.04)' },
-  { slug:'gallery', label:'GALLERY', short:'Original works from Houston artists. Walk through it, feel it, take it home.', iconName:'Frame', accent:'#8A2040', bg:'rgba(138,32,64,.04)' },
-  { slug:'fashion', label:'FASHION POP-UP', short:'Local Houston designers. Wearable culture.', iconName:'Shirt', accent:'#D4A040', bg:'rgba(212,160,64,.04)' },
-  { slug:'screen-printing', label:'SCREEN PRINTING', short:'Custom prints made live. Leave with something that only exists tonight.', iconName:'Layers', accent:'#5A9A30', bg:'rgba(90,122,58,.04)' },
-]
-const TIERS = [
-  { id:'early-bird', name:'EARLY BIRD', price:15, status:'available', note:'Limited first wave' },
-  { id:'general', name:'GENERAL', price:25, status:'soon', note:'Available May 15' },
-  { id:'door', name:'DOOR', price:40, status:'soon', note:'Night of the event', doorLabel:'AT DOOR' },
-]
-
 export default function EventLanding() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const [event, setEvent] = useState(null)
+  const [loadingEvent, setLoadingEvent] = useState(true)
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [hasTicket, setHasTicket] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
@@ -37,20 +23,45 @@ export default function EventLanding() {
     if (status === 'cancelled') setTicketStatus('cancelled')
   }, [searchParams])
 
+  // Load the current published event from the DB (multi-event, nothing hardcoded).
   useEffect(() => {
-    supabase.from('tickets').select('id',{count:'exact',head:true}).eq('status','confirmed').then(({count})=>setAttendeeCount(count||0)).catch(()=>setAttendeeCount(0))
-    if(user) supabase.from('tickets').select('id').eq('user_id',user.id).single().then(({data})=>setHasTicket(!!data)).catch(()=>{})
-  },[user])
-  const days = Math.max(0,Math.ceil((new Date('2026-06-13')-new Date())/86400000))
+    supabase.from('events').select('*').eq('status', 'published').order('created_at', { ascending: false }).limit(1)
+      .then(({ data }) => { setEvent(data && data[0] ? data[0] : null); setLoadingEvent(false) })
+      .catch(() => setLoadingEvent(false))
+  }, [])
+
+  // Counts + own-ticket check, scoped to the loaded event.
+  useEffect(() => {
+    if (!event) return
+    supabase.rpc('confirmed_count', { p_event: event.id }).then(({ data }) => setAttendeeCount(data || 0)).catch(() => setAttendeeCount(0))
+    if (user) {
+      supabase.from('tickets').select('id').eq('buyer_id', user.id).eq('event_id', event.id).limit(1)
+        .then(({ data }) => setHasTicket(!!(data && data.length))).catch(() => {})
+    }
+  }, [user, event])
+
+  const tiers = event?.tiers || []
+  const lineup = event?.lineup || []
+  const experiences = event?.experiences || []
+  const days = event?.event_date ? Math.max(0, Math.ceil((new Date(event.event_date) - new Date()) / 86400000)) : 0
+  const availableTiers = tiers.filter((t) => t.status === 'available')
+  const fromPrice = availableTiers.length ? Math.min(...availableTiers.map((t) => t.price)) / 100 : null
+  const dateDisplay = event?.event_date
+    ? new Date(event.event_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
+    : 'DATE TBA'
+  const shortDate = event?.event_date
+    ? new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : 'soon'
 
   async function handleCheckout(tierId) {
     if (!user) { navigate('/auth'); return }
+    if (!event) return
     setCheckingOut(true)
     try {
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tierId, email: user.email, userName: user.user_metadata?.full_name || '', userId: user.id }),
+        body: JSON.stringify({ eventSlug: event.slug, tier: tierId, email: user.email, userName: user.user_metadata?.full_name || '', userId: user.id }),
       })
       const data = await res.json()
       if (data.url) {
@@ -94,6 +105,8 @@ export default function EventLanding() {
     } catch (err) { console.log('Camera error:', err) }
   }
 
+  // NOTE: door check-in reads/updates `tickets` client-side with the anon key.
+  // Under the new RLS this will be denied — door scanning moves server-side (step 7).
   const handleScanResult = async (qr) => {
     const { data, error } = await supabase.from('tickets').select('*').eq('qr_code', qr).single()
     if (error || !data) {
@@ -111,8 +124,10 @@ export default function EventLanding() {
   const [countdown, setCountdown] = useState({d:0,h:0,m:0,s:0})
 
   useEffect(() => {
+    if (!event?.event_date) return
+    const target = new Date(event.event_date)
     const tick = () => {
-      const diff = new Date('2026-06-13T22:00:00-05:00') - new Date()
+      const diff = target - new Date()
       if (diff <= 0) return
       setCountdown({
         d: Math.floor(diff/86400000),
@@ -124,7 +139,25 @@ export default function EventLanding() {
     tick()
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
-  }, [])
+  }, [event])
+
+  if (loadingEvent) {
+    return (
+      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
+        <Loader2 size={22} style={{color:'var(--cream-low)',animation:'spin 1s linear infinite'}} />
+      </div>
+    )
+  }
+
+  if (!event) {
+    return (
+      <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'var(--bg)'}}>
+        <Calendar size={24} strokeWidth={1.2} style={{color:'var(--cream-low)',marginBottom:'18px'}}/>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',marginBottom:'8px'}}>NO UPCOMING EVENTS</div>
+        <div style={{fontSize:'13px',color:'var(--cream-low)',lineHeight:1.6}}>Something is coming. Stay close.</div>
+      </div>
+    )
+  }
 
   return (
     <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh'}}>
@@ -156,7 +189,7 @@ export default function EventLanding() {
             }}
               onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(255,180,50,.15),rgba(255,180,50,.08))';e.currentTarget.style.boxShadow='0 0 20px rgba(255,180,50,.15)';e.currentTarget.style.borderColor='rgba(255,180,50,.6)'}}
               onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(255,180,50,.08),rgba(255,180,50,.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(255,180,50,.1)';e.currentTarget.style.borderColor='rgba(255,180,50,.35)'}}>
-              EDITION 002
+              {event.edition || 'RAN BY ARTISTS'}
             </div>
             {/* Countdown - green accent */}
             <div style={{border:'1px solid rgba(0,213,75,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',background:'rgba(0,213,75,.04)',animation:'countPulse 3s infinite'}}
@@ -176,10 +209,10 @@ export default function EventLanding() {
             <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'82px',lineHeight:.85,letterSpacing:'2px',color:'var(--cream)',marginTop:'4px'}}>ARTISTS</div>
           </div>
           <p className="fade-up-3" style={{fontSize:'14px',color:'var(--cream-mid)',lineHeight:1.65,marginTop:'22px',maxWidth:'320px'}}>
-            A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room.
+            {event.tagline || "A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room."}
           </p>
           <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
-            {[[Calendar,'JUNE 13, 2026'],[Clock,'10PM — 2AM'],[MapPin,'HOUSTON · VENUE REVEAL SOON']].map(([Icon,text],i)=>(
+            {[[Calendar,dateDisplay],[Clock,event.doors||''],[MapPin,(event.venue||'').toUpperCase()]].filter(([,text])=>text).map(([Icon,text],i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 <Icon size={12} strokeWidth={1.4} style={{color:'var(--cream)'}} />
                 <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',letterSpacing:'.05em'}}>{text}</span>
@@ -194,7 +227,7 @@ export default function EventLanding() {
         {ticketStatus === 'success' && (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(74,122,42,.4)',borderRadius:'12px',padding:'18px',background:'rgba(74,122,42,.06)',marginBottom:'12px'}}>
             <Check size={16} style={{color:'#6ABF4A'}} />
-            <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. Check your email for your ticket. See you June 13.</span>
+            <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. Check your email for your ticket. See you {shortDate}.</span>
           </div>
         )}
         {ticketStatus === 'cancelled' && (
@@ -205,7 +238,7 @@ export default function EventLanding() {
         {hasTicket || ticketStatus === 'success' ? (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(74,122,42,.4)',borderRadius:'12px',padding:'18px',background:'rgba(74,122,42,.06)'}}>
             <Check size={16} style={{color:'#6ABF4A'}} />
-            <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. See you June 13.</span>
+            <span style={{color:'#6ABF4A',fontWeight:500,fontSize:'14px'}}>You're in. See you {shortDate}.</span>
           </div>
         ) : (
           <button onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
@@ -217,7 +250,7 @@ export default function EventLanding() {
               <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING...' : 'GET YOUR TICKET'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-              <span style={{fontSize:'12px',color:'#6A5040',fontWeight:500}}>from $15</span>
+              {fromPrice != null && <span style={{fontSize:'12px',color:'#6A5040',fontWeight:500}}>from ${fromPrice}</span>}
               <ArrowRight size={14} style={{color:'var(--bg)'}} />
             </div>
           </button>
@@ -230,7 +263,7 @@ export default function EventLanding() {
         {/* TICKET TIERS - expandable */}
         {ticketOpen && (
           <div style={{marginTop:'16px',display:'flex',flexDirection:'column',gap:'8px',animation:'fadeUp .3s ease'}}>
-            {TIERS.map((t,i)=>(
+            {tiers.map((t,i)=>(
               <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
                 style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(208,96,32,.06)':'rgba(242,230,208,.02)',border:'1px solid '+(t.status==='available'?'rgba(208,96,32,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
                 onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(208,96,32,.5)';e.currentTarget.style.background='rgba(208,96,32,.12)'}}}
@@ -240,7 +273,7 @@ export default function EventLanding() {
                   <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <span style={{fontFamily:'Bebas Neue',fontSize:'22px',color:t.status==='available'?'#D06020':'var(--cream-low)'}}>{t.doorLabel||'$'+t.price}</span>
+                  <span style={{fontFamily:'Bebas Neue',fontSize:'22px',color:t.status==='available'?'#D06020':'var(--cream-low)'}}>{t.doorLabel||'$'+Math.round(t.price/100)}</span>
                   {t.status==='available'&&<ArrowRight size={12} style={{color:'#D06020'}} />}
                 </div>
               </div>
@@ -253,10 +286,11 @@ export default function EventLanding() {
 
 
       {/* LINEUP */}
+      {lineup.length > 0 && (
       <div style={{padding:'36px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
         <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
-          {LINEUP.map((a,i)=>(
+          {lineup.map((a,i)=>(
             <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'rgba(242,230,208,.04)',border:'1px solid rgba(242,230,208,.1)',cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.25)';e.currentTarget.style.background='rgba(242,230,208,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,230,208,.1)';e.currentTarget.style.background='rgba(242,230,208,.04)'}}>
@@ -273,18 +307,20 @@ export default function EventLanding() {
           ))}
         </div>
       </div>
+      )}
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
       {/* EXPERIENCES */}
+      {experiences.length > 0 && (
       <div style={{padding:'36px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>THE EXPERIENCE</div>
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-          {EXPERIENCES.map((exp,i)=>(
+          {experiences.map((exp,i)=>(
             <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'18px',borderRadius:'12px',background:exp.bg,border:`1px solid ${exp.accent}30`,cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor=exp.accent+'60';e.currentTarget.style.background=exp.accent+'18'}} onMouseOut={e=>{e.currentTarget.style.borderColor=exp.accent+'30';e.currentTarget.style.background=exp.bg}}>
               <div style={{width:'44px',height:'44px',borderRadius:'12px',background:exp.accent+'18',border:`1px solid ${exp.accent}30`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                {(()=>{ const IconComp = ICON_MAP[exp.iconName]; return <IconComp size={20} strokeWidth={1.6} style={{color:exp.accent}} /> })()}
+                {(()=>{ const IconComp = ICON_MAP[exp.iconName] || Layers; return <IconComp size={20} strokeWidth={1.6} style={{color:exp.accent}} /> })()}
               </div>
               <div style={{flex:1}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.04em'}}>{exp.label}</div>
@@ -295,6 +331,7 @@ export default function EventLanding() {
           ))}
         </div>
       </div>
+      )}
 
       {/* QR SCANNER */}
       <div style={{padding:'28px',borderTop:'1px solid var(--border)'}}>
