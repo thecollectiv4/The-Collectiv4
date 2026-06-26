@@ -67,7 +67,7 @@ export default async function handler(req, res) {
           },
           unit_amount: tierData.price, // CENTS, from the DB
         },
-        quantity: Math.min(Number(quantity) || 1, 5),
+        quantity: Math.max(1, Math.min(Number(quantity) || 1, 5)),
       }],
       success_url: `${origin}/?ticket=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?ticket=cancelled`,

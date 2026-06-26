@@ -36,22 +36,19 @@ export default function Community() {
 
 
 
-  const artistMap = {
-    'dievillovalle@gmail.com': 'diego-villasenor',
-    'patduranchacon@icloud.com': 'pato-duran',
-    'patduranchacon@gmail.com': 'pato-duran',
-    'natemadou@gmail.com': 'madou',
-  }
-  const getProfileLink = (a) => artistMap[a.buyer_email] ? '/artist/' + artistMap[a.buyer_email] : '/user/' + a.buyer_id
+  // Wall data now comes from the confirmed_attendees RPC (name/avatar/id only — no
+  // email/payment under RLS). Route everyone to their public profile by id.
+  const getProfileLink = (a) => (a.id ? '/user/' + a.id : '#')
 
   useEffect(() => {
-    supabase.from('tickets').select('*').eq('status','confirmed').order('created_at',{ascending:false})
+    supabase.rpc('confirmed_attendees')
       .then(({data}) => { setAttendees(data||[]); setLoading(false) })
+      .catch(() => setLoading(false))
     supabase.from('chat_messages').select('*').order('created_at',{ascending:true}).limit(100)
       .then(({data}) => setMessages(data||[]))
       .catch(() => {})
-    if (user?.email) {
-      supabase.from('tickets').select('id').eq('buyer_email',user.email).eq('status','confirmed').maybeSingle()
+    if (user?.id) {
+      supabase.from('tickets').select('id').eq('buyer_id',user.id).eq('status','confirmed').maybeSingle()
         .then(({data}) => setHasTicket(!!data))
     }
     const channel = supabase.channel('chat').on('postgres_changes',
@@ -140,7 +137,7 @@ export default function Community() {
   return (
     <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
       <div style={{padding:'16px 28px',display:'flex',alignItems:'center',gap:'12px',borderBottom:'1px solid var(--border)'}}>
-        <button onClick={()=>{setOpen(false);setShowScanner(false);if(html5QrRef.current)html5QrRef.current.stop().catch(()=>{})}} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer'}}><ArrowLeft size={18}/></button>
+        <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer'}}><ArrowLeft size={18}/></button>
         <div style={{flex:1}}>
           <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)'}}>RAN BY ARTISTS 002</div>
           <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>JUNE 13 · HOUSTON</div>
@@ -166,8 +163,10 @@ export default function Community() {
             <div key={i} onClick={()=>navigate(getProfileLink(a))} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none',cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.paddingLeft='8px';e.currentTarget.style.background='rgba(242,230,208,.02)'}}
               onMouseOut={e=>{e.currentTarget.style.paddingLeft='0';e.currentTarget.style.background='transparent'}}>
-              <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',flexShrink:0}}>{(a.buyer_name||'?')[0].toUpperCase()}</div>
-              <div style={{flex:1}}><div style={{fontSize:'13px',fontWeight:500,color:'var(--cream)'}}>{a.buyer_name||'Attendee'}</div></div>
+              {a.avatar_url
+                ? <img src={a.avatar_url} alt="" style={{width:'36px',height:'36px',borderRadius:'50%',objectFit:'cover',border:'1px solid var(--border-hi)',flexShrink:0}}/>
+                : <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',flexShrink:0}}>{(a.name||'?')[0].toUpperCase()}</div>}
+              <div style={{flex:1}}><div style={{fontSize:'13px',fontWeight:500,color:'var(--cream)'}}>{a.name||'Attendee'}</div></div>
               <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'#00D54B',background:'rgba(0,213,75,.06)',border:'1px solid rgba(0,213,75,.15)',padding:'3px 8px',borderRadius:'100px'}}>GOING</span>
             </div>
           ))}</div>}

@@ -136,7 +136,30 @@ export default async function handler(req, res) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object
     const md = session.metadata || {}
+    // Stable idempotency key. payment_intent is set for mode:'payment' checkout;
+    // fall back to the session id so the dedup key is NEVER null.
+    const paymentId = session.payment_intent || session.id
     try {
+      // ---- Idempotency: Stripe delivers this event AT-LEAST-ONCE ----
+      // If a ticket already exists for this payment, ack and stop — never create a
+      // duplicate ticket or send a duplicate email on a retried delivery.
+      // .limit(1) (not .maybeSingle): degrade gracefully if a legacy pre-index duplicate
+      // exists — treat "any row found" as already-processed instead of throwing on >1 row.
+      const { data: existingRows, error: lookupErr } = await supabase
+        .from('tickets')
+        .select('id')
+        .eq('stripe_payment_id', paymentId)
+        .limit(1)
+      if (lookupErr) {
+        // Can't confirm idempotency safely → ask Stripe to retry rather than risk a dup.
+        console.error('Idempotency lookup failed — returning 500 for retry:', lookupErr)
+        return res.status(500).json({ error: 'Idempotency check failed' })
+      }
+      if (existingRows && existingRows.length) {
+        console.log('Duplicate webhook for payment ' + paymentId + ' — ticket already exists, skipping')
+        return res.status(200).json({ received: true, duplicate: true })
+      }
+
       const qrCode = generateQR()
       const buyerEmail = session.customer_email || (session.customer_details && session.customer_details.email)
       const buyerName = (session.customer_details && session.customer_details.name) || md.user_name || null
@@ -158,32 +181,47 @@ export default async function handler(req, res) {
         console.warn('Webhook: checkout missing user_id metadata; ticket unreadable to buyer under RLS. session=' + session.id)
       }
 
-      const { error } = await supabase.from('tickets').insert({
+      const { error: insertError } = await supabase.from('tickets').insert({
         event_id: md.event_id || null,
         buyer_email: buyerEmail,
         buyer_name: buyerName,
         buyer_id: md.user_id || '00000000-0000-0000-0000-000000000000',
-        stripe_payment_id: session.payment_intent,
+        stripe_payment_id: paymentId,
         price_paid: session.amount_total,
         qr_code: qrCode,
         status: 'confirmed',
       })
 
-      if (error) {
-        console.error('Supabase insert error:', error)
-      } else {
-        console.log('Ticket created: ' + qrCode + ' for ' + buyerEmail)
-        await sendConfirmationEmail({
-          buyerEmail,
-          buyerName,
-          qrCode,
-          pricePaid: session.amount_total,
-          tierName: md.tier_name || 'TICKET',
-          event: eventRow,
-        })
+      if (insertError) {
+        // 23505 = unique_violation: a concurrent delivery already inserted this
+        // payment (the tickets_stripe_payment_id_uidx index). That's success, not
+        // failure — ack so Stripe stops retrying.
+        if (insertError.code === '23505') {
+          console.log('Concurrent duplicate for payment ' + paymentId + ' — already inserted, skipping')
+          return res.status(200).json({ received: true, duplicate: true })
+        }
+        // Genuine persistence failure: do NOT ack. Return 500 so Stripe retries; the
+        // idempotency guard above prevents a double-insert on that retry.
+        console.error('Supabase insert error — returning 500 for Stripe retry:', insertError)
+        return res.status(500).json({ error: 'Ticket persistence failed' })
       }
+
+      console.log('Ticket created: ' + qrCode + ' for ' + buyerEmail)
+      // Email is best-effort: the ticket is already saved. A failure is logged to
+      // email_failures and must NOT trigger a 500 — a retry would skip the email via
+      // the idempotency guard, so we never want to lose the ticket over an email hiccup.
+      await sendConfirmationEmail({
+        buyerEmail,
+        buyerName,
+        qrCode,
+        pricePaid: session.amount_total,
+        tierName: md.tier_name || 'TICKET',
+        event: eventRow,
+      })
     } catch (err) {
-      console.error('Error processing checkout:', err)
+      // Unexpected throw (e.g., network error to Supabase): ask Stripe to retry.
+      console.error('Error processing checkout — returning 500 for Stripe retry:', err)
+      return res.status(500).json({ error: 'Webhook processing error' })
     }
   }
 
