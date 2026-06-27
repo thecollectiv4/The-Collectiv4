@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { LogOut, Calendar, MapPin, Clock, ChevronRight, Sparkles, Copy, Check } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
@@ -9,6 +10,7 @@ import ProfileMuseum from '@/components/ProfileMuseum'
 export default function Profile() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+  const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
   const [ticket, setTicket] = useState(null)
   const [copied, setCopied] = useState(false)
@@ -73,8 +75,8 @@ export default function Profile() {
         {ticket ? (
           <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden' }}>
             <div style={{ padding: '24px', background: 'var(--bg-card)', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', marginBottom: '4px' }}>RAN BY ARTISTS <span style={{ color: '#D06020' }}>002</span></div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em', marginBottom: '20px' }}>JUNE 13, 2026 · HOUSTON</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', marginBottom: '4px' }}>{live.name} {live.editionNumber && <span style={{ color: '#D06020' }}>{live.editionNumber}</span>}</div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em', marginBottom: '20px' }}>{`${live.dateLong} · ${live.city}`.toUpperCase()}</div>
               <div style={{ display: 'inline-block', padding: '16px', background: '#FFFFFF', borderRadius: '12px', marginBottom: '16px' }}>
                 <QRCodeSVG value={ticket.qr_code || 'RBA2-TICKET'} size={140} level="H" />
               </div>
@@ -96,10 +98,10 @@ export default function Profile() {
             onClick={() => navigate('/')}
             onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,230,208,.2)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
             <div style={{ padding: '24px', background: 'var(--bg-card)' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>RAN BY ARTISTS <span style={{ color: '#D06020' }}>002</span></div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)', marginTop: '4px', letterSpacing: '.08em' }}>MAY EDITION</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>{live.name} {live.editionNumber && <span style={{ color: '#D06020' }}>{live.editionNumber}</span>}</div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)', marginTop: '4px', letterSpacing: '.08em' }}>{live.edition || 'UPCOMING'}</div>
               <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-                {[[Calendar, 'JUNE 13'], [Clock, '10PM'], [MapPin, 'HTX']].map(([Icon, text], i) => (
+                {[[Calendar, live.dateMed.toUpperCase()], [Clock, '10PM'], [MapPin, 'HTX']].map(([Icon, text], i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Icon size={11} strokeWidth={1.2} style={{ color: 'var(--cream)' }} />
                     <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-mid)', letterSpacing: '.06em' }}>{text}</span>

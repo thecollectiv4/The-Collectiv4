@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers, Scan, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
@@ -10,8 +11,11 @@ export default function EventLanding() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const [event, setEvent] = useState(null)
-  const [loadingEvent, setLoadingEvent] = useState(true)
+  // The live event comes from the single source of truth (useLiveEvent), not a
+  // local fetch — same published-row query, shared with every other surface.
+  const live = useLiveEvent()
+  const event = live.raw
+  const loadingEvent = live.loading
   const [attendeeCount, setAttendeeCount] = useState(0)
   const [hasTicket, setHasTicket] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
@@ -22,13 +26,6 @@ export default function EventLanding() {
     if (status === 'success') setTicketStatus('success')
     if (status === 'cancelled') setTicketStatus('cancelled')
   }, [searchParams])
-
-  // Load the current published event from the DB (multi-event, nothing hardcoded).
-  useEffect(() => {
-    supabase.from('events').select('*').eq('status', 'published').order('created_at', { ascending: false }).limit(1)
-      .then(({ data }) => { setEvent(data && data[0] ? data[0] : null); setLoadingEvent(false) })
-      .catch(() => setLoadingEvent(false))
-  }, [])
 
   // Counts + own-ticket check, scoped to the loaded event.
   useEffect(() => {
@@ -46,12 +43,8 @@ export default function EventLanding() {
   const days = event?.event_date ? Math.max(0, Math.ceil((new Date(event.event_date) - new Date()) / 86400000)) : 0
   const availableTiers = tiers.filter((t) => t.status === 'available')
   const fromPrice = availableTiers.length ? Math.min(...availableTiers.map((t) => t.price)) / 100 : null
-  const dateDisplay = event?.event_date
-    ? new Date(event.event_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }).toUpperCase()
-    : 'DATE TBA'
-  const shortDate = event?.event_date
-    ? new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : 'soon'
+  const dateDisplay = live.dateLong.toUpperCase()   // "JUNE 13, 2026" / "DATE TBA"
+  const shortDate = live.dateShort                  // "Jun 13" / "soon"
 
   async function handleCheckout(tierId) {
     if (!user) { navigate('/auth'); return }

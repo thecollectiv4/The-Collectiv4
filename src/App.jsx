@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
+import { LiveEventProvider } from '@/lib/useLiveEvent'
 import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout'
 import EventLanding from '@/pages/EventLanding'
@@ -15,7 +16,8 @@ import UserProfile from '@/pages/UserProfile'
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <LiveEventProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<Layout />}>
@@ -33,7 +35,8 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </LiveEventProvider>
       <Analytics />
     </AuthProvider>
   )

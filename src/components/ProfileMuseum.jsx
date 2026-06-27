@@ -72,7 +72,10 @@ const monoLabel = { fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em
 const onF = (e) => e.currentTarget.style.borderColor = 'rgba(242,230,208,.3)'
 const onB = (e) => e.currentTarget.style.borderColor = 'var(--border-hi)'
 
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, ticket, topBar, ownerExtras }) {
+// `event` is the normalized live-event object from useLiveEvent (name/edition/date/
+// city) — passed by the wrapper so the "going" badge shows the real upcoming event
+// instead of a hardcoded one. `ticket` stays the boolean "is this person going".
+export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, ticket, event, topBar, ownerExtras }) {
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -266,8 +269,10 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             <div style={{ marginTop: '24px', padding: '15px 18px', borderRadius: '12px', background: 'rgba(0,213,75,.04)', border: '1px solid rgba(0,213,75,.14)', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00D54B', boxShadow: '0 0 6px rgba(0,213,75,.4)', flexShrink: 0 }} />
               <div>
-                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cream)' }}>Going to RBA Edition 002</div>
-                <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', marginTop: '2px' }}>June 13, 2026 · Houston</div>
+                <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cream)' }}>
+                  Going to {event?.name ? `${event.name}${event.editionNumber ? ` ${event.editionNumber}` : ''}` : 'the next event'}
+                </div>
+                <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', marginTop: '2px' }}>{event ? `${event.dateLong} · ${event.city}` : 'Houston'}</div>
               </div>
             </div>
           )}

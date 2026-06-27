@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft } from 'lucide-react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 
 export default function UserProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
   const [going, setGoing] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -21,9 +23,11 @@ export default function UserProfile() {
       // "Going" status comes from the PII-safe RPC, NOT a ticket select — the
       // tickets_self_read RLS policy blocks reading another person's ticket.
       // The RPC also supplies name/avatar when the user has no profile row yet.
+      // Scope to the live event when there is one, so "going" means going to THIS
+      // event; with no published event the RPC defaults to all confirmed.
       let att = null
       try {
-        const { data } = await supabase.rpc('confirmed_attendees')
+        const { data } = await supabase.rpc('confirmed_attendees', live.id ? { p_event: live.id } : {})
         att = (data || []).find(a => String(a.id) === String(id)) || null
       } catch { /* RPC optional */ }
 
@@ -34,7 +38,7 @@ export default function UserProfile() {
     }
     load()
     return () => { alive = false }
-  }, [id])
+  }, [id, live.id])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
@@ -56,5 +60,5 @@ export default function UserProfile() {
     </>
   )
 
-  return <ProfileMuseum profile={profile} isOwner={false} ticket={going} topBar={topBar} />
+  return <ProfileMuseum profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar} />
 }
