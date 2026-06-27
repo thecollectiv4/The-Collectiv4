@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { Lock, Send, MessageCircle, Users, Ticket, ArrowLeft } from 'lucide-react'
 
 export default function Community() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const live = useLiveEvent()
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('going')
   const [attendees, setAttendees] = useState([])
@@ -40,10 +42,16 @@ export default function Community() {
   // email/payment under RLS). Route everyone to their public profile by id.
   const getProfileLink = (a) => (a.id ? '/user/' + a.id : '#')
 
+  // Attendee wall — scoped to the live event when one is published (else all
+  // confirmed). Own effect keyed on live.id so it refreshes if the event resolves
+  // without tearing down the chat realtime channel below.
   useEffect(() => {
-    supabase.rpc('confirmed_attendees')
+    supabase.rpc('confirmed_attendees', live.id ? { p_event: live.id } : {})
       .then(({data}) => { setAttendees(data||[]); setLoading(false) })
       .catch(() => setLoading(false))
+  }, [live.id])
+
+  useEffect(() => {
     supabase.from('chat_messages').select('*').order('created_at',{ascending:true}).limit(100)
       .then(({data}) => setMessages(data||[]))
       .catch(() => {})
@@ -92,11 +100,11 @@ export default function Community() {
             <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)'}}>BY</span>
           </div>
           <div style={{fontFamily:'Bebas Neue',fontSize:'42px',lineHeight:.85,color:'var(--cream)',marginTop:'2px'}}>ARTISTS</div>
-          <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#D06020',marginTop:'4px'}}>002</div>
+          {live.editionNumber && <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#D06020',marginTop:'4px'}}>{live.editionNumber}</div>}
         </div>
         <div style={{margin:'0 20px',borderTop:'1px dashed var(--border-hi)'}}/>
         <div style={{padding:'20px 28px',display:'flex',justifyContent:'space-around'}}>
-          {[['JUNE 13','DATE'],['10PM','DOORS'],['HTX','CITY']].map(([v,l],i)=>(
+          {[[live.dateMed.toUpperCase(),'DATE'],['10PM','DOORS'],['HTX','CITY']].map(([v,l],i)=>(
             <div key={i} style={{textAlign:'center'}}>
               <div style={{fontFamily:'Bebas Neue',fontSize:'20px',color:'var(--cream)'}}>{v}</div>
               <div style={{fontFamily:'DM Mono',fontSize:'8px',color:'var(--cream-low)',letterSpacing:'.1em'}}>{l}</div>
@@ -139,8 +147,8 @@ export default function Community() {
       <div style={{padding:'16px 28px',display:'flex',alignItems:'center',gap:'12px',borderBottom:'1px solid var(--border)'}}>
         <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer'}}><ArrowLeft size={18}/></button>
         <div style={{flex:1}}>
-          <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)'}}>RAN BY ARTISTS 002</div>
-          <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>JUNE 13 · HOUSTON</div>
+          <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)'}}>{live.editionNumber ? `${live.name} ${live.editionNumber}` : live.name}</div>
+          <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>{`${live.dateMed} · ${live.city}`.toUpperCase()}</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
           <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00D54B'}}/>

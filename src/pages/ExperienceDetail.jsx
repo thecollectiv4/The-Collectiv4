@@ -1,4 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft, Ticket, Paintbrush, Frame, Shirt, Layers } from 'lucide-react'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
@@ -58,6 +59,7 @@ const EXPERIENCES = {
 export default function ExperienceDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const live = useLiveEvent()
   const exp = EXPERIENCES[slug]
   if (!exp) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontSize:'13px',color:'var(--cream-low)'}}>Not found</div></div>
 
@@ -80,7 +82,7 @@ export default function ExperienceDetail() {
           </div>
           <div>
             <div style={{fontFamily:'Bebas Neue',fontSize:'36px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{exp.label}</div>
-            <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.15em'}}>RAN BY ARTISTS 002 · JUNE 13</div>
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'4px',letterSpacing:'.15em'}}>{`${live.editionNumber ? `${live.name} ${live.editionNumber}` : live.name} · ${live.dateMed}`.toUpperCase()}</div>
           </div>
         </div>
       </div>

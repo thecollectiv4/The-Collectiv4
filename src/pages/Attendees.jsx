@@ -2,19 +2,21 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { Lock, Sparkles, Ticket } from 'lucide-react'
 
 export default function Attendees() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const live = useLiveEvent()
   const [attendees, setAttendees] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.rpc('confirmed_attendees')
+    supabase.rpc('confirmed_attendees', live.id ? { p_event: live.id } : {})
       .then(({data}) => { setAttendees(data||[]); setLoading(false) })
       .catch(() => { setAttendees([]); setLoading(false) })
-  }, [])
+  }, [live.id])
 
   if (!user) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'var(--bg)'}}>
@@ -28,7 +30,7 @@ export default function Attendees() {
   return (
     <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh'}}>
       <div style={{padding:'20px 28px 16px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase'}}>Ran By Artists · June 13</div>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase'}}>{live.name} · {live.dateMed}</div>
         <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--cream)',letterSpacing:'.02em',marginTop:'6px'}}>WHO'S GOING</div>
         <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',marginTop:'6px',letterSpacing:'.06em'}}>{attendees.length} CONFIRMED</div>
       </div>

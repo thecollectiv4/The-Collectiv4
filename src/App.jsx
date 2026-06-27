@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
+import { LiveEventProvider } from '@/lib/useLiveEvent'
 import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout'
 import EventLanding from '@/pages/EventLanding'
@@ -11,13 +12,16 @@ import PastEditions from '@/pages/PastEditions'
 import ArtistProfile from '@/pages/ArtistProfile'
 import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
+import MuseumShowcase from '@/pages/_MuseumShowcase' // ⚠️ TEMP showcase — delete before merge
 
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
+      <LiveEventProvider>
+        <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/__museum-preview" element={<MuseumShowcase />} />{/* ⚠️ TEMP showcase — delete before merge */}
           <Route path="/" element={<Layout />}>
             <Route index element={<EventLanding />} />
             <Route path="community" element={<Community />} />
@@ -33,7 +37,8 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
-      </BrowserRouter>
+        </BrowserRouter>
+      </LiveEventProvider>
       <Analytics />
     </AuthProvider>
   )

@@ -2,11 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft, Camera, Keyboard, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
 
 export default function DoorScanner() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const live = useLiveEvent()
   const [mode, setMode] = useState('camera')
   const [code, setCode] = useState('')
   const [result, setResult] = useState(null)
@@ -93,7 +95,7 @@ export default function DoorScanner() {
         <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'var(--cream)', cursor: 'pointer' }}><ArrowLeft size={18} /></button>
         <div style={{ flex: 1 }}>
           <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>DOOR SCANNER</div>
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.1em' }}>RBA EDITION 002</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.1em' }}>{live.edition ? `RBA ${live.edition}` : 'RBA'}</div>
         </div>
       </div>
 
