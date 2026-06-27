@@ -55,7 +55,7 @@ export default function UserProfile() {
 
   const topBar = (
     <>
-      <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'none', border: 'none', color: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><ArrowLeft size={18} /></button>
+      <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'rgba(10,9,8,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(242,230,208,.18)', borderRadius: '100px', width: '34px', height: '34px', color: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowLeft size={16} /></button>
       <span />
     </>
   )

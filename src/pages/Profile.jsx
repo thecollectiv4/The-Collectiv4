@@ -40,21 +40,31 @@ export default function Profile() {
     if (error) throw error
   }
 
-  // Avatar upload — base64-data-URL behavior unchanged (Supabase Storage = later cleanup).
+  // Image upload — base64-data-URL behavior (Supabase Storage = later cleanup).
   // Settles on EVERY path: read error → reject, DB error → reject, success → resolve.
-  const onUploadAvatar = (file) => new Promise((resolve, reject) => {
+  const uploadImage = (col) => (file) => new Promise((resolve, reject) => {
     const reader = new FileReader()
     reader.onerror = () => reject(reader.error || new Error('Could not read file'))
     reader.onload = async (ev) => {
       try {
         const url = ev.target.result
-        const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+        const { error } = await supabase.from('profiles').update({ [col]: url }).eq('id', user.id)
         if (error) return reject(error)
         resolve(url)
       } catch (e) { reject(e) }
     }
     reader.readAsDataURL(file)
   })
+  const onUploadAvatar = uploadImage('avatar_url')
+  // Cover: a file uploads like the avatar; null clears it.
+  const onUploadCover = async (file) => {
+    if (!file) {
+      const { error } = await supabase.from('profiles').update({ cover_url: null }).eq('id', user.id)
+      if (error) throw error
+      return null
+    }
+    return uploadImage('cover_url')(file)
+  }
 
   const topBar = (
     <>
@@ -122,12 +132,12 @@ export default function Profile() {
         <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>EVENTS ATTENDED</div>
         <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all .2s' }}
           onClick={() => navigate('/editions')}
-          onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(255,215,0,.2)'; e.currentTarget.style.background = 'rgba(255,215,0,.03)' }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(200,96,64,.25)'; e.currentTarget.style.background = 'rgba(200,96,64,.04)' }}
           onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(135deg,rgba(255,215,0,.15),rgba(255,255,255,.08))', border: '1px solid rgba(255,215,0,.3)', borderRadius: '8px', padding: '6px 10px', boxShadow: '0 0 12px rgba(255,215,0,.08)' }}>
-              <Sparkles size={12} style={{ color: '#FFD700' }} />
-              <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: '#FFD700' }}>1</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(135deg,rgba(200,96,64,.18),rgba(242,230,208,.06))', border: '1px solid rgba(200,96,64,.3)', borderRadius: '8px', padding: '6px 10px', boxShadow: '0 0 12px rgba(200,96,64,.12)' }}>
+              <Sparkles size={12} style={{ color: 'var(--rust)' }} />
+              <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: 'var(--rust)' }}>1</span>
             </div>
             <div>
               <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cream)' }}>Edition 001 — Sanman Studios</div>
@@ -146,6 +156,7 @@ export default function Profile() {
       isOwner
       onSave={onSave}
       onUploadAvatar={onUploadAvatar}
+      onUploadCover={onUploadCover}
       topBar={topBar}
       ownerExtras={ownerExtras}
     />
