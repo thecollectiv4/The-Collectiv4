@@ -43,10 +43,9 @@ export default function Profile() {
     setBio(data.bio || '')
     setAvatarUrl(data.avatar_url || '')
 
-    // Load ticket
-    const email = user.email
-    if(email) {
-      const {data:tk} = await supabase.from('tickets').select('*').eq('buyer_email',email).eq('status','confirmed').maybeSingle()
+    // Load ticket — key on buyer_id to satisfy tickets_self_read RLS (auth.uid()=buyer_id).
+    if(user?.id) {
+      const {data:tk} = await supabase.from('tickets').select('*').eq('buyer_id',user.id).eq('status','confirmed').maybeSingle()
       if(tk) setTicket(tk)
     }
   }

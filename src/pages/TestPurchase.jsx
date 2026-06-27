@@ -13,13 +13,22 @@ export default function TestPurchase() {
     setLoading(true)
     setStatus(null)
     try {
+      // Resolve the current published event so the test hits the real DB-driven contract.
+      const { data: ev } = await supabase
+        .from('events').select('slug').eq('status', 'published')
+        .order('created_at', { ascending: false }).limit(1)
+      const eventSlug = ev && ev[0] ? ev[0].slug : null
+      if (!eventSlug) { setStatus({ ok: false, msg: 'No published event to test' }); setLoading(false); return }
+
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          eventSlug,
           tier: 'early-bird',
           email: user.email,
           userName: user.user_metadata?.full_name || '',
+          userId: user.id,
         }),
       })
       const data = await res.json()
