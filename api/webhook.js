@@ -5,6 +5,8 @@ import { Resend } from 'resend'
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 const resend = new Resend(process.env.RESEND_API_KEY)
+// Where the email CTA sends the buyer to claim + build their world.
+const SITE = process.env.PUBLIC_SITE_URL || 'https://the-collectiv4.vercel.app'
 
 const supabase = createClient(
   process.env.SUPABASE_URL || 'https://tpjbyxbsgtiwqcxcpwyn.supabase.co',
@@ -39,8 +41,9 @@ function buildEmailHTML(data) {
 </td></tr>
 <tr><td align="center" style="padding:32px 0 16px 0;"><div style="display:inline-block;padding:20px;background:#F2E6D0;border-radius:16px;"><img src="${qrUrl}" alt="QR" width="200" height="200" style="display:block;border-radius:8px;"></div></td></tr>
 <tr><td align="center" style="padding:0 0 8px 0;"><span style="font-size:16px;font-weight:700;letter-spacing:2px;color:#F2E6D0;">${qrCode}</span></td></tr>
-<tr><td align="center" style="padding:0 0 32px 0;"><span style="font-size:12px;color:#686058;">Show this QR code at the door</span></td></tr>
-<tr><td align="center" style="padding:0 0 32px 0;"><a href="https://the-collectiv4.vercel.app/profile" style="display:inline-block;padding:16px 40px;background:#F2E6D0;color:#0A0908;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:1px;">VIEW YOUR TICKET</a></td></tr>
+<tr><td align="center" style="padding:0 0 28px 0;"><span style="font-size:12px;color:#686058;">Show this QR code at the door</span></td></tr>
+<tr><td align="center" style="padding:0 0 8px 0;"><a href="${SITE}/claim" style="display:inline-block;padding:16px 40px;background:#F2E6D0;color:#0A0908;font-size:14px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:1px;">CLAIM YOUR WORLD</a></td></tr>
+<tr><td align="center" style="padding:0 0 32px 0;"><span style="font-size:12px;color:#686058;">Build your profile — it’s how the room finds you</span></td></tr>
 <tr><td style="padding:0 0 24px 0;"><div style="height:1px;background:#2A2620;"></div></td></tr>
 <tr><td align="center" style="padding:0 0 8px 0;"><span style="font-size:13px;font-weight:700;letter-spacing:3px;color:#F2E6D0;">THE COLLECTIV4</span></td></tr>
 <tr><td align="center" style="padding:0 0 8px 0;"><span style="font-size:11px;letter-spacing:2px;color:#686058;">ART &middot; MUSIC &middot; FASHION &middot; EVENTS</span></td></tr>

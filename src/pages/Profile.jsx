@@ -28,6 +28,11 @@ export default function Profile() {
     }
     setProfile(data)
 
+    // Best-effort: link any ticket bought under this user's verified email but left
+    // orphaned (no user_id at checkout) to their account, so it shows here. Safe to
+    // fail if the RPC isn't deployed yet — the normal path already links via buyer_id.
+    try { await supabase.rpc('claim_my_tickets') } catch (e) { /* non-fatal */ }
+
     // Load ticket — key on buyer_id to satisfy tickets_self_read RLS (auth.uid()=buyer_id).
     const { data: tk } = await supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed').maybeSingle()
     if (tk) setTicket(tk)

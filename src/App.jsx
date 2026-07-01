@@ -12,6 +12,7 @@ import PastEditions from '@/pages/PastEditions'
 import ArtistProfile from '@/pages/ArtistProfile'
 import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
+import ClaimWorld from '@/pages/ClaimWorld'
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
           <Route path="/" element={<Layout />}>
             <Route index element={<EventLanding />} />
             <Route path="community" element={<Community />} />

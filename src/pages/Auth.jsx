@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { ArrowLeft } from 'lucide-react'
 
@@ -12,14 +12,19 @@ export default function Auth() {
   const [loading, setLoading] = useState(false)
   const { signIn, signUp } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Only ever honor a local, same-app return path (leading "/", no "//") — never an
+  // open redirect to an external URL.
+  const rawNext = searchParams.get('next') || ''
+  const next = /^\/(?!\/)/.test(rawNext) ? rawNext : '/'
   const inp = { width:'100%', background:'var(--bg-card)', border:'1px solid var(--border-hi)', borderRadius:'10px', padding:'14px 16px', color:'var(--cream)', fontFamily:'DM Sans', fontSize:'14px', outline:'none' }
 
   const handle = async () => {
     if (mode==='signup' && !name.trim()) { setError('Name is required'); return }
     setLoading(true); setError('')
     try {
-      if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate('/') }
-      else { const {error}=await signUp(email,password,name.trim()); if(error)throw error; navigate('/') }
+      if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate(next) }
+      else { const {error}=await signUp(email,password,name.trim()); if(error)throw error; navigate(next) }
     } catch(e){ setError(e.message) } finally{ setLoading(false) }
   }
 
