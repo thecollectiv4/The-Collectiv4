@@ -12,7 +12,6 @@ import PastEditions from '@/pages/PastEditions'
 import ArtistProfile from '@/pages/ArtistProfile'
 import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
-import MuseumShowcase from '@/pages/_MuseumShowcase' // ⚠️ TEMP showcase — delete before merge
 
 export default function App() {
   return (
@@ -21,7 +20,6 @@ export default function App() {
         <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
-          <Route path="/__museum-preview" element={<MuseumShowcase />} />{/* ⚠️ TEMP showcase — delete before merge */}
           <Route path="/" element={<Layout />}>
             <Route index element={<EventLanding />} />
             <Route path="community" element={<Community />} />
