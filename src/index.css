@@ -45,6 +45,9 @@ body {
 }
 
 ::-webkit-scrollbar { width: 0; }
+/* horizontal gallery rails — hide the scrollbar cross-browser */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
 input, textarea, button, select { font-family: 'DM Sans', sans-serif; box-sizing: border-box; }
 input::placeholder, textarea::placeholder { color: var(--cream-low); }
 a { color: inherit; text-decoration: none; }
