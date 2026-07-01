@@ -42,8 +42,15 @@ function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; le
 // the demo personas — a fallback filter so the public path stays honest even
 // BEFORE migration 0005 is applied (the DB `is_demo` flag is authoritative once it is).
 const DEMO_USERNAMES = new Set(['marcusreyes', 'jasminevcreates', 'devonmills', 'sofiamendez__', 'andrethompson', 'lilachen_film', 'djcarlosruiz', 'amaraosei'])
-// owner/team handles that may flip on preview mode
-const OWNERS = new Set(['patoduranc'])
+// Owners/team who may flip on preview mode. Keyed on the AUTH SESSION (email/uid) —
+// NOT a profile row — because the seeded @patoduranc profile is not linked to the
+// founder's real auth account (its user_id is the placeholder 'seed_pato'), so a
+// profile lookup by auth uid finds nothing. Email/uid come straight off the session,
+// so this is resilient to a missing/unlinked profile and to session timing.
+// Lowercase emails. Add teammates here (or grant them profiles.verified = true).
+const OWNER_EMAILS = new Set(['patduranchacon@icloud.com'])
+const OWNER_IDS = new Set([]) // real auth uids, if ever needed
+const OWNER_USERNAMES = new Set(['patoduranc']) // secondary: once a real account holds this handle
 
 const tasteCount = (t) => {
   if (!t || typeof t !== 'object' || Array.isArray(t)) return 0
@@ -68,8 +75,14 @@ export default function Discover() {
   useEffect(() => {
     let alive = true
     if (!user) return
+    // Primary check — straight off the auth session, no profile row required.
+    const email = (user.email || '').toLowerCase()
+    if (OWNER_EMAILS.has(email) || OWNER_IDS.has(user.id)) { setPreviewAvailable(true); return }
+    // Secondary — a real (auth-linked) profile whose handle is an owner, or a
+    // verified member. No-op today (the founder's real account has no linked
+    // profile), but future-proof once accounts are linked / verified is granted.
     supabase.from('profiles').select('username, verified').eq('id', user.id).maybeSingle()
-      .then(({ data }) => { if (alive && (OWNERS.has(data?.username) || data?.verified === true)) setPreviewAvailable(true) })
+      .then(({ data }) => { if (alive && data && (OWNER_USERNAMES.has(data.username) || data.verified === true)) setPreviewAvailable(true) })
     return () => { alive = false }
   }, [user])
 
