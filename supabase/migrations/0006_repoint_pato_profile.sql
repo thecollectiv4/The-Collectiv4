@@ -20,27 +20,34 @@
 
 do $$
 declare
-  v_email text := lower('patduranchacon@icloud.com');  -- ← your app login email
+  -- Verified against auth.users (jul 1): patduranchacon@gmail.com is the founder's
+  -- ACTIVE login (created jun 27, signed in today); the icloud account is dormant
+  -- since may 2. Bind the world to the account he actually uses.
+  v_email text := lower('patduranchacon@gmail.com');
   v_uid   uuid;
   v_pato  uuid;
-  v_n     integer;
 begin
-  -- Resolve your real auth account by email; FAIL LOUD on none/ambiguous
-  -- (deterministic — never silently bind the "first" of several rows).
-  select count(*), min(id) into v_n, v_uid from auth.users where lower(email) = v_email;
-  if v_n = 0 then
-    raise exception 'No auth user for % — sign up in the app first, or fix the email.', v_email;
-  elsif v_n > 1 then
-    raise exception 'Multiple auth users for % — ambiguous, aborting.', v_email;
-  end if;
+  -- Resolve your real auth account by email; FAIL LOUD on none/ambiguous.
+  -- INTO STRICT raises on 0 rows (no_data_found) and >1 rows (too_many_rows) —
+  -- deterministic, and no min(uuid), which Postgres does not have.
+  begin
+    select id into strict v_uid from auth.users where lower(email) = v_email;
+  exception
+    when no_data_found then
+      raise exception 'No auth user for % — sign up in the app first, or fix the email.', v_email;
+    when too_many_rows then
+      raise exception 'Multiple auth users for % — ambiguous, aborting.', v_email;
+  end;
 
   -- Locate the @patoduranc profile; must be exactly one.
-  select count(*), min(id) into v_n, v_pato from public.profiles where username = 'patoduranc';
-  if v_n = 0 then
-    raise exception 'No @patoduranc profile row found.';
-  elsif v_n > 1 then
-    raise exception 'Multiple @patoduranc rows — ambiguous, aborting.';
-  end if;
+  begin
+    select id into strict v_pato from public.profiles where username = 'patoduranc';
+  exception
+    when no_data_found then
+      raise exception 'No @patoduranc profile row found.';
+    when too_many_rows then
+      raise exception 'Multiple @patoduranc rows — ambiguous, aborting.';
+  end;
 
   -- Idempotent: already owned by you → clean no-op on re-run.
   if v_pato = v_uid then

@@ -48,7 +48,9 @@ const DEMO_USERNAMES = new Set(['marcusreyes', 'jasminevcreates', 'devonmills', 
 // profile lookup by auth uid finds nothing. Email/uid come straight off the session,
 // so this is resilient to a missing/unlinked profile and to session timing.
 // Lowercase emails. Add teammates here (or grant them profiles.verified = true).
-const OWNER_EMAILS = new Set(['patduranchacon@icloud.com'])
+// Both founder logins (verified in auth.users): gmail = the ACTIVE one (jun 27→),
+// icloud = older account kept as fallback.
+const OWNER_EMAILS = new Set(['patduranchacon@gmail.com', 'patduranchacon@icloud.com'])
 const OWNER_IDS = new Set([]) // real auth uids, if ever needed
 const OWNER_USERNAMES = new Set(['patoduranc']) // secondary: once a real account holds this handle
 
