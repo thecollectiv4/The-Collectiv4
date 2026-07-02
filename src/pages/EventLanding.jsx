@@ -98,18 +98,20 @@ export default function EventLanding() {
     } catch (err) { console.log('Camera error:', err) }
   }
 
-  // NOTE: door check-in reads/updates `tickets` client-side with the anon key.
-  // Under the new RLS this will be denied — door scanning moves server-side (step 7).
+  // Door check-in runs server-side (check_in_ticket, SECURITY DEFINER, auth-only):
+  // atomic flip + PII-safe result. Tickets are no longer client-readable under RLS.
   const handleScanResult = async (qr) => {
-    const { data, error } = await supabase.from('tickets').select('*').eq('qr_code', qr).single()
-    if (error || !data) {
+    const { data, error } = await supabase.rpc('check_in_ticket', { p_qr: qr })
+    const r = data || {}
+    if (error || r.status === 'denied') {
+      setScanResult({ ok: false, msg: 'NOT AUTHORIZED', detail: 'Sign in as door staff to scan.' })
+    } else if (r.status === 'not_found') {
       setScanResult({ ok: false, msg: 'NOT FOUND', detail: 'Check the code and try again.' })
-    } else if (data.checked_in) {
-      setScanResult({ ok: false, msg: 'ALREADY IN', detail: data.buyer_name || 'Already scanned' })
+    } else if (r.status === 'already_in') {
+      setScanResult({ ok: false, msg: 'ALREADY IN', detail: r.name || 'Already scanned' })
     } else {
-      await supabase.from('tickets').update({ checked_in: true }).eq('id', data.id)
-      setScanResult({ ok: true, msg: 'WELCOME IN', detail: data.buyer_name || data.buyer_email || 'Attendee' })
-      setScannedList(prev => [{ name: data.buyer_name || data.buyer_email, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...prev])
+      setScanResult({ ok: true, msg: 'WELCOME IN', detail: r.name || 'Attendee' })
+      setScannedList(prev => [{ name: r.name || 'Attendee', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...prev])
     }
   }
 

@@ -19,11 +19,10 @@ export default function DoorScanner() {
   const html5QrRef = useRef(null)
 
   useEffect(() => {
-    supabase.from('tickets').select('id,checked_in', { count: 'exact' }).eq('status', 'confirmed')
-      .then(({ data, count }) => {
-        const ci = data?.filter(t => t.checked_in).length || 0
-        setStats({ total: count || 0, checkedIn: ci })
-      })
+    // PII-free counts via SECURITY DEFINER RPC (tickets are no longer client-readable).
+    supabase.rpc('door_stats').then(({ data }) => {
+      if (data) setStats({ total: data.confirmed || 0, checkedIn: data.checked_in || 0 })
+    })
   }, [])
 
   useEffect(() => {
@@ -66,14 +65,18 @@ export default function DoorScanner() {
     if (!checkCode) return
     setLoading(true)
     setResult(null)
-    const { data, error } = await supabase.from('tickets').select('*').eq('qr_code', checkCode).single()
-    if (error || !data) {
-      setResult({ ok: false, msg: 'Ticket not found', detail: 'Check the code and try again.' })
-    } else if (data.checked_in) {
-      setResult({ ok: false, msg: 'Already checked in', detail: `${data.buyer_name || 'This ticket'} was already scanned.`, ticket: data })
+    // Atomic server-side check-in: flips checked_in + reports outcome. Returns
+    // only door-safe fields (status + display name), never PII/payment.
+    const { data, error } = await supabase.rpc('check_in_ticket', { p_qr: checkCode })
+    const r = data || {}
+    if (error || r.status === 'denied') {
+      setResult({ ok: false, msg: 'Not authorized', detail: 'Sign in as door staff to scan.' })
+    } else if (r.status === 'not_found') {
+      setResult({ ok: false, msg: 'Ticket not found', detail: 'Check the code and try again.', ticket: { qr_code: checkCode } })
+    } else if (r.status === 'already_in') {
+      setResult({ ok: false, msg: 'Already checked in', detail: `${r.name || 'This ticket'} was already scanned.`, ticket: { qr_code: checkCode } })
     } else {
-      await supabase.from('tickets').update({ checked_in: true }).eq('id', data.id)
-      setResult({ ok: true, msg: 'Welcome in!', detail: data.buyer_name || 'Attendee', ticket: data })
+      setResult({ ok: true, msg: 'Welcome in!', detail: r.name || 'Attendee', ticket: { qr_code: checkCode } })
       setStats(s => ({ ...s, checkedIn: s.checkedIn + 1 }))
     }
     setLoading(false)
