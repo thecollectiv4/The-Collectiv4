@@ -21,8 +21,11 @@ export default function Profile() {
     let { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     if (!data) {
       const nm = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+      // user_id is NOT NULL on the (Base44-era) profiles table — omitting it made
+      // this insert fail silently, so real signups never got a profile row. Set it
+      // to the auth uid (same as id) so first-profile creation actually succeeds.
       const { data: newP } = await supabase.from('profiles').insert({
-        id: user.id, full_name: nm, username: '', bio: '', city: 'Houston'
+        id: user.id, user_id: user.id, full_name: nm, username: '', bio: '', city: 'Houston'
       }).select().single()
       data = newP || { id: user.id, full_name: nm, username: '', bio: '', avatar_url: '', city: 'Houston' }
     }
