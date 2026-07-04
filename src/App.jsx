@@ -14,6 +14,7 @@ import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
 import ClaimWorld from '@/pages/ClaimWorld'
 import Discover from '@/pages/Discover'
+import NetworkAdmin from '@/pages/NetworkAdmin'
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="artist/:slug" element={<ArtistProfile />} />
             <Route path="test-purchase" element={<TestPurchase />} />
             <Route path="user/:id" element={<UserProfile />} />
+            <Route path="network" element={<NetworkAdmin />} />{/* owner-only: grant verified */}
             {/* Redirects from old routes */}
             <Route path="attendees" element={<Navigate to="/community" />} />
             <Route path="chat" element={<Navigate to="/community" />} />

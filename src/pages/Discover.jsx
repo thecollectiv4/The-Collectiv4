@@ -275,7 +275,7 @@ function WorldCard({ c, onOpen }) {
             ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', ...chromeText }}>{initial}</span>}
         </div>
-        {c.verified && <BadgeCheck size={16} style={{ position: 'absolute', top: '10px', right: '10px', color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} />}
+        {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><BadgeCheck size={16} style={{ color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} /></span>}
       </div>
 
       {/* identity */}
