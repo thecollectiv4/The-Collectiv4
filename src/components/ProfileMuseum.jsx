@@ -288,7 +288,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.85, delay: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
             style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
             <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...chromeText }}>{displayName}</h1>
-            {data.verified && <span title="Verified" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={24} /></span>}
+            {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={24} /></span>}
           </motion.div>
         </div>
       </div>
