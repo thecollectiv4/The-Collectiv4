@@ -15,6 +15,7 @@ import UserProfile from '@/pages/UserProfile'
 import ClaimWorld from '@/pages/ClaimWorld'
 import Discover from '@/pages/Discover'
 import NetworkAdmin from '@/pages/NetworkAdmin'
+import OS from '@/pages/OS'
 
 export default function App() {
   return (
@@ -35,6 +36,7 @@ export default function App() {
             <Route path="test-purchase" element={<TestPurchase />} />
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="network" element={<NetworkAdmin />} />{/* owner-only: grant verified */}
+            <Route path="os" element={<OS />} />{/* network-only: internal team hub */}
             {/* Redirects from old routes */}
             <Route path="attendees" element={<Navigate to="/community" />} />
             <Route path="chat" element={<Navigate to="/community" />} />

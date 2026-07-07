@@ -1,15 +1,18 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, Compass, Users, User } from 'lucide-react'
+import { CalendarDays, Compass, Users, User, LayoutGrid } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import { useOSAccess } from '@/lib/osAccess'
 import AuthModal from './AuthModal'
 
-const tabs = [
-  { to: '/',          icon: CalendarDays,  label: 'Event',     idx: 0, requiresAuth: false },
-  { to: '/discover',  icon: Compass,       label: 'Discover',  idx: 1, requiresAuth: false },
-  { to: '/community', icon: Users,         label: 'Community', idx: 2, requiresAuth: true },
-  { to: '/profile',   icon: User,          label: 'Profile',   idx: 3, requiresAuth: true },
+const baseTabs = [
+  { to: '/',          icon: CalendarDays,  label: 'Event',     requiresAuth: false },
+  { to: '/discover',  icon: Compass,       label: 'Discover',  requiresAuth: false },
+  { to: '/community', icon: Users,         label: 'Community', requiresAuth: true },
+  { to: '/profile',   icon: User,          label: 'Profile',   requiresAuth: true },
 ]
+// Network members (verified/owner) get the internal OS as an extra tab.
+const osTab = { to: '/os', icon: LayoutGrid, label: 'OS', requiresAuth: true }
 
 // Public routes never force the sign-in modal (Discover is top-of-funnel).
 const PUBLIC_PATHS = ['/', '/discover']
@@ -18,12 +21,15 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { state: osState } = useOSAccess()
   const prevIdx = useRef(0)
   const [transClass, setTransClass] = useState('page-transition')
   // Don't auto-open the sign-in modal when landing on a public route.
   const [showAuth, setShowAuth] = useState(!user && !PUBLIC_PATHS.includes(location.pathname))
   const [authDismissed, setAuthDismissed] = useState(false)
 
+  // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
+  const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs
   const currentIdx = tabs.findIndex(t => t.to === '/' ? location.pathname === '/' : location.pathname.startsWith(t.to))
   const isSubPage = currentIdx === -1
 
