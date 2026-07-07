@@ -6,11 +6,15 @@ import { Loader2, BadgeCheck, Search, ShieldCheck, ArrowLeft } from 'lucide-reac
 
 /* =========================================================================
    NetworkAdmin — /network. Owner-only surface to grant/revoke the "our
-   network" verified badge. Two layers of protection:
-     • CLIENT gate (this page) — only OWNER_EMAILS see the tool.
-     • SERVER gate — public.set_verified() re-checks the caller's JWT email
-       (public.is_owner()); a non-owner call returns { ok:false, not_owner }.
-   The client gate is convenience; the RPC is the real enforcement. Cosmos.
+   network" verified badge. The DB is the single authority — the client makes
+   NO ownership guess of its own:
+     • LIST  — public.list_network_profiles() returns { ok:true, rows } to an
+       owner (is_owner() on the JWT email) or { ok:false, not_owner } to anyone
+       else. A not_owner verdict → "Owners only". Errors are surfaced, not
+       swallowed (the old direct-table read discarded its error and gated on a
+       hardcoded client email list — a valid owner could see a silent blank).
+     • GRANT — public.set_verified() re-checks is_owner() the same way.
+   Both RPCs are SECURITY DEFINER; unforgeable JWT email is the only gate. Cosmos.
    ========================================================================= */
 
 /* ---- brand palette (void · bone · chrome) — same universe as Discover ---- */
@@ -26,8 +30,6 @@ const HAIR_HI = 'rgba(242,238,230,0.15)'
 const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
-// Same owner allowlist as Discover.jsx + the DB is_owner(). Client gate only.
-const OWNER_EMAILS = new Set(['patduranchacon@gmail.com', 'patduranchacon@icloud.com'])
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 
 export default function NetworkAdmin() {
@@ -36,30 +38,34 @@ export default function NetworkAdmin() {
 
   const [loading, setLoading] = useState(true)
   const [rows, setRows] = useState([])
+  const [denied, setDenied] = useState(false)    // server said not_owner
   const [q, setQ] = useState('')
   const [pending, setPending] = useState(null)   // id currently toggling
-  const [err, setErr] = useState('')
+  const [loadErr, setLoadErr] = useState('')      // fatal: whole-page load failed
+  const [err, setErr] = useState('')              // non-fatal: a single grant failed
+  const [reload, setReload] = useState(0)         // retry trigger
 
-  const isOwner = !!user && OWNER_EMAILS.has((user.email || '').toLowerCase())
-
+  // The DB is the single authority for BOTH "am I an owner?" and "what rows do I
+  // get?" — one SECURITY DEFINER call, list_network_profiles(), gated by is_owner()
+  // on the caller's unforgeable JWT email. This replaces the old path that (1) gated
+  // the whole page on a hardcoded client email list that could silently drift, and
+  // (2) discarded the query error — the two bugs that made a valid owner see a blank.
   useEffect(() => {
-    if (authLoading || !isOwner) return
+    if (authLoading) return
     let alive = true
     async function load() {
-      setLoading(true)
-      // Owner reads all profiles (RLS is_owner() allows demos too).
-      const { data } = await supabase
-        .from('profiles')
-        .select('id, full_name, username, discipline, city, avatar_url, verified, is_demo')
-        .order('verified', { ascending: false })
-        .order('full_name', { ascending: true })
+      setLoading(true); setLoadErr(''); setDenied(false)
+      if (!user) { if (alive) { setDenied(true); setLoading(false) } ; return }
+      const { data, error } = await supabase.rpc('list_network_profiles')
       if (!alive) return
-      setRows(data || [])
+      if (error) { setLoadErr(error.message || 'Could not reach the network.'); setLoading(false); return }
+      if (!data?.ok) { setDenied(true); setLoading(false); return }     // not_owner
+      setRows(Array.isArray(data.rows) ? data.rows : [])
       setLoading(false)
     }
     load()
     return () => { alive = false }
-  }, [authLoading, isOwner])
+  }, [authLoading, user, reload])
 
   const shown = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -86,8 +92,18 @@ export default function NetworkAdmin() {
   }
 
   // --- gates ---
-  if (authLoading) return <Center><Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} /></Center>
-  if (!isOwner) return (
+  if (authLoading || loading) return <Center><Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} /></Center>
+  if (loadErr) return (
+    <Center>
+      <div style={{ textAlign: 'center', maxWidth: '300px' }}>
+        <ShieldCheck size={26} style={{ color: '#E5A0A0' }} />
+        <div style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '14px' }}>Couldn't load the network</div>
+        <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em', marginTop: '10px', lineHeight: 1.5 }}>{loadErr}</div>
+        <button onClick={() => setReload(n => n + 1)} style={{ marginTop: '18px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>↻ Retry</button>
+      </div>
+    </Center>
+  )
+  if (denied) return (
     <Center>
       <div style={{ textAlign: 'center' }}>
         <ShieldCheck size={26} style={{ color: BONE_LOW }} />
@@ -116,12 +132,10 @@ export default function NetworkAdmin() {
         </div>
 
         {/* count line */}
-        {!loading && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '18px 0 14px', display: 'flex', alignItems: 'center', gap: '9px' }}>
-            <span>{String(verifiedCount).padStart(2, '0')} verified · {String(rows.length).padStart(2, '0')} total</span>
-            <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
-          </div>
-        )}
+        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '18px 0 14px', display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <span>{String(verifiedCount).padStart(2, '0')} verified · {String(rows.length).padStart(2, '0')} total</span>
+          <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
+        </div>
 
         {/* search */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '9px', border: `1px solid ${HAIR_HI}`, borderRadius: '11px', padding: '10px 14px', background: CARD }}>
@@ -133,12 +147,7 @@ export default function NetworkAdmin() {
         {err && <div style={{ marginTop: '12px', fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', letterSpacing: '.06em' }}>⚠ {err}</div>}
 
         {/* list */}
-        {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-            <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
-          </div>
-        ) : (
-          <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {shown.map(r => {
               const avatar = safeImg(r.avatar_url)
               const name = r.full_name || 'Unnamed'
@@ -176,7 +185,6 @@ export default function NetworkAdmin() {
               <div style={{ textAlign: 'center', padding: '40px 0', fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.12em' }}>NO PROFILES MATCH</div>
             )}
           </div>
-        )}
       </div>
     </div>
   )
