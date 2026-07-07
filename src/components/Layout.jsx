@@ -3,6 +3,7 @@ import { CalendarDays, Compass, Users, User, LayoutGrid } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
+import { useIsDesktop } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 
 const baseTabs = [
@@ -22,6 +23,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { state: osState } = useOSAccess()
+  const isDesktop = useIsDesktop()
   const prevIdx = useRef(0)
   const [transClass, setTransClass] = useState('page-transition')
   // Don't auto-open the sign-in modal when landing on a public route.
@@ -55,9 +57,19 @@ export default function Layout() {
     }
   }
 
+  // WORK surfaces are desktop-first: /os on a laptop runs its own shell (left
+  // rail inside the page) — the consumer bottom tab bar must not render there,
+  // and the global 430px phone frame (body max-width) is released while inside.
+  // Below 1024px, /os keeps the phone pattern like every other tab.
+  const osDesktop = isDesktop && location.pathname.startsWith('/os')
+  useEffect(() => {
+    document.body.classList.toggle('os-full', osDesktop)
+    return () => document.body.classList.remove('os-full')
+  }, [osDesktop])
+
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh', background:'var(--bg)' }}>
-      <main style={{ flex:1, paddingBottom:'100px' }}>
+      <main style={{ flex:1, paddingBottom: osDesktop ? 0 : '100px' }}>
         <div key={location.pathname} className={transClass}>
           <Outlet />
         </div>
@@ -67,8 +79,8 @@ export default function Layout() {
       {showAuth && !user && <AuthModal onClose={()=>{setShowAuth(false);setAuthDismissed(true)}} />}
       {/* Also show if they try to navigate without auth after dismissing */}
 
-      {/* Nav - always visible */}
-      <nav style={{
+      {/* Nav - consumer surfaces + mobile /os; never on desktop /os */}
+      {!osDesktop && <nav style={{
         position:'fixed', bottom:0, left:0, right:0,
         background:'rgba(10,9,8,.97)',
         borderTop:'1px solid rgba(242,230,208,.08)',
@@ -93,7 +105,7 @@ export default function Layout() {
             </div>
           )
         })}
-      </nav>
+      </nav>}
     </div>
   )
 }

@@ -27,6 +27,7 @@ export const FONT_SANS = "'DM Sans', sans-serif"
 
 // Team OS domain constants
 export const FALL_001_ISO = '2026-08-28'            // Fall 001 — the north star date
+export const CHAPTER_START_ISO = '2026-07-01'       // Fall chapter window opens (roadmap strip origin)
 export const BOARD_COLUMNS = [
   { key: 'ideas',     label: 'Ideas' },
   { key: 'this_week', label: 'This Week' },

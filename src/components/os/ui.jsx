@@ -1,14 +1,29 @@
 import { X } from 'lucide-react'
 import { VOID, BONE, BONE_MID, BONE_LOW, SILVER, CARD, CARD_HI, HAIR, HAIR_HI, FONT_MONO, FONT_SANS, chromeText, safeImg } from '@/lib/cosmos'
+import { useIsDesktop } from '@/lib/useIsDesktop'
 
 /* Small cosmos UI primitives shared across the OS panels. Function-first. */
 
-export function Modal({ title, onClose, children, footer }) {
+/* Modal — bottom sheet on mobile, centered dialog on desktop (work instrument,
+   not a phone pattern). Keyboard: Enter saves (outside textareas), Esc closes. */
+export function Modal({ title, onClose, onEnter, children, footer }) {
+  const desktop = useIsDesktop()
+  const handleKey = (e) => {
+    if (e.key === 'Escape') { e.stopPropagation(); onClose() }
+    else if (e.key === 'Enter' && onEnter && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'BUTTON') {
+      e.preventDefault(); onEnter()
+    }
+  }
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(5,5,8,.72)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: '520px', background: 'linear-gradient(180deg,#111119 0%,#0C0C12 100%)', border: `1px solid ${HAIR_HI}`, borderBottom: 'none', borderRadius: '20px 20px 0 0', padding: '22px 20px calc(24px + env(safe-area-inset-bottom,0px))', maxHeight: '88vh', overflowY: 'auto' }}>
+    <div onClick={onClose} onKeyDown={handleKey} style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(5,5,8,.72)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', padding: desktop ? '40px' : 0 }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-label={title}
+        style={{ width: '100%', maxWidth: '520px', background: 'linear-gradient(180deg,#111119 0%,#0C0C12 100%)', border: `1px solid ${HAIR_HI}`,
+          borderBottom: desktop ? `1px solid ${HAIR_HI}` : 'none',
+          borderRadius: desktop ? '16px' : '20px 20px 0 0',
+          padding: desktop ? '24px 24px 26px' : '22px 20px calc(24px + env(safe-area-inset-bottom,0px))',
+          maxHeight: '88vh', overflowY: 'auto', boxShadow: desktop ? '0 24px 80px rgba(0,0,0,.5)' : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-          <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_MID, letterSpacing: '.2em', textTransform: 'uppercase' }}>{title}</div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_MID, letterSpacing: '.2em', textTransform: 'uppercase' }}>◇ {title}</div>
           <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '2px' }}><X size={17} /></button>
         </div>
         {children}

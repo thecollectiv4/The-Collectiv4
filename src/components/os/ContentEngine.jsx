@@ -1,9 +1,14 @@
 import { useState } from 'react'
 import { Pencil, Trash2, Plus } from 'lucide-react'
-import { CONTENT_FORMATS, CONTENT_STATUSES, BONE, BONE_MID, BONE_LOW, SILVER, STAR, CARD, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { CONTENT_FORMATS, CONTENT_STATUSES, BONE, BONE_MID, BONE_LOW, STAR, CARD, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { useIsDesktop } from '@/lib/useIsDesktop'
 import { Modal, Field, Input, Textarea, Select, Btn, OwnerChip } from './ui'
 
+/* Content Engine — §E density. Desktop lays cards in a 2-up grid so the width
+   works; status is stated in mono (posted = solid bone, everything else = ash). */
+
 export default function ContentEngine({ content, owners, onCreate, onUpdate, onDelete }) {
+  const desktop = useIsDesktop()
   const [editing, setEditing] = useState(null)
 
   return (
@@ -12,30 +17,36 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
         <Btn variant="solid" onClick={() => setEditing({ mode: 'new', item: { format: 'iPhone raw', status: 'idea' } })}><Plus size={12} /> Content</Btn>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {content.map(c => (
-          <div key={c.id} style={{ border: `1px solid ${HAIR}`, background: CARD, borderRadius: '13px', padding: '14px 15px' }}>
+      <div style={desktop
+        ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '14px', alignItems: 'start' }
+        : { display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {content.map((c, i) => (
+          <div key={c.id} className="os-card os-reveal" tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: CARD, borderRadius: '12px', padding: '13px 14px', animationDelay: `${i * 35}ms`, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontFamily: FONT_SANS, fontSize: '15px', color: BONE, lineHeight: 1.3 }}>{c.title}</div>
-                {c.concept && <div style={{ fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '5px' }}>{c.concept}</div>}
+                <div style={{ fontFamily: FONT_SANS, fontSize: '14px', color: BONE, lineHeight: 1.3 }}>{c.title}</div>
+                {c.concept && <div style={{ fontFamily: FONT_SANS, fontSize: '12px', color: BONE_MID, lineHeight: 1.45, marginTop: '4px' }}>{c.concept}</div>}
               </div>
-              <div style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
-                <button onClick={() => setEditing({ mode: 'edit', item: c })} aria-label="Edit" style={iconBtn}><Pencil size={12} /></button>
-                <button onClick={() => { if (confirm(`Delete "${c.title}"?`)) onDelete(c) }} aria-label="Delete" style={iconBtn}><Trash2 size={12} /></button>
+              <div className="os-actions" style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
+                <button onClick={() => setEditing({ mode: 'edit', item: c })} aria-label="Edit" style={iconBtn}><Pencil size={11} /></button>
+                <button onClick={() => { if (confirm(`Delete "${c.title}"?`)) onDelete(c) }} aria-label="Delete" style={iconBtn}><Trash2 size={11} /></button>
               </div>
             </div>
-            {c.caption && <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: BONE_LOW, lineHeight: 1.5, marginTop: '10px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}` }}>{c.caption}</div>}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '11px' }}>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_MID, letterSpacing: '.1em', textTransform: 'uppercase', border: `1px solid ${HAIR}`, borderRadius: '4px', padding: '2px 7px' }}>{c.format || '—'}</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: c.status === 'posted' ? STAR : BONE_LOW, letterSpacing: '.1em', textTransform: 'uppercase' }}>● {c.status}</span>
+            {c.caption && <div style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: BONE_LOW, lineHeight: 1.5, marginTop: '9px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, overflowWrap: 'anywhere' }}>{c.caption}</div>}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '10px', paddingTop: '9px', borderTop: `1px solid ${HAIR}` }}>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_MID, letterSpacing: '.1em', textTransform: 'uppercase' }}>{c.format || 'format?'}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', textTransform: 'uppercase', color: c.status === 'posted' ? BONE : BONE_LOW }}>{c.status === 'posted' ? '● posted' : `○ ${c.status}`}</span>
               {c.planned_date && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: STAR, letterSpacing: '.06em' }}>◇ {new Date(c.planned_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
               <div style={{ flex: 1 }} />
-              <OwnerChip owner={owners[c.owner_profile_id]} />
+              <OwnerChip owner={owners[c.owner_profile_id]} size={17} />
             </div>
           </div>
         ))}
-        {content.length === 0 && <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.1em', textAlign: 'center', padding: '40px 0' }}>NO CONTENT YET</div>}
+        {content.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.1em', textAlign: 'center', padding: '48px 0' }}>
+            no content in the pipeline — capture the first concept
+          </div>
+        )}
       </div>
 
       {editing && (
@@ -46,7 +57,7 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
   )
 }
 
-const iconBtn = { background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '5px', display: 'inline-flex' }
+const iconBtn = { background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px', display: 'inline-flex' }
 
 function ContentEditor({ entry, onClose, onSave }) {
   const c = entry.item || {}
@@ -57,12 +68,13 @@ function ContentEditor({ entry, onClose, onSave }) {
   const [status, setStatus] = useState(c.status || 'idea')
   const [planned, setPlanned] = useState(c.planned_date || '')
   const valid = title.trim().length > 0
+  const save = () => { if (valid) onSave({ title: title.trim(), format, concept: concept.trim() || null, caption: caption.trim() || null, status, planned_date: planned || null }) }
 
   return (
-    <Modal title={entry.mode === 'new' ? 'New content' : 'Edit content'} onClose={onClose}
+    <Modal title={entry.mode === 'new' ? 'New content' : 'Edit content'} onClose={onClose} onEnter={save}
       footer={<>
         <Btn variant="ghost" onClick={onClose} style={{ flex: 1 }}>Cancel</Btn>
-        <Btn variant="solid" disabled={!valid} onClick={() => onSave({ title: title.trim(), format, concept: concept.trim() || null, caption: caption.trim() || null, status, planned_date: planned || null })} style={{ flex: 1 }}>Save</Btn>
+        <Btn variant="solid" disabled={!valid} onClick={save} style={{ flex: 1 }}>Save</Btn>
       </>}>
       <Field label="Title"><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Working title…" autoFocus /></Field>
       <div style={{ display: 'flex', gap: '12px' }}>

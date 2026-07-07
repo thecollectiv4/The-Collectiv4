@@ -44,6 +44,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* WORK surfaces (/os on desktop) release the phone-width frame — consumer
+   surfaces stay mobile-first. Layout.jsx toggles this class by route+viewport. */
+body.os-full { max-width: none; }
+
 ::-webkit-scrollbar { width: 0; }
 /* horizontal gallery rails — hide the scrollbar cross-browser */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -76,3 +80,41 @@ a { color: inherit; text-decoration: none; }
 .page-slide-right { animation: slideInRight 0.3s ease forwards; }
 .page-slide-left { animation: slideInLeft 0.3s ease forwards; }
 .page-scale { animation: scaleIn 0.3s ease forwards; }
+
+/* ============================================================
+   TEAM OS (/os) — desktop-first work instrument. Scoped .os-*.
+   Cosmos tokens; §E density rules (Artifact Design System).
+   ============================================================ */
+.os-root { --os-hair: rgba(242,238,230,0.08); --os-hair-hi: rgba(242,238,230,0.15); }
+
+/* reveal stagger (columns / cards / rows) */
+@keyframes osReveal { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.os-reveal { opacity:0; animation: osReveal .32s ease-out forwards; }
+
+/* "now" marker on the roadmap strip */
+@keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(232,233,237,.35); } 50% { box-shadow:0 0 0 5px rgba(232,233,237,0); } }
+.os-now-dot { animation: osNowPulse 2.4s ease-in-out infinite; }
+
+/* hover-reveal card actions (always visible on touch devices) */
+.os-card .os-actions { opacity:0; transition:opacity .15s ease; }
+.os-card:hover .os-actions, .os-card:focus-within .os-actions { opacity:1; }
+@media (hover: none) { .os-card .os-actions { opacity:1; } }
+
+/* consistent focus states across the instrument */
+.os-root button:focus-visible,
+.os-root input:focus-visible,
+.os-root textarea:focus-visible,
+.os-root select:focus-visible,
+.os-root [tabindex]:focus-visible {
+  outline: 1px solid rgba(199,201,209,.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* roadmap node labels: hide intermediate labels on narrow screens */
+@media (max-width: 700px) { .os-node-label--mid { display:none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .os-reveal { animation:none; opacity:1; }
+  .os-now-dot { animation:none; }
+}

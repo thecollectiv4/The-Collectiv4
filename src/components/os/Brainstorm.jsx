@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Loader2, Sparkles, Radar, Send, Save, Bookmark } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { BONE, BONE_MID, BONE_LOW, SILVER, STAR, CARD, CARD_HI, HAIR, HAIR_HI, VOID, FONT_MONO, FONT_SANS, FONT_DISPLAY, chromeText } from '@/lib/cosmos'
+import { useIsDesktop } from '@/lib/useIsDesktop'
 import { Btn } from './ui'
 
 function deriveTitle(text) {
@@ -10,6 +11,7 @@ function deriveTitle(text) {
 }
 
 export default function Brainstorm({ onSaveContent, onSaveIntel }) {
+  const desktop = useIsDesktop()
   const [status, setStatus] = useState('checking')   // checking | online | coming_online | error
   const [mode, setMode] = useState('brainstorm')      // brainstorm | radar
   const [messages, setMessages] = useState([])        // {role, content}
@@ -65,7 +67,7 @@ export default function Brainstorm({ onSaveContent, onSaveIntel }) {
   if (status === 'error') return <Center><div style={{ textAlign: 'center', fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.1em' }}>BRAINSTORM UNAVAILABLE<br /><span style={{ color: 'rgba(91,89,82,.7)' }}>sign in as a member and retry</span></div></Center>
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 320px)', minHeight: '360px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: desktop ? 'calc(100vh - 230px)' : 'calc(100vh - 320px)', minHeight: '360px', maxWidth: desktop ? '820px' : 'none' }}>
       {/* mode switch */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
         <ModeBtn active={mode === 'brainstorm'} onClick={() => setMode('brainstorm')} icon={Sparkles} label="Brainstorm" />
