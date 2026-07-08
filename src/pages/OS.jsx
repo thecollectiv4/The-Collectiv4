@@ -1,27 +1,28 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, LayoutGrid, Clapperboard, Sparkles, Lock } from 'lucide-react'
+import { Loader2, Lock, X } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
 import { useIsDesktop } from '@/lib/useIsDesktop'
-import { VOID, BONE, BONE_MID, BONE_LOW, SILVER, STAR, CARD, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg } from '@/lib/cosmos'
+import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg } from '@/lib/cosmos'
 import Board from '@/components/os/Board'
 import ContentEngine from '@/components/os/ContentEngine'
-import Brainstorm from '@/components/os/Brainstorm'
+import Brain from '@/components/os/Brain'
 import RoadmapStrip from '@/components/os/RoadmapStrip'
 
 /* =========================================================================
-   TEAM OS — the internal work instrument. Desktop-first (§E: same tokens,
-   higher density): a persistent left rail + full-width main area at ≥1024px;
-   the phone pattern (header, wrapping pills, tabs, bottom nav) below that.
+   TEAM OS — the deck become an app. Desktop-first: persistent left rail +
+   full-bleed main in the deck's language (catalog kickers, panel clusters,
+   chrome only on display type); the phone pattern below 1024px.
    ========================================================================= */
 
 const nowISO = () => new Date().toISOString()
 const TABS = [
-  { key: 'board', label: 'Board', icon: LayoutGrid, mark: '●' },
-  { key: 'content', label: 'Content', icon: Clapperboard, mark: '○' },
-  { key: 'brainstorm', label: 'Brainstorm', icon: Sparkles, mark: '◇' },
+  { key: 'board', code: '01', label: 'Board', mark: '●' },
+  { key: 'content', code: '02', label: 'Content', mark: '○' },
+  { key: 'brain', code: '03', label: 'The Brain', mark: '◇' },
 ]
+const HELLO_KEY = 'os_hello_v1'
 
 export default function OS() {
   const navigate = useNavigate()
@@ -36,8 +37,12 @@ export default function OS() {
   const [loadErr, setLoadErr] = useState('')
   const [notice, setNotice] = useState('')
   const [reload, setReload] = useState(0)
+  const [hello, setHello] = useState(() => { try { return !localStorage.getItem(HELLO_KEY) } catch { return false } })
+  const [brainMsgs, setBrainMsgs] = useState([])
+  const noticeTimer = useRef(null)
 
-  const say = useCallback((msg) => { setNotice(msg); setTimeout(() => setNotice(''), 5000) }, [])
+  const say = useCallback((msg) => { setNotice(msg); clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 5000) }, [])
+  const dismissHello = () => { setHello(false); try { localStorage.setItem(HELLO_KEY, '1') } catch {} }
 
   const loadTasks = useCallback(async () => {
     const { data, error } = await supabase.from('os_tasks').select('*').order('created_at', { ascending: true })
@@ -51,6 +56,7 @@ export default function OS() {
     const { data } = await supabase.from('os_activity').select('*').order('created_at', { ascending: false }).limit(30)
     setActivity(data || [])
   }, [])
+  const refreshAll = useCallback(() => { loadTasks(); loadContent(); loadActivity() }, [loadTasks, loadContent, loadActivity])
 
   useEffect(() => {
     if (state !== 'granted') return
@@ -71,27 +77,64 @@ export default function OS() {
     await supabase.from('os_activity').insert({ profile_id: profile?.id ?? null, action }); loadActivity()
   }, [profile, loadActivity])
 
-  // --- task mutators (errors surface as a mono notice, §E: the text says it) ---
-  const createTask = async (f) => { const { error } = await supabase.from('os_tasks').insert({ ...f, owner_profile_id: profile?.id ?? null }); if (error) return say(`couldn't save — ${error.message}`); await loadTasks(); log(`added “${f.title}”`) }
-  const updateTask = async (id, f) => { const { error } = await supabase.from('os_tasks').update({ ...f, updated_at: nowISO() }).eq('id', id); if (error) return say(`couldn't save — ${error.message}`); await loadTasks(); log(`edited “${f.title}”`) }
-  const moveTask = async (task, dir) => {
-    const order = ['ideas', 'this_week', 'in_motion', 'done']
-    const i = order.indexOf(task.board_column), ni = Math.max(0, Math.min(order.length - 1, i + dir))
-    if (ni === i) return
-    const nc = order[ni]
-    const { error } = await supabase.from('os_tasks').update({ board_column: nc, updated_at: nowISO() }).eq('id', task.id)
-    if (error) return say(`couldn't move — ${error.message}`)
-    await loadTasks(); log(`moved “${task.title}” → ${COLUMN_LABEL[nc]}`)
+  /* --- mutators: optimistic where it matters, rollbacks target ONLY the row
+     they touched (a failed move must never revert someone else's change),
+     and no post-success refetch races the optimistic state. --- */
+  const createTask = async (f) => {
+    const { error } = await supabase.from('os_tasks').insert({ ...f, owner_profile_id: profile?.id ?? null })
+    if (error) { say(`couldn't save — ${error.message}`); return false }
+    await loadTasks(); log(`added “${f.title}”`)
+    return true
   }
-  const deleteTask = async (task) => { const { error } = await supabase.from('os_tasks').delete().eq('id', task.id); if (error) return say(`couldn't delete — ${error.message}`); await loadTasks(); log(`removed “${task.title}”`) }
+  const updateTask = async (id, f) => {
+    const before = tasks.find(t => t.id === id)
+    setTasks(ts => ts.map(t => t.id === id ? { ...t, ...f } : t))
+    const { error } = await supabase.from('os_tasks').update({ ...f, updated_at: nowISO() }).eq('id', id)
+    if (error) { if (before) setTasks(ts => ts.map(t => t.id === id ? before : t)); say(`couldn't save — ${error.message}`); return false }
+    log(`edited “${f.title || before?.title || 'task'}”`)
+    return true
+  }
+  const moveTaskTo = async (task, colKey) => {
+    if (task.board_column === colKey) return true
+    const from = task.board_column
+    setTasks(ts => ts.map(t => t.id === task.id ? { ...t, board_column: colKey } : t))
+    const { error } = await supabase.from('os_tasks').update({ board_column: colKey, updated_at: nowISO() }).eq('id', task.id)
+    if (error) { setTasks(ts => ts.map(t => t.id === task.id ? { ...t, board_column: from } : t)); say(`couldn't move — ${error.message}`); return false }
+    log(`moved “${task.title}” → ${COLUMN_LABEL[colKey]}`)
+    return true
+  }
+  const deleteTask = async (task) => {
+    setTasks(ts => ts.filter(t => t.id !== task.id))
+    const { error } = await supabase.from('os_tasks').delete().eq('id', task.id)
+    if (error) { setTasks(ts => [...ts, task]); say(`couldn't delete — ${error.message}`); return false }
+    log(`removed “${task.title}”`)
+    return true
+  }
+  const createContent = async (f) => {
+    const { error } = await supabase.from('os_content').insert({ ...f, owner_profile_id: f.owner_profile_id ?? profile?.id ?? null })
+    if (error) { say(`couldn't save — ${error.message}`); return false }
+    await loadContent(); log(`new content “${f.title}”`)
+    return true
+  }
+  const updateContent = async (id, f) => {
+    const before = content.find(c => c.id === id)
+    setContent(cs => cs.map(c => c.id === id ? { ...c, ...f } : c))
+    const { error } = await supabase.from('os_content').update({ ...f, updated_at: nowISO() }).eq('id', id)
+    if (error) { if (before) setContent(cs => cs.map(c => c.id === id ? before : c)); say(`couldn't save — ${error.message}`); return false }
+    const keys = Object.keys(f)
+    if (keys.length === 1 && keys[0] === 'status') log(`“${before?.title || 'content'}” → ${f.status}`)
+    else log(`edited content “${f.title || before?.title || 'content'}”`)
+    return true
+  }
+  const deleteContent = async (c) => {
+    setContent(cs => cs.filter(x => x.id !== c.id))
+    const { error } = await supabase.from('os_content').delete().eq('id', c.id)
+    if (error) { setContent(cs => [...cs, c]); say(`couldn't delete — ${error.message}`); return false }
+    log(`removed content “${c.title}”`)
+    return true
+  }
 
-  // --- content mutators ---
-  const createContent = async (f) => { const { error } = await supabase.from('os_content').insert({ ...f, owner_profile_id: profile?.id ?? null }); if (error) return say(`couldn't save — ${error.message}`); await loadContent(); log(`new content “${f.title}”`) }
-  const updateContent = async (id, f) => { const { error } = await supabase.from('os_content').update({ ...f, updated_at: nowISO() }).eq('id', id); if (error) return say(`couldn't save — ${error.message}`); await loadContent(); log(`edited content “${f.title}”`) }
-  const deleteContent = async (c) => { const { error } = await supabase.from('os_content').delete().eq('id', c.id); if (error) return say(`couldn't delete — ${error.message}`); await loadContent(); log(`removed content “${c.title}”`) }
-  const saveIntel = async ({ label, finding }) => { const { error } = await supabase.from('os_intel').insert({ label, finding }); if (error) return say(`couldn't save intel — ${error.message}`); log(`saved intel “${label}”`) }
-
-  // --- gates ---
+  /* ------------------------------- gates ------------------------------- */
   if (state === 'loading' || (state === 'granted' && !loaded && !loadErr)) return <Shell center><Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} /></Shell>
   if (state === 'denied') return (
     <Shell center>
@@ -120,17 +163,32 @@ export default function OS() {
     make: content.filter(c => c.status !== 'posted').length,
     planned: content.filter(c => c.planned_date).length,
   }
-  const specLine = `HOUSTON, TX · ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase().replace(' ', ' ')} · OS V1`
+  const activeTab = TABS.find(t => t.key === tab)
+  const specLine = `HOUSTON, TX · ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()} · OS V1`
+  const firstName = (profile?.full_name || profile?.username || 'you').split(' ')[0]
+
+  const helloCard = hello && (
+    <div className="os-reveal" style={{ position: 'relative', border: `1px solid ${HAIR_HI}`, background: PANEL, borderRadius: '14px', padding: desktop ? '20px 24px' : '16px 16px', marginBottom: '20px', maxWidth: '640px' }}>
+      <button onClick={dismissHello} aria-label="Dismiss" style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px' }}><X size={14} /></button>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ welcome to the room</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: desktop ? '30px' : '24px', lineHeight: .95, marginTop: '10px', color: BONE }}>
+        {firstName.toUpperCase()}, THIS IS THE <span style={chromeText}>OS</span>.
+      </div>
+      <div style={{ fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '10px' }}>
+        The board is what's moving. The engine is what we're making. The Brain listens and acts. One room, all of it pointed at Fall 001. 🖤
+      </div>
+    </div>
+  )
 
   const panel = (
     <>
       {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>⚠ {notice}</div>}
-      <div key={tab} className="os-reveal">
-        {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} onCreate={createTask} onUpdate={updateTask} onMove={moveTask} onDelete={deleteTask} />}
+      <div key={tab} className="os-reveal-fast">
+        {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
         {tab === 'content' && <ContentEngine content={content} owners={owners} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
-        {tab === 'brainstorm' && <Brainstorm onSaveContent={createContent} onSaveIntel={saveIntel} />}
+        {tab === 'brain' && <Brain onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />}
       </div>
-      {tab !== 'brainstorm' && <Signal activity={activity} owners={owners} />}
+      {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
     </>
   )
 
@@ -140,14 +198,23 @@ export default function OS() {
       <Shell>
         <div style={{ display: 'flex', alignItems: 'stretch', minHeight: '100vh' }}>
           <Rail tab={tab} setTab={setTab} profile={profile} counts={counts} />
-          <main style={{ flex: 1, minWidth: 0, padding: '26px 36px 48px' }}>
-            {/* header: pulse pills + spec coordinates */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '18px' }}>
+          <main style={{ flex: 1, minWidth: 0, padding: '28px 40px 56px' }}>
+            {/* header row: tab kicker + spec coordinates */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '18px' }}>
+              <div style={{ fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.3em', textTransform: 'uppercase', color: BONE_LOW, display: 'flex', alignItems: 'center', gap: '13px' }}>
+                <span style={{ letterSpacing: 0 }}>{activeTab.mark}</span>
+                <span style={{ color: BONE, border: `1px solid ${HAIR_HI}`, padding: '3px 9px', borderRadius: '3px', fontSize: '9px', letterSpacing: '.16em' }}>{activeTab.code}</span>
+                <span>{activeTab.label}</span>
+                <span aria-hidden style={{ flex: '0 0 38px', height: '1px', background: HAIR_HI }} />
+              </div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.22em', whiteSpace: 'nowrap' }}>{specLine}</div>
+            </div>
+            {helloCard}
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '16px' }}>
               <PulseRow counts={counts} />
-              <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', whiteSpace: 'nowrap', paddingTop: '8px' }}>{specLine}</div>
             </div>
             <RoadmapStrip tasks={tasks} content={content} />
-            <div style={{ height: '14px' }} />
+            <div style={{ height: '16px' }} />
             {panel}
           </main>
         </div>
@@ -166,16 +233,17 @@ export default function OS() {
             <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '42px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>TEAM OS</h1>
           </div>
         </div>
-        <div style={{ margin: '16px 0 6px' }}><PulseRow counts={counts} /></div>
+        <div style={{ margin: '16px 0 6px' }}>{helloCard}</div>
+        <PulseRow counts={counts} />
+        <div style={{ height: '10px' }} />
         <RoadmapStrip tasks={tasks} content={content} />
         {/* tabs */}
         <div style={{ display: 'flex', gap: '8px', margin: '4px 0 18px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '2px' }}>
           {TABS.map(t => {
             const active = tab === t.key
-            const Icon = t.icon
             return (
               <button key={t.key} onClick={() => setTab(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? SILVER : 'transparent'}`, color: active ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', padding: '8px 4px 10px', cursor: 'pointer', marginBottom: '-3px' }}>
-                <Icon size={13} /> {t.label}
+                <span style={{ fontSize: '9px' }}>{t.mark}</span> {t.label}
               </button>
             )
           })}
@@ -192,21 +260,22 @@ export function Rail({ tab, setTab, profile, counts }) {
   const name = profile?.full_name || profile?.username || 'Member'
   const avatar = safeImg(profile?.avatar_url)
   return (
-    <aside style={{ width: '228px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '26px 20px 22px', background: 'rgba(10,10,13,.55)' }}>
+    <aside style={{ width: '232px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '28px 20px 22px', background: 'rgba(10,10,13,.55)' }}>
       {/* mark */}
       <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>The Collectiv4</div>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: '30px', letterSpacing: '.03em', lineHeight: .9, marginTop: '6px', ...chromeText }}>TEAM OS</div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase', marginTop: '7px' }}>our network · internal</div>
+      <div style={{ fontFamily: FONT_DISPLAY, fontSize: '31px', letterSpacing: '.03em', lineHeight: .9, marginTop: '6px', ...chromeText }}>TEAM OS</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.2em', textTransform: 'uppercase', marginTop: '7px' }}>our network · internal</div>
 
-      {/* nav */}
-      <nav style={{ marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      {/* nav — the deck's marks as the navigation language */}
+      <nav style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {TABS.map(t => {
           const active = tab === t.key
-          const Icon = t.icon
           return (
             <button key={t.key} onClick={() => setTab(t.key)} aria-current={active ? 'page' : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', background: active ? 'rgba(242,238,230,.05)' : 'transparent', border: 'none', borderLeft: `1px solid ${active ? SILVER : 'transparent'}`, borderRadius: '0 8px 8px 0', color: active ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', padding: '10px 12px', cursor: 'pointer', textAlign: 'left', transition: 'color .15s, background .15s' }}>
-              <Icon size={13} strokeWidth={active ? 2 : 1.5} /> {t.label}
+              style={{ display: 'flex', alignItems: 'center', gap: '11px', background: active ? 'rgba(242,238,230,.05)' : 'transparent', border: 'none', borderLeft: `1px solid ${active ? SILVER : 'transparent'}`, borderRadius: '0 8px 8px 0', color: active ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', padding: '11px 13px', cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ fontSize: '9px', color: active ? STAR : FAINT, width: '10px' }}>{t.mark}</span>
+              {t.label}
+              <span style={{ marginLeft: 'auto', fontSize: '8px', color: FAINT, letterSpacing: '.1em' }}>{t.code}</span>
             </button>
           )
         })}
@@ -227,7 +296,7 @@ export function Rail({ tab, setTab, profile, counts }) {
       <div style={{ borderTop: `1px solid ${HAIR}`, marginTop: '14px', paddingTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
         <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontFamily: FONT_DISPLAY, fontSize: '13px', ...chromeText }}>{name[0].toUpperCase()}</span>}
+            : <span style={{ fontFamily: FONT_DISPLAY, fontSize: '13px', color: BONE }}>{name[0].toUpperCase()}</span>}
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: FONT_SANS, fontSize: '12px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
@@ -247,7 +316,7 @@ function RailStat({ label, value, big }) {
   )
 }
 
-/* Pulse — one row of mono stat pills; wraps, never truncates (§E: stat pills mono). */
+/* Pulse — one row of mono stat pills; wraps, never truncates (§E). */
 export function PulseRow({ counts }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', minWidth: 0 }}>
@@ -272,28 +341,28 @@ function Pill({ label, value, accent }) {
 /* Signal — the latest moves. Honest when quiet. */
 export function Signal({ activity, owners }) {
   return (
-    <div style={{ marginTop: '30px', paddingTop: '16px', borderTop: `1px solid ${HAIR}`, maxWidth: '760px' }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '11px' }}>Signal · recent</div>
+    <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${HAIR}`, maxWidth: '760px' }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase', marginBottom: '11px' }}>△ Signal · recent</div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {activity.slice(0, 10).map((a, i) => (
-          <div key={a.id} className="os-reveal" style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontFamily: FONT_MONO, fontSize: '10px', lineHeight: 1.4, padding: '6px 0', borderBottom: i === Math.min(activity.length, 10) - 1 ? 'none' : `1px solid ${HAIR}`, animationDelay: `${i * 25}ms` }}>
+          <div key={a.id} className="os-reveal-fast" style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontFamily: FONT_MONO, fontSize: '10px', lineHeight: 1.4, padding: '6px 0', borderBottom: i === Math.min(activity.length, 10) - 1 ? 'none' : `1px solid ${HAIR}`, animationDelay: `${i * 25}ms` }}>
             <span style={{ color: STAR, flexShrink: 0 }}>{owners[a.profile_id]?.full_name || owners[a.profile_id]?.username || 'Someone'}</span>
             <span style={{ color: BONE_MID, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.action}</span>
-            <span style={{ color: 'rgba(91,89,82,.7)', flexShrink: 0 }}>{relTime(a.created_at)}</span>
+            <span style={{ color: FAINT, flexShrink: 0 }}>{relTime(a.created_at)}</span>
           </div>
         ))}
         {activity.length === 0 && (
-          <div style={{ fontFamily: FONT_MONO, fontSize: '9.5px', color: 'rgba(91,89,82,.8)', letterSpacing: '.08em', padding: '10px 0' }}>no moves yet — the board is waiting.</div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9.5px', color: FAINT, letterSpacing: '.08em', padding: '10px 0' }}>no moves yet — the board is waiting.</div>
         )}
       </div>
     </div>
   )
 }
 
-/* Shell — void gradient + film grain (3–5%, per the design system). */
+/* Shell — void gradient + film grain (deck: fixed, ~4–5%). */
 export function Shell({ children, center }) {
   return (
-    <div className="os-root" style={{ position: 'relative', minHeight: '100vh', background: 'radial-gradient(120% 80% at 50% -10%, #12121A 0%, #0A0A0D 55%, #08080B 100%)' }}>
+    <div className="os-root" style={{ position: 'relative', minHeight: '100vh', background: `radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}` }}>
       <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: .04, zIndex: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")` }} />
       <div style={{ position: 'relative', zIndex: 1, ...(center ? { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' } : {}) }}>
         {children}

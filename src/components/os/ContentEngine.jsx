@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { Pencil, Trash2, Plus } from 'lucide-react'
-import { CONTENT_FORMATS, CONTENT_STATUSES, BONE, BONE_MID, BONE_LOW, STAR, CARD, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { CONTENT_FORMATS, CONTENT_STATUSES, BONE, BONE_MID, BONE_LOW, STAR, PANEL, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
 import { useIsDesktop } from '@/lib/useIsDesktop'
-import { Modal, Field, Input, Textarea, Select, Btn, OwnerChip } from './ui'
+import { Modal, Field, Input, Textarea, Select, Btn, OwnerChip, Chip } from './ui'
 
 /* Content Engine — §E density. Desktop lays cards in a 2-up grid so the width
    works; status is stated in mono (posted = solid bone, everything else = ash). */
@@ -21,7 +21,7 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
         ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '14px', alignItems: 'start' }
         : { display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {content.map((c, i) => (
-          <div key={c.id} className="os-card os-reveal" tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: CARD, borderRadius: '12px', padding: '13px 14px', animationDelay: `${i * 35}ms`, minWidth: 0 }}>
+          <div key={c.id} className="os-card os-reveal" tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: PANEL, borderRadius: '12px', padding: '13px 14px', animationDelay: `${i * 45}ms`, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: FONT_SANS, fontSize: '14px', color: BONE, lineHeight: 1.3 }}>{c.title}</div>
@@ -35,7 +35,9 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
             {c.caption && <div style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: BONE_LOW, lineHeight: 1.5, marginTop: '9px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, overflowWrap: 'anywhere' }}>{c.caption}</div>}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '10px', paddingTop: '9px', borderTop: `1px solid ${HAIR}` }}>
               <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_MID, letterSpacing: '.1em', textTransform: 'uppercase' }}>{c.format || 'format?'}</span>
-              <span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', textTransform: 'uppercase', color: c.status === 'posted' ? BONE : BONE_LOW }}>{c.status === 'posted' ? '● posted' : `○ ${c.status}`}</span>
+              {/* status is an inline chip — click cycles, no modal */}
+              <Chip value={c.status} options={CONTENT_STATUSES} solid={c.status === 'posted'} title="Click to advance status"
+                onPick={(s) => onUpdate(c.id, { status: s })} />
               {c.planned_date && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: STAR, letterSpacing: '.06em' }}>◇ {new Date(c.planned_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
               <div style={{ flex: 1 }} />
               <OwnerChip owner={owners[c.owner_profile_id]} size={17} />

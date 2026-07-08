@@ -46,7 +46,7 @@ export default function RoadmapStrip({ tasks = [], content = [] }) {
         terminal: false,
       }
     })
-    return { nodes, nowPct, todayLabel: fmt(new Date().toISOString().slice(0, 10)) }
+    return { nodes, nowPct, todayLabel: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() }
   }, [tasks, content])
 
   return (

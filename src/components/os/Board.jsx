@@ -1,12 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from 'lucide-react'
-import { BOARD_COLUMNS, BONE, BONE_MID, BONE_LOW, SILVER, STAR, CARD, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { BOARD_COLUMNS, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, HAIR, HAIR_HI, PANEL, CARD_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
 import { useIsDesktop } from '@/lib/useIsDesktop'
-import { Modal, Field, Input, Select, Btn, OwnerChip } from './ui'
+import { Modal, Field, Input, Select, Btn } from './ui'
 
-/* Board — §E density: work-instrument rows, not brochure cards. Desktop shows
-   all four lanes in one grid (no horizontal scroll, no truncation); mobile
-   keeps swipeable lanes. Hover reveals actions; empty lanes state it honestly. */
+/* Board — the deck's catalog language on a working surface. Four numbered
+   lanes ("◇ 01 IDEAS ——"); §E instrument rows; drag a card between lanes
+   (arrows remain as the fallback), quick-add inline (the N key opens it),
+   everything optimistic. */
 
 const EMPTY_LINE = {
   ideas: 'no ideas parked yet',
@@ -15,82 +16,147 @@ const EMPTY_LINE = {
   done: 'nothing shipped yet',
 }
 
-export default function Board({ tasks, profileId, owners, onCreate, onUpdate, onMove, onDelete }) {
+export default function Board({ tasks, profileId, owners, onCreate, onUpdate, onMoveTo, onDelete }) {
   const desktop = useIsDesktop()
   const [mineOnly, setMineOnly] = useState(false)
-  const [editing, setEditing] = useState(null)  // { mode, task }
+  const [editing, setEditing] = useState(null)     // { mode, task }
+  const [quickCol, setQuickCol] = useState(null)   // column key with quick-add open
+  const [dragOver, setDragOver] = useState(null)   // column key under the dragged card
+  const dragId = useRef(null)
+
+  // N opens quick-add in Ideas — unless the member is already typing somewhere.
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.key !== 'n' && e.key !== 'N') || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
+      const tag = document.activeElement?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || editing) return
+      e.preventDefault()
+      setQuickCol('ideas')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [editing])
 
   const visible = mineOnly ? tasks.filter(t => t.owner_profile_id === profileId) : tasks
   const byCol = (key) => visible.filter(t => t.board_column === key)
 
+  const dropOn = (colKey) => {
+    if (!dragId.current) { setDragOver(null); return }
+    const t = tasks.find(x => x.id === dragId.current)
+    dragId.current = null
+    setDragOver(null)
+    if (t && t.board_column !== colKey) onMoveTo(t, colKey)
+  }
+
   return (
     <div>
       {/* controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: desktop ? '16px' : '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <button onClick={() => setMineOnly(v => !v)} style={{ background: mineOnly ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${mineOnly ? SILVER : HAIR_HI}`, color: mineOnly ? BONE : BONE_MID, borderRadius: '100px', padding: '6px 13px', fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
           {mineOnly ? '● Mine only' : '○ Mine only'}
         </button>
-        <Btn variant="solid" onClick={() => setEditing({ mode: 'new', task: { board_column: 'ideas' } })}><Plus size={12} /> Task</Btn>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {desktop && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.14em', textTransform: 'uppercase' }}>N — quick add</span>}
+          <Btn variant="solid" onClick={() => setQuickCol('ideas')}><Plus size={12} /> Task</Btn>
+        </div>
       </div>
 
-      {/* lanes — desktop: one grid, all four visible; mobile: swipeable */}
+      {/* lanes */}
       <div style={desktop
-        ? { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '16px', alignItems: 'start' }
+        ? { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px', alignItems: 'start' }
         : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
         {BOARD_COLUMNS.map((col, ci) => {
           const items = byCol(col.key)
           return (
-            <div key={col.key} className="os-reveal" style={{ ...(desktop ? { minWidth: 0 } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 45}ms` }}>
-              {/* lane header — mono kicker over a hairline */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', paddingBottom: '9px', borderBottom: `1px solid ${HAIR_HI}`, marginBottom: '4px' }}>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.2em', textTransform: 'uppercase' }}>{col.label}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW }}>{String(items.length).padStart(2, '0')}</span>
-                <div style={{ flex: 1 }} />
-                <button onClick={() => setEditing({ mode: 'new', task: { board_column: col.key } })} aria-label={`Add to ${col.label}`} style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '2px', display: 'inline-flex' }}><Plus size={13} /></button>
+            <section key={col.key} className={`os-reveal${dragOver === col.key ? ' os-lane-over' : ''}`}
+              onDragOver={(e) => { e.preventDefault(); if (dragOver !== col.key) setDragOver(col.key) }}
+              onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null) }}
+              onDrop={(e) => { e.preventDefault(); dropOn(col.key) }}
+              style={{ ...(desktop ? { minWidth: 0 } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 70}ms`, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
+              {/* lane kicker — deck eyebrow with catalog number */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '11px', borderBottom: `1px solid ${HAIR_HI}` }}>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, padding: '2px 7px', borderRadius: '3px', letterSpacing: '.16em' }}>{String(ci + 1).padStart(2, '0')}</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>{col.label}</span>
+                <span aria-hidden style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
+                <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT }}>{String(items.length).padStart(2, '0')}</span>
+                <button onClick={() => setQuickCol(col.key)} aria-label={`Add to ${col.label}`} style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '2px', display: 'inline-flex' }}><Plus size={13} /></button>
               </div>
-              {/* rows, separated by hairlines */}
+
+              {/* quick add — inline, Enter saves, Esc closes */}
+              {quickCol === col.key && (
+                <QuickAdd onCancel={() => setQuickCol(null)}
+                  onSave={(title) => { onCreate({ title, type: null, due_date: null, board_column: col.key }); setQuickCol(null) }} />
+              )}
+
+              {/* rows */}
               <div>
                 {items.map((t, i) => (
                   <TaskRow key={t.id} task={t} owner={owners[t.owner_profile_id]} colKey={col.key} last={i === items.length - 1}
-                    delay={ci * 45 + i * 30}
+                    delay={ci * 70 + i * 35}
+                    onDragStart={() => { dragId.current = t.id }}
+                    onDragEnd={() => { dragId.current = null; setDragOver(null) }}
                     onEdit={() => setEditing({ mode: 'edit', task: t })}
-                    onMove={onMove} onDelete={onDelete} />
+                    onArrow={(dir) => {
+                      const ni = Math.max(0, Math.min(BOARD_COLUMNS.length - 1, ci + dir))
+                      if (ni !== ci) onMoveTo(t, BOARD_COLUMNS[ni].key)
+                    }}
+                    onDelete={onDelete} />
                 ))}
-                {items.length === 0 && (
-                  <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: 'rgba(91,89,82,.75)', letterSpacing: '.1em', padding: '18px 2px', textTransform: 'lowercase' }}>{EMPTY_LINE[col.key]}</div>
+                {items.length === 0 && quickCol !== col.key && (
+                  <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT, letterSpacing: '.1em', padding: '18px 2px', textTransform: 'lowercase' }}>{EMPTY_LINE[col.key]}</div>
                 )}
               </div>
-            </div>
+            </section>
           )
         })}
       </div>
 
       {editing && (
         <TaskEditor entry={editing} onClose={() => setEditing(null)}
-          onSave={(fields) => { editing.mode === 'new' ? onCreate(fields) : onUpdate(editing.task.id, fields); setEditing(null) }} />
+          onSave={(fields) => { onUpdate(editing.task.id, fields); setEditing(null) }} />
       )}
     </div>
   )
 }
 
-function TaskRow({ task, owner, colKey, last, delay, onEdit, onMove, onDelete }) {
+function QuickAdd({ onSave, onCancel }) {
+  const [v, setV] = useState('')
+  return (
+    <div style={{ padding: '10px 0 4px' }}>
+      <input autoFocus value={v} placeholder="Title, then Enter…"
+        onChange={e => setV(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && v.trim()) { onSave(v.trim()) }
+          else if (e.key === 'Escape') onCancel()
+        }}
+        onBlur={() => { if (!v.trim()) onCancel() }}
+        style={{ width: '100%', background: CARD_HI, border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '8px 10px', color: BONE, fontFamily: FONT_SANS, fontSize: '13px', outline: 'none' }} />
+    </div>
+  )
+}
+
+function TaskRow({ task, owner, colKey, last, delay, onDragStart, onDragEnd, onEdit, onArrow, onDelete }) {
+  const [dragging, setDragging] = useState(false)
   const idx = BOARD_COLUMNS.findIndex(c => c.key === colKey)
   const due = task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
   const done = colKey === 'done'
-  const meta = [owner?.full_name || owner?.username || 'unassigned', task.type, due && `◇ ${due}`].filter(Boolean).join(' · ')
+  const meta = [due && `◇ ${due}`, task.type, owner?.full_name || owner?.username || 'unassigned'].filter(Boolean).join(' · ')
   return (
-    <div className="os-card os-reveal" tabIndex={0} style={{ padding: '10px 2px 9px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms` }}>
+    <div className={`os-card os-reveal-fast${dragging ? ' os-dragging' : ''}`} tabIndex={0}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); setDragging(true) }}
+      onDragEnd={() => { setDragging(false); onDragEnd() }}
+      style={{ padding: '10px 4px 9px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms`, cursor: 'grab', borderRadius: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: FONT_SANS, fontSize: '13px', color: done ? BONE_MID : BONE, lineHeight: 1.35 }}>{task.title}</div>
-          <div style={{ fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.07em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.07em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {done ? `✕ shipped · ${meta}` : meta}
           </div>
         </div>
-        {/* actions — revealed on hover / focus, always on touch */}
         <div className="os-actions" style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: '-1px' }}>
-          <IconBtn disabled={idx <= 0} onClick={() => onMove(task, -1)} label="Move left"><ChevronLeft size={13} /></IconBtn>
-          <IconBtn disabled={idx >= BOARD_COLUMNS.length - 1} onClick={() => onMove(task, 1)} label="Move right"><ChevronRight size={13} /></IconBtn>
+          <IconBtn disabled={idx <= 0} onClick={() => onArrow(-1)} label="Move left"><ChevronLeft size={13} /></IconBtn>
+          <IconBtn disabled={idx >= BOARD_COLUMNS.length - 1} onClick={() => onArrow(1)} label="Move right"><ChevronRight size={13} /></IconBtn>
           <IconBtn onClick={onEdit} label="Edit"><Pencil size={11} /></IconBtn>
           <IconBtn onClick={() => { if (confirm(`Delete "${task.title}"?`)) onDelete(task) }} label="Delete"><Trash2 size={11} /></IconBtn>
         </div>
@@ -101,7 +167,7 @@ function TaskRow({ task, owner, colKey, last, delay, onEdit, onMove, onDelete })
 
 function IconBtn({ children, onClick, disabled, label }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(91,89,82,.35)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', borderRadius: '5px' }}>
+    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(131,131,143,.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', borderRadius: '5px' }}>
       {children}
     </button>
   )
@@ -117,7 +183,7 @@ function TaskEditor({ entry, onClose, onSave }) {
   const save = () => { if (valid) onSave({ title: title.trim(), type: type.trim() || null, due_date: due || null, board_column: col }) }
 
   return (
-    <Modal title={entry.mode === 'new' ? 'New task' : 'Edit task'} onClose={onClose} onEnter={save}
+    <Modal title="Edit task" onClose={onClose} onEnter={save}
       footer={<>
         <Btn variant="ghost" onClick={onClose} style={{ flex: 1 }}>Cancel</Btn>
         <Btn variant="solid" disabled={!valid} onClick={save} style={{ flex: 1 }}>Save</Btn>

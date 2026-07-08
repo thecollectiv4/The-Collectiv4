@@ -4,21 +4,25 @@
    DM Sans. Function over decoration. Shared so /os stays consistent without
    re-declaring the block on every file (as the older pages do).
    ========================================================================= */
+/* Token values are the alignment deck's (collectiv4-universe.html) — the deck
+   is the reference; the OS must read as that deck become an app. */
 export const VOID = '#0A0A0D'
-export const VOID_2 = '#0B0B10'
+export const VOID_2 = '#07080E'
 export const BONE = '#F2EEE6'
-export const BONE_MID = '#9B9891'
-export const BONE_LOW = '#5B5952'
+export const BONE_MID = '#C7C4BC'                    // deck --bone-dim
+export const BONE_LOW = '#83838F'                    // deck --ash
+export const FAINT = '#4C4C57'                       // deck --faint
 export const SILVER = '#C7C9D1'
 export const STAR = '#E8E9ED'
-export const CARD = '#0E0E13'
-export const CARD_HI = '#14141B'
-export const HAIR = 'rgba(242,238,230,0.08)'
-export const HAIR_HI = 'rgba(242,238,230,0.15)'
+export const PANEL = 'rgba(242,238,230,.022)'        // deck --panel
+export const CARD = 'rgba(242,238,230,.025)'
+export const CARD_HI = 'rgba(242,238,230,.05)'
+export const HAIR = 'rgba(242,238,230,0.08)'         // deck --line-soft
+export const HAIR_HI = 'rgba(242,238,230,0.15)'      // deck --line
 export const WARN = '#E5A0A0'
 
-// chrome — ONLY on display type (never fills, never large areas).
-export const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+// chrome — ONLY on display type (never fills, never large areas). Deck .chrome.
+export const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)'
 export const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 export const FONT_DISPLAY = "'Bebas Neue', sans-serif"
