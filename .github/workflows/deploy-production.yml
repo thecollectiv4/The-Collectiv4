@@ -1,0 +1,115 @@
+# Deploy The Collectiv4 to Vercel PRODUCTION on every push to main.
+#
+# WHY THIS EXISTS (9 jul 2026): merging PR #9 to main did NOT trigger a Vercel
+# production deploy (PR #8 did, same day, same commit author) — a transient
+# GitHub -> Vercel webhook miss. A merge that silently doesn't deploy is a time
+# bomb. This makes production deploys deterministic and LOUD: they run here, in
+# GitHub Actions, and this job turns red if the build fails, the deploy never
+# reaches Ready, or the live site doesn't answer 200.
+#
+# COEXISTENCE WITH VERCEL'S GIT INTEGRATION:
+#   vercel.json sets  git.deploymentEnabled.main = false  -> Vercel no longer
+#   auto-deploys pushes to main, so it never races this workflow over the
+#   production alias. This workflow is the SOLE producer of production deploys.
+#   Vercel STILL builds PREVIEWS for feature branches (branch -> preview -> QA),
+#   which is exactly the review flow and is untouched. If this workflow is ever
+#   unavailable, a manual `vercel --prod` from a laptop remains a valid fallback.
+
+name: Deploy Production
+
+# Only real pushes to main. No `pull_request` trigger is defined, so this
+# workflow NEVER runs for PRs.
+on:
+  push:
+    branches: [main]
+
+# Serialize production deploys: if two pushes land close together they queue
+# (newest runs last = newest wins). Never cancel an in-flight production deploy.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Non-sensitive project identifiers (from .vercel/project.json). Safe to embed:
+  # they only NAME the project/org and are useless without VERCEL_TOKEN (a secret).
+  VERCEL_ORG_ID: team_9aqJEWJgAMLPARSHLzTrdOSQ
+  VERCEL_PROJECT_ID: prj_Hwc7bm52xfMY1QHTfjQyzr6uurXY
+
+jobs:
+  deploy:
+    name: Build & deploy to production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pushed commit
+        uses: actions/checkout@v4
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Deploy to production
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -euo pipefail
+          # `vercel deploy --prod` uploads the repo, Vercel builds it, and the
+          # command BLOCKS until the deployment reaches READY. It exits non-zero
+          # if the build or deploy fails -> this step (and the whole job) fail
+          # loudly. On success the deployment URL is printed to stdout.
+          if ! vercel deploy --prod --yes --token="$VERCEL_TOKEN" \
+                 >deploy.out 2>deploy.err; then
+            echo "----- vercel deploy stderr (build log) -----"; cat deploy.err
+            echo "----- vercel deploy stdout -----"; cat deploy.out
+            echo "::error::vercel deploy exited non-zero (build/deploy failed)"
+            exit 1
+          fi
+          cat deploy.err
+          echo "----- stdout -----"; cat deploy.out
+          # Parse the unique deployment URL (the-collectiv4-<hash>-...vercel.app),
+          # not the bare production alias.
+          url="$(grep -Eo 'https://the-collectiv4-[a-z0-9]+-[a-z0-9-]+\.vercel\.app' deploy.out | head -1)"
+          if [ -z "$url" ]; then
+            url="$(grep -Eo 'https://[a-zA-Z0-9.-]+\.vercel\.app' deploy.out | head -1)"
+          fi
+          if [ -z "$url" ]; then
+            echo "::error::could not parse a deployment URL from vercel output"
+            exit 1
+          fi
+          echo "Deployment URL: $url"
+          echo "url=$url" >>"$GITHUB_OUTPUT"
+
+      - name: Assert the deployment reached READY
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          set -uo pipefail
+          url="${{ steps.deploy.outputs.url }}"
+          status="$(vercel inspect "$url" --token="$VERCEL_TOKEN" 2>&1 | grep -m1 -iE '^[[:space:]]*status' || true)"
+          echo "Reported status line: ${status:-<none>}"
+          if ! echo "$status" | grep -qi 'ready'; then
+            echo "::error::deployment $url did not report Ready"
+            exit 1
+          fi
+          echo "Deployment is Ready."
+
+      - name: Verify production is live (alias + this deploy answer 200)
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+        run: |
+          set -uo pipefail
+          check() {
+            name="$1"; target="$2"; code="000"
+            for i in $(seq 1 12); do
+              code="$(curl -s -o /dev/null -w '%{http_code}' "$target" || echo 000)"
+              if [ "$code" = "200" ]; then echo "OK  $name -> 200 ($target)"; return 0; fi
+              echo "    $name attempt $i: HTTP $code (retry in 5s)"; sleep 5
+            done
+            echo "::error::$name never returned 200 (last: $code) at $target"
+            return 1
+          }
+          check "production alias" "https://the-collectiv4.vercel.app/" || exit 1
+          check "this deploy"      "$DEPLOY_URL/"                        || exit 1
+          echo "Production is live and served by this deploy."
