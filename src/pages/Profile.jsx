@@ -37,7 +37,12 @@ export default function Profile() {
     try { await supabase.rpc('claim_my_tickets') } catch (e) { /* non-fatal */ }
 
     // Load ticket — key on buyer_id to satisfy tickets_self_read RLS (auth.uid()=buyer_id).
-    const { data: tk } = await supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed').maybeSingle()
+    // A buyer can hold MORE THAN ONE confirmed ticket (multiple events / re-purchases —
+    // confirmed_attendees even allows up to 5), so this must order + limit to one row.
+    // Bare .maybeSingle() returns null on >1 match, which silently HID a ticket the buyer
+    // really owns — the same integrity failure as /claim: never drop a truth that exists.
+    const { data: tk } = await supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (tk) setTicket(tk)
   }
 
