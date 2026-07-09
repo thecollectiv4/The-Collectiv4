@@ -57,10 +57,11 @@ export default function Layout() {
     }
   }
 
-  // WORK surfaces are desktop-first: /os on a laptop runs its own shell (left
-  // rail inside the page) — the consumer bottom tab bar must not render there,
-  // and the global 430px phone frame (body max-width) is released while inside.
-  // Below 1024px, /os keeps the phone pattern like every other tab.
+  // WORK surfaces are fluid from 768px up: /os runs its own instrument shell
+  // (left rail inside the page) — the consumer bottom tab bar must not render
+  // there, and the global 430px phone frame (body max-width) is released while
+  // inside. Below 768px, /os keeps the phone pattern like every other tab.
+  // (DESKTOP_QUERY lives in useIsDesktop.js — half-screen windows count.)
   const osDesktop = isDesktop && location.pathname.startsWith('/os')
   useEffect(() => {
     document.body.classList.toggle('os-full', osDesktop)

@@ -33,6 +33,7 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
               </div>
             </div>
             {c.caption && <div style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: BONE_LOW, lineHeight: 1.5, marginTop: '9px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, overflowWrap: 'anywhere' }}>{c.caption}</div>}
+            {c.brief && <Brief brief={c.brief} />}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '10px', paddingTop: '9px', borderTop: `1px solid ${HAIR}` }}>
               <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_MID, letterSpacing: '.1em', textTransform: 'uppercase' }}>{c.format || 'format?'}</span>
               {/* status is an inline chip — click cycles, no modal */}
@@ -61,6 +62,25 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
 
 const iconBtn = { background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px', display: 'inline-flex' }
 
+/* Brief — long structured creative brief (nullable os_content.brief). Collapsed
+   by default so the card grid keeps §E density; expands inline, mono, hairline. */
+function Brief({ brief }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ marginTop: '9px' }}>
+      <button onClick={() => setOpen(o => !o)} aria-expanded={open}
+        style={{ background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '4px', padding: '3px 9px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        {open ? '◇ hide brief' : '◇ view brief'}
+      </button>
+      {open && (
+        <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, lineHeight: 1.6, marginTop: '8px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: '260px', overflowY: 'auto' }}>
+          {brief}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function ContentEditor({ entry, onClose, onSave }) {
   const c = entry.item || {}
   const [title, setTitle] = useState(c.title || '')
@@ -69,8 +89,9 @@ function ContentEditor({ entry, onClose, onSave }) {
   const [caption, setCaption] = useState(c.caption || '')
   const [status, setStatus] = useState(c.status || 'idea')
   const [planned, setPlanned] = useState(c.planned_date || '')
+  const [brief, setBrief] = useState(c.brief || '')
   const valid = title.trim().length > 0
-  const save = () => { if (valid) onSave({ title: title.trim(), format, concept: concept.trim() || null, caption: caption.trim() || null, status, planned_date: planned || null }) }
+  const save = () => { if (valid) onSave({ title: title.trim(), format, concept: concept.trim() || null, caption: caption.trim() || null, brief: brief.trim() || null, status, planned_date: planned || null }) }
 
   return (
     <Modal title={entry.mode === 'new' ? 'New content' : 'Edit content'} onClose={onClose} onEnter={save}
@@ -85,6 +106,7 @@ function ContentEditor({ entry, onClose, onSave }) {
       </div>
       <Field label="Concept"><Textarea value={concept} onChange={e => setConcept(e.target.value)} placeholder="The idea in one or two lines…" /></Field>
       <Field label="Caption"><Textarea value={caption} onChange={e => setCaption(e.target.value)} placeholder="Draft caption…" /></Field>
+      <Field label="Brief · optional"><Textarea value={brief} onChange={e => setBrief(e.target.value)} placeholder="The full creative brief — shots, references, structure…" style={{ minHeight: '110px' }} /></Field>
       <Field label="Planned date"><Input type="date" value={planned} onChange={e => setPlanned(e.target.value)} /></Field>
     </Modal>
   )

@@ -8,6 +8,11 @@ import { useIsDesktop } from '@/lib/useIsDesktop'
    THE BRAIN — the AI operator inside the OS. Voice-first composer (Web
    Speech API), agentic replies (it creates tasks, adds content, hands you a
    one-click calendar event), confirmation chips for every action taken.
+
+   RENDER RULE — no action exists without its chip. When the server flags
+   unexecuted_claims (reply text claims an action but ZERO tools ran) and no
+   actions[] arrived, the message gets an honest mono footnote: "△ said, not
+   done". The text is treated as intention, never as fact.
    ========================================================================= */
 
 const STARTERS = [
@@ -21,7 +26,10 @@ function deriveTitle(text) {
   return first.length > 60 ? first.slice(0, 57).trimEnd() + '…' : (first || 'Untitled')
 }
 
-export default function Brain({ onSaveContent, onActed, messages, setMessages }) {
+/* embedded — dock sizing: fill the host panel's height, no maxWidth, smaller
+   empty-state type. Same state, same session — the dock and the tab are one
+   continuous conversation (messages live lifted in OS.jsx). */
+export default function Brain({ onSaveContent, onActed, messages, setMessages, embedded }) {
   const desktop = useIsDesktop()
   const [status, setStatus] = useState('checking')   // checking | online | coming_online | error
   const [input, setInput] = useState('')
@@ -94,11 +102,14 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages })
   }, [listening, stopListening])
 
   /* ------------------------------- send ------------------------------- */
-  async function send(textOverride) {
+  // baseMessages lets a caller send off an already-updated transcript (e.g.
+  // marking a confirm_delete chip resolved) without losing that update to
+  // this closure's stale `messages`.
+  async function send(textOverride, baseMessages) {
     const text = (textOverride ?? input).trim()
     if (!text || sending) return
     if (listening) stopListening()
-    const next = [...messages, { role: 'user', content: text }]
+    const next = [...(baseMessages ?? messages), { role: 'user', content: text }]
     setMessages(next); setInput(''); setSending(true)
     try {
       const res = await fetch('/api/assistant', {
@@ -108,12 +119,23 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages })
       })
       const data = await res.json().catch(() => ({}))
       if (res.status === 503) { setStatus('coming_online'); return }
-      if (!res.ok) { setMessages((m) => [...m, { role: 'assistant', content: `⚠ ${data?.error || 'Something went wrong.'}`, error: true }]); return }
-      setMessages((m) => [...m, { role: 'assistant', content: data.reply || '(no reply)', actions: data.actions || [] }])
-      if ((data.actions || []).some((a) => a.type !== 'calendar')) onActed?.()
+      if (!res.ok) { setMessages((m) => [...m, { role: 'assistant', content: `✕ ${data?.error || 'Something went wrong.'}`, error: true }]); return }
+      setMessages((m) => [...m, { role: 'assistant', content: data.reply || '(no reply)', actions: data.actions || [], unexecuted_claims: !!data.unexecuted_claims }])
+      // refresh the board/content for anything that changed data — calendar is
+      // a handoff and confirm_delete is a pending op (nothing changed yet).
+      if ((data.actions || []).some((a) => a.type !== 'calendar' && a.type !== 'confirm_delete')) onActed?.()
     } catch {
-      setMessages((m) => [...m, { role: 'assistant', content: '⚠ Could not reach the Brain.', error: true }])
+      setMessages((m) => [...m, { role: 'assistant', content: '✕ Could not reach the Brain.', error: true }])
     } finally { setSending(false) }
+  }
+
+  /* confirm_delete chips — the human sign-off for the model's destructive ops.
+     The chosen answer is stamped onto the action (inert chip) and the reply is
+     sent as a REAL user message: the confirm marker is code-checked server-side. */
+  function respondConfirm(msgIdx, actIdx, a, choice) {
+    const marked = messages.map((m, mi) => mi !== msgIdx ? m
+      : { ...m, actions: (m.actions || []).map((x, ai) => ai === actIdx ? { ...x, resolved: choice } : x) })
+    send(choice === 'confirm' ? `[confirm delete ${a.kind} ${a.id}]` : "Cancel that — don't delete it.", marked)
   }
 
   /* ------------------------------ states ------------------------------ */
@@ -122,12 +144,12 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages })
   if (status === 'error') return <Center><div style={{ textAlign: 'center', fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.1em' }}>THE BRAIN IS UNAVAILABLE<br /><span style={{ color: FAINT }}>sign in as a member and retry</span></div></Center>
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: desktop ? 'calc(100vh - 230px)' : 'calc(100vh - 340px)', minHeight: '380px', maxWidth: desktop ? '840px' : 'none' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: embedded ? '100%' : desktop ? 'calc(100vh - 230px)' : 'calc(100vh - 340px)', minHeight: embedded ? 0 : '380px', maxWidth: embedded ? 'none' : desktop ? '840px' : 'none' }}>
       {/* transcript */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
         {messages.length === 0 && (
-          <div className="os-reveal" style={{ padding: '26px 2px 10px' }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: desktop ? '44px' : '34px', lineHeight: .9, letterSpacing: '.02em', ...chromeText }}>TALK TO IT.</div>
+          <div className="os-reveal" style={{ padding: embedded ? '14px 2px 8px' : '26px 2px 10px' }}>
+            <div style={{ fontFamily: FONT_DISPLAY, fontSize: embedded ? '27px' : desktop ? '44px' : '34px', lineHeight: .9, letterSpacing: '.02em', ...chromeText }}>TALK TO IT.</div>
             <div style={{ fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '14px', maxWidth: '440px' }}>
               It knows the board, the pipeline, and the road to Fall 001. Ask it to think — or tell it to act: it creates tasks, drafts content, and hands you calendar events ready to click.
             </div>
@@ -145,9 +167,16 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages })
             <div style={{ fontFamily: FONT_SANS, fontSize: '13px', lineHeight: 1.55, color: m.error ? BONE_MID : BONE, background: m.role === 'user' ? 'rgba(199,201,209,.10)' : PANEL, border: `1px solid ${m.role === 'user' ? HAIR_HI : HAIR}`, borderRadius: '14px', padding: '11px 14px', whiteSpace: 'pre-wrap' }}>
               {m.content}
             </div>
+            {/* integrity footnote — the server saw an action claim with zero tool
+                calls. No chip = no action: the words above are intention, not fact. */}
+            {m.role === 'assistant' && !m.error && m.unexecuted_claims && !(m.actions || []).length && (
+              <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '5px', paddingLeft: '2px' }}>
+                △ said, not done — no action was executed this turn
+              </div>
+            )}
             {m.role === 'assistant' && !m.error && (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '7px' }}>
-                {(m.actions || []).map((a, j) => <ActionChip key={j} a={a} />)}
+                {(m.actions || []).map((a, j) => <ActionChip key={j} a={a} busy={sending} onRespond={(choice) => respondConfirm(i, j, a, choice)} />)}
                 {!(m.actions || []).length && (
                   <MiniBtn done={saved[i]} icon={Save} label={saved[i] ? 'Saved to Engine' : 'Save to Engine'}
                     onClick={async () => { const ok = await onSaveContent({ title: deriveTitle(m.content), caption: m.content, format: 'Scripted', status: 'idea' }); if (ok !== false) setSaved((s) => ({ ...s, [i]: true })) }} />
@@ -197,7 +226,7 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages })
 }
 
 /* confirmation chips for actions the Brain took */
-function ActionChip({ a }) {
+function ActionChip({ a, busy, onRespond }) {
   if (a.type === 'calendar') {
     return (
       <a href={a.url} target="_blank" rel="noopener noreferrer"
@@ -206,9 +235,37 @@ function ActionChip({ a }) {
       </a>
     )
   }
+  /* pending destructive op — the model asked; only a human message may confirm.
+     Both buttons send REAL user messages (the confirm marker is code-checked
+     server-side); once either is clicked the chip goes inert and states it. */
+  if (a.type === 'confirm_delete') {
+    if (a.resolved) {
+      return (
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+          {a.resolved === 'confirm' ? '✕' : '○'} {a.resolved === 'confirm' ? 'delete confirmed' : 'kept'}{a.title ? ` · “${a.title}”` : ''}
+        </span>
+      )
+    }
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', border: '1px solid rgba(199,201,209,.35)', background: 'rgba(199,201,209,.05)', borderRadius: '100px', padding: '5px 6px 5px 12px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+        △ delete {a.kind}{a.title ? ` “${a.title}”` : ''}?
+        <button onClick={() => !busy && onRespond?.('confirm')} disabled={busy}
+          style={{ background: BONE, color: VOID, border: `1px solid ${BONE}`, borderRadius: '100px', padding: '5px 11px', fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1 }}>
+          Confirm delete
+        </button>
+        <button onClick={() => !busy && onRespond?.('cancel')} disabled={busy}
+          style={{ background: 'transparent', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '5px 11px', fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1 }}>
+          Cancel
+        </button>
+      </span>
+    )
+  }
   const label = a.type === 'task_created' ? `task created → ${a.column}`
     : a.type === 'task_updated' ? `task updated${a.column ? ` → ${a.column}` : ''}`
     : a.type === 'content_added' ? `content added · ${a.format}`
+    : a.type === 'content_updated' ? 'content updated'
+    : a.type === 'task_deleted' ? 'task deleted'
+    : a.type === 'content_deleted' ? 'content deleted'
     : a.type
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(199,201,209,.35)', background: 'rgba(199,201,209,.07)', borderRadius: '100px', padding: '6px 12px', color: STAR, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>

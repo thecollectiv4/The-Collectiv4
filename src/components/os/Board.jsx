@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from 'lucide-react'
 import { BOARD_COLUMNS, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, HAIR, HAIR_HI, PANEL, CARD_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
-import { useIsDesktop } from '@/lib/useIsDesktop'
+import { useIsDesktop, useBoardGrid } from '@/lib/useIsDesktop'
 import { Modal, Field, Input, Select, Btn } from './ui'
 
 /* Board — the deck's catalog language on a working surface. Four numbered
    lanes ("◇ 01 IDEAS ——"); §E instrument rows; drag a card between lanes
    (arrows remain as the fallback), quick-add inline (the N key opens it),
-   everything optimistic. */
+   everything optimistic. Three width modes: >=1100px the four lanes fit as a
+   grid; 768–1100px they become a horizontal snap-scroll row (full-width
+   columns, never squashed); <768px keeps the phone swipe lanes. */
 
 const EMPTY_LINE = {
   ideas: 'no ideas parked yet',
@@ -17,7 +19,8 @@ const EMPTY_LINE = {
 }
 
 export default function Board({ tasks, profileId, owners, onCreate, onUpdate, onMoveTo, onDelete }) {
-  const desktop = useIsDesktop()
+  const desktop = useIsDesktop()   // >=768 — instrument shell
+  const grid = useBoardGrid()      // >=1100 — four lanes fit side by side
   const [mineOnly, setMineOnly] = useState(false)
   const [editing, setEditing] = useState(null)     // { mode, task }
   const [quickCol, setQuickCol] = useState(null)   // column key with quick-add open
@@ -61,10 +64,13 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
         </div>
       </div>
 
-      {/* lanes */}
-      <div style={desktop
-        ? { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px', alignItems: 'start' }
-        : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
+      {/* lanes — grid / snap row / phone swipe (see header comment) */}
+      <div className={desktop && !grid ? 'os-board-snap' : undefined}
+        style={grid
+          ? { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px', alignItems: 'start' }
+          : desktop
+            ? { display: 'flex', gap: '14px', overflowX: 'auto', alignItems: 'flex-start', paddingBottom: '10px' }
+            : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
         {BOARD_COLUMNS.map((col, ci) => {
           const items = byCol(col.key)
           return (
@@ -72,7 +78,7 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
               onDragOver={(e) => { e.preventDefault(); if (dragOver !== col.key) setDragOver(col.key) }}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null) }}
               onDrop={(e) => { e.preventDefault(); dropOn(col.key) }}
-              style={{ ...(desktop ? { minWidth: 0 } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 70}ms`, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
+              style={{ ...(grid ? { minWidth: 0 } : desktop ? { flex: '0 0 300px', minWidth: '280px' } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 70}ms`, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
               {/* lane kicker — deck eyebrow with catalog number */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '11px', borderBottom: `1px solid ${HAIR_HI}` }}>
                 <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, padding: '2px 7px', borderRadius: '3px', letterSpacing: '.16em' }}>{String(ci + 1).padStart(2, '0')}</span>

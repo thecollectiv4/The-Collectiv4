@@ -5,8 +5,9 @@ import { useIsDesktop } from '@/lib/useIsDesktop'
 
 /* Small cosmos UI primitives shared across the OS panels. Function-first. */
 
-/* Modal — bottom sheet on mobile, centered dialog on desktop (work instrument,
-   not a phone pattern). Keyboard: Enter saves (outside textareas), Esc closes. */
+/* Modal — bottom sheet below 768px, centered dialog on the instrument shell
+   (>=768px — half-screen windows get the work pattern, not the phone one).
+   Keyboard: Enter saves (outside textareas), Esc closes. */
 export function Modal({ title, onClose, onEnter, children, footer }) {
   const desktop = useIsDesktop()
   // window-level keys: Esc closes and Enter saves even if focus wandered off the sheet

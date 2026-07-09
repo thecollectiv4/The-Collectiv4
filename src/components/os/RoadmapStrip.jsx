@@ -1,5 +1,6 @@
-import { useMemo } from 'react'
+import { useMemo, useRef, useState, useLayoutEffect } from 'react'
 import { BONE, BONE_MID, BONE_LOW, STAR, HAIR_HI, FONT_MONO, CHAPTER_START_ISO, FALL_001_ISO } from '@/lib/cosmos'
+import { computeVisibleLabels } from './roadmapLabels'
 
 /* =========================================================================
    RoadmapStrip — the chapter as an instrument. A thin hairline from the
@@ -7,13 +8,27 @@ import { BONE, BONE_MID, BONE_LOW, STAR, HAIR_HI, FONT_MONO, CHAPTER_START_ISO, 
    is a hairline filling with bone, never a colored bar). Star-chart nodes are
    REAL dated work (task due dates + content planned dates), not decoration.
    The "now" position pulses subtly (disabled under prefers-reduced-motion).
+
+   Label collision: a ResizeObserver watches the strip; every label is measured
+   in a hidden measurer and computeVisibleLabels (pure, node-tested) decides
+   which intermediate labels get air. Endpoint labels are never hidden; nodes
+   always render (with title tooltips) even when their label hides.
    ========================================================================= */
 
-const DAY = 86400000
 const toDate = (iso) => new Date(iso + 'T00:00:00')
 const fmt = (iso) => toDate(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase()
 
+const START_LABEL = `CHAPTER · ${fmt(CHAPTER_START_ISO)}`
+const END_LABEL = `FALL 001 · ${fmt(FALL_001_ISO)}`
+const LABEL_MAX_W = 120
+const labelStyle = { fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', whiteSpace: 'nowrap', textTransform: 'uppercase', maxWidth: `${LABEL_MAX_W}px`, overflow: 'hidden', textOverflow: 'ellipsis' }
+
 export default function RoadmapStrip({ tasks = [], content = [] }) {
+  const wrapRef = useRef(null)
+  const measureRef = useRef(null)
+  const [cw, setCw] = useState(0)
+  const [widths, setWidths] = useState(null) // { start, end, mids: [] }
+
   const { nodes, nowPct, todayLabel } = useMemo(() => {
     const start = toDate(CHAPTER_START_ISO).getTime()
     const end = toDate(FALL_001_ISO).getTime()
@@ -43,38 +58,72 @@ export default function RoadmapStrip({ tasks = [], content = [] }) {
         iso: n.iso,
         label: n.count > 1 ? `${n.label} +${n.count - 1}` : n.label,
         past: t <= now,
-        terminal: false,
       }
     })
     return { nodes, nowPct, todayLabel: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() }
   }, [tasks, content])
 
+  const midTexts = nodes.map((n) => fmt(n.iso)).join('|')
+
+  // strip width — live, so window resizes recompute label visibility
+  useLayoutEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    setCw(el.getBoundingClientRect().width)
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver((entries) => setCw(entries[0].contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // measure label widths off a hidden measurer (same font metrics as the real labels)
+  useLayoutEffect(() => {
+    const m = measureRef.current
+    if (!m) return
+    const spans = m.querySelectorAll('span')
+    const w = (i) => Math.min(LABEL_MAX_W, spans[i] ? spans[i].offsetWidth : 0)
+    setWidths({ start: w(0), end: w(1), mids: nodes.map((_, i) => w(i + 2)) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [midTexts])
+
+  const visible = useMemo(() => {
+    if (!widths || !cw) return nodes.map(() => false)
+    return computeVisibleLabels(cw, [widths.start, widths.end], nodes.map((n, i) => ({ pct: n.pct, labelWidthPx: widths.mids[i] || 0 })))
+  }, [cw, widths, nodes])
+
   return (
-    <div aria-label="Roadmap to Fall 001" style={{ padding: '6px 0 26px' }}>
+    <div ref={wrapRef} aria-label="Roadmap to Fall 001" style={{ padding: '6px 0 26px' }}>
+      {/* hidden measurer — same type styles, never seen */}
+      <div ref={measureRef} aria-hidden style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', height: 0, overflow: 'hidden', whiteSpace: 'nowrap' }}>
+        <span style={{ ...labelStyle, display: 'inline-block', maxWidth: 'none' }}>{START_LABEL}</span>
+        <span style={{ ...labelStyle, display: 'inline-block', maxWidth: 'none' }}>{END_LABEL}</span>
+        {nodes.map((n, i) => <span key={n.iso + i} style={{ ...labelStyle, display: 'inline-block', maxWidth: 'none' }}>{fmt(n.iso)}</span>)}
+      </div>
+
       <div style={{ position: 'relative', height: '10px' }}>
         {/* the orbit: full hairline + elapsed filled in bone */}
         <div style={{ position: 'absolute', top: '4px', left: 0, right: 0, height: '1px', background: HAIR_HI }} />
         <div style={{ position: 'absolute', top: '4px', left: 0, width: `${nowPct}%`, height: '1px', background: 'rgba(242,238,230,.55)' }} />
 
-        {/* origin tick */}
-        <Node pct={0} past label={`CHAPTER · ${fmt(CHAPTER_START_ISO)}`} kind="tick" edge="start" />
+        {/* origin tick — endpoint label, never hidden */}
+        <Node pct={0} past label={START_LABEL} kind="tick" edge="start" />
 
-        {/* real dated work */}
+        {/* real dated work — nodes always render; labels only when they have air */}
         {nodes.map((n, i) => (
-          <Node key={n.iso + i} pct={n.pct} past={n.past} iso={n.iso} label={n.label} kind="diamond" mid />
+          <Node key={n.iso + i} pct={n.pct} past={n.past} iso={n.iso} label={n.label} kind="diamond" mid labelVisible={visible[i]} />
         ))}
 
         {/* now — the pulse */}
         <div className="os-now-dot" title={`Today · ${todayLabel}`} style={{ position: 'absolute', top: '1.5px', left: `${nowPct}%`, transform: 'translateX(-50%)', width: '6px', height: '6px', borderRadius: '50%', background: STAR }} />
 
-        {/* terminal star: Fall 001 */}
-        <Node pct={100} past={false} label={`FALL 001 · ${fmt(FALL_001_ISO)}`} kind="star" edge="end" />
+        {/* terminal star: Fall 001 — endpoint label, never hidden */}
+        <Node pct={100} past={false} label={END_LABEL} kind="star" edge="end" />
       </div>
     </div>
   )
 }
 
-function Node({ pct, past, iso, label, kind, mid, edge }) {
+function Node({ pct, past, iso, label, kind, mid, edge, labelVisible = true }) {
   const align = edge === 'start' ? 'flex-start' : edge === 'end' ? 'flex-end' : 'center'
   const translate = edge === 'start' ? '0' : edge === 'end' ? '-100%' : '-50%'
   return (
@@ -88,7 +137,7 @@ function Node({ pct, past, iso, label, kind, mid, edge }) {
       ) : (
         <div style={{ width: '6px', height: '6px', marginTop: '1.5px', transform: 'rotate(45deg)', background: past ? BONE : 'transparent', border: `1px solid ${past ? BONE : 'rgba(242,238,230,.4)'}`, flexShrink: 0 }} />
       )}
-      <div className={mid ? 'os-node-label--mid' : undefined} style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', color: past ? BONE_MID : BONE_LOW, whiteSpace: 'nowrap', textTransform: 'uppercase', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <div aria-hidden={!labelVisible || undefined} style={{ ...labelStyle, color: past ? BONE_MID : BONE_LOW, visibility: labelVisible ? 'visible' : 'hidden' }}>
         {mid && iso ? fmt(iso) : label}
       </div>
     </div>

@@ -1,19 +1,24 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Lock, X } from 'lucide-react'
+import { Loader2, Lock, X, CalendarDays, Compass, Users, User } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
-import { useIsDesktop } from '@/lib/useIsDesktop'
-import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg } from '@/lib/cosmos'
+import { useIsDesktop, useRailFull } from '@/lib/useIsDesktop'
+import { VOID, VOID_2, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg } from '@/lib/cosmos'
 import Board from '@/components/os/Board'
 import ContentEngine from '@/components/os/ContentEngine'
 import Brain from '@/components/os/Brain'
 import RoadmapStrip from '@/components/os/RoadmapStrip'
 
 /* =========================================================================
-   TEAM OS — the deck become an app. Desktop-first: persistent left rail +
-   full-bleed main in the deck's language (catalog kickers, panel clusters,
-   chrome only on display type); the phone pattern below 1024px.
+   TEAM OS — the deck become an app. Fluid work surface: the instrument shell
+   (persistent left rail + full-bleed main, deck language — catalog kickers,
+   panel clusters, chrome only on display type) from 768px up; the rail
+   collapses to icon-only below 1180px; the phone pattern below 768px.
+
+   OS() is the thin gate + data container; OSInstrument is the whole layout
+   as one presentational component (also mounted by the DEV harness with
+   mirror data — keep it free of supabase calls).
    ========================================================================= */
 
 const nowISO = () => new Date().toISOString()
@@ -23,12 +28,18 @@ const TABS = [
   { key: 'brain', code: '03', label: 'The Brain', mark: '◇' },
 ]
 const HELLO_KEY = 'os_hello_v1'
+// Cross-nav out of the OS — same icon vocabulary as Layout.jsx's bottom nav.
+const CROSS_NAV = [
+  { to: '/', icon: CalendarDays, label: 'Event' },
+  { to: '/discover', icon: Compass, label: 'Discover' },
+  { to: '/community', icon: Users, label: 'Community' },
+  { to: '/profile', icon: User, label: 'Profile' },
+]
+const GRAIN_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")`
 
 export default function OS() {
   const navigate = useNavigate()
-  const desktop = useIsDesktop()
   const { state, profile } = useOSAccess()
-  const [tab, setTab] = useState('board')
   const [tasks, setTasks] = useState([])
   const [content, setContent] = useState([])
   const [activity, setActivity] = useState([])
@@ -37,12 +48,10 @@ export default function OS() {
   const [loadErr, setLoadErr] = useState('')
   const [notice, setNotice] = useState('')
   const [reload, setReload] = useState(0)
-  const [hello, setHello] = useState(() => { try { return !localStorage.getItem(HELLO_KEY) } catch { return false } })
   const [brainMsgs, setBrainMsgs] = useState([])
   const noticeTimer = useRef(null)
 
   const say = useCallback((msg) => { setNotice(msg); clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 5000) }, [])
-  const dismissHello = () => { setHello(false); try { localStorage.setItem(HELLO_KEY, '1') } catch {} }
 
   const loadTasks = useCallback(async () => {
     const { data, error } = await supabase.from('os_tasks').select('*').order('created_at', { ascending: true })
@@ -156,6 +165,49 @@ export default function OS() {
     </Shell>
   )
 
+  return (
+    <OSInstrument
+      profile={profile} tasks={tasks} content={content} activity={activity} owners={owners} notice={notice}
+      mutators={{ createTask, updateTask, moveTaskTo, deleteTask, createContent, updateContent, deleteContent }}
+      refreshAll={refreshAll} brainMsgs={brainMsgs} setBrainMsgs={setBrainMsgs}
+    />
+  )
+}
+
+/* =========================================================================
+   OSInstrument — the entire instrument (rail + header + pulse + roadmap +
+   tabs + panels + Brain dock), desktop AND phone branches, as one
+   presentational component. Data + mutators come in as props; no supabase
+   here (the DEV harness mounts this with mirror data).
+   ========================================================================= */
+export function OSInstrument({ profile, tasks, content, activity, owners, notice, mutators, refreshAll, brainMsgs, setBrainMsgs }) {
+  const desktop = useIsDesktop()   // >=768 — instrument shell
+  const railFull = useRailFull()   // >=1180 — full rail; below, icon-only
+  const [tab, setTab] = useState('board')
+  const [hello, setHello] = useState(() => { try { return !localStorage.getItem(HELLO_KEY) } catch { return false } })
+  const [dockOpen, setDockOpen] = useState(false)
+  const dismissHello = () => { setHello(false); try { localStorage.setItem(HELLO_KEY, '1') } catch {} }
+  const { createTask, updateTask, moveTaskTo, deleteTask, createContent, updateContent, deleteContent } = mutators
+
+  // the dock and the tab are the same session — never both at once
+  useEffect(() => { if (tab === 'brain' && dockOpen) setDockOpen(false) }, [tab, dockOpen])
+
+  // B toggles the Brain dock (same guard style as the board's N quick-add);
+  // Esc closes it. Ignored while typing or while on the Brain tab itself.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') { if (dockOpen) setDockOpen(false); return }
+      if ((e.key !== 'b' && e.key !== 'B') || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return
+      const el = document.activeElement
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
+      if (tab === 'brain') return
+      e.preventDefault()
+      setDockOpen(v => !v)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [dockOpen, tab])
+
   const counts = {
     days: daysUntil(FALL_001_ISO),
     week: tasks.filter(t => t.board_column === 'this_week').length,
@@ -167,6 +219,23 @@ export default function OS() {
   const specLine = `HOUSTON, TX · ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()} · OS V1`
   const firstName = (profile?.full_name || profile?.username || 'you').split(' ')[0]
 
+  const brainEl = (embedded) => (
+    <Brain embedded={embedded} onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />
+  )
+
+  const dock = dockOpen && tab !== 'brain' && (
+    <BrainDock mobile={!desktop} onClose={() => setDockOpen(false)}>
+      {brainEl(true)}
+    </BrainDock>
+  )
+
+  const dockBtn = tab !== 'brain' && (
+    <button onClick={() => setDockOpen(v => !v)} aria-label="Toggle the Brain dock (B)" title="The Brain — press B"
+      style={{ background: dockOpen ? 'rgba(199,201,209,.1)' : 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '5px 12px', color: dockOpen ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+      ◇ Brain{desktop ? ' · B' : ''}
+    </button>
+  )
+
   const helloCard = hello && (
     <div className="os-reveal" style={{ position: 'relative', border: `1px solid ${HAIR_HI}`, background: PANEL, borderRadius: '14px', padding: desktop ? '20px 24px' : '16px 16px', marginBottom: '20px', maxWidth: '640px' }}>
       <button onClick={dismissHello} aria-label="Dismiss" style={{ position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px' }}><X size={14} /></button>
@@ -175,39 +244,42 @@ export default function OS() {
         {firstName.toUpperCase()}, THIS IS THE <span style={chromeText}>OS</span>.
       </div>
       <div style={{ fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '10px' }}>
-        The board is what's moving. The engine is what we're making. The Brain listens and acts. One room, all of it pointed at Fall 001. 🖤
+        The board is what's moving. The engine is what we're making. The Brain listens and acts. One room, all of it pointed at Fall 001 — and it moves better with you in it.
       </div>
     </div>
   )
 
   const panel = (
     <>
-      {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>⚠ {notice}</div>}
+      {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>△ {notice}</div>}
       <div key={tab} className="os-reveal-fast">
         {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
         {tab === 'content' && <ContentEngine content={content} owners={owners} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
-        {tab === 'brain' && <Brain onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />}
+        {tab === 'brain' && brainEl(false)}
       </div>
       {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
     </>
   )
 
-  /* ------------------------- DESKTOP: rail + main ------------------------- */
+  /* --------------------- INSTRUMENT (>=768): rail + main --------------------- */
   if (desktop) {
     return (
       <Shell>
         <div style={{ display: 'flex', alignItems: 'stretch', minHeight: '100vh' }}>
-          <Rail tab={tab} setTab={setTab} profile={profile} counts={counts} />
-          <main style={{ flex: 1, minWidth: 0, padding: '28px 40px 56px' }}>
-            {/* header row: tab kicker + spec coordinates */}
+          <Rail tab={tab} setTab={setTab} profile={profile} counts={counts} full={railFull} />
+          <main style={{ flex: 1, minWidth: 0, padding: railFull ? '28px 40px 56px' : '28px 26px 56px' }}>
+            {/* header row: tab kicker + Brain dock + spec coordinates */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '18px' }}>
-              <div style={{ fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.3em', textTransform: 'uppercase', color: BONE_LOW, display: 'flex', alignItems: 'center', gap: '13px' }}>
+              <div style={{ fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.3em', textTransform: 'uppercase', color: BONE_LOW, display: 'flex', alignItems: 'center', gap: '13px', minWidth: 0 }}>
                 <span style={{ letterSpacing: 0 }}>{activeTab.mark}</span>
                 <span style={{ color: BONE, border: `1px solid ${HAIR_HI}`, padding: '3px 9px', borderRadius: '3px', fontSize: '9px', letterSpacing: '.16em' }}>{activeTab.code}</span>
                 <span>{activeTab.label}</span>
                 <span aria-hidden style={{ flex: '0 0 38px', height: '1px', background: HAIR_HI }} />
               </div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.22em', whiteSpace: 'nowrap' }}>{specLine}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+                {dockBtn}
+                {railFull && <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.22em', whiteSpace: 'nowrap' }}>{specLine}</div>}
+              </div>
             </div>
             {helloCard}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '16px' }}>
@@ -218,11 +290,12 @@ export default function OS() {
             {panel}
           </main>
         </div>
+        {dock}
       </Shell>
     )
   }
 
-  /* --------------------------- MOBILE: fallback --------------------------- */
+  /* ------------------------- PHONE (<768): fallback ------------------------- */
   return (
     <Shell>
       <div style={{ padding: '24px 18px 40px', maxWidth: '900px', margin: '0 auto' }}>
@@ -232,6 +305,7 @@ export default function OS() {
             <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.28em', textTransform: 'uppercase', marginBottom: '4px' }}>Our network · internal</div>
             <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '42px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>TEAM OS</h1>
           </div>
+          <div style={{ marginLeft: 'auto', paddingBottom: '6px' }}>{dockBtn}</div>
         </div>
         <div style={{ margin: '16px 0 6px' }}>{helloCard}</div>
         <PulseRow counts={counts} />
@@ -250,15 +324,100 @@ export default function OS() {
         </div>
         {panel}
       </div>
+      {dock}
     </Shell>
   )
 }
 
 /* ------------- pieces (exported for layout previews/tests) ------------- */
 
-export function Rail({ tab, setTab, profile, counts }) {
+/* BrainDock — the Brain, omnipresent. A right side panel on the instrument
+   shell (void + grain continuity, hairline border-left); a bottom sheet on
+   the phone. Hosts the SAME <Brain> session as the tab. */
+function BrainDock({ mobile, onClose, children }) {
+  const grain = <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: .04, backgroundImage: GRAIN_BG }} />
+  const header = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', position: 'relative', zIndex: 1 }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>◇ The Brain</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {!mobile && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.14em', textTransform: 'uppercase' }}>B · Esc</span>}
+        <button onClick={onClose} aria-label="Close the Brain dock" style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '2px', display: 'inline-flex' }}><X size={15} /></button>
+      </div>
+    </div>
+  )
+  if (mobile) {
+    return (
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+        <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="The Brain"
+          style={{ position: 'relative', width: '100%', height: '85dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', padding: '16px 16px calc(14px + env(safe-area-inset-bottom,0px))', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          {grain}
+          {header}
+          <div style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <aside role="dialog" aria-label="The Brain"
+      style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 92vw)', zIndex: 10000, background: `radial-gradient(120% 60% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}`, borderLeft: `1px solid ${HAIR_HI}`, padding: '16px 18px 14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {grain}
+      {header}
+      <div style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
+    </aside>
+  )
+}
+
+export function Rail({ tab, setTab, profile, counts, full = true }) {
+  const navigate = useNavigate()
   const name = profile?.full_name || profile?.username || 'Member'
   const avatar = safeImg(profile?.avatar_url)
+  const avatarEl = (size) => (
+    <div style={{ width: `${size}px`, height: `${size}px`, borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <span style={{ fontFamily: FONT_DISPLAY, fontSize: `${Math.round(size * 0.46)}px`, color: BONE }}>{name[0].toUpperCase()}</span>}
+    </div>
+  )
+
+  /* icon-only rail (<1180px): the deck marks ARE the nav; condensed pulse is
+     just the days-to-Fall-001 number; identity is the avatar alone. */
+  if (!full) {
+    return (
+      <aside style={{ width: '64px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: `1px solid ${HAIR}`, padding: '24px 10px 18px', background: 'rgba(10,10,13,.55)' }}>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: '19px', letterSpacing: '.04em', lineHeight: 1, ...chromeText }} title="Team OS">OS</div>
+        <nav style={{ marginTop: '26px', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+          {TABS.map(t => {
+            const active = tab === t.key
+            return (
+              <button key={t.key} onClick={() => setTab(t.key)} title={t.label} aria-label={t.label} aria-current={active ? 'page' : undefined}
+                style={{ width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: active ? 'rgba(242,238,230,.06)' : 'transparent', border: `1px solid ${active ? HAIR_HI : 'transparent'}`, borderRadius: '8px', color: active ? STAR : BONE_LOW, fontFamily: FONT_MONO, fontSize: '12px', cursor: 'pointer' }}>
+                {t.mark}
+              </button>
+            )
+          })}
+        </nav>
+        <div style={{ flex: 1 }} />
+        <div title="days to Fall 001" style={{ borderTop: `1px solid ${HAIR}`, width: '100%', paddingTop: '12px', textAlign: 'center', fontFamily: FONT_MONO, fontSize: '14px', color: BONE }}>
+          {String(counts.days >= 0 ? counts.days : '—').padStart(2, '0')}
+        </div>
+        {/* cross-nav — never trapped in the OS */}
+        <div style={{ borderTop: `1px solid ${HAIR}`, width: '100%', marginTop: '12px', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+          {CROSS_NAV.map(l => {
+            const Icon = l.icon
+            return (
+              <button key={l.to} onClick={() => navigate(l.to)} title={l.label} aria-label={l.label}
+                style={{ width: '32px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: '6px', color: FAINT, cursor: 'pointer' }}>
+                <Icon size={14} strokeWidth={1.5} />
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ borderTop: `1px solid ${HAIR}`, width: '100%', marginTop: '10px', paddingTop: '12px', display: 'flex', justifyContent: 'center' }} title={name}>
+          {avatarEl(28)}
+        </div>
+      </aside>
+    )
+  }
+
   return (
     <aside style={{ width: '232px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '28px 20px 22px', background: 'rgba(10,10,13,.55)' }}>
       {/* mark */}
@@ -294,14 +453,24 @@ export function Rail({ tab, setTab, profile, counts }) {
 
       {/* identity */}
       <div style={{ borderTop: `1px solid ${HAIR}`, marginTop: '14px', paddingTop: '14px', display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-        <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontFamily: FONT_DISPLAY, fontSize: '13px', color: BONE }}>{name[0].toUpperCase()}</span>}
-        </div>
+        {avatarEl(28)}
         <div style={{ minWidth: 0 }}>
           <div style={{ fontFamily: FONT_SANS, fontSize: '12px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
           <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '2px' }}>{profile?.verified ? '✕ verified' : 'owner'}</div>
         </div>
+      </div>
+
+      {/* cross-nav — discreet foot links out of the OS; never trapped */}
+      <div style={{ borderTop: `1px solid ${HAIR}`, marginTop: '14px', paddingTop: '12px', display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', columnGap: '7px', rowGap: '5px' }}>
+        {CROSS_NAV.map((l, i) => (
+          <span key={l.to} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '7px' }}>
+            {i > 0 && <span aria-hidden style={{ color: FAINT, fontFamily: FONT_MONO, fontSize: '8px' }}>·</span>}
+            <button onClick={() => navigate(l.to)} aria-label={l.label}
+              style={{ background: 'transparent', border: 'none', padding: 0, color: FAINT, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              {l.label}
+            </button>
+          </span>
+        ))}
       </div>
     </aside>
   )
@@ -363,7 +532,7 @@ export function Signal({ activity, owners }) {
 export function Shell({ children, center }) {
   return (
     <div className="os-root" style={{ position: 'relative', minHeight: '100vh', background: `radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}` }}>
-      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: .04, zIndex: 0, backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")` }} />
+      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: .04, zIndex: 0, backgroundImage: GRAIN_BG }} />
       <div style={{ position: 'relative', zIndex: 1, ...(center ? { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' } : {}) }}>
         {children}
       </div>

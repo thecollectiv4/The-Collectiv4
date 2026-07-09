@@ -144,8 +144,12 @@ a { color: inherit; text-decoration: none; }
 .os-root ::-webkit-scrollbar-thumb:hover { background: rgba(242,238,230,.22); }
 .os-root { scrollbar-width: thin; scrollbar-color: rgba(242,238,230,.12) transparent; }
 
-/* roadmap node labels: hide intermediate labels on narrow screens */
-@media (max-width: 700px) { .os-node-label--mid { display:none; } }
+/* roadmap node labels: visibility is measured, not breakpointed —
+   RoadmapStrip runs computeVisibleLabels off a ResizeObserver. */
+
+/* board lanes between 768–1100px: a horizontal snap row, never squashed */
+.os-board-snap { scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+.os-board-snap > section { scroll-snap-align: start; }
 
 /* mic while listening */
 @keyframes osMicPulse { 0%,100% { box-shadow:0 0 0 0 rgba(242,238,230,.3); } 50% { box-shadow:0 0 0 7px rgba(242,238,230,0); } }
