@@ -372,10 +372,10 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
                 <div key={row.id} style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '12px', background: CARD }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                     <input style={{ ...inp, padding: '10px 13px' }} value={row.title} placeholder="Title (optional)" onChange={e => setRow(i, 'title', e.target.value)} onFocus={onF} onBlur={onB} />
-                    <button onClick={() => delRow(i)} aria-label="Remove" style={{ background: 'rgba(220,38,38,.08)', border: '1px solid rgba(220,38,38,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+                    <button onClick={() => delRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#E5A0A0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                   </div>
                   <input style={{ ...inp, padding: '10px 13px' }} value={row.url} placeholder="https://…" onChange={e => setRow(i, 'url', e.target.value)} onFocus={onF} onBlur={onB} />
-                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#EF4444', marginTop: '6px' }}>Must start with http:// or https://</div>}
+                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', marginTop: '6px' }}>Must start with http:// or https://</div>}
                 </div>
               ))}
               <button onClick={addRow} style={{ background: 'transparent', border: `1px dashed ${HAIR_HI}`, borderRadius: '12px', padding: '12px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'DM Sans' }}>
@@ -384,7 +384,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </div>
           </Section>
 
-          {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#EF4444', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
+          {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
           <div style={{ display: 'flex', gap: '10px' }}>
             <button onClick={() => { setEditing(false); setSaveErr(null) }} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>Cancel</button>
             <button onClick={save} disabled={saving} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: saving ? .6 : 1, transition: 'all .2s' }}>{saving ? 'Saving…' : 'Save your world'}</button>

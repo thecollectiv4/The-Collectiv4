@@ -30,7 +30,7 @@ export default function Auth() {
   }
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)'}}>
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)'}}>
       <button onClick={()=>navigate('/')} style={{position:'absolute',top:'20px',left:'20px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',fontFamily:'DM Sans'}}>
         <ArrowLeft size={14}/> Back
       </button>
@@ -51,7 +51,7 @@ export default function Auth() {
         <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handle()} style={inp}/>
         {error&&<div style={{fontSize:'12px',color:'var(--rust)',padding:'10px 14px',background:'var(--rust-dim)',borderRadius:'8px'}}>{error}</div>}
         <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'16px',color:'var(--bg)',fontWeight:600,fontSize:'14px',cursor:'pointer',fontFamily:'DM Sans',opacity:loading?.6:1,marginTop:'4px',transition:'all .25s'}}
-          onMouseOver={e=>{if(!loading){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,232,208,.15)'}}}
+          onMouseOver={e=>{if(!loading){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,238,230,.15)'}}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           {loading?'...':mode==='signin'?'Sign In':'Create Account'}
         </button>

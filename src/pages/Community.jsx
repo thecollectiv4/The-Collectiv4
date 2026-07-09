@@ -100,7 +100,7 @@ export default function Community() {
             <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)'}}>BY</span>
           </div>
           <div style={{fontFamily:'Bebas Neue',fontSize:'42px',lineHeight:.85,color:'var(--cream)',marginTop:'2px'}}>ARTISTS</div>
-          {live.editionNumber && <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#D06020',marginTop:'4px'}}>{live.editionNumber}</div>}
+          {live.editionNumber && <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#F2EEE6',marginTop:'4px'}}>{live.editionNumber}</div>}
         </div>
         <div style={{margin:'0 20px',borderTop:'1px dashed var(--border-hi)'}}/>
         <div style={{padding:'20px 28px',display:'flex',justifyContent:'space-around'}}>
@@ -120,14 +120,14 @@ export default function Community() {
             <MessageCircle size={12} style={{color:'var(--cream-low)'}}/><span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)'}}>{messages.length} messages</span>
           </div>
         </div>
-        <div style={{padding:'12px',background:'rgba(242,230,208,.03)',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+        <div style={{padding:'12px',background:'rgba(242,238,230,.03)',borderTop:'1px solid var(--border)',textAlign:'center'}}>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em'}}>{hasTicket?'TAP TO ENTER':'GET YOUR TICKET TO UNLOCK'}</span>
         </div>
       </div>
     )
 
     return (
-      <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0A0908 40%,#0A0908 100%)',height:'calc(100dvh - 100px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
+      <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 40%,#0A0A0D 100%)',height:'calc(100dvh - 100px)',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
         {!hasTicket ? (
           <div style={{position:'relative',width:'100%',maxWidth:'360px'}}>
             <div style={{position:'absolute',inset:0,zIndex:10,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'20px',borderRadius:'20px'}}>
@@ -143,7 +143,7 @@ export default function Community() {
 
   // OPEN STATE - Going + Chat
   return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+    <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
       <div style={{padding:'16px 28px',display:'flex',alignItems:'center',gap:'12px',borderBottom:'1px solid var(--border)'}}>
         <button onClick={()=>setOpen(false)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer'}}><ArrowLeft size={18}/></button>
         <div style={{flex:1}}>
@@ -151,15 +151,15 @@ export default function Community() {
           <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em'}}>{`${live.dateMed} · ${live.city}`.toUpperCase()}</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:'4px'}}>
-          <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#00D54B'}}/>
-          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'#00D54B'}}>{attendees.length}</span>
+          <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#C7C9D1'}}/>
+          <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'#C7C9D1'}}>{attendees.length}</span>
         </div>
       </div>
       <div style={{padding:'12px 28px 0',display:'flex',gap:'4px'}}>
         {[['going','Going',Users,attendees.length],['chat','Chat',MessageCircle,messages.length]].map(([id,label,Icon,count])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',padding:'10px',borderRadius:'10px',border:'none',cursor:'pointer',background:tab===id?'rgba(242,230,208,.08)':'transparent',color:tab===id?'var(--cream)':'var(--cream-low)',fontFamily:'DM Sans',fontSize:'12px',fontWeight:600,transition:'all .2s'}}>
+          <button key={id} onClick={()=>setTab(id)} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',padding:'10px',borderRadius:'10px',border:'none',cursor:'pointer',background:tab===id?'rgba(242,238,230,.08)':'transparent',color:tab===id?'var(--cream)':'var(--cream-low)',fontFamily:'DM Sans',fontSize:'12px',fontWeight:600,transition:'all .2s'}}>
             <Icon size={14} strokeWidth={tab===id?2.2:1.4}/>{label}
-            {count>0&&<span style={{fontFamily:'DM Mono',fontSize:'9px',background:tab===id?'rgba(242,230,208,.12)':'rgba(242,230,208,.04)',padding:'2px 6px',borderRadius:'100px'}}>{count}</span>}
+            {count>0&&<span style={{fontFamily:'DM Mono',fontSize:'9px',background:tab===id?'rgba(242,238,230,.12)':'rgba(242,238,230,.04)',padding:'2px 6px',borderRadius:'100px'}}>{count}</span>}
           </button>
         ))}
       </div>
@@ -169,13 +169,13 @@ export default function Community() {
           :attendees.length===0?<div style={{textAlign:'center',padding:'40px',border:'1px solid var(--border)',borderRadius:'12px',marginTop:'8px'}}><div style={{fontFamily:'Bebas Neue',fontSize:'20px',color:'var(--cream)',marginBottom:'6px'}}>BE THE FIRST</div><div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)'}}>No tickets sold yet</div></div>
           :<div>{attendees.map((a,i)=>(
             <div key={i} onClick={()=>navigate(getProfileLink(a))} style={{display:'flex',alignItems:'center',gap:'14px',padding:'12px 0',borderBottom:i<attendees.length-1?'1px solid var(--border)':'none',cursor:'pointer',transition:'all .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.paddingLeft='8px';e.currentTarget.style.background='rgba(242,230,208,.02)'}}
+              onMouseOver={e=>{e.currentTarget.style.paddingLeft='8px';e.currentTarget.style.background='rgba(242,238,230,.02)'}}
               onMouseOut={e=>{e.currentTarget.style.paddingLeft='0';e.currentTarget.style.background='transparent'}}>
               {a.avatar_url
                 ? <img src={a.avatar_url} alt="" style={{width:'36px',height:'36px',borderRadius:'50%',objectFit:'cover',border:'1px solid var(--border-hi)',flexShrink:0}}/>
                 : <div style={{width:'36px',height:'36px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'14px',color:'var(--cream)',flexShrink:0}}>{(a.name||'?')[0].toUpperCase()}</div>}
               <div style={{flex:1}}><div style={{fontSize:'13px',fontWeight:500,color:'var(--cream)'}}>{a.name||'Attendee'}</div></div>
-              <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'#00D54B',background:'rgba(0,213,75,.06)',border:'1px solid rgba(0,213,75,.15)',padding:'3px 8px',borderRadius:'100px'}}>GOING</span>
+              <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'#C7C9D1',background:'rgba(199,201,209,.06)',border:'1px solid rgba(199,201,209,.15)',padding:'3px 8px',borderRadius:'100px'}}>GOING</span>
             </div>
           ))}</div>}
         </div>
@@ -195,7 +195,7 @@ export default function Community() {
                   return(
                     <div key={msg.id||i} style={{display:'flex',gap:'10px',flexDirection:isMe?'row-reverse':'row'}}>
                       {!isMe&&<div style={{width:'28px',height:'28px',borderRadius:'50%',background:'var(--bg-raised)',border:'1px solid var(--border-hi)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'11px',color:'var(--cream)',flexShrink:0,marginTop:'2px'}}>{(msg.sender_name||'?')[0].toUpperCase()}</div>}
-                      <div style={{maxWidth:'78%',background:isMe?'rgba(242,230,208,.06)':'var(--bg-card)',border:'1px solid '+(isMe?'rgba(242,230,208,.1)':'var(--border)'),borderRadius:isMe?'14px 14px 4px 14px':'14px 14px 14px 4px',padding:'10px 14px'}}>
+                      <div style={{maxWidth:'78%',background:isMe?'rgba(242,238,230,.06)':'var(--bg-card)',border:'1px solid '+(isMe?'rgba(242,238,230,.1)':'var(--border)'),borderRadius:isMe?'14px 14px 4px 14px':'14px 14px 14px 4px',padding:'10px 14px'}}>
                         {!isMe&&<div style={{fontSize:'11px',fontWeight:600,color:'var(--cream)',marginBottom:'3px'}}>{msg.sender_name}</div>}
                         <div style={{fontSize:'13px',color:'var(--cream-mid)',lineHeight:1.5}}>{msg.text}</div>
                         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'4px',textAlign:isMe?'right':'left'}}>{new Date(msg.created_at).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>
@@ -207,7 +207,7 @@ export default function Community() {
               </div>
             )}
           </div>
-          <div style={{position:'fixed',bottom:'72px',left:0,right:0,background:'rgba(10,9,8,.95)',borderTop:'1px solid var(--border)',padding:'10px 20px',zIndex:99}}>
+          <div style={{position:'fixed',bottom:'72px',left:0,right:0,background:'rgba(10,10,13,.95)',borderTop:'1px solid var(--border)',padding:'10px 20px',zIndex:99}}>
             <div style={{maxWidth:'430px',margin:'0 auto',display:'flex',gap:'8px',alignItems:'center'}}>
               <input type="text" placeholder="Say something..." value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()}
                 style={{flex:1,background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'100px',padding:'12px 18px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'13px',outline:'none'}}/>
