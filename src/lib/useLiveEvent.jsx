@@ -63,6 +63,7 @@ export function LiveEventProvider({ children }) {
       .from('events')
       .select('*')
       .eq('status', 'published')
+      .eq('is_test', false)   // never surface the hidden QA event (migration 0012)
       .order('created_at', { ascending: false })
       .limit(1)
       .then(({ data }) => { if (alive) setState(shape(data && data[0] ? data[0] : null, false)) })
