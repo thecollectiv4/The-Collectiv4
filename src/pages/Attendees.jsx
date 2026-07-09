@@ -4,9 +4,10 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { Lock, Sparkles, Ticket } from 'lucide-react'
+import AuthResolving from '@/components/AuthResolving'
 
 export default function Attendees() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [attendees, setAttendees] = useState([])
@@ -17,6 +18,9 @@ export default function Attendees() {
       .then(({data}) => { setAttendees(data||[]); setLoading(false) })
       .catch(() => { setAttendees([]); setLoading(false) })
   }, [live.id])
+
+  // Session still rehydrating — never flash the join wall at a signed-in member.
+  if (authLoading) return <AuthResolving />
 
   if (!user) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'var(--bg)'}}>

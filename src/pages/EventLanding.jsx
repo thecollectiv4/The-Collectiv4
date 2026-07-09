@@ -8,7 +8,7 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
 export default function EventLanding() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   // The live event comes from the single source of truth (useLiveEvent), not a
@@ -51,6 +51,9 @@ export default function EventLanding() {
   const shortDate = live.dateShort                  // "Jun 13" / "soon"
 
   async function handleCheckout(tierId) {
+    // Session still rehydrating (hard load + instant click) — ignore the click
+    // rather than bounce a signed-in buyer to /auth. The window is milliseconds.
+    if (authLoading) return
     if (!user) { navigate('/auth'); return }
     if (!event) return
     setCheckingOut(true)

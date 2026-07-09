@@ -4,9 +4,10 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { Send, Lock, MessageCircle } from 'lucide-react'
+import AuthResolving from '@/components/AuthResolving'
 
 export default function EventChat() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [messages, setMessages] = useState([])
@@ -47,6 +48,9 @@ export default function EventChat() {
       setMessages(prev => [...prev, { ...msg, id: Date.now(), is_local: true }])
     }
   }
+
+  // Session still rehydrating — never flash the join wall at a signed-in member.
+  if (authLoading) return <AuthResolving />
 
   if (!user) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'var(--bg)'}}>

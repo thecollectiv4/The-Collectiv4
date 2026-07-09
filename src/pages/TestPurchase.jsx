@@ -4,11 +4,12 @@ import { supabase } from '@/api/supabase'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function TestPurchase() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
 
   const runTest = async () => {
+    if (authLoading) { setStatus({ ok: false, msg: 'Checking your session — try again in a second' }); return }
     if (!user) { setStatus({ ok: false, msg: 'Sign in first' }); return }
     setLoading(true)
     setStatus(null)

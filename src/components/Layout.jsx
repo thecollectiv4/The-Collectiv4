@@ -21,14 +21,26 @@ const PUBLIC_PATHS = ['/', '/discover']
 export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const { state: osState } = useOSAccess()
   const isDesktop = useIsDesktop()
   const prevIdx = useRef(0)
   const [transClass, setTransClass] = useState('page-transition')
-  // Don't auto-open the sign-in modal when landing on a public route.
-  const [showAuth, setShowAuth] = useState(!user && !PUBLIC_PATHS.includes(location.pathname))
+  // Don't auto-open the sign-in modal when landing on a public route — and never
+  // while the session is still rehydrating. On a hard load `user` is null until
+  // getSession() resolves; computing showAuth from that flashed the modal at
+  // signed-in members. Auto-open only once, on a CONFIRMED unauthenticated state.
+  const [showAuth, setShowAuth] = useState(false)
   const [authDismissed, setAuthDismissed] = useState(false)
+  const autoPrompted = useRef(false)
+  useEffect(() => {
+    if (authLoading || autoPrompted.current) return
+    // Consume the one-shot on the FIRST resolution regardless of outcome — if it
+    // only armed-off when unauthenticated, a later mid-session SIGNED_OUT (cross-tab
+    // sign-out, failed token refresh) would pop the modal unprompted. First-load only.
+    autoPrompted.current = true
+    if (!user && !PUBLIC_PATHS.includes(location.pathname)) setShowAuth(true)
+  }, [authLoading, user])
 
   // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
   const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs
@@ -50,7 +62,9 @@ export default function Layout() {
 
   const handleTabClick = (tab) => {
     // Only gate tabs that actually require auth; public tabs navigate freely.
-    if (tab.requiresAuth && !user) {
+    // While auth is still resolving, navigate optimistically — the target page's
+    // own three-way guard settles it (an unresolved identity is not "signed out").
+    if (tab.requiresAuth && !authLoading && !user) {
       setShowAuth(true)
     } else {
       navigate(tab.to)

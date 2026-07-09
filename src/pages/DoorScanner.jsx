@@ -4,9 +4,10 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft, Camera, Keyboard, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
+import AuthResolving from '@/components/AuthResolving'
 
 export default function DoorScanner() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [mode, setMode] = useState('camera')
@@ -88,6 +89,9 @@ export default function DoorScanner() {
     setCode('')
     if (mode === 'camera') startCamera()
   }
+
+  // Session still rehydrating — never flash "Sign in required" at signed-in door staff.
+  if (authLoading) return <AuthResolving />
 
   if (!user) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}><div style={{ color: 'var(--cream-low)' }}>Sign in required</div></div>
 

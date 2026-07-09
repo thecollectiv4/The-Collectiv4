@@ -6,16 +6,29 @@ import { useLiveEvent } from '@/lib/useLiveEvent'
 import { LogOut, Calendar, MapPin, Clock, ChevronRight, Sparkles, Copy, Check } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
+import AuthResolving from '@/components/AuthResolving'
 
 export default function Profile() {
-  const { user, signOut } = useAuth()
+  const { user, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
   const [ticket, setTicket] = useState(null)
   const [copied, setCopied] = useState(false)
 
-  useEffect(() => { if (!user) { navigate('/auth'); return } load() }, [user])
+  // Three-way guard: loading · authenticated · unauthenticated. On a hard load
+  // (direct URL, the confirmation email's CTA) this effect fires BEFORE Supabase
+  // rehydrates the session from storage — user is null because getSession() hasn't
+  // resolved yet, not because the visitor is signed out. Never redirect on an
+  // unresolved identity; only a CONFIRMED unauthenticated state sends to /auth.
+  useEffect(() => {
+    if (authLoading) return
+    if (!user) { navigate('/auth'); return }
+    load()
+  }, [user, authLoading])
+
+  // Cosmos holding state while identity resolves (or right before the redirect fires).
+  if (authLoading || !user) return <AuthResolving />
 
   const load = async () => {
     let { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()

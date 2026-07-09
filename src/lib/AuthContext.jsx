@@ -7,6 +7,10 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  // Three-way auth state, not two: `loading` is the third state. Until
+  // getSession() resolves from storage, identity is UNKNOWN — user=null here
+  // means "not resolved yet", not "signed out". Every guard must wait for
+  // loading=false before treating null as unauthenticated (hard-load bounce fix).
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
