@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
-import { Loader2, ArrowRight, Check, Sparkles } from 'lucide-react'
+import { Loader2, ArrowRight, Check, Sparkles, RotateCcw } from 'lucide-react'
 
 /* =========================================================================
    ClaimWorld — the post-purchase retention bridge (the flywheel hook).
@@ -12,6 +12,15 @@ import { Loader2, ArrowRight, Check, Sparkles } from 'lucide-react'
    email to their profile (claim_my_tickets RPC, best-effort), confirm the
    ticket, and drive them to BUILD THEIR WORLD — turning a buyer into a museum.
    Cosmos-chrome, same universe as the profile-museum.
+
+   ACTION INTEGRITY (platform-wide invariant): this surface NEVER says "YOU'RE
+   IN" until it has VERIFIED a real confirmed ticket row against the DB. The
+   webhook that writes that row is async (Stripe delivers seconds later, and can
+   fail), so we POLL the source of truth (every 2s, up to ~20s):
+     confirming → confirmed   (a real ticket row appeared)
+     confirming → notfound    (timeout: honest error + retry, never a false YES)
+   A "confirmed" screen with no ticket behind it is the same disease as a chip
+   with no tool call — forbidden. The check follows the row, never leads it.
    ========================================================================= */
 
 const VOID = '#0A0A0D'
@@ -24,43 +33,53 @@ const HAIR_HI = 'rgba(242,238,230,0.15)'
 const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
+const POLL_MS = 2000
+const MAX_ATTEMPTS = 10   // ~20s of webhook grace before the honest error state
+
 export default function ClaimWorld() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
-  const [working, setWorking] = useState(true)
+  // phase: loading | confirming | confirmed | notfound | loggedout
+  const [phase, setPhase] = useState('loading')
   const [ticket, setTicket] = useState(null)
   const [profile, setProfile] = useState(null)
+  const [retryNonce, setRetryNonce] = useState(0)
 
   useEffect(() => {
+    if (authLoading) return
+    if (!user) { setPhase('loggedout'); return }
     let alive = true
-    async function run() {
-      if (authLoading) return
-      if (!user) { setWorking(false); return } // logged-out branch (email opened elsewhere)
-      // Best-effort: link any orphaned ticket bought under this user's verified
-      // email to their account. Safe to fail (e.g. RPC not yet deployed) — the
-      // normal path already linked the ticket via buyer_id at checkout.
-      try { await supabase.rpc('claim_my_tickets') } catch (e) { /* non-fatal */ }
+    let attempts = 0
+    let timer = null
+    setPhase('loading')
 
-      // Load the buyer's most recent confirmed ticket (RLS: buyer_id = auth.uid()).
+    // profile drives build-vs-open copy; load it once, non-blocking.
+    supabase.from('profiles').select('id, full_name, username, bio, taste, media')
+      .eq('id', user.id).maybeSingle()
+      .then(({ data }) => { if (alive) setProfile(data || null) })
+
+    // Poll the source of truth. Each round re-runs claim_my_tickets (best-effort,
+    // links an orphaned ticket bought under this email) then reads the real row.
+    async function poll() {
+      if (!alive) return
+      try { await supabase.rpc('claim_my_tickets') } catch (e) { /* non-fatal */ }
       const { data: tk } = await supabase
         .from('tickets').select('*')
         .eq('buyer_id', user.id).eq('status', 'confirmed')
         .order('created_at', { ascending: false }).limit(1).maybeSingle()
-
-      // Load the profile to tell "build" from "open" your world.
-      const { data: p } = await supabase
-        .from('profiles').select('id, full_name, username, bio, taste, media')
-        .eq('id', user.id).maybeSingle()
-
       if (!alive) return
-      setTicket(tk || null)
-      setProfile(p || null)
-      setWorking(false)
+      if (tk) { setTicket(tk); setPhase('confirmed'); return }   // VERIFIED — only now do we say yes
+      attempts += 1
+      if (attempts >= MAX_ATTEMPTS) { setPhase('notfound'); return }  // honest timeout, never a false confirm
+      setPhase('confirming')
+      timer = setTimeout(poll, POLL_MS)
     }
-    run()
-    return () => { alive = false }
-  }, [user, authLoading])
+    poll()
+    return () => { alive = false; if (timer) clearTimeout(timer) }
+  }, [user, authLoading, retryNonce])
+
+  const retry = useCallback(() => { setTicket(null); setPhase('loading'); setRetryNonce((n) => n + 1) }, [])
 
   const hasWorld = !!(profile && (profile.bio || profile.username ||
     (profile.taste && (profile.taste.music?.length || profile.taste.films?.length || profile.taste.influences?.length)) ||
@@ -72,19 +91,22 @@ export default function ClaimWorld() {
     </div>
   )
 
-  // ---- working / linking ----
-  if (authLoading || working) return shell(
-    <div style={{ textAlign: 'center' }}>
+  // ---- confirming: payment done, waiting on the webhook to write the ticket ----
+  if (authLoading || phase === 'loading' || phase === 'confirming') return shell(
+    <div style={{ textAlign: 'center', maxWidth: '360px', margin: '0 auto' }}>
       <Loader2 size={22} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
-      <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', marginTop: '18px' }}>Linking your ticket</div>
+      <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', marginTop: '18px' }}>Confirming your ticket…</div>
+      <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_LOW, lineHeight: 1.6, marginTop: '12px' }}>
+        Your payment went through. We’re waiting for the confirmation to land — usually just a few seconds.
+      </p>
     </div>
   )
 
   // ---- logged out (opened the email link on another device / expired session) ----
-  if (!user) return shell(
+  if (!user || phase === 'loggedout') return shell(
     <div style={{ textAlign: 'center', maxWidth: '420px', margin: '0 auto' }}>
       <Kicker>Ran By Artists</Kicker>
-      <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(40px,13vw,54px)', lineHeight: .9, margin: '14px 0 0', ...chromeText }}>YOUR TICKET<br />IS CONFIRMED</h1>
+      <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(40px,13vw,54px)', lineHeight: .9, margin: '14px 0 0', ...chromeText }}>CLAIM YOUR<br />TICKET</h1>
       <p style={{ fontFamily: 'DM Sans', fontSize: '15px', color: BONE_MID, lineHeight: 1.6, margin: '22px auto 0', maxWidth: '340px' }}>
         Sign in with the email you used at checkout to claim your world — your profile, your ticket, your place in the room.
       </p>
@@ -94,7 +116,27 @@ export default function ClaimWorld() {
     </div>
   )
 
-  // ---- confirmed + authenticated: the hook ----
+  // ---- notfound: timed out without a real ticket. Honest error, never a false YES ----
+  if (phase === 'notfound') return shell(
+    <div style={{ textAlign: 'center', maxWidth: '420px', margin: '0 auto' }}>
+      <div style={{ width: '52px', height: '52px', margin: '0 auto', borderRadius: '50%', border: `1px solid ${HAIR_HI}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'DM Mono', fontSize: '20px', color: BONE_MID, lineHeight: 1 }}>△</span>
+      </div>
+      <div style={{ marginTop: '18px' }}><Kicker>Ran By Artists</Kicker></div>
+      <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(34px,11vw,48px)', lineHeight: .9, margin: '12px 0 0', color: BONE }}>STILL CONFIRMING</h1>
+      <p style={{ fontFamily: 'DM Sans', fontSize: '15px', color: BONE_MID, lineHeight: 1.65, margin: '18px auto 0', maxWidth: '360px' }}>
+        Your payment went through, but the ticket confirmation hasn’t landed yet. This is almost always a short delay — give it a moment and retry. We won’t show you as in until it’s real.
+      </p>
+      <button onClick={retry} style={{ ...ctaStyle, width: '100%', marginTop: '26px' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
+        <RotateCcw size={16} /> Retry
+      </button>
+      <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '16px', lineHeight: 1.6 }}>
+        Still nothing after a minute? DM <span style={{ color: BONE_MID }}>@thecollectiv4</span> with your receipt<br />and we’ll confirm it by hand.
+      </div>
+    </div>
+  )
+
+  // ---- confirmed + authenticated: the hook. `ticket` is guaranteed real here ----
   const firstName = (profile?.full_name || user.user_metadata?.full_name || '').split(' ')[0]
   return shell(
     <div style={{ maxWidth: '440px', margin: '0 auto', width: '100%' }}>
@@ -102,7 +144,7 @@ export default function ClaimWorld() {
         <div style={{ width: '52px', height: '52px', margin: '0 auto', borderRadius: '50%', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 26px rgba(199,201,209,.22)' }}>
           <Check size={22} style={{ color: STAR }} />
         </div>
-        <div style={{ marginTop: '18px' }}><Kicker>{live?.name || 'Ran By Artists'}{ticket && live?.editionNumber ? ` · ${live.editionNumber}` : ''}</Kicker></div>
+        <div style={{ marginTop: '18px' }}><Kicker>{live?.name || 'Ran By Artists'}{live?.editionNumber ? ` · ${live.editionNumber}` : ''}</Kicker></div>
         <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(40px,13vw,56px)', lineHeight: .88, margin: '12px 0 0', ...chromeText }}>
           {firstName ? `YOU'RE IN, ${firstName.toUpperCase()}` : "YOU'RE IN"}
         </h1>
@@ -113,19 +155,17 @@ export default function ClaimWorld() {
         </p>
       </div>
 
-      {/* ticket chip */}
-      {ticket && (
-        <div style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(199,201,209,.04)' }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(232,233,237,.7)', flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em' }}>CONFIRMED</div>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '12px', color: BONE, letterSpacing: '.04em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.qr_code}</div>
-          </div>
-          {typeof ticket.price_paid === 'number' && (
-            <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW }}>${(ticket.price_paid / 100).toFixed(0)} PAID</span>
-          )}
+      {/* ticket chip — always present in this state (phase=confirmed ⇒ ticket exists) */}
+      <div style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(199,201,209,.04)' }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(232,233,237,.7)', flexShrink: 0 }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em' }}>CONFIRMED</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '12px', color: BONE, letterSpacing: '.04em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.qr_code}</div>
         </div>
-      )}
+        {typeof ticket.price_paid === 'number' && (
+          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW }}>${(ticket.price_paid / 100).toFixed(0)} PAID</span>
+        )}
+      </div>
 
       {/* the hook — build/open your world */}
       <button onClick={() => navigate('/profile')} style={{ ...ctaStyle, marginTop: '22px', width: '100%' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
