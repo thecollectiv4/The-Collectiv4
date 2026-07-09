@@ -83,8 +83,8 @@ export default function Layout() {
       {/* Nav - consumer surfaces + mobile /os; never on desktop /os */}
       {!osDesktop && <nav style={{
         position:'fixed', bottom:0, left:0, right:0,
-        background:'rgba(10,9,8,.97)',
-        borderTop:'1px solid rgba(242,230,208,.08)',
+        background:'rgba(10,10,13,.97)',
+        borderTop:'1px solid rgba(242,238,230,.08)',
         display:'flex', justifyContent:'space-around', alignItems:'center',
         zIndex:9999,
         paddingTop:'10px',
@@ -97,7 +97,7 @@ export default function Layout() {
             <div key={tab.to} onClick={()=>handleTabClick(tab)} style={{
               display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
               padding:'4px 20px', cursor:'pointer',
-              color: active ? '#F2E6D0' : '#686058',
+              color: active ? '#F2EEE6' : '#83838F',
               WebkitTapHighlightColor:'transparent',
               transition:'color 0.2s',
             }}>

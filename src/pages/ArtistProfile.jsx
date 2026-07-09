@@ -8,9 +8,9 @@ const ARTISTS = {
     location: 'Houston, TX',
     bio: "Visual storyteller bringing raw emotion to canvas. Isaac's work lives at the intersection of street culture and fine art — bold, unapologetic, and deeply personal. His pieces anchor the gallery for Ran By Artists Edition 002.",
     contributions: ['Gallery Featured Artist — RBA 002', 'Flyer design — Edition 001 & 002', 'Original paintings on display and for sale', 'Founder — Stained Vase'],
-    founded: { name: 'STAINED VASE', slug: 'stained-vase', role: 'Brand', accent: '#C83060' },
+    founded: { name: 'STAINED VASE', slug: 'stained-vase', role: 'Brand', accent: '#C7C9D1' },
     initial: 'I',
-    accent: '#C83060',
+    accent: '#C7C9D1',
   },
   'drecol': {
     name: 'DRECOL',
@@ -19,7 +19,7 @@ const ARTISTS = {
     bio: "Drecol paints live as the music plays — each piece a one-of-one record of the night. His process is raw and immediate, creating work that captures the energy of the room in real time. No sketches, no prep — just paint and presence.",
     contributions: ['Live Painter — RBA 002', 'Gallery Featured Artist — RBA 002', 'Original live-painted pieces available for purchase'],
     initial: 'D',
-    accent: '#D06020',
+    accent: '#F2EEE6',
   },
   'pato-duran': {
     name: 'PATO DURÁN',
@@ -30,7 +30,7 @@ const ARTISTS = {
     contributions: ['Founder — The Collectiv4', 'DJ — RBA Edition 001 & 002', 'Creative Direction — Events & Platform'],
     initial: 'P',
     accent: '#4A7AFF',
-    founded: { name: 'THE COLLECTIV4', slug: 'the-collectiv4', role: 'Creative Ecosystem', accent: '#F2E6D0' },
+    founded: { name: 'THE COLLECTIV4', slug: 'the-collectiv4', role: 'Creative Ecosystem', accent: '#F2EEE6' },
   },
   'diego-villasenor': {
     name: 'DIEGO VILLASEÑOR',
@@ -40,10 +40,10 @@ const ARTISTS = {
     bio: "Founder of The Collectiv4. Visual artist and creative director behind the collective's identity. Brand, media, content, event design — nothing goes out without his eye on it.",
     contributions: ['Founder — The Collectiv4', 'Visual & Creative Direction', 'Artist — Digital & Mixed Media', 'European Expansion — Long-term Vision'],
     initial: 'D',
-    accent: '#D4A040',
+    accent: '#C7C9D1',
     foundedMultiple: [
-      { name: 'THE COLLECTIV4', slug: 'the-collectiv4', role: 'Creative Ecosystem', accent: '#F2E6D0' },
-      { name: 'VISURELIC', slug: 'visurelic', role: 'Creative Studio', accent: '#D4A040' },
+      { name: 'THE COLLECTIV4', slug: 'the-collectiv4', role: 'Creative Ecosystem', accent: '#F2EEE6' },
+      { name: 'VISURELIC', slug: 'visurelic', role: 'Creative Studio', accent: '#C7C9D1' },
     ],
   },
   'visurelic': {
@@ -54,7 +54,7 @@ const ARTISTS = {
     bio: "Where visual culture meets the future. Visurelic is Diego Villaseñor's personal creative brand — digital art, mixed media, and visual direction that shapes everything The Collectiv4 puts into the world.",
     contributions: ['Visual identity for The Collectiv4', 'Creative direction — RBA Edition 001 & 002', 'Digital art & mixed media'],
     initial: 'V',
-    accent: '#D4A040',
+    accent: '#C7C9D1',
     isBrand: true,
     owner: { name: 'Diego Villaseñor', slug: 'diego-villasenor', role: 'Founder', location: 'Houston, TX / Valencia, Spain' },
   },
@@ -66,11 +66,11 @@ const ARTISTS = {
     bio: "A Houston-based creative ecosystem operating at the intersection of music, live events, artist collaboration, and community building. Built by artists, for artists.",
     contributions: ['Ran By Artists — Flagship event series', 'Collective World — Digital platform', 'Artist & brand partnerships', 'Community building across Houston'],
     initial: 'C4',
-    accent: '#F2E6D0',
+    accent: '#F2EEE6',
     isBrand: true,
     owners: [
       { name: 'Pato Durán', slug: 'pato-duran', role: 'Founder · DJ · Creative Director', color: '#4A7AFF' },
-      { name: 'Diego Villaseñor', slug: 'diego-villasenor', role: 'Founder · Artist · Creative Director', color: '#D4A040' },
+      { name: 'Diego Villaseñor', slug: 'diego-villasenor', role: 'Founder · Artist · Creative Director', color: '#C7C9D1' },
     ],
   },
   'stained-vase': {
@@ -81,7 +81,7 @@ const ARTISTS = {
     bio: "Houston-born brand turning identity into fabric. Every piece is a statement — rooted in culture, designed for the streets. Official brand partner for Ran By Artists.",
     contributions: ['Brand Partner — RBA Edition 001 & 002', 'Fashion Pop-Up — Exclusive pieces', 'Screen Printing Collab — Limited edition designs'],
     initial: 'SV',
-    accent: '#C83060',
+    accent: '#C7C9D1',
     isBrand: true,
     owner: { name: 'Isaac Lagarda', slug: 'isaac-lagarda', role: 'Founder', location: 'Houston, TX' },
   },
@@ -93,7 +93,7 @@ const ARTISTS = {
     bio: "Coffee as culture. Arlo brings specialty espresso to the creative scene — fueling late nights and early mornings. Official sponsor and community partner for Ran By Artists.",
     contributions: ['Brand Partner — RBA Edition 001 & 002', 'On-site espresso bar', 'Community hub partnership'],
     initial: 'A',
-    accent: '#A07040',
+    accent: '#C7C9D1',
     isBrand: true,
   },
   'madou': {
@@ -120,9 +120,9 @@ export default function ArtistProfile() {
   )
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh'}}>
       {/* Header */}
-      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
+      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button onClick={()=>navigate(-1)} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer',display:'flex',alignItems:'center'}}>
           <ArrowLeft size={18}/>
         </button>

@@ -19,9 +19,9 @@ export default function PastEditions() {
   const navigate = useNavigate()
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh'}}>
       {/* Header matching Event page */}
-      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(13,10,4,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
+      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button onClick={()=>navigate('/')} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer',display:'flex',alignItems:'center'}}>
           <ArrowLeft size={18}/>
         </button>
@@ -33,7 +33,7 @@ export default function PastEditions() {
           <div key={ed.id} style={{
             borderRadius:'20px',
             overflow:'hidden',
-            background:'linear-gradient(160deg,#1C1810,#141008,#0D0A04)',
+            background:'linear-gradient(160deg,#0A0A0D,#0A0A0D,#0A0A0D)',
             border:'1px solid rgba(255,255,255,.1)',
             boxShadow:'0 8px 40px rgba(0,0,0,.5)',
           }}>
@@ -50,14 +50,14 @@ export default function PastEditions() {
               <div style={{
                 position:'absolute',top:'24px',right:'24px',
                 display:'flex',alignItems:'center',gap:'6px',
-                background:'linear-gradient(135deg,rgba(255,215,0,.2),rgba(255,255,255,.15),rgba(255,215,0,.2))',
-                border:'1px solid rgba(255,215,0,.4)',
+                background:'linear-gradient(135deg,rgba(242,238,230,.2),rgba(255,255,255,.15),rgba(242,238,230,.2))',
+                border:'1px solid rgba(242,238,230,.4)',
                 borderRadius:'100px',padding:'6px 14px',
-                boxShadow:'0 0 16px rgba(255,215,0,.15),inset 0 1px 0 rgba(255,255,255,.2)',
+                boxShadow:'0 0 16px rgba(242,238,230,.15),inset 0 1px 0 rgba(255,255,255,.2)',
                 animation:'countPulse 3s infinite',
               }}>
-                <Award size={12} strokeWidth={2} style={{color:'#FFD700'}} />
-                <span style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.12em',color:'#FFD700',fontWeight:700}}>ATTENDED</span>
+                <Award size={12} strokeWidth={2} style={{color:'#F2EEE6'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.12em',color:'#F2EEE6',fontWeight:700}}>ATTENDED</span>
               </div>
 
               <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.2em',marginBottom:'16px'}}>RAN BY ARTISTS</div>

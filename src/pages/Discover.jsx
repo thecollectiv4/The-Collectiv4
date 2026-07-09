@@ -113,6 +113,7 @@ export default function Discover() {
         .from('events')
         .select('id,slug,title,edition,event_date,venue,city,cover_url,status')
         .eq('status', 'published')
+        .eq('is_test', false)   // never surface the hidden QA event (migration 0012)
         .order('event_date', { ascending: true })
 
       if (!alive) return

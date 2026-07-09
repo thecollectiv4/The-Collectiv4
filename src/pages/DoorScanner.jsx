@@ -92,7 +92,7 @@ export default function DoorScanner() {
   if (!user) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}><div style={{ color: 'var(--cream-low)' }}>Sign in required</div></div>
 
   return (
-    <div style={{ background: 'linear-gradient(180deg,#0E0D0C 0%,#0A0908 40%,#0A0908 100%)', minHeight: '100vh' }}>
+    <div style={{ background: 'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 40%,#0A0A0D 100%)', minHeight: '100vh' }}>
       {/* Header */}
       <div style={{ padding: '20px 28px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'var(--cream)', cursor: 'pointer' }}><ArrowLeft size={18} /></button>
@@ -104,11 +104,11 @@ export default function DoorScanner() {
 
       {/* Stats */}
       <div style={{ padding: '0 28px 20px', display: 'flex', gap: '12px' }}>
-        <div style={{ flex: 1, padding: '16px', borderRadius: '12px', background: 'rgba(0,213,75,.04)', border: '1px solid rgba(0,213,75,.15)', textAlign: 'center' }}>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: '32px', color: '#00D54B' }}>{stats.checkedIn}</div>
+        <div style={{ flex: 1, padding: '16px', borderRadius: '12px', background: 'rgba(199,201,209,.04)', border: '1px solid rgba(199,201,209,.15)', textAlign: 'center' }}>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: '32px', color: '#C7C9D1' }}>{stats.checkedIn}</div>
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em' }}>CHECKED IN</div>
         </div>
-        <div style={{ flex: 1, padding: '16px', borderRadius: '12px', background: 'rgba(242,230,208,.03)', border: '1px solid var(--border-hi)', textAlign: 'center' }}>
+        <div style={{ flex: 1, padding: '16px', borderRadius: '12px', background: 'rgba(242,238,230,.03)', border: '1px solid var(--border-hi)', textAlign: 'center' }}>
           <div style={{ fontFamily: 'Bebas Neue', fontSize: '32px', color: 'var(--cream)' }}>{stats.total}</div>
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em' }}>TOTAL SOLD</div>
         </div>
@@ -117,7 +117,7 @@ export default function DoorScanner() {
       {/* Mode toggle */}
       <div style={{ padding: '0 28px 16px', display: 'flex', gap: '4px' }}>
         {[['camera', 'Camera', Camera], ['manual', 'Manual', Keyboard]].map(([id, label, Icon]) => (
-          <button key={id} onClick={() => { stopCamera(); setMode(id); setResult(null) }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: mode === id ? 'rgba(242,230,208,.08)' : 'transparent', color: mode === id ? 'var(--cream)' : 'var(--cream-low)', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, transition: 'all .2s' }}>
+          <button key={id} onClick={() => { stopCamera(); setMode(id); setResult(null) }} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer', background: mode === id ? 'rgba(242,238,230,.08)' : 'transparent', color: mode === id ? 'var(--cream)' : 'var(--cream-low)', fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, transition: 'all .2s' }}>
             <Icon size={14} />{label}
           </button>
         ))}
@@ -145,13 +145,13 @@ export default function DoorScanner() {
         {/* Result */}
         {result && (
           <div style={{ animation: 'fadeUp .3s ease' }}>
-            <div style={{ padding: '32px', borderRadius: '16px', border: `1px solid ${result.ok ? 'rgba(0,213,75,.3)' : 'rgba(220,38,38,.3)'}`, background: result.ok ? 'rgba(0,213,75,.06)' : 'rgba(220,38,38,.06)', textAlign: 'center' }}>
-              {result.ok ? <CheckCircle size={48} style={{ color: '#00D54B', marginBottom: '16px' }} /> : <XCircle size={48} style={{ color: '#EF4444', marginBottom: '16px' }} />}
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: result.ok ? '#00D54B' : '#EF4444', marginBottom: '8px' }}>{result.msg}</div>
+            <div style={{ padding: '32px', borderRadius: '16px', border: `1px solid ${result.ok ? 'rgba(199,201,209,.3)' : 'rgba(229,160,160,.3)'}`, background: result.ok ? 'rgba(199,201,209,.06)' : 'rgba(229,160,160,.06)', textAlign: 'center' }}>
+              {result.ok ? <CheckCircle size={48} style={{ color: '#C7C9D1', marginBottom: '16px' }} /> : <XCircle size={48} style={{ color: '#E5A0A0', marginBottom: '16px' }} />}
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: result.ok ? '#C7C9D1' : '#E5A0A0', marginBottom: '8px' }}>{result.msg}</div>
               <div style={{ fontSize: '16px', color: 'var(--cream)', marginBottom: '4px', fontWeight: 600 }}>{result.detail}</div>
               {result.ticket && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)', marginTop: '8px' }}>{result.ticket.qr_code}</div>}
             </div>
-            <button onClick={resetScan} style={{ width: '100%', marginTop: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(242,230,208,.06)', border: '1px solid var(--border-hi)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <button onClick={resetScan} style={{ width: '100%', marginTop: '16px', padding: '16px', borderRadius: '12px', background: 'rgba(242,238,230,.06)', border: '1px solid var(--border-hi)', color: 'var(--cream)', fontFamily: 'DM Sans', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <RotateCcw size={14} /> Scan Next
             </button>
           </div>

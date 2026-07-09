@@ -58,8 +58,8 @@ export default function EventChat() {
   )
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0E0D0C 0%,#0C0B0A 20%,#0A0908 40%,#0A0908 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
-      <div style={{padding:'16px 28px',borderBottom:'1px solid var(--border)',background:'rgba(13,10,4,.94)',backdropFilter:'blur(20px)',position:'sticky',top:0,zIndex:10}}>
+    <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+      <div style={{padding:'16px 28px',borderBottom:'1px solid var(--border)',background:'rgba(10,10,13,.94)',backdropFilter:'blur(20px)',position:'sticky',top:0,zIndex:10}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.02em'}}>RAN BY ARTISTS</div>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.1em'}}>{messages.length} MESSAGES</div>
       </div>
@@ -94,7 +94,7 @@ export default function EventChat() {
           </div>
         )}
       </div>
-      <div style={{position:'fixed',bottom:'64px',left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',background:'rgba(13,10,4,.94)',backdropFilter:'blur(20px)',borderTop:'1px solid var(--border)',padding:'10px 20px'}}>
+      <div style={{position:'fixed',bottom:'64px',left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',background:'rgba(10,10,13,.94)',backdropFilter:'blur(20px)',borderTop:'1px solid var(--border)',padding:'10px 20px'}}>
         <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
           <input type="text" placeholder="Say something..." value={newMsg} onChange={e=>setNewMsg(e.target.value)} onKeyDown={e=>e.key==='Enter'&&send()}
             style={{flex:1,background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'100px',padding:'12px 18px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'13px',outline:'none'}}/>

@@ -36,8 +36,19 @@ export default function Profile() {
     // fail if the RPC isn't deployed yet — the normal path already links via buyer_id.
     try { await supabase.rpc('claim_my_tickets') } catch (e) { /* non-fatal */ }
 
-    // Load ticket — key on buyer_id to satisfy tickets_self_read RLS (auth.uid()=buyer_id).
-    const { data: tk } = await supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed').maybeSingle()
+    // Load the buyer's ticket — key on buyer_id for tickets_self_read RLS. Two guards:
+    //  1. is_test EXCLUSION — a hidden QA/test event is RLS-hidden, but its ticket ROW is
+    //     owner-readable, so it would otherwise leak onto this profile (and any surface
+    //     that renders a ticket). Never render a test-event ticket. Same principle as
+    //     is_demo: filter it out here. (tickets.event_id has no PostgREST FK to embed, so
+    //     resolve the test event ids first and exclude them.)
+    //  2. order + limit(1) — a buyer can hold >1 confirmed ticket; a bare .maybeSingle()
+    //     returns null on >1 match, silently hiding a real ticket. Show the most recent.
+    const { data: testEvents } = await supabase.from('events').select('id').eq('is_test', true)
+    const testIds = (testEvents || []).map((e) => e.id)
+    let tq = supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed')
+    if (testIds.length) tq = tq.not('event_id', 'in', `(${testIds.join(',')})`)
+    const { data: tk } = await tq.order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (tk) setTicket(tk)
   }
 
@@ -78,8 +89,8 @@ export default function Profile() {
     <>
       <span />
       <button onClick={async () => { await signOut(); navigate('/') }}
-        style={{ background: 'rgba(220,38,38,.06)', border: '1px solid rgba(220,38,38,.2)', borderRadius: '8px', padding: '6px 14px', color: '#EF4444', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'all .2s' }}
-        onMouseOver={e => e.currentTarget.style.background = 'rgba(220,38,38,.15)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(220,38,38,.06)'}>
+        style={{ background: 'rgba(229,160,160,.06)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', padding: '6px 14px', color: '#E5A0A0', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'all .2s' }}
+        onMouseOver={e => e.currentTarget.style.background = 'rgba(229,160,160,.15)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(229,160,160,.06)'}>
         <LogOut size={11} /> Sign Out
       </button>
     </>
@@ -93,7 +104,7 @@ export default function Profile() {
         {ticket ? (
           <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden' }}>
             <div style={{ padding: '24px', background: 'var(--bg-card)', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', marginBottom: '4px' }}>{live.name} {live.editionNumber && <span style={{ color: '#D06020' }}>{live.editionNumber}</span>}</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', marginBottom: '4px' }}>{live.name} {live.editionNumber && <span style={{ color: '#F2EEE6' }}>{live.editionNumber}</span>}</div>
               <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em', marginBottom: '20px' }}>{`${live.dateLong} · ${live.city}`.toUpperCase()}</div>
               <div style={{ display: 'inline-block', padding: '16px', background: '#FFFFFF', borderRadius: '12px', marginBottom: '16px' }}>
                 <QRCodeSVG value={ticket.qr_code || 'RBA2-TICKET'} size={140} level="H" />
@@ -101,22 +112,22 @@ export default function Profile() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: '12px', color: 'var(--cream)', letterSpacing: '.04em', fontWeight: 600 }}>{ticket.qr_code}</span>
                 <button onClick={() => { navigator.clipboard.writeText(ticket.qr_code); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                  {copied ? <Check size={14} style={{ color: '#00D54B' }} /> : <Copy size={14} style={{ color: 'var(--cream-low)' }} />}
+                  {copied ? <Check size={14} style={{ color: '#C7C9D1' }} /> : <Copy size={14} style={{ color: 'var(--cream-low)' }} />}
                 </button>
               </div>
               <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.06em' }}>EARLY BIRD · ${ticket.price_paid || 0} PAID</div>
             </div>
-            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(0,213,75,.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00D54B', boxShadow: '0 0 6px rgba(0,213,75,.4)' }} />
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#00D54B', letterSpacing: '.06em', fontWeight: 600 }}>CONFIRMED</span>
+            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(199,201,209,.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C7C9D1', boxShadow: '0 0 6px rgba(199,201,209,.4)' }} />
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#C7C9D1', letterSpacing: '.06em', fontWeight: 600 }}>CONFIRMED</span>
             </div>
           </div>
         ) : (
           <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'all .3s' }}
             onClick={() => navigate('/')}
-            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,230,208,.2)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
+            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,238,230,.2)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
             <div style={{ padding: '24px', background: 'var(--bg-card)' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>{live.name} {live.editionNumber && <span style={{ color: '#D06020' }}>{live.editionNumber}</span>}</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>{live.name} {live.editionNumber && <span style={{ color: '#F2EEE6' }}>{live.editionNumber}</span>}</div>
               <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)', marginTop: '4px', letterSpacing: '.08em' }}>{live.edition || 'UPCOMING'}</div>
               <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
                 {[[Calendar, live.dateMed.toUpperCase()], [Clock, '10PM'], [MapPin, 'HTX']].map(([Icon, text], i) => (
@@ -140,10 +151,10 @@ export default function Profile() {
         <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>EVENTS ATTENDED</div>
         <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all .2s' }}
           onClick={() => navigate('/editions')}
-          onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(200,96,64,.25)'; e.currentTarget.style.background = 'rgba(200,96,64,.04)' }}
+          onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(229,160,160,.25)'; e.currentTarget.style.background = 'rgba(229,160,160,.04)' }}
           onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(135deg,rgba(200,96,64,.18),rgba(242,230,208,.06))', border: '1px solid rgba(200,96,64,.3)', borderRadius: '8px', padding: '6px 10px', boxShadow: '0 0 12px rgba(200,96,64,.12)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(135deg,rgba(229,160,160,.18),rgba(242,238,230,.06))', border: '1px solid rgba(229,160,160,.3)', borderRadius: '8px', padding: '6px 10px', boxShadow: '0 0 12px rgba(229,160,160,.12)' }}>
               <Sparkles size={12} style={{ color: 'var(--rust)' }} />
               <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: 'var(--rust)' }}>1</span>
             </div>

@@ -49,13 +49,13 @@ export default function UserProfile() {
   if (!profile) return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '18px', background: 'var(--bg)', padding: '40px' }}>
       <div style={{ fontSize: '13px', color: 'var(--cream-low)' }}>Profile not found</div>
-      <button onClick={() => navigate('/community')} style={{ background: 'rgba(242,230,208,.06)', border: '1px solid var(--border-hi)', borderRadius: '8px', padding: '9px 18px', color: 'var(--cream-mid)', fontSize: '12px', cursor: 'pointer', fontFamily: 'DM Sans' }}>Back to Community</button>
+      <button onClick={() => navigate('/community')} style={{ background: 'rgba(242,238,230,.06)', border: '1px solid var(--border-hi)', borderRadius: '8px', padding: '9px 18px', color: 'var(--cream-mid)', fontSize: '12px', cursor: 'pointer', fontFamily: 'DM Sans' }}>Back to Community</button>
     </div>
   )
 
   const topBar = (
     <>
-      <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'rgba(10,9,8,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(242,230,208,.18)', borderRadius: '100px', width: '34px', height: '34px', color: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowLeft size={16} /></button>
+      <button onClick={() => navigate(-1)} aria-label="Back" style={{ background: 'rgba(10,10,13,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(242,238,230,.18)', borderRadius: '100px', width: '34px', height: '34px', color: 'var(--cream)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowLeft size={16} /></button>
       <span />
     </>
   )
