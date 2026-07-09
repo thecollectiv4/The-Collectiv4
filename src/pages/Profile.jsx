@@ -36,13 +36,19 @@ export default function Profile() {
     // fail if the RPC isn't deployed yet — the normal path already links via buyer_id.
     try { await supabase.rpc('claim_my_tickets') } catch (e) { /* non-fatal */ }
 
-    // Load ticket — key on buyer_id to satisfy tickets_self_read RLS (auth.uid()=buyer_id).
-    // A buyer can hold MORE THAN ONE confirmed ticket (multiple events / re-purchases —
-    // confirmed_attendees even allows up to 5), so this must order + limit to one row.
-    // Bare .maybeSingle() returns null on >1 match, which silently HID a ticket the buyer
-    // really owns — the same integrity failure as /claim: never drop a truth that exists.
-    const { data: tk } = await supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed')
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    // Load the buyer's ticket — key on buyer_id for tickets_self_read RLS. Two guards:
+    //  1. is_test EXCLUSION — a hidden QA/test event is RLS-hidden, but its ticket ROW is
+    //     owner-readable, so it would otherwise leak onto this profile (and any surface
+    //     that renders a ticket). Never render a test-event ticket. Same principle as
+    //     is_demo: filter it out here. (tickets.event_id has no PostgREST FK to embed, so
+    //     resolve the test event ids first and exclude them.)
+    //  2. order + limit(1) — a buyer can hold >1 confirmed ticket; a bare .maybeSingle()
+    //     returns null on >1 match, silently hiding a real ticket. Show the most recent.
+    const { data: testEvents } = await supabase.from('events').select('id').eq('is_test', true)
+    const testIds = (testEvents || []).map((e) => e.id)
+    let tq = supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed')
+    if (testIds.length) tq = tq.not('event_id', 'in', `(${testIds.join(',')})`)
+    const { data: tk } = await tq.order('created_at', { ascending: false }).limit(1).maybeSingle()
     if (tk) setTicket(tk)
   }
 
