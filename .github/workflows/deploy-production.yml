@@ -113,3 +113,5 @@ jobs:
           check "production alias" "https://the-collectiv4.vercel.app/" || exit 1
           check "this deploy"      "$DEPLOY_URL/"                        || exit 1
           echo "Production is live and served by this deploy."
+
+# Pipeline verified end-to-end on 2026-07-09 (first green run: 29054621069).
