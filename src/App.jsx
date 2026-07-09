@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
 import { LiveEventProvider } from '@/lib/useLiveEvent'
@@ -15,6 +16,13 @@ import UserProfile from '@/pages/UserProfile'
 import ClaimWorld from '@/pages/ClaimWorld'
 import Discover from '@/pages/Discover'
 import NetworkAdmin from '@/pages/NetworkAdmin'
+import OS from '@/pages/OS'
+
+// DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
+// mirror data so layout is verifiable without a member session. The
+// import.meta.env.DEV guard is statically false in prod builds, so both the
+// route and the chunk are excluded from the production bundle.
+const OSHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__OSHarness')) : null
 
 export default function App() {
   return (
@@ -24,6 +32,9 @@ export default function App() {
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
+          {import.meta.env.DEV && OSHarness && (
+            <Route path="/__os-harness" element={<Suspense fallback={null}><OSHarness /></Suspense>} />
+          )}
           <Route path="/" element={<Layout />}>
             <Route index element={<EventLanding />} />
             <Route path="discover" element={<Discover />} />
@@ -35,6 +46,7 @@ export default function App() {
             <Route path="test-purchase" element={<TestPurchase />} />
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="network" element={<NetworkAdmin />} />{/* owner-only: grant verified */}
+            <Route path="os" element={<OS />} />{/* network-only: internal team hub */}
             {/* Redirects from old routes */}
             <Route path="attendees" element={<Navigate to="/community" />} />
             <Route path="chat" element={<Navigate to="/community" />} />

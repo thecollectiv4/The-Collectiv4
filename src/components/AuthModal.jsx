@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { isNetworkMember } from '@/lib/osAccess'
 import { X } from 'lucide-react'
 
 export default function AuthModal({ onClose }) {
@@ -24,6 +25,8 @@ export default function AuthModal({ onClose }) {
         if (error) throw error
       }
       onClose()
+      // Members land in their work app straight after signing in.
+      if (mode === 'signin' && await isNetworkMember()) navigate('/os')
     } catch (e) { setError(e.message) }
     setLoading(false)
   }

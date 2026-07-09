@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
+import { isNetworkMember } from '@/lib/osAccess'
 import { ArrowLeft } from 'lucide-react'
 
 export default function Auth() {
@@ -23,7 +24,7 @@ export default function Auth() {
     if (mode==='signup' && !name.trim()) { setError('Name is required'); return }
     setLoading(true); setError('')
     try {
-      if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate(next) }
+      if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate(await isNetworkMember() ? '/os' : next) }
       else { const {error}=await signUp(email,password,name.trim()); if(error)throw error; navigate(next) }
     } catch(e){ setError(e.message) } finally{ setLoading(false) }
   }

@@ -1,15 +1,19 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, Compass, Users, User } from 'lucide-react'
+import { CalendarDays, Compass, Users, User, LayoutGrid } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
+import { useOSAccess } from '@/lib/osAccess'
+import { useIsDesktop } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 
-const tabs = [
-  { to: '/',          icon: CalendarDays,  label: 'Event',     idx: 0, requiresAuth: false },
-  { to: '/discover',  icon: Compass,       label: 'Discover',  idx: 1, requiresAuth: false },
-  { to: '/community', icon: Users,         label: 'Community', idx: 2, requiresAuth: true },
-  { to: '/profile',   icon: User,          label: 'Profile',   idx: 3, requiresAuth: true },
+const baseTabs = [
+  { to: '/',          icon: CalendarDays,  label: 'Event',     requiresAuth: false },
+  { to: '/discover',  icon: Compass,       label: 'Discover',  requiresAuth: false },
+  { to: '/community', icon: Users,         label: 'Community', requiresAuth: true },
+  { to: '/profile',   icon: User,          label: 'Profile',   requiresAuth: true },
 ]
+// Network members (verified/owner) get the internal OS as an extra tab.
+const osTab = { to: '/os', icon: LayoutGrid, label: 'OS', requiresAuth: true }
 
 // Public routes never force the sign-in modal (Discover is top-of-funnel).
 const PUBLIC_PATHS = ['/', '/discover']
@@ -18,12 +22,16 @@ export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
+  const { state: osState } = useOSAccess()
+  const isDesktop = useIsDesktop()
   const prevIdx = useRef(0)
   const [transClass, setTransClass] = useState('page-transition')
   // Don't auto-open the sign-in modal when landing on a public route.
   const [showAuth, setShowAuth] = useState(!user && !PUBLIC_PATHS.includes(location.pathname))
   const [authDismissed, setAuthDismissed] = useState(false)
 
+  // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
+  const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs
   const currentIdx = tabs.findIndex(t => t.to === '/' ? location.pathname === '/' : location.pathname.startsWith(t.to))
   const isSubPage = currentIdx === -1
 
@@ -49,9 +57,20 @@ export default function Layout() {
     }
   }
 
+  // WORK surfaces are fluid from 768px up: /os runs its own instrument shell
+  // (left rail inside the page) — the consumer bottom tab bar must not render
+  // there, and the global 430px phone frame (body max-width) is released while
+  // inside. Below 768px, /os keeps the phone pattern like every other tab.
+  // (DESKTOP_QUERY lives in useIsDesktop.js — half-screen windows count.)
+  const osDesktop = isDesktop && location.pathname.startsWith('/os')
+  useEffect(() => {
+    document.body.classList.toggle('os-full', osDesktop)
+    return () => document.body.classList.remove('os-full')
+  }, [osDesktop])
+
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh', background:'var(--bg)' }}>
-      <main style={{ flex:1, paddingBottom:'100px' }}>
+      <main style={{ flex:1, paddingBottom: osDesktop ? 0 : '100px' }}>
         <div key={location.pathname} className={transClass}>
           <Outlet />
         </div>
@@ -61,8 +80,8 @@ export default function Layout() {
       {showAuth && !user && <AuthModal onClose={()=>{setShowAuth(false);setAuthDismissed(true)}} />}
       {/* Also show if they try to navigate without auth after dismissing */}
 
-      {/* Nav - always visible */}
-      <nav style={{
+      {/* Nav - consumer surfaces + mobile /os; never on desktop /os */}
+      {!osDesktop && <nav style={{
         position:'fixed', bottom:0, left:0, right:0,
         background:'rgba(10,9,8,.97)',
         borderTop:'1px solid rgba(242,230,208,.08)',
@@ -87,7 +106,7 @@ export default function Layout() {
             </div>
           )
         })}
-      </nav>
+      </nav>}
     </div>
   )
 }

@@ -44,6 +44,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* WORK surfaces (/os on desktop) release the phone-width frame — consumer
+   surfaces stay mobile-first. Layout.jsx toggles this class by route+viewport. */
+body.os-full { max-width: none; }
+
 ::-webkit-scrollbar { width: 0; }
 /* horizontal gallery rails — hide the scrollbar cross-browser */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -76,3 +80,83 @@ a { color: inherit; text-decoration: none; }
 .page-slide-right { animation: slideInRight 0.3s ease forwards; }
 .page-slide-left { animation: slideInLeft 0.3s ease forwards; }
 .page-scale { animation: scaleIn 0.3s ease forwards; }
+
+/* ============================================================
+   TEAM OS (/os) — the deck become an app. Scoped .os-*.
+   Tokens + motion from collectiv4-universe.html; §E density.
+   ============================================================ */
+.os-root {
+  --os-line: rgba(242,238,230,.15);
+  --os-line-soft: rgba(242,238,230,.08);
+  --os-panel: rgba(242,238,230,.022);
+}
+
+/* reveal — the deck's curve exactly: .95s cubic-bezier(.2,.7,.2,1), 20px rise */
+@keyframes osReveal { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.os-reveal { opacity:0; animation: osReveal .95s cubic-bezier(.2,.7,.2,1) forwards; }
+.os-reveal-fast { opacity:0; animation: osReveal .5s cubic-bezier(.2,.7,.2,1) forwards; }
+
+/* "now" marker on the roadmap strip */
+@keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(232,233,237,.35); } 50% { box-shadow:0 0 0 5px rgba(232,233,237,0); } }
+.os-now-dot { animation: osNowPulse 2.4s ease-in-out infinite; }
+
+/* hover-reveal card actions (always visible on touch devices) */
+.os-card .os-actions { opacity:0; transition:opacity .18s ease; }
+.os-card:hover .os-actions, .os-card:focus-within .os-actions { opacity:1; }
+@media (hover: none) { .os-card .os-actions { opacity:1; } }
+
+/* rows/cards: quiet hover lift — instrument, not brochure */
+.os-card { transition: background .18s ease, border-color .18s ease; }
+.os-card:hover { background: rgba(242,238,230,.03); }
+.os-card.os-dragging { opacity:.35; }
+.os-lane-over { background: rgba(242,238,230,.035) !important; border-color: rgba(242,238,230,.28) !important; }
+
+/* interactive affordances everywhere — filter isn't set inline anywhere, so
+   a brightness lift lands on every button regardless of inline colors */
+.os-root button { transition: color .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease, filter .15s ease; }
+.os-root button:not(:disabled):hover, .os-root a:hover { filter: brightness(1.25); }
+.os-root button:not(:disabled):active { transform: translateY(1px); }
+
+/* consistent focus states across the instrument */
+.os-root button:focus-visible,
+.os-root input:focus-visible,
+.os-root textarea:focus-visible,
+.os-root select:focus-visible,
+.os-root [tabindex]:focus-visible {
+  outline: 1px solid rgba(199,201,209,.6);
+  outline-offset: 2px;
+}
+
+/* styled selects — mono, void, custom chevron (never the browser default) */
+.os-select {
+  appearance: none; -webkit-appearance: none;
+  background-color: #0A0A0D;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2383838F'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  font-family: 'DM Mono', monospace; letter-spacing: .04em;
+}
+.os-select option { background:#0A0A0D; color:#F2EEE6; }
+
+/* instrument scrollbars inside the OS (global app hides them) */
+.os-root ::-webkit-scrollbar { width: 8px; height: 8px; }
+.os-root ::-webkit-scrollbar-track { background: transparent; }
+.os-root ::-webkit-scrollbar-thumb { background: rgba(242,238,230,.12); border-radius: 4px; }
+.os-root ::-webkit-scrollbar-thumb:hover { background: rgba(242,238,230,.22); }
+.os-root { scrollbar-width: thin; scrollbar-color: rgba(242,238,230,.12) transparent; }
+
+/* roadmap node labels: visibility is measured, not breakpointed —
+   RoadmapStrip runs computeVisibleLabels off a ResizeObserver. */
+
+/* board lanes between 768–1100px: a horizontal snap row, never squashed */
+.os-board-snap { scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; scroll-behavior: smooth; }
+.os-board-snap > section { scroll-snap-align: start; }
+
+/* mic while listening */
+@keyframes osMicPulse { 0%,100% { box-shadow:0 0 0 0 rgba(242,238,230,.3); } 50% { box-shadow:0 0 0 7px rgba(242,238,230,0); } }
+.os-mic-live { animation: osMicPulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
+  .os-now-dot, .os-mic-live { animation:none; }
+  .os-root button:not(:disabled):active { transform:none; }
+}
