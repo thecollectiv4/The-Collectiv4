@@ -4,9 +4,10 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { Lock, Send, MessageCircle, Users, Ticket, ArrowLeft } from 'lucide-react'
+import AuthResolving from '@/components/AuthResolving'
 
 export default function Community() {
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [open, setOpen] = useState(false)
@@ -76,7 +77,11 @@ export default function Community() {
     await supabase.from('chat_messages').insert(msg).catch(()=> setMessages(p=>[...p,{...msg,id:Date.now()}]))
   }
 
-  // Not logged in
+  // Session still rehydrating — an unresolved identity is not "signed out".
+  // Never flash the join wall at a signed-in member on a hard load.
+  if (authLoading) return <AuthResolving />
+
+  // Not logged in (confirmed)
   if (!user) return (
     <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'40px 28px',textAlign:'center',background:'var(--bg)'}}>
       <Lock size={24} strokeWidth={1.2} style={{color:'var(--cream-low)',marginBottom:'20px'}}/>
