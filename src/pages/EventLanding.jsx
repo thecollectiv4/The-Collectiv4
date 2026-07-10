@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers, Scan, CheckCircle, XCircle, RotateCcw } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers } from 'lucide-react'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
@@ -79,50 +79,8 @@ export default function EventLanding() {
   const [showCountdown, setShowCountdown] = useState(false)
   const [ticketOpen, setTicketOpen] = useState(false)
 
-  // Scanner state
-  const [scannerOpen, setScannerOpen] = useState(false)
-  const [codeInput, setCodeInput] = useState('')
-  const [codeUnlocked, setCodeUnlocked] = useState(false)
-  const [scanResult, setScanResult] = useState(null)
-  const [scanning, setScanning] = useState(false)
-  const [scannedList, setScannedList] = useState([])
-  const html5QrRef = useRef(null)
-  const DOOR_CODE = '4444'
-
-  const startCamera = async () => {
-    try {
-      const { Html5Qrcode } = await import('html5-qrcode')
-      if (html5QrRef.current) await html5QrRef.current.stop().catch(() => {})
-      const sc = new Html5Qrcode('qr-reader-event')
-      html5QrRef.current = sc
-      setScanning(true)
-      await sc.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 220, height: 220 }, aspectRatio: 1 },
-        (text) => { sc.stop().catch(() => {}); setScanning(false); handleScanResult(text.trim().toUpperCase()) },
-        () => {}
-      )
-    } catch (err) { console.log('Camera error:', err) }
-  }
-
-  // Door check-in runs server-side (check_in_ticket, SECURITY DEFINER, auth-only):
-  // atomic flip + PII-safe result. Tickets are no longer client-readable under RLS.
-  const handleScanResult = async (qr) => {
-    const { data, error } = await supabase.rpc('check_in_ticket', { p_qr: qr })
-    const r = data || {}
-    if (error || r.status === 'denied') {
-      setScanResult({ ok: false, msg: 'NOT AUTHORIZED', detail: 'Sign in as door staff to scan.' })
-    } else if (r.status === 'not_found') {
-      setScanResult({ ok: false, msg: 'NOT FOUND', detail: 'Check the code and try again.' })
-    } else if (r.status === 'already_in') {
-      setScanResult({ ok: false, msg: 'ALREADY IN', detail: r.name || 'Already scanned' })
-    } else {
-      setScanResult({ ok: true, msg: 'WELCOME IN', detail: r.name || 'Attendee' })
-      setScannedList(prev => [{ name: r.name || 'Attendee', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }, ...prev])
-    }
-  }
-
-  const resetScan = () => { setScanResult(null); startCamera() }
+  // Door check-in moved to /door — network-only, server-gated (migration 0013).
+  // Nothing scanner-shaped (and no client secret) ships on the public landing.
   const [countdown, setCountdown] = useState({d:0,h:0,m:0,s:0})
 
   useEffect(() => {
@@ -334,81 +292,6 @@ export default function EventLanding() {
         </div>
       </div>
       )}
-
-      {/* QR SCANNER */}
-      <div style={{padding:'28px',borderTop:'1px solid var(--border)'}}>
-        <div onClick={()=>setScannerOpen(!scannerOpen)} style={{cursor:'pointer',textAlign:'center',padding:'12px',transition:'opacity .2s'}}
-          onMouseOver={e=>e.currentTarget.style.opacity='.6'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>
-          <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.15em'}}>QR SCANNER</div>
-        </div>
-
-        {scannerOpen && (
-          <div style={{marginTop:'16px',animation:'fadeUp .3s ease'}}>
-            {!codeUnlocked ? (
-              <div style={{textAlign:'center'}}>
-                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.15em',marginBottom:'16px'}}>ENTER CODE</div>
-                <div style={{display:'flex',gap:'8px',justifyContent:'center',marginBottom:'12px'}}>
-                  {[0,1,2,3].map(i=>(
-                    <input key={i} id={`code-${i}`} type="tel" maxLength={1} inputMode="numeric" value={codeInput[i]||''}
-                      style={{width:'48px',height:'56px',textAlign:'center',background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'10px',color:'var(--cream)',fontFamily:'Bebas Neue',fontSize:'24px',outline:'none',caretColor:'var(--cream)'}}
-                      onFocus={e=>e.currentTarget.style.borderColor='rgba(242,238,230,.3)'}
-                      onBlur={e=>e.currentTarget.style.borderColor='var(--border-hi)'}
-                      onChange={e=>{
-                        const v=e.target.value.replace(/[^0-9]/g,'')
-                        const newCode=codeInput.substring(0,i)+v+codeInput.substring(i+1)
-                        setCodeInput(newCode)
-                        if(v&&i<3){const next=document.getElementById(`code-${i+1}`);if(next)next.focus()}
-                        if(newCode.length===4&&newCode===DOOR_CODE){setCodeUnlocked(true);setTimeout(()=>startCamera(),300)}
-                      }}
-                      onKeyDown={e=>{if(e.key==='Backspace'&&!codeInput[i]&&i>0){const prev=document.getElementById(`code-${i-1}`);if(prev)prev.focus()}}}
-                    />
-                  ))}
-                </div>
-                {codeInput.length===4&&codeInput!==DOOR_CODE&&<div style={{fontFamily:'DM Mono',fontSize:'10px',color:'#E5A0A0'}}>Wrong code</div>}
-              </div>
-            ) : (
-              <div>
-                {/* Camera */}
-                {!scanResult ? (
-                  <div style={{borderRadius:'12px',overflow:'hidden',border:'1px solid var(--border-hi)',background:'#000'}}>
-                    <div id="qr-reader-event" style={{width:'100%'}}/>
-                    {!scanning&&<div style={{padding:'50px',textAlign:'center',color:'var(--cream-low)',fontSize:'12px'}}>Starting camera...</div>}
-                  </div>
-                ) : (
-                  <div>
-                    <div style={{padding:'24px',borderRadius:'12px',border:`1px solid ${scanResult.ok?'rgba(199,201,209,.3)':'rgba(229,160,160,.3)'}`,background:scanResult.ok?'rgba(199,201,209,.06)':'rgba(229,160,160,.06)',textAlign:'center'}}>
-                      {scanResult.ok?<CheckCircle size={36} style={{color:'#C7C9D1',marginBottom:'10px'}}/>:<XCircle size={36} style={{color:'#E5A0A0',marginBottom:'10px'}}/>}
-                      <div style={{fontFamily:'Bebas Neue',fontSize:'24px',color:scanResult.ok?'#C7C9D1':'#E5A0A0'}}>{scanResult.msg}</div>
-                      <div style={{fontSize:'14px',color:'var(--cream)',fontWeight:600,marginTop:'4px'}}>{scanResult.detail}</div>
-                    </div>
-                    <button onClick={resetScan} style={{width:'100%',marginTop:'12px',padding:'14px',borderRadius:'10px',background:'rgba(242,238,230,.06)',border:'1px solid var(--border-hi)',color:'var(--cream)',fontSize:'13px',fontWeight:500,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',fontFamily:'DM Sans'}}>
-                      <RotateCcw size={13}/> Scan Next
-                    </button>
-                  </div>
-                )}
-
-                {/* Scanned list */}
-                {scannedList.length>0&&(
-                  <div style={{marginTop:'20px'}}>
-                    <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.15em',marginBottom:'10px'}}>SCANNED IN ({scannedList.length})</div>
-                    <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
-                      {scannedList.map((s,i)=>(
-                        <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',borderRadius:'8px',background:'rgba(199,201,209,.04)',border:'1px solid rgba(199,201,209,.1)'}}>
-                          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                            <CheckCircle size={12} style={{color:'#C7C9D1'}}/>
-                            <span style={{fontSize:'13px',color:'var(--cream)',fontWeight:500}}>{s.name}</span>
-                          </div>
-                          <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)'}}>{s.time}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
       {/* FOOTER */}
       <div style={{padding:'36px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>

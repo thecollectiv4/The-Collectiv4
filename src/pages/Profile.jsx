@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
-import { LogOut, Calendar, MapPin, Clock, ChevronRight, Sparkles, Copy, Check } from 'lucide-react'
+import { LogOut, Calendar, MapPin, Clock, ChevronRight, Copy, Check } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
@@ -14,6 +14,8 @@ export default function Profile() {
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
   const [ticket, setTicket] = useState(null)
+  const [ticketEvent, setTicketEvent] = useState(null)  // the ticket's OWN event row — never the live event's name on someone else's ticket
+  const [attended, setAttended] = useState([])          // real past events this user held a confirmed ticket for
   const [copied, setCopied] = useState(false)
 
   // Three-way guard: loading · authenticated · unauthenticated. On a hard load
@@ -37,10 +39,12 @@ export default function Profile() {
       // user_id is NOT NULL on the (Base44-era) profiles table — omitting it made
       // this insert fail silently, so real signups never got a profile row. Set it
       // to the auth uid (same as id) so first-profile creation actually succeeds.
+      // city starts EMPTY — a location the user never claimed is invented data.
+      // (Display surfaces show it only when it exists.)
       const { data: newP } = await supabase.from('profiles').insert({
-        id: user.id, user_id: user.id, full_name: nm, username: '', bio: '', city: 'Houston'
+        id: user.id, user_id: user.id, full_name: nm, username: '', bio: '', city: ''
       }).select().single()
-      data = newP || { id: user.id, full_name: nm, username: '', bio: '', avatar_url: '', city: 'Houston' }
+      data = newP || { id: user.id, full_name: nm, username: '', bio: '', avatar_url: '', city: '' }
     }
     setProfile(data)
 
@@ -61,8 +65,26 @@ export default function Profile() {
     const testIds = (testEvents || []).map((e) => e.id)
     let tq = supabase.from('tickets').select('*').eq('buyer_id', user.id).eq('status', 'confirmed')
     if (testIds.length) tq = tq.not('event_id', 'in', `(${testIds.join(',')})`)
-    const { data: tk } = await tq.order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: allTickets } = await tq.order('created_at', { ascending: false })
+    const tk = allTickets?.[0] || null
     if (tk) setTicket(tk)
+
+    // Resolve the REAL events behind this user's tickets (no FK to embed — known
+    // debt — so it's a second query). The ticket card shows ITS event. The
+    // attended list requires checked_in — a confirmed ticket proves PURCHASE,
+    // the door scan proves PRESENCE, and "attended" may only claim the second.
+    // If there's nothing real to show, the surfaces stay empty — never invented.
+    const evIds = [...new Set((allTickets || []).map((t) => t.event_id).filter(Boolean))]
+    if (evIds.length) {
+      const { data: evs } = await supabase.from('events')
+        .select('id,title,edition,event_date,doors,venue,city').in('id', evIds)
+      const byId = Object.fromEntries((evs || []).map((e) => [e.id, e]))
+      if (tk) setTicketEvent(byId[tk.event_id] || null)
+      const checkedInIds = new Set((allTickets || []).filter((t) => t.checked_in === true).map((t) => t.event_id))
+      setAttended((evs || [])
+        .filter((e) => checkedInIds.has(e.id) && e.event_date && new Date(e.event_date) < new Date())
+        .sort((a, b) => new Date(b.event_date) - new Date(a.event_date)))
+    }
   }
 
   // Owner save — writes every museum column EXCEPT `verified` (locked to service role
@@ -109,6 +131,19 @@ export default function Profile() {
     </>
   )
 
+  // Every value on these cards is a DB fact or absent — no invented tier names,
+  // door times, cities, prices or attendance. Empty and honest beats full and fake.
+  const fmtPrice = (cents) => `$${cents % 100 === 0 ? cents / 100 : (cents / 100).toFixed(2)}`
+  const fmtEvDate = (iso) => new Date(iso).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+  const availableTiers = (live.raw?.tiers || []).filter((t) => t.status === 'available')
+  const fromPrice = availableTiers.length ? Math.min(...availableTiers.map((t) => t.price)) : null
+  const tkTitleLine = ticketEvent
+    ? `${ticketEvent.title}${ticketEvent.edition ? ' ' + ((ticketEvent.edition.match(/\d+/) || [''])[0] || ticketEvent.edition) : ''}`
+    : 'YOUR TICKET'
+  const tkMetaLine = ticketEvent
+    ? [ticketEvent.event_date ? fmtEvDate(ticketEvent.event_date) : null, ticketEvent.city].filter(Boolean).join(' · ').toUpperCase()
+    : ''
+
   const ownerExtras = (
     <>
       {/* YOUR TICKET */}
@@ -117,18 +152,25 @@ export default function Profile() {
         {ticket ? (
           <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden' }}>
             <div style={{ padding: '24px', background: 'var(--bg-card)', textAlign: 'center' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', marginBottom: '4px' }}>{live.name} {live.editionNumber && <span style={{ color: '#F2EEE6' }}>{live.editionNumber}</span>}</div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em', marginBottom: '20px' }}>{`${live.dateLong} · ${live.city}`.toUpperCase()}</div>
-              <div style={{ display: 'inline-block', padding: '16px', background: '#FFFFFF', borderRadius: '12px', marginBottom: '16px' }}>
-                <QRCodeSVG value={ticket.qr_code || 'RBA2-TICKET'} size={140} level="H" />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ fontFamily: 'DM Mono', fontSize: '12px', color: 'var(--cream)', letterSpacing: '.04em', fontWeight: 600 }}>{ticket.qr_code}</span>
-                <button onClick={() => { navigator.clipboard.writeText(ticket.qr_code); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                  {copied ? <Check size={14} style={{ color: '#C7C9D1' }} /> : <Copy size={14} style={{ color: 'var(--cream-low)' }} />}
-                </button>
-              </div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.06em' }}>EARLY BIRD · ${ticket.price_paid || 0} PAID</div>
+              {/* The ticket's OWN event — a ticket must never wear another event's name. */}
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', marginBottom: '4px' }}>{tkTitleLine}</div>
+              {tkMetaLine && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.08em', marginBottom: '20px' }}>{tkMetaLine}</div>}
+              {ticket.qr_code && (
+                <>
+                  <div style={{ display: 'inline-block', padding: '16px', background: '#FFFFFF', borderRadius: '12px', marginBottom: '16px' }}>
+                    <QRCodeSVG value={ticket.qr_code} size={140} level="H" />
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontFamily: 'DM Mono', fontSize: '12px', color: 'var(--cream)', letterSpacing: '.04em', fontWeight: 600 }}>{ticket.qr_code}</span>
+                    <button onClick={() => { navigator.clipboard.writeText(ticket.qr_code); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+                      {copied ? <Check size={14} style={{ color: '#C7C9D1' }} /> : <Copy size={14} style={{ color: 'var(--cream-low)' }} />}
+                    </button>
+                  </div>
+                </>
+              )}
+              {Number.isFinite(Number(ticket.price_paid)) && ticket.price_paid !== null && (
+                <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.06em' }}>{fmtPrice(Number(ticket.price_paid))} PAID</div>
+              )}
             </div>
             <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(199,201,209,.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C7C9D1', boxShadow: '0 0 6px rgba(199,201,209,.4)' }} />
@@ -142,8 +184,9 @@ export default function Profile() {
             <div style={{ padding: '24px', background: 'var(--bg-card)' }}>
               <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>{live.name} {live.editionNumber && <span style={{ color: '#F2EEE6' }}>{live.editionNumber}</span>}</div>
               <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)', marginTop: '4px', letterSpacing: '.08em' }}>{live.edition || 'UPCOMING'}</div>
-              <div style={{ display: 'flex', gap: '20px', marginTop: '20px' }}>
-                {[[Calendar, live.dateMed.toUpperCase()], [Clock, '10PM'], [MapPin, 'HTX']].map(([Icon, text], i) => (
+              <div style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
+                {[[Calendar, live.dateMed.toUpperCase()], live.doors ? [Clock, live.doors.toUpperCase()] : null, live.city ? [MapPin, live.city.toUpperCase()] : null]
+                  .filter(Boolean).map(([Icon, text], i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Icon size={11} strokeWidth={1.2} style={{ color: 'var(--cream)' }} />
                     <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-mid)', letterSpacing: '.06em' }}>{text}</span>
@@ -152,33 +195,32 @@ export default function Profile() {
               </div>
             </div>
             <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)' }}>Get your ticket · from $15</span>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)' }}>
+                {fromPrice != null ? `Get your ticket · from ${fmtPrice(fromPrice)}` : 'Tickets not on sale yet'}
+              </span>
               <ChevronRight size={14} style={{ color: 'var(--cream-low)' }} />
             </div>
           </div>
         )}
       </div>
 
-      {/* EVENTS ATTENDED */}
-      <div style={{ marginTop: '40px' }}>
-        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>EVENTS ATTENDED</div>
-        <div style={{ border: '1px solid var(--border)', borderRadius: '12px', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all .2s' }}
-          onClick={() => navigate('/editions')}
-          onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(229,160,160,.25)'; e.currentTarget.style.background = 'rgba(229,160,160,.04)' }}
-          onMouseOut={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'transparent' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'linear-gradient(135deg,rgba(229,160,160,.18),rgba(242,238,230,.06))', border: '1px solid rgba(229,160,160,.3)', borderRadius: '8px', padding: '6px 10px', boxShadow: '0 0 12px rgba(229,160,160,.12)' }}>
-              <Sparkles size={12} style={{ color: 'var(--rust)' }} />
-              <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: 'var(--rust)' }}>1</span>
-            </div>
-            <div>
-              <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cream)' }}>Edition 001 — Sanman Studios</div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', marginTop: '2px' }}>April 4, 2026</div>
-            </div>
+      {/* EVENTS ATTENDED — real confirmed tickets for past events, or nothing. */}
+      {attended.length > 0 && (
+        <div style={{ marginTop: '40px' }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>EVENTS ATTENDED</div>
+          <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+            {attended.map((e, i) => (
+              <div key={e.id} style={{ padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: i === 0 ? 'none' : '1px solid var(--border)' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cream)' }}>{e.title}{e.venue ? ` — ${e.venue}` : ''}</div>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', marginTop: '2px' }}>{e.event_date ? fmtEvDate(e.event_date) : ''}</div>
+                </div>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#C7C9D1', letterSpacing: '.08em' }}>✕</span>
+              </div>
+            ))}
           </div>
-          <ChevronRight size={14} style={{ color: 'var(--cream-low)' }} />
         </div>
-      </div>
+      )}
     </>
   )
 

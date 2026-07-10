@@ -283,10 +283,10 @@ function WorldCard({ c, onOpen }) {
       <div style={{ padding: '26px 13px 14px' }}>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '19px', letterSpacing: '.02em', lineHeight: 1, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
         {c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
+        {c.city && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
           <MapPin size={9} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city || 'Houston'}</span>
-        </div>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
+        </div>}
         {(tc > 0 || wc > 0) && (
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
             {tc > 0 && <Stat n={tc} label="taste" />}
@@ -324,10 +324,10 @@ function EventCard({ e, live, onOpen }) {
       </div>
       <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
         <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em' }}>{dateStr}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        {(e.venue || e.city) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <MapPin size={10} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW }}>{e.venue || e.city || 'Houston'}</span>
-        </span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW }}>{e.venue || e.city}</span>
+        </span>}
         <ArrowUpRight size={14} style={{ color: SILVER, marginLeft: 'auto' }} />
       </div>
     </div>

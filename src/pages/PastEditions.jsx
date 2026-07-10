@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, Calendar, Users, Music, Award } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Calendar, Users, Music } from 'lucide-react'
 
 const EDITIONS = [
   {
@@ -46,20 +46,8 @@ export default function PastEditions() {
               {/* Subtle glow */}
               <div style={{position:'absolute',top:'-40px',right:'-40px',width:'200px',height:'200px',borderRadius:'50%',background:'radial-gradient(circle,rgba(255,255,255,.06) 0%,transparent 70%)',filter:'blur(40px)'}} />
 
-              {/* ATTENDED badge - shiny */}
-              <div style={{
-                position:'absolute',top:'24px',right:'24px',
-                display:'flex',alignItems:'center',gap:'6px',
-                background:'linear-gradient(135deg,rgba(242,238,230,.2),rgba(255,255,255,.15),rgba(242,238,230,.2))',
-                border:'1px solid rgba(242,238,230,.4)',
-                borderRadius:'100px',padding:'6px 14px',
-                boxShadow:'0 0 16px rgba(242,238,230,.15),inset 0 1px 0 rgba(255,255,255,.2)',
-                animation:'countPulse 3s infinite',
-              }}>
-                <Award size={12} strokeWidth={2} style={{color:'#F2EEE6'}} />
-                <span style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.12em',color:'#F2EEE6',fontWeight:700}}>ATTENDED</span>
-              </div>
-
+              {/* No per-viewer "ATTENDED" claim here — attendance is personal data
+                  and lives on the profile, read from real tickets. */}
               <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.2em',marginBottom:'16px'}}>RAN BY ARTISTS</div>
 
               {/* Logo style - RAN outlined + ARTISTS solid + 001 */}

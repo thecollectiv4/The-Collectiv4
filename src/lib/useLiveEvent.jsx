@@ -16,12 +16,13 @@ import { supabase } from '@/api/supabase'
    fall back to a name-only placeholder (a TBA date), never a stale wrong date.
    ========================================================================= */
 
-// Brand defaults used when no event is published yet. Name/city only — anything
-// date-specific stays empty so a placeholder reads "Date TBA", not a dead date.
+// Brand defaults used when no event is published yet. NAME only — city, dates
+// and doors stay empty so placeholders stay honest ("Date TBA", no city line)
+// instead of asserting facts about an event that doesn't exist.
 const FALLBACK = {
   id: null, slug: null,
   title: 'RAN BY ARTISTS', edition: '',
-  city: 'Houston', venue: '', doors: '', event_date: null,
+  city: '', venue: '', doors: '', event_date: null,
 }
 
 function fmt(date, opts) {
@@ -41,7 +42,7 @@ function shape(row, loading) {
     name: e.title || FALLBACK.title,                    // "RAN BY ARTISTS"
     edition: e.edition || '',                           // "EDITION 002" (already upper in DB)
     editionNumber: (e.edition || '').match(/\d+/)?.[0] || '', // "002"
-    city: e.city || FALLBACK.city,                      // "Houston"
+    city: e.city || '',                                 // real city or nothing — consumers guard
     venue: e.venue || '',
     doors: e.doors || '',
     date,
