@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { X } from 'lucide-react'
 
