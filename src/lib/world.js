@@ -38,6 +38,29 @@ export function nameSkin(theme) {
   return chromeDisplayText
 }
 
+/* Craft kinds — the builder reorganizes around what the person MAKES.
+   A photographer leads with the wall; a DJ leads with the sound links; a
+   writer gets a long-text piece. Not different flows in code — different
+   ORDER, COPY and EMPHASIS over the same steps. Sound is tested before
+   word before visual so "songwriter" reads as sound, "screenwriter" as word. */
+export function craftKindOf(discipline) {
+  const d = (discipline || '').toLowerCase()
+  if (!d.trim()) return 'generic'
+  if (/(dj|deejay|music|producer|sound|singer|songwriter|rapper|vocal|band|beat|composer|instrument|guitarr?|drummer|bassist|pianist|selector)/.test(d)) return 'sound'
+  if (/(writ|poet|author|journal|essay|novel|storytell|copywr)/.test(d)) return 'word'
+  if (/(photo|paint|design|film|video|visual|illustr|\bart\b|artist|tattoo|fashion|style|stylist|model|direct|creativ|graphic|archit|sculpt|cinemat|animat|ceramic|muralis|drawer)/.test(d)) return 'visual'
+  return 'generic'
+}
+
+/* Step order per craft — same steps, different door. `words` (the writer's
+   piece) edits `bio`, which the museum already opens the world with. */
+export const CRAFT_STEPS = {
+  visual: ['craft', 'work', 'doors', 'marquee', 'skin'],
+  sound: ['craft', 'doors', 'work', 'marquee', 'skin'],
+  word: ['craft', 'words', 'work', 'doors', 'marquee', 'skin'],
+  generic: ['craft', 'work', 'doors', 'marquee', 'skin'],
+}
+
 /* Completeness — what "a built world" means, in points (sums to 100):
    craft 15 · your line 15 · 3 gallery pieces 30 (10 each) · a link 15 ·
    marquee decided 10 · skin chosen 10 · a face 5. Deliberately EXCLUDES

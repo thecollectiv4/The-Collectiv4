@@ -17,6 +17,11 @@ import { useState, useEffect } from 'react'
 export const DESKTOP_QUERY = '(min-width: 768px)'
 export const BOARD_GRID_QUERY = '(min-width: 1100px)'
 export const RAIL_QUERY = '(min-width: 1180px)'
+// CONSUMER surfaces get a real desktop architecture from 1024px up (the
+// editorial wide mode — museum grid, top header, full canvas). Below that
+// they keep the phone pattern. 1024 (not 768): a half-screen window reads
+// better as the phone composition than as a cramped editorial spread.
+export const WIDE_QUERY = '(min-width: 1024px)'
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() =>
@@ -45,4 +50,9 @@ export function useRailFull() {
 /* >=1100px — the board's 4 lanes as a grid; below, a horizontal snap row. */
 export function useBoardGrid() {
   return useMediaQuery(BOARD_GRID_QUERY)
+}
+
+/* >=1024px — consumer wide mode: editorial desktop architecture. */
+export function useWide() {
+  return useMediaQuery(WIDE_QUERY)
 }

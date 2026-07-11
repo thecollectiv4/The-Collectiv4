@@ -49,6 +49,9 @@ test('A · a member signs up, builds their world, and the world is live', async 
   })
   expect(uid, 'NO_SESSION_AFTER_SIGNUP — email confirmation may be ON').toBeTruthy()
   fs.writeFileSync(STATE_FILE, JSON.stringify({ uid, email, password }))
+  // accounts.jsonl accumulates across runs — a failed run must never orphan
+  // its QA account beyond the cleanup script's reach
+  fs.appendFileSync(path.join(SHOTS, 'accounts.jsonl'), JSON.stringify({ uid, email, password }) + '\n')
 
   // ---- 03 · a newborn world greets you with the guided build ----
   await page.goto('/profile')

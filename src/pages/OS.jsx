@@ -245,9 +245,12 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   )
 
   const dockBtn = tab !== 'brain' && (
+    // the Brain is a first-class citizen of the instrument — its door reads
+    // like a presence, not a footnote (silver ring, star mark, steady glow)
     <button onClick={() => setDockOpen(v => !v)} aria-label="Toggle the Brain dock (B)" title="The Brain — press B"
-      style={{ background: dockOpen ? 'rgba(199,201,209,.1)' : 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '5px 12px', color: dockOpen ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-      ◇ Brain{desktop ? ' · B' : ''}
+      style={{ background: dockOpen ? 'rgba(199,201,209,.12)' : 'rgba(199,201,209,.04)', border: `1px solid ${dockOpen ? SILVER : 'rgba(199,201,209,.3)'}`, borderRadius: '100px', padding: '6px 14px', color: dockOpen ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+      <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 7px rgba(232,233,237,.6)' }} />
+      The Brain{desktop ? ' · B' : ''}
     </button>
   )
 
@@ -284,9 +287,9 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
       <Shell>
         <div style={{ display: 'flex', alignItems: 'stretch', minHeight: '100vh' }}>
           <Rail tabs={tabs} tab={tab} setTab={setTab} profile={profile} counts={counts} full={railFull} />
-          <main style={{ flex: 1, minWidth: 0, padding: railFull ? '28px 40px 56px' : '28px 26px 56px' }}>
+          <main style={{ flex: 1, minWidth: 0, padding: railFull ? '22px 36px 48px' : '22px 24px 48px' }}>
             {/* header row: tab kicker + Brain dock + spec coordinates */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '14px' }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.3em', textTransform: 'uppercase', color: BONE_LOW, display: 'flex', alignItems: 'center', gap: '13px', minWidth: 0 }}>
                 <span style={{ letterSpacing: 0 }}>{activeTab.mark}</span>
                 <span style={{ color: BONE, border: `1px solid ${HAIR_HI}`, padding: '3px 9px', borderRadius: '3px', fontSize: '9px', letterSpacing: '.16em' }}>{activeTab.code}</span>
@@ -299,11 +302,11 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
               </div>
             </div>
             {helloCard}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', marginBottom: '12px' }}>
               <PulseRow counts={counts} />
             </div>
             <RoadmapStrip tasks={tasks} content={content} />
-            <div style={{ height: '16px' }} />
+            <div style={{ height: '10px' }} />
             {panel}
           </main>
         </div>
@@ -551,7 +554,7 @@ function Pill({ label, value, accent }) {
 /* Signal — the latest moves. Honest when quiet. */
 export function Signal({ activity, owners }) {
   return (
-    <div style={{ marginTop: '32px', paddingTop: '16px', borderTop: `1px solid ${HAIR}`, maxWidth: '760px' }}>
+    <div style={{ marginTop: '22px', paddingTop: '14px', borderTop: `1px solid ${HAIR}`, maxWidth: '760px' }}>
       <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase', marginBottom: '11px' }}>△ Signal · recent</div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {activity.slice(0, 10).map((a, i) => (

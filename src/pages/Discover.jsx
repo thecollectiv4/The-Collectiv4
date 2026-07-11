@@ -4,6 +4,8 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { isNetworkMember } from '@/lib/osAccess'
 import { useLiveEvent } from '@/lib/useLiveEvent'
+import { useWide } from '@/lib/useIsDesktop'
+import Constellation from '@/components/Constellation'
 import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, Users, CalendarDays } from 'lucide-react'
 
 /* =========================================================================
@@ -53,6 +55,7 @@ export default function Discover() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const live = useLiveEvent()
+  const wide = useWide()                    // >=1024px: the sky opens
 
   const [loading, setLoading] = useState(true)
   const [creatives, setCreatives] = useState([])
@@ -133,15 +136,17 @@ export default function Discover() {
   const count = tab === 'people' ? shownCreatives.length : shownEvents.length
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', background: 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)', overflowX: 'hidden' }}>
-      <div style={{ position: 'relative', zIndex: 2, padding: '26px 22px 40px' }}>
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
+      {/* the sky itself — every world in Discover hangs in the same universe */}
+      <Constellation seed="the-creative-universe" />
+      <div style={{ position: 'relative', zIndex: 2, padding: wide ? '44px clamp(40px, 5vw, 76px) 90px' : '26px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
 
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '9px' }}>◇</div>
           <div>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.28em', textTransform: 'uppercase', marginBottom: '5px' }}>The creative universe</div>
-            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: '46px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>DISCOVER</h1>
+            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '5px' }}>The creative universe</div>
+            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '76px' : '46px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>DISCOVER</h1>
           </div>
         </div>
 
@@ -153,7 +158,7 @@ export default function Discover() {
         )}
 
         {/* segmented tabs */}
-        <div style={{ display: 'flex', gap: '6px', marginTop: '22px' }}>
+        <div style={{ display: 'flex', gap: '6px', marginTop: '22px', maxWidth: wide ? '420px' : undefined }}>
           {[['people', 'PEOPLE', Users], ['events', 'EVENTS', CalendarDays]].map(([id, label, Icon]) => {
             const on = tab === id
             return (
@@ -188,8 +193,8 @@ export default function Discover() {
           </div>
         ) : tab === 'people' ? (
           shownCreatives.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
-              {shownCreatives.map(c => <WorldCard key={c.id} c={c} onOpen={() => navigate('/user/' + c.id)} />)}
+            <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '20px' : '14px' }}>
+              {shownCreatives.map(c => <WorldCard key={c.id} c={c} onOpen={() => navigate('/user/' + c.id)} wide={wide} />)}
             </div>
           ) : (
             <Empty
@@ -203,7 +208,7 @@ export default function Discover() {
           )
         ) : (
           shownEvents.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))' } : { flexDirection: 'column' }), gap: wide ? '20px' : '14px' }}>
               {shownEvents.map(e => <EventCard key={e.id} e={e} live={live} onOpen={() => navigate('/')} />)}
             </div>
           ) : (
@@ -238,8 +243,10 @@ function FilterRow({ label, value, onChange, options }) {
   )
 }
 
-/* ---- a creative's world, as a card ---- */
-function WorldCard({ c, onOpen }) {
+/* ---- a creative's world, as a card in the sky ----
+   Hover lives in CSS (.disc-card in index.css): the card lifts, the banner
+   breathes, the name goes liquid chrome, the person's line reveals. */
+function WorldCard({ c, onOpen, wide }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -248,28 +255,32 @@ function WorldCard({ c, onOpen }) {
   const wc = Array.isArray(c.media) ? c.media.length : 0
 
   return (
-    <div onClick={onOpen} style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer', transition: 'transform .22s ease, border-color .22s ease' }}
-      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.32)' }}
-      onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+    <div onClick={onOpen} className="disc-card" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
       {/* cosmic banner */}
-      <div style={{ position: 'relative', height: '92px', overflow: 'hidden', background: VOID }}>
+      <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={c.id || c.username || name} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 30%, #0E0E13 100%)' }} />
-        {/* avatar medallion */}
-        <div style={{ position: 'absolute', left: '12px', bottom: '-18px', width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)' }}>
-          {avatar
-            ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', ...chromeText }}>{initial}</span>}
-        </div>
         {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><BadgeCheck size={16} style={{ color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} /></span>}
+      </div>
+      {/* avatar medallion — a sibling of the banner, never clipped by its
+          overflow:hidden (the banner clips so the breathe zoom stays inside) */}
+      <div style={{ position: 'absolute', left: '12px', top: `${(wide ? 116 : 92) - 22}px`, width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
+        {avatar
+          ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', ...chromeText }}>{initial}</span>}
       </div>
 
       {/* identity */}
       <div style={{ padding: '26px 13px 14px' }}>
-        <div style={{ fontFamily: 'Bebas Neue', fontSize: '19px', letterSpacing: '.02em', lineHeight: 1, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+        <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '22px' : '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
         {c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
+        {c.tagline && (
+          <div className="disc-reveal" style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+            “{c.tagline}”
+          </div>
+        )}
         {c.city && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
           <MapPin size={9} style={{ color: BONE_LOW }} />
           <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
@@ -298,10 +309,8 @@ function EventCard({ e, live, onOpen }) {
   const cover = safeImg(e.cover_url)
   const dateStr = e.event_date ? new Date(e.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase() : 'TBA'
   return (
-    <div onClick={onOpen} style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer', transition: 'transform .22s ease, border-color .22s ease' }}
-      onMouseOver={ev => { ev.currentTarget.style.transform = 'translateY(-3px)'; ev.currentTarget.style.borderColor = 'rgba(242,238,230,.32)' }}
-      onMouseOut={ev => { ev.currentTarget.style.transform = 'translateY(0)'; ev.currentTarget.style.borderColor = HAIR_HI }}>
-      <div style={{ position: 'relative', height: '130px', overflow: 'hidden', background: VOID }}>
+    <div onClick={onOpen} className="disc-card" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+      <div className="disc-banner" style={{ position: 'relative', height: '130px', overflow: 'hidden', background: VOID }}>
         {cover ? <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MiniStars seed={e.slug || e.id} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.1) 30%, rgba(7,8,14,.9) 100%)' }} />
         <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(7,8,14,.5)' }}>UPCOMING</span>

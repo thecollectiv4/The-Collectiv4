@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown } from 'lucide-react'
 import WorldBuilder from '@/components/WorldBuilder'
+import Constellation from '@/components/Constellation'
+import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness } from '@/lib/world'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
@@ -109,6 +111,7 @@ const MARKS = { gallery: 'dot', sound: 'ring', screen: 'triangle', influences: '
 // city); the wrapper passes it so the "going" badge shows the real upcoming event.
 // `ticket` is the boolean "is this person going".
 export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onViewPublic, ticket, event, topBar, ownerExtras }) {
+  const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
   const [building, setBuilding] = useState(false)     // the guided build (sheet over the live museum)
@@ -360,22 +363,29 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   ;['gallery', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
   const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length
 
+  // the museum's editorial frame on wide screens — one container, all sections
+  const frame = wide
+    ? { maxWidth: '1440px', margin: '0 auto', paddingLeft: 'clamp(40px, 5vw, 76px)', paddingRight: 'clamp(40px, 5vw, 76px)' }
+    : { paddingLeft: '24px', paddingRight: '24px' }
+
   return (
-    <div style={{ position: 'relative', background: PAGE_BG, minHeight: '100vh', overflowX: 'hidden' }}>
+    <div style={{ position: 'relative', zIndex: 1, background: 'transparent', minHeight: '100vh', overflowX: 'hidden' }}>
+      {/* the universe behind the world — this person's own sky */}
+      <Constellation seed={seed} />
 
       {/* ============ MARQUEE — the world's welcome, looping ============ */}
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: 'clamp(340px, 58vh, 460px)', overflow: 'hidden', background: VOID }}>
+      <div style={{ position: 'relative', height: wide ? 'clamp(480px, 72vh, 720px)' : 'clamp(340px, 58vh, 460px)', overflow: 'hidden', background: cover ? VOID : 'transparent' }}>
         {cover
           ? <motion.img src={cover} alt="" initial={{ scale: 1.12 }} animate={{ scale: 1 }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : (
-            /* no cover → a cosmic dark field: void + constellation + monogram */
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.08) 0%, transparent 55%), ${VOID}` }}>
+            /* no cover → the open sky (the page's constellation) + monogram */
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
               <StarField seed={seed} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Bebas Neue', fontSize: '340px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.07, ...displaySkin }}>{initial}</span>
+                <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '560px' : '340px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.07, ...displaySkin }}>{initial}</span>
               </div>
             </div>
           )}
@@ -405,23 +415,28 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             rendered nameless), and the IDENTITY of a world must never depend
             on an animation firing. The movements below keep their reveals —
             those are curation, not identity. */}
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: '20px', padding: '0 24px', zIndex: 3 }}>
-          {data.discipline && (
-            <div
-              style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.28em', textTransform: 'uppercase', marginBottom: '11px', textShadow: '0 1px 12px rgba(0,0,0,.6)' }}>
-              {data.discipline}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? '40px' : '20px', zIndex: 3 }}>
+          <div style={{ ...frame }}>
+            {data.discipline && (
+              <div
+                style={{ fontFamily: 'DM Mono', fontSize: wide ? '11px' : '10px', color: SILVER, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: wide ? '16px' : '11px', textShadow: '0 1px 12px rgba(0,0,0,.6)' }}>
+                {data.discipline}
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '18px' : '12px', flexWrap: 'wrap' }}>
+              <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(88px, 10vw, 140px)' : 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...displaySkin }}>{displayName}</h1>
+              {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: wide ? '18px' : '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={wide ? 32 : 24} /></span>}
             </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...displaySkin }}>{displayName}</h1>
-            {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={24} /></span>}
           </div>
         </div>
       </div>
 
       {/* ============ BYLINE — avatar signature + catalog meta ============ */}
-      <div style={{ position: 'relative', padding: '18px 24px 0', zIndex: 3 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+      <div style={{ position: 'relative', ...frame, paddingTop: wide ? '26px' : '18px', zIndex: 3 }}>
+        {/* wide: an editorial two-column strip — identity left, the quote as a
+            pull-quote right. Mobile keeps the vertical byline untouched. */}
+        <div style={wide ? { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 460px)', gridTemplateAreas: '"id quote" "links quote" "err quote" "meter quote"', columnGap: '72px', alignItems: 'start' } : undefined}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', ...(wide && { gridArea: 'id' }) }}>
           <div style={{ position: 'relative', width: '58px', height: '58px', flexShrink: 0, cursor: isOwner ? 'pointer' : 'default' }} onClick={() => isOwner && fileRef.current?.click()}>
             {avatar
               ? <img src={avatar} alt="" style={{ width: '58px', height: '58px', borderRadius: '50%', objectFit: 'cover', outline: `1px solid ${SILVER}`, outlineOffset: '2px', boxShadow: `0 6px 22px rgba(0,0,0,.5)` }} />
@@ -453,18 +468,19 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           </div>
         </div>
 
-        {/* tagline — the "right now" line, promoted to a featured statement */}
+        {/* tagline — the "right now" line, promoted to a featured statement
+            (a pull-quote on the right column when wide) */}
         {data.tagline ? (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '19px', color: BONE, lineHeight: 1.4, margin: '20px 0 0', maxWidth: '440px', letterSpacing: '.005em' }}>
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: wide ? '23px' : '19px', color: BONE, lineHeight: 1.45, margin: wide ? '6px 0 0' : '20px 0 0', maxWidth: '460px', letterSpacing: '.005em', ...(wide && { gridArea: 'quote', borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '26px' }) }}>
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
         ) : (isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '18px 0 0' }}>Add a line — what you're on, right now.</p>
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: wide ? '6px 0 0' : '18px 0 0', ...(wide && { gridArea: 'quote' }) }}>Add a line — what you're on, right now.</p>
         ))}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
         {!editing && links.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '18px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '18px', ...(wide && { gridArea: 'links' }) }}>
             {links.map((l, i) => (
               <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'all .2s' }}
@@ -477,12 +493,12 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           </div>
         )}
         {isOwner && !editing && links.length === 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '16px' }}>+ add your links — IG, portfolio, sound</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '16px', ...(wide && { gridArea: 'links' }) }}>+ add your links — IG, portfolio, sound</div>
         )}
-        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px' }}>⚠ {upErr}</div>}
+        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px', ...(wide && { gridArea: 'err' }) }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
-          <div style={{ marginTop: '20px' }}>
+          <div style={{ marginTop: '20px', ...(wide && { gridArea: 'meter' }) }}>
             {/* the meter — how lit the world is, hairline not game */}
             {completeness.pct < 100 && (
               <div style={{ maxWidth: '260px', marginBottom: '12px' }}>
@@ -509,11 +525,12 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </div>
           </div>
         )}
+        </div>{/* /wide byline grid */}
       </div>
 
       {/* ============ EDIT MODE ============ */}
       {editing ? (
-        <div style={{ position: 'relative', padding: '30px 24px 130px', display: 'flex', flexDirection: 'column', gap: '30px', animation: 'fadeUp .3s ease', zIndex: 3 }}>
+        <div style={{ position: 'relative', padding: '30px 0 130px', ...frame, display: 'flex', flexDirection: 'column', gap: '30px', animation: 'fadeUp .3s ease', zIndex: 3, ...(wide && { maxWidth: '780px', paddingLeft: 'clamp(40px, 5vw, 76px)', paddingRight: 'clamp(40px, 5vw, 76px)' }) }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.04em', lineHeight: 1.6, borderLeft: `1px solid ${SILVER}`, paddingLeft: '14px' }}>
             You're not filling out a form — you're building a world. Paste links and they come alive; write names and they become the walls of your museum.
           </div>
@@ -619,63 +636,75 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         </div>
       ) : (
         /* ============ VIEW MODE — the world ============ */
-        <div style={{ position: 'relative', padding: '4px 24px 120px', zIndex: 3 }}>
+        <div style={{ position: 'relative', ...frame, paddingTop: '4px', paddingBottom: wide ? '140px' : '120px', zIndex: 3 }}>
 
           {/* OPENING STATEMENT */}
           {data.bio && (
-            <motion.p {...reveal} style={{ fontSize: '16.5px', color: BONE, lineHeight: 1.8, maxWidth: '540px', margin: '38px 0 0', paddingLeft: '16px', borderLeft: `1px solid ${SILVER}`, fontFamily: 'DM Sans', fontWeight: 300 }}>
+            <motion.p {...reveal} style={{ fontSize: wide ? '21px' : '16.5px', color: BONE, lineHeight: 1.8, maxWidth: wide ? '720px' : '540px', margin: wide ? '52px 0 0' : '38px 0 0', paddingLeft: wide ? '22px' : '16px', borderLeft: `1px solid ${SILVER}`, fontFamily: 'DM Sans', fontWeight: 300 }}>
               {data.bio}
             </motion.p>
           )}
 
           {/* MOVEMENT — GALLERY (the person's own work leads the museum) */}
           {show.gallery && (
-            <motion.div {...reveal} style={{ marginTop: data.bio ? '58px' : '44px' }}>
-              <Marker mark={MARKS.gallery} n={num.gallery} label="GALLERY" kicker="the work, on walls" />
+            <motion.div {...reveal} style={{ marginTop: data.bio ? (wide ? '84px' : '58px') : '44px' }}>
+              <Marker mark={MARKS.gallery} n={num.gallery} label="GALLERY" kicker="the work, on walls" wide={wide} />
               {gallery.length > 0
-                ? <GalleryGrid items={gallery} />
+                ? <GalleryGrid items={gallery} wide={wide} />
                 : <Invite icon={ImagePlus}>This space is for your work — three pieces turn it on. Shots, canvases, fits, stills, hung in your order.</Invite>}
             </motion.div>
           )}
 
           {/* MOVEMENT — SOUND */}
           {show.sound && (
-            <motion.div {...reveal} style={{ marginTop: '58px' }}>
-              <Marker mark={MARKS.sound} n={num.sound} label="SOUND" kicker="on rotation" />
+            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
+              <Marker mark={MARKS.sound} n={num.sound} label="SOUND" kicker="on rotation" wide={wide} />
               {taste.music.length > 0
-                ? <SoundMovement items={taste.music} />
+                ? <SoundMovement items={taste.music} wide={wide} />
                 : <Invite icon={Music2}>The sound that runs through you. Paste a Spotify, YouTube or SoundCloud link and it plays right here — or just name the artists on rotation.</Invite>}
             </motion.div>
           )}
 
           {/* MOVEMENT — SCREEN */}
           {show.screen && (
-            <motion.div {...reveal} style={{ marginTop: '58px' }}>
-              <Marker mark={MARKS.screen} n={num.screen} label="SCREEN" kicker="what i watch" />
+            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
+              <Marker mark={MARKS.screen} n={num.screen} label="SCREEN" kicker="what i watch" wide={wide} />
               {taste.films.length > 0
-                ? <PosterRail items={taste.films} />
+                ? <PosterRail items={taste.films} wide={wide} />
                 : <Invite icon={Film}>The films that shaped your eye. Titles become posters; a trailer link becomes a still you can open.</Invite>}
             </motion.div>
           )}
 
           {/* MOVEMENT — INFLUENCES */}
           {show.influences && (
-            <motion.div {...reveal} style={{ marginTop: '58px' }}>
-              <Marker mark={MARKS.influences} n={num.influences} label="INFLUENCES" kicker="what shaped me" />
+            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
+              <Marker mark={MARKS.influences} n={num.influences} label="INFLUENCES" kicker="what shaped me" wide={wide} />
               {taste.influences.length > 0
-                ? <WordWall items={taste.influences} />
+                ? <WordWall items={taste.influences} wide={wide} />
                 : <Invite icon={Sparkles}>The names, places and ideas behind your work. Written large — a wall of what made you.</Invite>}
             </motion.div>
           )}
 
           {/* MOVEMENT — WORK */}
           {show.work && (
-            <motion.div {...reveal} style={{ marginTop: '58px' }}>
-              <Marker mark={MARKS.work} n={num.work} label="WORK" kicker="what i make" />
+            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
+              <Marker mark={MARKS.work} n={num.work} label="WORK" kicker="what i make" wide={wide} />
               {media.length > 0 ? (
-                <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                  {media.map((m, i) => <MediaCard key={`${m.url}:${i}`} item={m} full featured={i === 0} />)}
-                </div>
+                wide ? (
+                  /* the first piece leads full-width; the rest hang two-across */
+                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '26px' }}>
+                    <MediaCard item={media[0]} full featured />
+                    {media.length > 1 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '26px', alignItems: 'start' }}>
+                        {media.slice(1).map((m, i) => <MediaCard key={`${m.url}:${i + 1}`} item={m} full />)}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                    {media.map((m, i) => <MediaCard key={`${m.url}:${i}`} item={m} full featured={i === 0} />)}
+                  </div>
+                )
               ) : <Invite icon={ArrowUpRight}>Show what you make. Drop links to your sets, films, photos, drops — they embed and play, right here.</Invite>}
             </motion.div>
           )}
@@ -692,7 +721,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           )}
 
           {/* owner-only extras (full ticket card, events attended) rendered by the wrapper */}
-          {ownerExtras}
+          {ownerExtras && <div style={wide ? { maxWidth: '560px' } : undefined}>{ownerExtras}</div>}
         </div>
       )}
 
@@ -774,9 +803,30 @@ function WorldMarquee({ text, theme }) {
   )
 }
 
-/* GalleryGrid — the wall. First image leads full-bleed; the rest hang in a
-   two-across salon row. Captions in catalog mono. Order = the array. */
-function GalleryGrid({ items }) {
+/* GalleryGrid — the wall. Mobile: first image leads full-bleed, the rest hang
+   two-across. Wide: a salon wall — an asymmetric 12-column museum grid, rows
+   of unequal pieces in a deliberate rhythm ([8·4] [4·4·4] [7·5], repeating).
+   Captions in catalog mono. Order = the array, always. */
+const SALON = [
+  { span: 8, h: 'clamp(340px, 36vw, 540px)' },
+  { span: 4, h: 'clamp(340px, 36vw, 540px)' },
+  { span: 4, h: 'clamp(280px, 29vw, 430px)' },
+  { span: 4, h: 'clamp(280px, 29vw, 430px)' },
+  { span: 4, h: 'clamp(280px, 29vw, 430px)' },
+  { span: 7, h: 'clamp(320px, 33vw, 500px)' },
+  { span: 5, h: 'clamp(320px, 33vw, 500px)' },
+]
+function GalleryGrid({ items, wide }) {
+  if (wide) {
+    return (
+      <div style={{ marginTop: '4px', display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: '24px', alignItems: 'start' }}>
+        {items.map((g, i) => {
+          const cell = SALON[i % SALON.length]
+          return <GalleryPiece key={`${g.url}:${i}`} item={g} featured={i === 0} span={cell.span} fixedH={cell.h} index={i} />
+        })}
+      </div>
+    )
+  }
   const [featured, ...rest] = items
   return (
     <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -789,18 +839,26 @@ function GalleryGrid({ items }) {
     </div>
   )
 }
-function GalleryPiece({ item, featured }) {
+function GalleryPiece({ item, featured, span, fixedH, index }) {
   const [ok, setOk] = useState(true)
   const src = safeImg(item.url)
   if (!src || !ok) return null
+  const salon = span != null
   return (
-    <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
-      <div style={{ borderRadius: featured ? '16px' : '12px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(242,238,230,.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(0,0,0,.4)' : 'none' }}>
+    <a href={src} target="_blank" rel="noopener noreferrer" className={salon ? 'salon-piece' : undefined}
+      style={{ display: 'block', textDecoration: 'none', ...(salon && { gridColumn: `span ${span}`, minWidth: 0 }) }}>
+      <div
+        style={{ borderRadius: featured ? '16px' : '12px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(242,238,230,.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(0,0,0,.4)' : 'none' }}>
         <img src={src} alt={item.caption || ''} loading="lazy" onError={() => setOk(false)}
-          style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: featured ? '480px' : '220px', minHeight: featured ? undefined : '120px' }} />
+          style={salon
+            ? { width: '100%', height: fixedH, display: 'block', objectFit: 'cover' }
+            : { width: '100%', display: 'block', objectFit: 'cover', maxHeight: featured ? '480px' : '220px', minHeight: featured ? undefined : '120px' }} />
       </div>
-      {item.caption && (
-        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '7px', lineHeight: 1.5 }}>{item.caption}</div>
+      {(item.caption || salon) && (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: '8px' }}>
+          {salon && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.18em', flexShrink: 0 }}>{String(index + 1).padStart(2, '0')}</span>}
+          {item.caption && <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', lineHeight: 1.5 }}>{item.caption}</span>}
+        </div>
       )}
     </a>
   )
@@ -833,14 +891,14 @@ function StarField({ seed }) {
 }
 
 /* Editorial catalog marker — [mark] 02  SOUND ———— KICKER. */
-function Marker({ mark, n, label, kicker }) {
+function Marker({ mark, n, label, kicker, wide }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '22px' }}>
-      <Mark type={mark} size={14} color={SILVER} style={{ flexShrink: 0, opacity: .9 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '30px' : '22px' }}>
+      <Mark type={mark} size={wide ? 17 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9 }} />
       <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.1em', flexShrink: 0 }}>{n}</span>
-      <span style={{ fontFamily: 'Bebas Neue', fontSize: '31px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, ...chromeText }}>{label}</span>
+      <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '44px' : '31px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, ...chromeText }}>{label}</span>
       <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR_HI}, transparent)` }} />
-      {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase', flexShrink: 0 }}>{kicker}</span>}
+      {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '9px' : '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase', flexShrink: 0 }}>{kicker}</span>}
     </div>
   )
 }
@@ -868,37 +926,49 @@ function Tag({ label, count }) {
   )
 }
 
-/* ---------- SOUND: a featured player + an editorial tracklist ---------- */
-function SoundMovement({ items }) {
+/* ---------- SOUND: a featured player + an editorial tracklist ----------
+   Wide: the record-sleeve spread — the player holds the left page (7/12),
+   the tracklist runs down the right (5/12). Mobile stacks as before. */
+function SoundMovement({ items, wide }) {
   const parsed = items.map((it, i) => ({ it, i, p: parseMedia(it) }))
   const players = parsed.filter(x => isPlayer(x.p))
   const featured = players[0] || null
   const morePlayers = players.slice(1)
   const tracks = parsed.filter(x => !isPlayer(x.p)) // names + plain links
 
+  const featuredBlock = featured && (
+    <div style={{ marginBottom: !wide && (tracks.length || morePlayers.length) ? '26px' : 0 }}>
+      <Tag label="On repeat" />
+      <MediaCard item={{ url: featured.it }} full featured />
+    </div>
+  )
+  const tracksBlock = tracks.length > 0 && (
+    <div>
+      {featured && <Tag label="In rotation" count={tracks.length} />}
+      <div>
+        {tracks.map((t, i) => <Track key={`${t.it}:${t.i}`} index={i + 1} value={t.it} />)}
+      </div>
+    </div>
+  )
+  const moreBlock = morePlayers.length > 0 && (
+    <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {morePlayers.map((m) => <MediaCard key={`${m.it}:${m.i}`} item={{ url: m.it }} full />)}
+    </div>
+  )
+
+  if (wide && featured && (tracks.length > 0 || morePlayers.length > 0)) {
+    return (
+      <div style={{ marginTop: '4px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: '48px', alignItems: 'start' }}>
+        <div>{featuredBlock}</div>
+        <div>{tracksBlock}{moreBlock}</div>
+      </div>
+    )
+  }
   return (
-    <div style={{ marginTop: '4px' }}>
-      {featured && (
-        <div style={{ marginBottom: tracks.length || morePlayers.length ? '26px' : 0 }}>
-          <Tag label="On repeat" />
-          <MediaCard item={{ url: featured.it }} full featured />
-        </div>
-      )}
-
-      {tracks.length > 0 && (
-        <div>
-          {featured && <Tag label="In rotation" count={tracks.length} />}
-          <div>
-            {tracks.map((t, i) => <Track key={`${t.it}:${t.i}`} index={i + 1} value={t.it} />)}
-          </div>
-        </div>
-      )}
-
-      {morePlayers.length > 0 && (
-        <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {morePlayers.map((m) => <MediaCard key={`${m.it}:${m.i}`} item={{ url: m.it }} full />)}
-        </div>
-      )}
+    <div style={{ marginTop: '4px', ...(wide && { maxWidth: '780px' }) }}>
+      {featuredBlock}
+      {tracksBlock}
+      {moreBlock}
     </div>
   )
 }
@@ -922,15 +992,15 @@ function Track({ index, value }) {
     : inner
 }
 
-/* ---------- SCREEN: a horizontal poster rail ---------- */
-function PosterRail({ items }) {
+/* ---------- SCREEN: a horizontal poster rail (a filmstrip on wide) ---------- */
+function PosterRail({ items, wide }) {
   return (
-    <div className="no-scrollbar" style={{ marginTop: '4px', display: 'flex', gap: '14px', overflowX: 'auto', scrollSnapType: 'x proximity', paddingBottom: '6px', WebkitOverflowScrolling: 'touch' }}>
-      {items.map((it, i) => <PosterCard key={`${it}:${i}`} value={it} index={i + 1} />)}
+    <div className="no-scrollbar" style={{ marginTop: '4px', display: 'flex', gap: wide ? '20px' : '14px', overflowX: 'auto', scrollSnapType: 'x proximity', paddingBottom: '6px', WebkitOverflowScrolling: 'touch' }}>
+      {items.map((it, i) => <PosterCard key={`${it}:${i}`} value={it} index={i + 1} wide={wide} />)}
     </div>
   )
 }
-function PosterCard({ value, index }) {
+function PosterCard({ value, index, wide }) {
   const [imgOk, setImgOk] = useState(true)
   const p = parseMedia(value)
   const img = p && p.kind === 'image' ? p.src : (p && p.kind === 'video' ? p.thumb : null)
@@ -961,7 +1031,7 @@ function PosterCard({ value, index }) {
   )
 
   const card = (
-    <div style={{ position: 'relative', flex: '0 0 auto', width: '148px', height: '212px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, scrollSnapAlign: 'start', transition: 'transform .25s ease, border-color .25s ease', cursor: href ? 'pointer' : 'default' }}
+    <div style={{ position: 'relative', flex: '0 0 auto', width: wide ? '196px' : '148px', height: wide ? '280px' : '212px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, scrollSnapAlign: 'start', transition: 'transform .25s ease, border-color .25s ease', cursor: href ? 'pointer' : 'default' }}
       onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
       onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = HAIR_HI }}>
       {body}
@@ -973,10 +1043,10 @@ function PosterCard({ value, index }) {
 }
 
 /* ---------- INFLUENCES: a typographic word-wall (bone · chrome · outline) ---------- */
-function WordWall({ items }) {
-  const sizes = [34, 46, 26, 40, 30, 52, 28, 38]
+function WordWall({ items, wide }) {
+  const sizes = wide ? [56, 78, 42, 66, 48, 88, 44, 62] : [34, 46, 26, 40, 30, 52, 28, 38]
   return (
-    <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '10px 20px' }}>
+    <div style={{ marginTop: '6px', display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: wide ? '16px 34px' : '10px 20px', maxWidth: wide ? '1180px' : undefined }}>
       {items.map((it, i) => {
         const p = parseMedia(it)
         const href = p && p.kind === 'link' ? p.href : null
