@@ -9,6 +9,10 @@ export default defineConfig({
   retries: 0,
   use: {
     baseURL: process.env.PREVIEW_URL || 'http://localhost:5173',
+    // PW_CHANNEL=chrome runs the walkthrough on installed Chrome — real
+    // compositing for trustworthy screenshots (headless shell ghosts
+    // fixed layers on first frames)
+    ...(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {}),
     viewport: { width: 390, height: 844 },   // the app is mobile-first (430px frame)
     screenshot: 'off',                        // we take our own, named per step
     video: 'off',

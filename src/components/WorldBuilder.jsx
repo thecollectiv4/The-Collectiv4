@@ -129,7 +129,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   return (
     // z 10000: ABOVE Layout's bottom nav (9999) — the nav must never cover
     // the sheet's own footer (Back / Next / Publish)
-    <div role="dialog" aria-label="Build your world" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '430px', zIndex: 10000, background: 'rgba(10,10,13,.96)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '58vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div role="dialog" aria-label="Build your world" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '430px', zIndex: 10000, background: 'rgba(10,10,13,.97)', borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '58vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
 
       {/* header: progress + meter + close */}
