@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown } from 'lucide-react'
 import WorldBuilder from '@/components/WorldBuilder'
@@ -695,7 +696,9 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 40 }} />
 
       {/* ============ THE GUIDED BUILD — sheet below, world forming above ============ */}
-      {building && (
+      {/* portaled to <body>: fixed overlays must never inherit a transformed
+          ancestor as their containing block (walkthrough catch) */}
+      {building && createPortal(
         <WorldBuilder
           data={data}
           onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
@@ -704,11 +707,12 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           onCleanupImages={onCleanupImages}
           onClose={() => setBuilding(false)}
           onPublished={() => { setBuilding(false); setCelebrating(true) }}
-        />
+        />,
+        document.body
       )}
 
       {/* ============ PUBLISHED — a sober moment, then back to the world ============ */}
-      {celebrating && (
+      {celebrating && createPortal(
         <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
           {/* void + grain + type only — the person's starfield belongs to their
               hero, not stretched into fullscreen blobs */}
@@ -728,7 +732,8 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
               keep curating
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
