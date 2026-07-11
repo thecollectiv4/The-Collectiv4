@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
+import { isNetworkMember } from '@/lib/osAccess'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, Users, CalendarDays } from 'lucide-react'
 
@@ -42,17 +43,6 @@ function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; le
 // the demo personas — a fallback filter so the public path stays honest even
 // BEFORE migration 0005 is applied (the DB `is_demo` flag is authoritative once it is).
 const DEMO_USERNAMES = new Set(['marcusreyes', 'jasminevcreates', 'devonmills', 'sofiamendez__', 'andrethompson', 'lilachen_film', 'djcarlosruiz', 'amaraosei'])
-// Owners/team who may flip on preview mode. Keyed on the AUTH SESSION (email/uid) —
-// NOT a profile row — because the seeded @patoduranc profile is not linked to the
-// founder's real auth account (its user_id is the placeholder 'seed_pato'), so a
-// profile lookup by auth uid finds nothing. Email/uid come straight off the session,
-// so this is resilient to a missing/unlinked profile and to session timing.
-// Lowercase emails. Add teammates here (or grant them profiles.verified = true).
-// Both founder logins (verified in auth.users): gmail = the ACTIVE one (jun 27→),
-// icloud = older account kept as fallback.
-const OWNER_EMAILS = new Set(['patduranchacon@gmail.com', 'patduranchacon@icloud.com'])
-const OWNER_IDS = new Set([]) // real auth uids, if ever needed
-const OWNER_USERNAMES = new Set(['patoduranc']) // secondary: once a real account holds this handle
 
 const tasteCount = (t) => {
   if (!t || typeof t !== 'object' || Array.isArray(t)) return 0
@@ -73,18 +63,15 @@ export default function Discover() {
   const [previewAvailable, setPreviewAvailable] = useState(import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true')
   const [showDemo, setShowDemo] = useState(false)
 
-  // Is the signed-in user an owner/team member (may reveal demo worlds)?
+  // May the signed-in user reveal demo worlds (preview mode)? Gated on the SAME
+  // server verdict that protects /os — my_os_identity() (owner OR verified),
+  // derived from the signed JWT server-side. No founder emails in the client
+  // bundle; identity is never client-derived. (VITE_DISCOVERY_PREVIEW is a dev
+  // override for local ecosystem previews.)
   useEffect(() => {
     let alive = true
     if (!user) return
-    // Primary check — straight off the auth session, no profile row required.
-    const email = (user.email || '').toLowerCase()
-    if (OWNER_EMAILS.has(email) || OWNER_IDS.has(user.id)) { setPreviewAvailable(true); return }
-    // Secondary — a real (auth-linked) profile whose handle is an owner, or a
-    // verified member. No-op today (the founder's real account has no linked
-    // profile), but future-proof once accounts are linked / verified is granted.
-    supabase.from('profiles').select('username, verified').eq('id', user.id).maybeSingle()
-      .then(({ data }) => { if (alive && data && (OWNER_USERNAMES.has(data.username) || data.verified === true)) setPreviewAvailable(true) })
+    isNetworkMember().then((ok) => { if (alive && ok) setPreviewAvailable(true) })
     return () => { alive = false }
   }, [user])
 
@@ -283,10 +270,10 @@ function WorldCard({ c, onOpen }) {
       <div style={{ padding: '26px 13px 14px' }}>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '19px', letterSpacing: '.02em', lineHeight: 1, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
         {c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
+        {c.city && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
           <MapPin size={9} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city || 'Houston'}</span>
-        </div>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
+        </div>}
         {(tc > 0 || wc > 0) && (
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
             {tc > 0 && <Stat n={tc} label="taste" />}
@@ -324,10 +311,10 @@ function EventCard({ e, live, onOpen }) {
       </div>
       <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
         <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em' }}>{dateStr}</span>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+        {(e.venue || e.city) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
           <MapPin size={10} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW }}>{e.venue || e.city || 'Houston'}</span>
-        </span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW }}>{e.venue || e.city}</span>
+        </span>}
         <ArrowUpRight size={14} style={{ color: SILVER, marginLeft: 'auto' }} />
       </div>
     </div>

@@ -9,6 +9,7 @@ import Board from '@/components/os/Board'
 import ContentEngine from '@/components/os/ContentEngine'
 import Brain from '@/components/os/Brain'
 import RoadmapStrip from '@/components/os/RoadmapStrip'
+import EventsAdmin from '@/components/os/Events'
 
 /* =========================================================================
    TEAM OS — the deck become an app. Fluid work surface: the instrument shell
@@ -26,6 +27,7 @@ const TABS = [
   { key: 'board', code: '01', label: 'Board', mark: '●' },
   { key: 'content', code: '02', label: 'Content', mark: '○' },
   { key: 'brain', code: '03', label: 'The Brain', mark: '◇' },
+  { key: 'events', code: '04', label: 'Events', mark: '✕' },
 ]
 const HELLO_KEY = 'os_hello_v1'
 // Cross-nav out of the OS — same icon vocabulary as Layout.jsx's bottom nav.
@@ -256,6 +258,7 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
         {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
         {tab === 'content' && <ContentEngine content={content} owners={owners} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
         {tab === 'brain' && brainEl(false)}
+        {tab === 'events' && <EventsAdmin />}
       </div>
       {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
     </>

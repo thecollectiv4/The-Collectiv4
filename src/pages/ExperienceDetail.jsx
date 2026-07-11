@@ -134,7 +134,8 @@ export default function ExperienceDetail() {
           onMouseOver={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(242,238,230,.15)'}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           <Ticket size={16} style={{color:'var(--bg)'}}/>
-          <span style={{fontFamily:'Bebas Neue',fontSize:'17px',color:'var(--bg)',letterSpacing:'.06em'}}>GET YOUR TICKET — FROM $15</span>
+          {/* No invented price — the landing shows the real tiers. */}
+          <span style={{fontFamily:'Bebas Neue',fontSize:'17px',color:'var(--bg)',letterSpacing:'.06em'}}>GET YOUR TICKET</span>
         </button>
       </div>
     </div>

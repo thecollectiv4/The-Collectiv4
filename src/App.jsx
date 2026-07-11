@@ -17,6 +17,7 @@ import ClaimWorld from '@/pages/ClaimWorld'
 import Discover from '@/pages/Discover'
 import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
+import DoorScanner from '@/pages/DoorScanner'
 
 // DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
 // mirror data so layout is verifiable without a member session. The
@@ -47,6 +48,7 @@ export default function App() {
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="network" element={<NetworkAdmin />} />{/* owner-only: grant verified */}
             <Route path="os" element={<OS />} />{/* network-only: internal team hub */}
+            <Route path="door" element={<DoorScanner />} />{/* network-only: door check-in */}
             {/* Redirects from old routes */}
             <Route path="attendees" element={<Navigate to="/community" />} />
             <Route path="chat" element={<Navigate to="/community" />} />

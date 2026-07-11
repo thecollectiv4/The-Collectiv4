@@ -313,10 +313,11 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', rowGap: '4px' }}>
             {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '12px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {/* City renders only when the user claimed one — no invented hometown. */}
+            {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <MapPin size={11} style={{ color: BONE_LOW }} />
-              <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city || 'Houston'}</span>
-            </span>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city}</span>
+            </span>}
             {ticket && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Mono', fontSize: '10px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(242,238,230,.03)', borderRadius: '100px', padding: '3px 11px', letterSpacing: '.1em' }}>
                 <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(232,233,237,.7)` }} />

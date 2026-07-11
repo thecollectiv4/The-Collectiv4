@@ -1,12 +1,8 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { isNetworkMember } from '@/lib/osAccess'
 import { X } from 'lucide-react'
 
 export default function AuthModal({ onClose }) {
-  const navigate = useNavigate()
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -24,9 +20,9 @@ export default function AuthModal({ onClose }) {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       }
+      // Just dismiss — the user stays on the page they were on. Members reach the
+      // OS deliberately via its own server-gated nav entry, never an auto-redirect.
       onClose()
-      // Members land in their work app straight after signing in.
-      if (mode === 'signin' && await isNetworkMember()) navigate('/os')
     } catch (e) { setError(e.message) }
     setLoading(false)
   }
