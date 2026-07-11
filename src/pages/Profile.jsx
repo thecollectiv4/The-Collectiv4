@@ -40,12 +40,22 @@ export default function Profile() {
       // user_id is NOT NULL on the (Base44-era) profiles table — omitting it made
       // this insert fail silently, so real signups never got a profile row. Set it
       // to the auth uid (same as id) so first-profile creation actually succeeds.
+      // username starts NULL, never '' — profiles_username_key is UNIQUE, so the
+      // SECOND ''-handle member would hit a duplicate-key error the old code
+      // swallowed, and every later "save" would update ZERO rows in silence
+      // (caught live by the QA walkthrough, 11 jul). NULLs never collide.
       // city starts EMPTY — a location the user never claimed is invented data.
-      // (Display surfaces show it only when it exists.)
-      const { data: newP } = await supabase.from('profiles').insert({
-        id: user.id, user_id: user.id, full_name: nm, username: '', bio: '', city: ''
+      const { data: newP, error: insErr } = await supabase.from('profiles').insert({
+        id: user.id, user_id: user.id, full_name: nm, username: null, bio: '', city: ''
       }).select().single()
-      data = newP || { id: user.id, full_name: nm, username: '', bio: '', avatar_url: '', city: '' }
+      data = newP
+      if (!data) {
+        // insert lost a race or collided — the row may exist now; read it back
+        // rather than building a ghost the DB never accepts writes for.
+        console.error('Profile insert failed:', insErr)
+        const { data: again } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        data = again || { id: user.id, full_name: nm, username: null, bio: '', avatar_url: '', city: '' }
+      }
     }
     setProfile(data)
 
@@ -94,8 +104,13 @@ export default function Profile() {
   // identity, and the museum re-syncs from it — a stale copy here would visually
   // revert (and could then re-persist over) the world that was just saved.
   const onSave = async (patch) => {
+    // '' would collide on the UNIQUE handle index — an empty handle is NULL
+    if ('username' in patch && !patch.username) patch = { ...patch, username: null }
     const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
-    if (error) throw error
+    if (error) {
+      if ((error.message || '').includes('profiles_username_key')) throw new Error('that handle is taken — try another')
+      throw error
+    }
     setProfile(p => ({ ...p, ...patch }))
   }
 
