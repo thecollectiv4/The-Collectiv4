@@ -202,6 +202,10 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   // the dock and the tab are the same session — never both at once
   useEffect(() => { if (tab === 'brain' && dockOpen) setDockOpen(false) }, [tab, dockOpen])
 
+  // if the active tab leaves the set (owner verdict flipped on refresh),
+  // land on Board instead of an empty pane
+  useEffect(() => { if (!tabs.some(t => t.key === tab)) setTab('board') }, [isOwner]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // B toggles the Brain dock (same guard style as the board's N quick-add);
   // Esc closes it. Ignored while typing or while on the Brain tab itself.
   useEffect(() => {

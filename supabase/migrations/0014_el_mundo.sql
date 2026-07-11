@@ -153,7 +153,6 @@ security definer
 set search_path = public
 as $$
 declare
-  v_email text;
   v_name  text;
   v_new   boolean;
   v_actor uuid;
@@ -162,13 +161,14 @@ begin
     return jsonb_build_object('ok', false, 'error', 'not_owner');
   end if;
 
-  select u.email,
-         coalesce(nullif(trim(u.raw_user_meta_data ->> 'full_name'), ''),
+  -- existence check on FOUND, never on a nullable column (an email-less
+  -- account is still a registered user the list surfaced)
+  select coalesce(nullif(trim(u.raw_user_meta_data ->> 'full_name'), ''),
                   split_part(u.email, '@', 1), 'Member')
-    into v_email, v_name
+    into v_name
     from auth.users u
    where u.id = p_user and u.deleted_at is null;
-  if v_email is null then
+  if not found then
     return jsonb_build_object('ok', false, 'error', 'not_found');
   end if;
 

@@ -50,5 +50,6 @@ export async function removeWorldImages(paths) {
    (for cleanup when an avatar/cover is replaced). Foreign/base64 URLs → null. */
 export function worldPathFromUrl(url) {
   const m = /\/storage\/v1\/object\/public\/worlds\/(.+?)(?:[?#]|$)/.exec(url || '')
-  return m ? decodeURIComponent(m[1]) : null
+  if (!m) return null
+  try { return decodeURIComponent(m[1]) } catch { return null } // malformed encoding → no cleanup, never a crash
 }

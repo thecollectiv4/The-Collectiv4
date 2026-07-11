@@ -59,9 +59,12 @@ export default function Network() {
       const { data, error } = await supabase.rpc('admin_set_verified', { p_user: u.id, p_verified: !u.verified })
       if (error) throw new Error(error.message)
       if (!data?.ok) throw new Error(data?.error === 'not_owner' ? 'Owners only (server said no).' : data?.error === 'not_found' ? 'No registered account with that id.' : (data?.error || 'Could not update.'))
-      // DB truth, not click optimism — re-read the list
+      // DB truth, not click optimism — re-read the list. If the re-read
+      // fails, the write STILL landed: patch this row from the RPC's own
+      // confirmed verdict so the button never shows a state the DB left.
       const { data: fresh, error: e2 } = await supabase.rpc('admin_list_users')
       if (!e2 && fresh?.ok) setUsers(Array.isArray(fresh.users) ? fresh.users : [])
+      else setUsers(us => us.map(x => x.id === u.id ? { ...x, verified: !!data.verified, has_profile: true } : x))
     } catch (e) {
       setErr(e.message || 'Could not update.')
     } finally {

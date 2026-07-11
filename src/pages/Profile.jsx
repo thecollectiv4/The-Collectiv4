@@ -90,9 +90,13 @@ export default function Profile() {
 
   // Owner save — writes every museum column EXCEPT `verified` (locked to service role
   // by the lock_verified trigger). Passes profiles_self_update RLS (auth.uid()=id).
+  // The parent copy stays in sync: a later avatar/cover upload changes the prop
+  // identity, and the museum re-syncs from it — a stale copy here would visually
+  // revert (and could then re-persist over) the world that was just saved.
   const onSave = async (patch) => {
     const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
     if (error) throw error
+    setProfile(p => ({ ...p, ...patch }))
   }
 
   // Image upload — Supabase Storage (bucket 'worlds', 0014). The DB row holds

@@ -130,6 +130,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const [saveErr, setSaveErr] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
+  const [upErr, setUpErr] = useState(null)
   const fileRef = useRef(null)
   const coverRef = useRef(null)
   const galleryFileRef = useRef(null)
@@ -218,16 +219,18 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
     if (j < 0 || j >= r.length) return r
     const c = [...r]; const [x] = c.splice(i, 1); c.splice(j, 0, x); return c
   })
-  const delGalRow = (i) => setGalRows(r => {
-    const row = r[i]
+  // side effects OUTSIDE the state updater — StrictMode double-invokes
+  // updaters in dev, which would double-delete and corrupt the bookkeeping
+  const delGalRow = (i) => {
+    const row = galRows[i]
     if (row?.path) {
       // this session's upload → gone for good right now; a saved object waits
       // for the save to land (cancel must be able to bring it back).
       if (sessionUploads.current.has(row.path)) { sessionUploads.current.delete(row.path); onCleanupImages?.([row.path]) }
       else removedSaved.current.add(row.path)
     }
-    return r.filter((_, j) => j !== i)
-  })
+    setGalRows(r => r.filter((_, j) => j !== i))
+  }
 
   const cancelEdit = () => {
     // uploads that never got saved don't belong to anyone — clean them up
@@ -271,7 +274,9 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       setEditing(false)
     } catch (err) {
       console.error('Save failed:', err)
-      setSaveErr("Couldn't save — check your connection and try again.")
+      // surface the REAL reason — a schema/RLS rejection must never wear a
+      // "check your connection" costume (honest surfaces, always)
+      setSaveErr(err?.message ? `Couldn't save — ${err.message}` : "Couldn't save — check your connection and try again.")
     } finally {
       setSaving(false)
     }
@@ -282,11 +287,13 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
     const file = input.files?.[0]
     if (!file || !onUploadAvatar) return
     setUploading(true)
+    setUpErr(null)
     try {
       const url = await onUploadAvatar(file)
       if (url) setData(d => ({ ...d, avatar_url: url }))
     } catch (err) {
       console.error('Avatar upload failed:', err)
+      setUpErr(err?.message ? `Photo upload failed — ${err.message}` : 'Photo upload failed — try again.')
     } finally {
       setUploading(false)
       input.value = ''
@@ -298,11 +305,13 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
     const file = input.files?.[0]
     if (!file || !onUploadCover) return
     setCoverUploading(true)
+    setUpErr(null)
     try {
       const url = await onUploadCover(file)
       if (url) setData(d => ({ ...d, cover_url: url }))
     } catch (err) {
       console.error('Cover upload failed:', err)
+      setUpErr(err?.message ? `Cover upload failed — ${err.message}` : 'Cover upload failed — try again.')
     } finally {
       setCoverUploading(false)
       input.value = ''
@@ -463,6 +472,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         {isOwner && !editing && links.length === 0 && (
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '16px' }}>+ add your links — IG, portfolio, sound</div>
         )}
+        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && (
           <button onClick={startEdit} style={{ marginTop: '20px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
@@ -488,7 +498,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             <Field label="RIGHT NOW" hint="One line, your voice. What you're on right now."><input style={inp} value={tagline} placeholder="Chasing the sound that doesn't exist yet." onChange={e => setTagline(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="THE OPENING" hint="A short statement — who you are, in your own words. This opens your world."><textarea style={{ ...inp, resize: 'vertical' }} rows={3} value={bio} placeholder="Where you're from, what you make, what you're chasing." onChange={e => setBio(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="MARQUEE" hint="The line that loops across the top of your world. Clear it to turn the ticker off.">
-              <input style={inp} value={marquee} placeholder={DEFAULT_MARQUEE} onChange={e => setMarquee(e.target.value)} onFocus={onF} onBlur={onB} />
+              <input style={inp} value={marquee} maxLength={80} placeholder={DEFAULT_MARQUEE} onChange={e => setMarquee(e.target.value)} onFocus={onF} onBlur={onB} />
             </Field>
             <Field label="WORLD SKIN" hint="How your name is set — same universe, your composition.">
               <div style={{ display: 'flex', gap: '10px' }}>
@@ -572,9 +582,11 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           </Section>
 
           {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
+          {/* both gates wait for in-flight gallery uploads — saving or cancelling
+              mid-upload would drop the image and orphan its storage object */}
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={cancelEdit} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>Cancel</button>
-            <button onClick={save} disabled={saving} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: saving ? .6 : 1, transition: 'all .2s' }}>{saving ? 'Saving…' : 'Save your world'}</button>
+            <button onClick={cancelEdit} disabled={galUploading > 0} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: galUploading > 0 ? 'default' : 'pointer', fontFamily: 'DM Sans', opacity: galUploading > 0 ? .5 : 1 }}>Cancel</button>
+            <button onClick={save} disabled={saving || galUploading > 0} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: (saving || galUploading > 0) ? .6 : 1, transition: 'all .2s' }}>{saving ? 'Saving…' : galUploading > 0 ? 'Uploading…' : 'Save your world'}</button>
           </div>
         </div>
       ) : (
