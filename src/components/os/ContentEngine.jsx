@@ -27,9 +27,9 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
                 <div style={{ fontFamily: FONT_SANS, fontSize: '14px', color: BONE, lineHeight: 1.3 }}>{c.title}</div>
                 {c.concept && <div style={{ fontFamily: FONT_SANS, fontSize: '12px', color: BONE_MID, lineHeight: 1.45, marginTop: '4px' }}>{c.concept}</div>}
               </div>
-              <div className="os-actions" style={{ display: 'flex', gap: 0, flexShrink: 0 }}>
-                <button onClick={() => setEditing({ mode: 'edit', item: c })} aria-label="Edit" style={iconBtn}><Pencil size={11} /></button>
-                <button onClick={() => { if (confirm(`Delete "${c.title}"?`)) onDelete(c) }} aria-label="Delete" style={iconBtn}><Trash2 size={11} /></button>
+              <div className="os-actions" style={{ display: 'flex', gap: '2px', flexShrink: 0 }}>
+                <button onClick={() => setEditing({ mode: 'edit', item: c })} aria-label="Edit" style={iconBtn}><Pencil size={11} /><span style={btnWord}>Edit</span></button>
+                <button onClick={() => { if (confirm(`Delete "${c.title}"?`)) onDelete(c) }} aria-label="Delete" style={iconBtn}><Trash2 size={11} /><span style={btnWord}>Del</span></button>
               </div>
             </div>
             {c.caption && <div style={{ fontFamily: FONT_MONO, fontSize: '10.5px', color: BONE_LOW, lineHeight: 1.5, marginTop: '9px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, overflowWrap: 'anywhere' }}>{c.caption}</div>}
@@ -60,7 +60,9 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
   )
 }
 
-const iconBtn = { background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px', display: 'inline-flex' }
+const iconBtn = { background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }
+// the action's word next to its icon — actions read, not just glyph
+const btnWord = { fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase' }
 
 /* Brief — long structured creative brief (nullable os_content.brief). Collapsed
    by default so the card grid keeps §E density; expands inline, mono, hairline. */

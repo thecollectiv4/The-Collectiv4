@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Lock, X, CalendarDays, Compass, Users, User } from 'lucide-react'
+import { Loader2, Lock, X, ArrowLeft, CalendarDays, Compass, Users, User } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
 import { useIsDesktop, useRailFull } from '@/lib/useIsDesktop'
@@ -10,6 +10,7 @@ import ContentEngine from '@/components/os/ContentEngine'
 import Brain from '@/components/os/Brain'
 import RoadmapStrip from '@/components/os/RoadmapStrip'
 import EventsAdmin from '@/components/os/Events'
+import Network from '@/components/os/Network'
 
 /* =========================================================================
    TEAM OS — the deck become an app. Fluid work surface: the instrument shell
@@ -23,12 +24,17 @@ import EventsAdmin from '@/components/os/Events'
    ========================================================================= */
 
 const nowISO = () => new Date().toISOString()
+// `short` is the visible word under each mark on the icon-only rail —
+// a mark that needs explaining isn't design (legibility > minimalism).
 const TABS = [
-  { key: 'board', code: '01', label: 'Board', mark: '●' },
-  { key: 'content', code: '02', label: 'Content', mark: '○' },
-  { key: 'brain', code: '03', label: 'The Brain', mark: '◇' },
-  { key: 'events', code: '04', label: 'Events', mark: '✕' },
+  { key: 'board', code: '01', label: 'Board', short: 'Board', mark: '●' },
+  { key: 'content', code: '02', label: 'Content', short: 'Content', mark: '○' },
+  { key: 'brain', code: '03', label: 'The Brain', short: 'Brain', mark: '◇' },
+  { key: 'events', code: '04', label: 'Events', short: 'Events', mark: '✕' },
 ]
+// Founders only — appended to TABS when the server's my_os_identity() says
+// owner. Display-gating: the admin_* RPCs re-check is_owner() on every call.
+const NETWORK_TAB = { key: 'network', code: '05', label: 'Network', short: 'Network', mark: '△' }
 const HELLO_KEY = 'os_hello_v1'
 // Cross-nav out of the OS — same icon vocabulary as Layout.jsx's bottom nav.
 const CROSS_NAV = [
@@ -41,7 +47,7 @@ const GRAIN_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/s
 
 export default function OS() {
   const navigate = useNavigate()
-  const { state, profile } = useOSAccess()
+  const { state, profile, owner } = useOSAccess()
   const [tasks, setTasks] = useState([])
   const [content, setContent] = useState([])
   const [activity, setActivity] = useState([])
@@ -169,7 +175,7 @@ export default function OS() {
 
   return (
     <OSInstrument
-      profile={profile} tasks={tasks} content={content} activity={activity} owners={owners} notice={notice}
+      profile={profile} isOwner={owner} tasks={tasks} content={content} activity={activity} owners={owners} notice={notice}
       mutators={{ createTask, updateTask, moveTaskTo, deleteTask, createContent, updateContent, deleteContent }}
       refreshAll={refreshAll} brainMsgs={brainMsgs} setBrainMsgs={setBrainMsgs}
     />
@@ -182,10 +188,13 @@ export default function OS() {
    presentational component. Data + mutators come in as props; no supabase
    here (the DEV harness mounts this with mirror data).
    ========================================================================= */
-export function OSInstrument({ profile, tasks, content, activity, owners, notice, mutators, refreshAll, brainMsgs, setBrainMsgs }) {
+export function OSInstrument({ profile, isOwner = false, tasks, content, activity, owners, notice, mutators, refreshAll, brainMsgs, setBrainMsgs }) {
+  const navigate = useNavigate()
   const desktop = useIsDesktop()   // >=768 — instrument shell
   const railFull = useRailFull()   // >=1180 — full rail; below, icon-only
   const [tab, setTab] = useState('board')
+  // the founder's desk appears only on the server's owner verdict
+  const tabs = isOwner ? [...TABS, NETWORK_TAB] : TABS
   const [hello, setHello] = useState(() => { try { return !localStorage.getItem(HELLO_KEY) } catch { return false } })
   const [dockOpen, setDockOpen] = useState(false)
   const dismissHello = () => { setHello(false); try { localStorage.setItem(HELLO_KEY, '1') } catch {} }
@@ -193,6 +202,10 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
 
   // the dock and the tab are the same session — never both at once
   useEffect(() => { if (tab === 'brain' && dockOpen) setDockOpen(false) }, [tab, dockOpen])
+
+  // if the active tab leaves the set (owner verdict flipped on refresh),
+  // land on Board instead of an empty pane
+  useEffect(() => { if (!tabs.some(t => t.key === tab)) setTab('board') }, [isOwner]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // B toggles the Brain dock (same guard style as the board's N quick-add);
   // Esc closes it. Ignored while typing or while on the Brain tab itself.
@@ -217,7 +230,7 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
     make: content.filter(c => c.status !== 'posted').length,
     planned: content.filter(c => c.planned_date).length,
   }
-  const activeTab = TABS.find(t => t.key === tab)
+  const activeTab = tabs.find(t => t.key === tab) || TABS[0]
   const specLine = `HOUSTON, TX · ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()} · OS V1`
   const firstName = (profile?.full_name || profile?.username || 'you').split(' ')[0]
 
@@ -259,6 +272,7 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
         {tab === 'content' && <ContentEngine content={content} owners={owners} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
         {tab === 'brain' && brainEl(false)}
         {tab === 'events' && <EventsAdmin />}
+        {tab === 'network' && isOwner && <Network />}
       </div>
       {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
     </>
@@ -269,7 +283,7 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
     return (
       <Shell>
         <div style={{ display: 'flex', alignItems: 'stretch', minHeight: '100vh' }}>
-          <Rail tab={tab} setTab={setTab} profile={profile} counts={counts} full={railFull} />
+          <Rail tabs={tabs} tab={tab} setTab={setTab} profile={profile} counts={counts} full={railFull} />
           <main style={{ flex: 1, minWidth: 0, padding: railFull ? '28px 40px 56px' : '28px 26px 56px' }}>
             {/* header row: tab kicker + Brain dock + spec coordinates */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '20px', marginBottom: '18px' }}>
@@ -304,10 +318,11 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
       <div style={{ padding: '24px 18px 40px', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', marginBottom: '4px' }}>
           <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '9px' }}>◇</div>
-          <div>
+          <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
+            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
             <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.28em', textTransform: 'uppercase', marginBottom: '4px' }}>Our network · internal</div>
             <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '42px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>TEAM OS</h1>
-          </div>
+          </button>
           <div style={{ marginLeft: 'auto', paddingBottom: '6px' }}>{dockBtn}</div>
         </div>
         <div style={{ margin: '16px 0 6px' }}>{helloCard}</div>
@@ -315,8 +330,8 @@ export function OSInstrument({ profile, tasks, content, activity, owners, notice
         <div style={{ height: '10px' }} />
         <RoadmapStrip tasks={tasks} content={content} />
         {/* tabs */}
-        <div style={{ display: 'flex', gap: '8px', margin: '4px 0 18px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '2px' }}>
-          {TABS.map(t => {
+        <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', margin: '4px 0 18px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '2px', overflowX: 'auto' }}>
+          {tabs.map(t => {
             const active = tab === t.key
             return (
               <button key={t.key} onClick={() => setTab(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? SILVER : 'transparent'}`, color: active ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', padding: '8px 4px 10px', cursor: 'pointer', marginBottom: '-3px' }}>
@@ -370,7 +385,7 @@ function BrainDock({ mobile, onClose, children }) {
   )
 }
 
-export function Rail({ tab, setTab, profile, counts, full = true }) {
+export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true }) {
   const navigate = useNavigate()
   const name = profile?.full_name || profile?.username || 'Member'
   const avatar = safeImg(profile?.avatar_url)
@@ -381,35 +396,48 @@ export function Rail({ tab, setTab, profile, counts, full = true }) {
     </div>
   )
 
-  /* icon-only rail (<1180px): the deck marks ARE the nav; condensed pulse is
-     just the days-to-Fall-001 number; identity is the avatar alone. */
+  /* icon-only rail (<1180px): the deck marks stay, but every mark carries its
+     word — an icon that needs explaining isn't design (Pato's OS-QA rule:
+     legibility > minimalism). */
   if (!full) {
     return (
-      <aside style={{ width: '64px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: `1px solid ${HAIR}`, padding: '24px 10px 18px', background: 'rgba(10,10,13,.55)' }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: '19px', letterSpacing: '.04em', lineHeight: 1, ...chromeText }} title="Team OS">OS</div>
-        <nav style={{ marginTop: '26px', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-          {TABS.map(t => {
+      <aside style={{ width: '68px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: `1px solid ${HAIR}`, padding: '24px 8px 18px', background: 'rgba(10,10,13,.55)' }}>
+        {/* the brand is a door, not a decoration — tapping it always goes home */}
+        <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
+          style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <span style={{ fontFamily: FONT_DISPLAY, fontSize: '19px', letterSpacing: '.04em', lineHeight: 1, ...chromeText }}>OS</span>
+        </button>
+        <button onClick={() => navigate('/')} aria-label="Back to the app"
+          style={{ marginTop: '14px', width: '52px', padding: '6px 2px 5px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', color: BONE_MID, cursor: 'pointer' }}>
+          <ArrowLeft size={12} strokeWidth={1.5} />
+          <span style={{ fontFamily: FONT_MONO, fontSize: '6.5px', letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1 }}>App</span>
+        </button>
+        <nav style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+          {tabs.map(t => {
             const active = tab === t.key
             return (
               <button key={t.key} onClick={() => setTab(t.key)} title={t.label} aria-label={t.label} aria-current={active ? 'page' : undefined}
-                style={{ width: '36px', height: '36px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: active ? 'rgba(242,238,230,.06)' : 'transparent', border: `1px solid ${active ? HAIR_HI : 'transparent'}`, borderRadius: '8px', color: active ? STAR : BONE_LOW, fontFamily: FONT_MONO, fontSize: '12px', cursor: 'pointer' }}>
-                {t.mark}
+                style={{ width: '52px', padding: '7px 2px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: active ? 'rgba(242,238,230,.06)' : 'transparent', border: `1px solid ${active ? HAIR_HI : 'transparent'}`, borderRadius: '8px', color: active ? STAR : BONE_LOW, cursor: 'pointer' }}>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '12px', lineHeight: 1 }}>{t.mark}</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: '7px', letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1 }}>{t.short || t.label}</span>
               </button>
             )
           })}
         </nav>
         <div style={{ flex: 1 }} />
-        <div title="days to Fall 001" style={{ borderTop: `1px solid ${HAIR}`, width: '100%', paddingTop: '12px', textAlign: 'center', fontFamily: FONT_MONO, fontSize: '14px', color: BONE }}>
-          {String(counts.days >= 0 ? counts.days : '—').padStart(2, '0')}
+        <div title="days to Fall 001" style={{ borderTop: `1px solid ${HAIR}`, width: '100%', paddingTop: '12px', textAlign: 'center' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '14px', color: BONE }}>{String(counts.days >= 0 ? counts.days : '—').padStart(2, '0')}</div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '6.5px', color: FAINT, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '3px' }}>days to 001</div>
         </div>
         {/* cross-nav — never trapped in the OS */}
-        <div style={{ borderTop: `1px solid ${HAIR}`, width: '100%', marginTop: '12px', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+        <div style={{ borderTop: `1px solid ${HAIR}`, width: '100%', marginTop: '12px', paddingTop: '10px', display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
           {CROSS_NAV.map(l => {
             const Icon = l.icon
             return (
               <button key={l.to} onClick={() => navigate(l.to)} title={l.label} aria-label={l.label}
-                style={{ width: '32px', height: '30px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', borderRadius: '6px', color: FAINT, cursor: 'pointer' }}>
-                <Icon size={14} strokeWidth={1.5} />
+                style={{ width: '52px', padding: '5px 2px 4px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'transparent', border: 'none', borderRadius: '6px', color: FAINT, cursor: 'pointer' }}>
+                <Icon size={13} strokeWidth={1.5} />
+                <span style={{ fontFamily: FONT_MONO, fontSize: '6.5px', letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1 }}>{l.label}</span>
               </button>
             )
           })}
@@ -423,14 +451,24 @@ export function Rail({ tab, setTab, profile, counts, full = true }) {
 
   return (
     <aside style={{ width: '232px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '28px 20px 22px', background: 'rgba(10,10,13,.55)' }}>
-      {/* mark */}
-      <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>The Collectiv4</div>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: '31px', letterSpacing: '.03em', lineHeight: .9, marginTop: '6px', ...chromeText }}>TEAM OS</div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.2em', textTransform: 'uppercase', marginTop: '7px' }}>our network · internal</div>
+      {/* mark — the brand is a door, not a decoration: tapping it goes home */}
+      <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
+        style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>The Collectiv4</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: '31px', letterSpacing: '.03em', lineHeight: .9, marginTop: '6px', ...chromeText }}>TEAM OS</div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.2em', textTransform: 'uppercase', marginTop: '7px' }}>our network · internal</div>
+      </button>
+
+      {/* the way OUT is always visible — never trapped in the OS (P0, QA 11 jul) */}
+      <button onClick={() => navigate('/')} aria-label="Back to the app"
+        style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '9px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '9px 12px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
+        <ArrowLeft size={12} strokeWidth={1.5} />
+        Back to the app
+      </button>
 
       {/* nav — the deck's marks as the navigation language */}
-      <nav style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-        {TABS.map(t => {
+      <nav style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+        {tabs.map(t => {
           const active = tab === t.key
           return (
             <button key={t.key} onClick={() => setTab(t.key)} aria-current={active ? 'page' : undefined}

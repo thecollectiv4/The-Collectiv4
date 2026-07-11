@@ -37,7 +37,7 @@ export default function AuthModal({ onClose }) {
       {/* Modal */}
       <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:'100%',maxWidth:'360px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'20px',padding:'32px 28px',animation:'fadeUp .3s ease'}}>
         {/* Close button */}
-        <button onClick={onClose} style={{position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',padding:'4px'}}>
+        <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',padding:'4px'}}>
           <X size={18} />
         </button>
 

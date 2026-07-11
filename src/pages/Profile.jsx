@@ -7,6 +7,7 @@ import { LogOut, Calendar, MapPin, Clock, ChevronRight, Copy, Check } from 'luci
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
+import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/worldStorage'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
@@ -39,12 +40,22 @@ export default function Profile() {
       // user_id is NOT NULL on the (Base44-era) profiles table — omitting it made
       // this insert fail silently, so real signups never got a profile row. Set it
       // to the auth uid (same as id) so first-profile creation actually succeeds.
+      // username starts NULL, never '' — profiles_username_key is UNIQUE, so the
+      // SECOND ''-handle member would hit a duplicate-key error the old code
+      // swallowed, and every later "save" would update ZERO rows in silence
+      // (caught live by the QA walkthrough, 11 jul). NULLs never collide.
       // city starts EMPTY — a location the user never claimed is invented data.
-      // (Display surfaces show it only when it exists.)
-      const { data: newP } = await supabase.from('profiles').insert({
-        id: user.id, user_id: user.id, full_name: nm, username: '', bio: '', city: ''
+      const { data: newP, error: insErr } = await supabase.from('profiles').insert({
+        id: user.id, user_id: user.id, full_name: nm, username: null, bio: '', city: ''
       }).select().single()
-      data = newP || { id: user.id, full_name: nm, username: '', bio: '', avatar_url: '', city: '' }
+      data = newP
+      if (!data) {
+        // insert lost a race or collided — the row may exist now; read it back
+        // rather than building a ghost the DB never accepts writes for.
+        console.error('Profile insert failed:', insErr)
+        const { data: again } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+        data = again || { id: user.id, full_name: nm, username: null, bio: '', avatar_url: '', city: '' }
+      }
     }
     setProfile(data)
 
@@ -89,36 +100,49 @@ export default function Profile() {
 
   // Owner save — writes every museum column EXCEPT `verified` (locked to service role
   // by the lock_verified trigger). Passes profiles_self_update RLS (auth.uid()=id).
+  // The parent copy stays in sync: a later avatar/cover upload changes the prop
+  // identity, and the museum re-syncs from it — a stale copy here would visually
+  // revert (and could then re-persist over) the world that was just saved.
   const onSave = async (patch) => {
+    // '' would collide on the UNIQUE handle index — an empty handle is NULL
+    if ('username' in patch && !patch.username) patch = { ...patch, username: null }
     const { error } = await supabase.from('profiles').update(patch).eq('id', user.id)
-    if (error) throw error
+    if (error) {
+      if ((error.message || '').includes('profiles_username_key')) throw new Error('that handle is taken — try another')
+      throw error
+    }
+    setProfile(p => ({ ...p, ...patch }))
   }
 
-  // Image upload — base64-data-URL behavior (Supabase Storage = later cleanup).
-  // Settles on EVERY path: read error → reject, DB error → reject, success → resolve.
-  const uploadImage = (col) => (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(reader.error || new Error('Could not read file'))
-    reader.onload = async (ev) => {
-      try {
-        const url = ev.target.result
-        const { error } = await supabase.from('profiles').update({ [col]: url }).eq('id', user.id)
-        if (error) return reject(error)
-        resolve(url)
-      } catch (e) { reject(e) }
-    }
-    reader.readAsDataURL(file)
-  })
-  const onUploadAvatar = uploadImage('avatar_url')
+  // Image upload — Supabase Storage (bucket 'worlds', 0014). The DB row holds
+  // the public URL; the object lives under the user's OWN uid folder (storage
+  // RLS). Old base64 avatars keep rendering — only NEW uploads change shape.
+  // The replaced object is removed best-effort AFTER the row points elsewhere.
+  const uploadImage = (col, prefix) => async (file) => {
+    const { path, url } = await uploadWorldImage(user.id, file, prefix)
+    const prev = worldPathFromUrl(profile?.[col])
+    const { error } = await supabase.from('profiles').update({ [col]: url }).eq('id', user.id)
+    if (error) { removeWorldImages([path]); throw error }
+    setProfile(p => ({ ...p, [col]: url }))
+    if (prev) removeWorldImages([prev])
+    return url
+  }
+  const onUploadAvatar = uploadImage('avatar_url', 'avatar')
   // Cover: a file uploads like the avatar; null clears it.
   const onUploadCover = async (file) => {
     if (!file) {
+      const prev = worldPathFromUrl(profile?.cover_url)
       const { error } = await supabase.from('profiles').update({ cover_url: null }).eq('id', user.id)
       if (error) throw error
+      setProfile(p => ({ ...p, cover_url: null }))
+      if (prev) removeWorldImages([prev])
       return null
     }
-    return uploadImage('cover_url')(file)
+    return uploadImage('cover_url', 'cover')(file)
   }
+  // Gallery: the museum uploads as the owner curates; the array persists on save.
+  const onUploadGallery = (file) => uploadWorldImage(user.id, file, 'g')
+  const onCleanupImages = (paths) => removeWorldImages(paths)
 
   const topBar = (
     <>
@@ -231,6 +255,9 @@ export default function Profile() {
       onSave={onSave}
       onUploadAvatar={onUploadAvatar}
       onUploadCover={onUploadCover}
+      onUploadGallery={onUploadGallery}
+      onCleanupImages={onCleanupImages}
+      onViewPublic={() => navigate(`/user/${user.id}`)}
       topBar={topBar}
       ownerExtras={ownerExtras}
     />
