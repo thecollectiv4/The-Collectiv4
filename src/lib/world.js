@@ -29,7 +29,11 @@ export const THEMES = [
   { key: 'bone', label: 'Bone' },
 ]
 export function nameSkin(theme) {
-  if (theme === 'outline') return { color: 'transparent', WebkitTextStroke: `1.5px ${BONE}` }
+  // outline: fill transparent + stroke. `filter: none` is load-bearing — a
+  // drop-shadow filter over stroked transparent text can composite to
+  // NOTHING in Chromium (the museum hero carries one for the chrome skin;
+  // caught by the walkthrough: the anon world rendered a nameless hero).
+  if (theme === 'outline') return { color: 'transparent', WebkitTextStroke: `1.5px ${BONE}`, filter: 'none' }
   if (theme === 'bone') return { color: BONE }
   return chromeDisplayText
 }

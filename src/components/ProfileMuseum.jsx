@@ -709,7 +709,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
       {/* ============ PUBLISHED — a sober moment, then back to the world ============ */}
       {celebrating && (
-        <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 9500, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
+        <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
           <StarField seed={seed} />
           <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
           <div style={{ position: 'relative', textAlign: 'center', padding: '0 30px', maxWidth: '380px' }}>

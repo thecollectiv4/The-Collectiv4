@@ -55,6 +55,7 @@ test('A · a member signs up, builds their world, and the world is live', async 
   const sheet = page.getByRole('dialog', { name: 'Build your world' })
   await expect(sheet).toBeVisible({ timeout: 20000 })
   await expect(sheet.getByText('YOUR CRAFT')).toBeVisible()
+  await page.waitForTimeout(900) // let the fixed layer paint (headless first-frame quirk)
   await shot(page, '03-wizard-opens-on-empty-world')
 
   // step 1 — craft + line (the museum above updates as we type)
@@ -95,8 +96,10 @@ test('A · a member signs up, builds their world, and the world is live', async 
   await sheet.getByRole('button', { name: 'PUBLISH YOUR WORLD' }).click()
 
   // ---- the sober celebration ----
-  await expect(page.getByText('YOUR WORLD')).toBeVisible({ timeout: 20000 })
-  await expect(page.getByText('IS LIVE')).toBeVisible()
+  const celebration = page.getByRole('dialog', { name: 'Your world is live' })
+  await expect(celebration).toBeVisible({ timeout: 20000 })
+  await expect(celebration.getByText('IS LIVE')).toBeVisible()
+  await page.waitForTimeout(900) // fadeIn settles before the shot
   await shot(page, '09-published')
   await page.getByRole('button', { name: 'SEE IT AS THE WORLD SEES IT' }).click()
   await page.waitForURL(`**/user/${uid}`, { timeout: 15000 })

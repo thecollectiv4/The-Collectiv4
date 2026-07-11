@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
 import { LiveEventProvider } from '@/lib/useLiveEvent'
 import { Analytics } from '@vercel/analytics/react'
@@ -25,11 +25,20 @@ import DoorScanner from '@/pages/DoorScanner'
 // route and the chunk are excluded from the production bundle.
 const OSHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__OSHarness')) : null
 
+// Route changes start at the top — without this, opening a world (or any
+// page) inherits the previous page's scroll position mid-museum.
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <LiveEventProvider>
         <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
