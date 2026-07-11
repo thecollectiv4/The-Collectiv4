@@ -7,3 +7,7 @@ dist/
 
 # local Claude Code session config
 .claude/
+
+# playwright artifacts
+test-results/
+playwright-report/
