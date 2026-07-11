@@ -7,6 +7,7 @@ import { LogOut, Calendar, MapPin, Clock, ChevronRight, Copy, Check } from 'luci
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
+import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/worldStorage'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
@@ -94,31 +95,35 @@ export default function Profile() {
     if (error) throw error
   }
 
-  // Image upload — base64-data-URL behavior (Supabase Storage = later cleanup).
-  // Settles on EVERY path: read error → reject, DB error → reject, success → resolve.
-  const uploadImage = (col) => (file) => new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onerror = () => reject(reader.error || new Error('Could not read file'))
-    reader.onload = async (ev) => {
-      try {
-        const url = ev.target.result
-        const { error } = await supabase.from('profiles').update({ [col]: url }).eq('id', user.id)
-        if (error) return reject(error)
-        resolve(url)
-      } catch (e) { reject(e) }
-    }
-    reader.readAsDataURL(file)
-  })
-  const onUploadAvatar = uploadImage('avatar_url')
+  // Image upload — Supabase Storage (bucket 'worlds', 0014). The DB row holds
+  // the public URL; the object lives under the user's OWN uid folder (storage
+  // RLS). Old base64 avatars keep rendering — only NEW uploads change shape.
+  // The replaced object is removed best-effort AFTER the row points elsewhere.
+  const uploadImage = (col, prefix) => async (file) => {
+    const { path, url } = await uploadWorldImage(user.id, file, prefix)
+    const prev = worldPathFromUrl(profile?.[col])
+    const { error } = await supabase.from('profiles').update({ [col]: url }).eq('id', user.id)
+    if (error) { removeWorldImages([path]); throw error }
+    setProfile(p => ({ ...p, [col]: url }))
+    if (prev) removeWorldImages([prev])
+    return url
+  }
+  const onUploadAvatar = uploadImage('avatar_url', 'avatar')
   // Cover: a file uploads like the avatar; null clears it.
   const onUploadCover = async (file) => {
     if (!file) {
+      const prev = worldPathFromUrl(profile?.cover_url)
       const { error } = await supabase.from('profiles').update({ cover_url: null }).eq('id', user.id)
       if (error) throw error
+      setProfile(p => ({ ...p, cover_url: null }))
+      if (prev) removeWorldImages([prev])
       return null
     }
-    return uploadImage('cover_url')(file)
+    return uploadImage('cover_url', 'cover')(file)
   }
+  // Gallery: the museum uploads as the owner curates; the array persists on save.
+  const onUploadGallery = (file) => uploadWorldImage(user.id, file, 'g')
+  const onCleanupImages = (paths) => removeWorldImages(paths)
 
   const topBar = (
     <>
@@ -231,6 +236,8 @@ export default function Profile() {
       onSave={onSave}
       onUploadAvatar={onUploadAvatar}
       onUploadCover={onUploadCover}
+      onUploadGallery={onUploadGallery}
+      onCleanupImages={onCleanupImages}
       topBar={topBar}
       ownerExtras={ownerExtras}
     />

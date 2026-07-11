@@ -9,6 +9,7 @@ export function useOSAccess() {
   const { user, loading: authLoading } = useAuth()
   const [state, setState] = useState('loading')   // loading | granted | denied
   const [profile, setProfile] = useState(null)
+  const [owner, setOwner] = useState(false)       // display-gating only — every owner RPC re-checks server-side
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
@@ -21,12 +22,13 @@ export function useOSAccess() {
       if (!alive) return
       if (error || !data?.member) { setState('denied'); return }
       setProfile(data.profile || null)
+      setOwner(!!data.owner)
       setState('granted')
     })()
     return () => { alive = false }
   }, [user, authLoading, reload])
 
-  return { state, profile, user, refresh: () => setReload(n => n + 1) }
+  return { state, profile, owner, user, refresh: () => setReload(n => n + 1) }
 }
 
 /* Used by the post-login flows to send members to /os. Guarded + fail-safe:

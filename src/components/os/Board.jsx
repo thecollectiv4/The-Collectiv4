@@ -85,7 +85,7 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
                 <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>{col.label}</span>
                 <span aria-hidden style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
                 <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT }}>{String(items.length).padStart(2, '0')}</span>
-                <button onClick={() => setQuickCol(col.key)} aria-label={`Add to ${col.label}`} style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '2px', display: 'inline-flex' }}><Plus size={13} /></button>
+                <button onClick={() => setQuickCol(col.key)} aria-label={`Add to ${col.label}`} style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '2px', display: 'inline-flex', alignItems: 'center', gap: '3px' }}><Plus size={13} /><span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase' }}>Add</span></button>
               </div>
 
               {/* quick add — inline, Enter saves, Esc closes */}
@@ -160,21 +160,24 @@ function TaskRow({ task, owner, colKey, last, delay, onDragStart, onDragEnd, onE
             {done ? `✕ shipped · ${meta}` : meta}
           </div>
         </div>
-        <div className="os-actions" style={{ display: 'flex', alignItems: 'center', gap: 0, flexShrink: 0, marginTop: '-1px' }}>
+        <div className="os-actions" style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, marginTop: '-1px' }}>
           <IconBtn disabled={idx <= 0} onClick={() => onArrow(-1)} label="Move left"><ChevronLeft size={13} /></IconBtn>
           <IconBtn disabled={idx >= BOARD_COLUMNS.length - 1} onClick={() => onArrow(1)} label="Move right"><ChevronRight size={13} /></IconBtn>
-          <IconBtn onClick={onEdit} label="Edit"><Pencil size={11} /></IconBtn>
-          <IconBtn onClick={() => { if (confirm(`Delete "${task.title}"?`)) onDelete(task) }} label="Delete"><Trash2 size={11} /></IconBtn>
+          <IconBtn onClick={onEdit} label="Edit" text="Edit"><Pencil size={11} /></IconBtn>
+          <IconBtn onClick={() => { if (confirm(`Delete "${task.title}"?`)) onDelete(task) }} label="Delete" text="Del"><Trash2 size={11} /></IconBtn>
         </div>
       </div>
     </div>
   )
 }
 
-function IconBtn({ children, onClick, disabled, label }) {
+/* `text` renders the action's word next to its icon — actions read, not
+   just glyph (legibility > minimalism). Directional chevrons stay wordless. */
+function IconBtn({ children, onClick, disabled, label, text }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(131,131,143,.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', borderRadius: '5px' }}>
+    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(131,131,143,.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}>
       {children}
+      {text && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{text}</span>}
     </button>
   )
 }

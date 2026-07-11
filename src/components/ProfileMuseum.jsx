@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight } from 'lucide-react'
+import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown } from 'lucide-react'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
 const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2)}`)
@@ -79,6 +79,26 @@ function normTaste(t) {
   }
 }
 const normMedia = (m) => (Array.isArray(m) ? m.filter(x => x && safeUrl(x.url)) : [])
+const normGallery = (g) => (Array.isArray(g) ? g.filter(x => x && safeUrl(x.url)) : [])
+const normLinks = (l) => (Array.isArray(l) ? l.filter(x => x && safeUrl(x.url)) : [])
+
+// --- the welcome marquee (0014 marquee_text): null → the house default,
+//     empty string → the owner turned the ticker off. ---
+const DEFAULT_MARQUEE = 'wlcme 2 my wrld'
+const marqueeOf = (t) => (t === '' ? '' : ((t ?? '').trim() || DEFAULT_MARQUEE))
+
+// --- world skins: composition presets INSIDE cosmos — the display-type
+//     treatment changes, the palette never does (no per-profile colors). ---
+const THEMES = [
+  { key: 'chrome', label: 'Chrome' },
+  { key: 'outline', label: 'Outline' },
+  { key: 'bone', label: 'Bone' },
+]
+function nameSkin(theme) {
+  if (theme === 'outline') return { color: 'transparent', WebkitTextStroke: `1.5px ${BONE}` }
+  if (theme === 'bone') return { color: BONE }
+  return chromeText
+}
 
 // --- film grain: a real texture layer, cheap + no asset ---
 const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
@@ -98,12 +118,12 @@ const onF = (e) => e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'
 const onB = (e) => e.currentTarget.style.borderColor = HAIR_HI
 
 // star-chart marks, one per movement
-const MARKS = { sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
+const MARKS = { gallery: 'dot', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
 
 // `event` is the normalized live-event object from useLiveEvent (name/edition/date/
 // city); the wrapper passes it so the "going" badge shows the real upcoming event.
 // `ticket` is the boolean "is this person going".
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, ticket, event, topBar, ownerExtras }) {
+export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, ticket, event, topBar, ownerExtras }) {
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -112,6 +132,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const [coverUploading, setCoverUploading] = useState(false)
   const fileRef = useRef(null)
   const coverRef = useRef(null)
+  const galleryFileRef = useRef(null)
 
   // edit-form state
   const [name, setName] = useState('')
@@ -120,10 +141,20 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const [city, setCity] = useState('')
   const [tagline, setTagline] = useState('')
   const [bio, setBio] = useState('')
+  const [marquee, setMarquee] = useState('')
+  const [theme, setTheme] = useState('chrome')
   const [music, setMusic] = useState('')
   const [films, setFilms] = useState('')
   const [influences, setInfluences] = useState('')
   const [rows, setRows] = useState([])
+  const [linkRows, setLinkRows] = useState([])
+  const [galRows, setGalRows] = useState([])
+  const [galUploading, setGalUploading] = useState(0)
+  const [galErr, setGalErr] = useState(null)
+  // storage bookkeeping: what THIS edit session uploaded (delete on cancel)
+  // and which previously-saved objects were removed (delete after save).
+  const sessionUploads = useRef(new Set())
+  const removedSaved = useRef(new Set())
 
   // Entering edit takes a snapshot of `data` (see startEdit). Don't let a parent
   // re-fetch clobber an open form mid-edit; re-sync only while not editing.
@@ -137,16 +168,76 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
     setCity(data?.city || '')
     setTagline(data?.tagline || '')
     setBio(data?.bio || '')
+    // the field shows exactly what loops (default included); clearing it turns the ticker off
+    setMarquee(marqueeOf(data?.marquee_text))
+    setTheme(THEMES.some(x => x.key === data?.world_theme) ? data.world_theme : 'chrome')
     setMusic(fromList(t.music))
     setFilms(fromList(t.films))
     setInfluences(fromList(t.influences))
     setRows(normMedia(data?.media).map(m => ({ id: uid(), title: m.title || '', url: m.url || '' })))
+    setLinkRows(normLinks(data?.world_links).map(l => ({ id: uid(), label: l.label || '', url: l.url || '' })))
+    setGalRows(normGallery(data?.gallery).map(g => ({ id: uid(), path: g.path || null, url: g.url, caption: g.caption || '' })))
+    sessionUploads.current = new Set()
+    removedSaved.current = new Set()
+    setGalErr(null)
     setEditing(true)
   }
 
   const addRow = () => setRows(r => [...r, { id: uid(), title: '', url: '' }])
   const setRow = (i, k, v) => setRows(r => r.map((row, j) => j === i ? { ...row, [k]: v } : row))
   const delRow = (i) => setRows(r => r.filter((_, j) => j !== i))
+
+  const addLinkRow = () => setLinkRows(r => [...r, { id: uid(), label: '', url: '' }])
+  const setLinkRow = (i, k, v) => setLinkRows(r => r.map((row, j) => j === i ? { ...row, [k]: v } : row))
+  const delLinkRow = (i) => setLinkRows(r => r.filter((_, j) => j !== i))
+
+  // gallery: upload NOW (the wall builds live), persist the ARRAY on save.
+  const addGalleryFiles = async (e) => {
+    const input = e.target
+    const files = Array.from(input.files || [])
+    input.value = ''
+    if (!files.length || !onUploadGallery) return
+    setGalErr(null)
+    for (const f of files) {
+      setGalUploading(n => n + 1)
+      try {
+        const { path, url } = await onUploadGallery(f)
+        sessionUploads.current.add(path)
+        setGalRows(r => [...r, { id: uid(), path, url, caption: '' }])
+      } catch (err) {
+        console.error('Gallery upload failed:', err)
+        setGalErr(err?.message || "Couldn't upload — try again.")
+      } finally {
+        setGalUploading(n => n - 1)
+      }
+    }
+  }
+  const setGalCaption = (i, v) => setGalRows(r => r.map((row, j) => j === i ? { ...row, caption: v } : row))
+  const moveGalRow = (i, dir) => setGalRows(r => {
+    const j = i + dir
+    if (j < 0 || j >= r.length) return r
+    const c = [...r]; const [x] = c.splice(i, 1); c.splice(j, 0, x); return c
+  })
+  const delGalRow = (i) => setGalRows(r => {
+    const row = r[i]
+    if (row?.path) {
+      // this session's upload → gone for good right now; a saved object waits
+      // for the save to land (cancel must be able to bring it back).
+      if (sessionUploads.current.has(row.path)) { sessionUploads.current.delete(row.path); onCleanupImages?.([row.path]) }
+      else removedSaved.current.add(row.path)
+    }
+    return r.filter((_, j) => j !== i)
+  })
+
+  const cancelEdit = () => {
+    // uploads that never got saved don't belong to anyone — clean them up
+    if (sessionUploads.current.size) onCleanupImages?.([...sessionUploads.current])
+    sessionUploads.current = new Set()
+    removedSaved.current = new Set()
+    setEditing(false)
+    setSaveErr(null)
+    setGalErr(null)
+  }
 
   const save = async () => {
     if (saving) return
@@ -159,13 +250,23 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       city: city.trim() || null,
       tagline: tagline.trim() || null,
       bio: bio.trim() || null,
+      // '' is a real value: the owner turned the ticker off
+      marquee_text: marquee.trim(),
+      world_theme: theme === 'chrome' ? null : theme,
       taste: { music: toList(music), films: toList(films), influences: toList(influences) },
       media: rows.map(r => ({ url: (r.url || '').trim(), title: (r.title || '').trim() }))
         .filter(r => safeUrl(r.url))
         .map(r => ({ type: detectType(r.url), url: r.url, title: r.title })),
+      world_links: linkRows.map(r => ({ label: (r.label || '').trim(), url: (r.url || '').trim() }))
+        .filter(r => safeUrl(r.url)),
+      gallery: galRows.map(r => ({ path: r.path || null, url: r.url, caption: (r.caption || '').trim() })),
     }
     try {
       if (onSave) await onSave(patch)
+      // the save landed — removed saved objects are truly unreferenced now
+      if (removedSaved.current.size) onCleanupImages?.([...removedSaved.current])
+      sessionUploads.current = new Set()
+      removedSaved.current = new Set()
       setData(d => ({ ...d, ...patch }))
       setEditing(false)
     } catch (err) {
@@ -223,6 +324,11 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const seed = data.id || data.username || data.full_name || 'c4'
   const taste = normTaste(data.taste)
   const media = normMedia(data.media)
+  const gallery = normGallery(data.gallery)
+  const links = normLinks(data.world_links)
+  const worldTheme = THEMES.some(x => x.key === data.world_theme) ? data.world_theme : 'chrome'
+  const displaySkin = nameSkin(worldTheme)
+  const marqueeText = marqueeOf(data.marquee_text)
   const displayName = data.full_name || 'Unnamed'
   const initial = displayName[0].toUpperCase()
   const avatar = safeImg(data.avatar_url)
@@ -230,6 +336,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
   // which movements to show — owner sees invitations for the empty ones
   const show = {
+    gallery: gallery.length > 0 || isOwner,
     sound: taste.music.length > 0 || isOwner,
     screen: taste.films.length > 0 || isOwner,
     influences: taste.influences.length > 0 || isOwner,
@@ -238,11 +345,14 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   // editorial catalog numbering, only across the movements actually rendered
   let counter = 0
   const num = {}
-  ;['sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
-  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length
+  ;['gallery', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
+  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length
 
   return (
     <div style={{ position: 'relative', background: PAGE_BG, minHeight: '100vh', overflowX: 'hidden' }}>
+
+      {/* ============ MARQUEE — the world's welcome, looping ============ */}
+      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
       <div style={{ position: 'relative', height: 'clamp(340px, 58vh, 460px)', overflow: 'hidden', background: VOID }}>
@@ -253,7 +363,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.08) 0%, transparent 55%), ${VOID}` }}>
               <StarField seed={seed} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Bebas Neue', fontSize: '340px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.07, ...chromeText }}>{initial}</span>
+                <span style={{ fontFamily: 'Bebas Neue', fontSize: '340px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.07, ...displaySkin }}>{initial}</span>
               </div>
             </div>
           )}
@@ -287,7 +397,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           )}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.85, delay: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
             style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...chromeText }}>{displayName}</h1>
+            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...displaySkin }}>{displayName}</h1>
             {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={24} /></span>}
           </motion.div>
         </div>
@@ -336,6 +446,24 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '18px 0 0' }}>Add a line — what you're on, right now.</p>
         ))}
 
+        {/* world links — the doors out of this world (IG, portfolio, sound) */}
+        {!editing && links.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '18px' }}>
+            {links.map((l, i) => (
+              <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'all .2s' }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'; e.currentTarget.style.color = BONE }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
+                {l.label || hostOf(l.url)}
+                <ArrowUpRight size={10} style={{ color: SILVER }} />
+              </a>
+            ))}
+          </div>
+        )}
+        {isOwner && !editing && links.length === 0 && (
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '16px' }}>+ add your links — IG, portfolio, sound</div>
+        )}
+
         {isOwner && !editing && (
           <button onClick={startEdit} style={{ marginTop: '20px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
             onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.11)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
@@ -359,6 +487,64 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             <Field label="CITY"><input style={inp} value={city} placeholder="Houston" onChange={e => setCity(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="RIGHT NOW" hint="One line, your voice. What you're on right now."><input style={inp} value={tagline} placeholder="Chasing the sound that doesn't exist yet." onChange={e => setTagline(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="THE OPENING" hint="A short statement — who you are, in your own words. This opens your world."><textarea style={{ ...inp, resize: 'vertical' }} rows={3} value={bio} placeholder="Where you're from, what you make, what you're chasing." onChange={e => setBio(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
+            <Field label="MARQUEE" hint="The line that loops across the top of your world. Clear it to turn the ticker off.">
+              <input style={inp} value={marquee} placeholder={DEFAULT_MARQUEE} onChange={e => setMarquee(e.target.value)} onFocus={onF} onBlur={onB} />
+            </Field>
+            <Field label="WORLD SKIN" hint="How your name is set — same universe, your composition.">
+              <div style={{ display: 'flex', gap: '10px' }}>
+                {THEMES.map(t => {
+                  const active = theme === t.key
+                  return (
+                    <button key={t.key} onClick={() => setTheme(t.key)}
+                      style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'all .2s' }}>
+                      <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', lineHeight: 1, ...nameSkin(t.key) }}>Aa</span>
+                      <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', textTransform: 'uppercase', color: active ? BONE : BONE_LOW }}>{t.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+          </Section>
+
+          <Section title="GALLERY" hint="Your work as images — upload, caption, and order the wall. First image leads.">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {galRows.map((row, i) => (
+                <div key={row.id} style={{ display: 'flex', gap: '10px', alignItems: 'center', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '10px', background: CARD }}>
+                  <img src={row.url} alt="" style={{ width: '56px', height: '56px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0, border: `1px solid ${HAIR}` }} />
+                  <input style={{ ...inp, padding: '10px 13px' }} value={row.caption} placeholder="Caption (optional)" onChange={e => setGalCaption(i, e.target.value)} onFocus={onF} onBlur={onB} />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
+                    <button onClick={() => moveGalRow(i, -1)} disabled={i === 0} aria-label="Move up" style={{ ...galBtn, opacity: i === 0 ? .3 : 1 }}><ArrowUp size={12} /></button>
+                    <button onClick={() => moveGalRow(i, 1)} disabled={i === galRows.length - 1} aria-label="Move down" style={{ ...galBtn, opacity: i === galRows.length - 1 ? .3 : 1 }}><ArrowDown size={12} /></button>
+                  </div>
+                  <button onClick={() => delGalRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#E5A0A0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+                </div>
+              ))}
+              {galErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0' }}>{galErr}</div>}
+              <button onClick={() => galleryFileRef.current?.click()} disabled={galUploading > 0}
+                style={{ background: 'transparent', border: `1px dashed ${HAIR_HI}`, borderRadius: '12px', padding: '12px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'DM Sans', opacity: galUploading > 0 ? .6 : 1 }}>
+                {galUploading > 0 ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <ImagePlus size={14} />}
+                {galUploading > 0 ? `Uploading ${galUploading}…` : 'Add images'}
+              </button>
+              <input ref={galleryFileRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" multiple style={{ display: 'none' }} onChange={addGalleryFiles} />
+            </div>
+          </Section>
+
+          <Section title="LINKS" hint="The doors out of your world — IG, portfolio, SoundCloud, site.">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {linkRows.map((row, i) => (
+                <div key={row.id} style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '12px', background: CARD }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <input style={{ ...inp, padding: '10px 13px' }} value={row.label} placeholder="Label (IG, Portfolio…)" onChange={e => setLinkRow(i, 'label', e.target.value)} onFocus={onF} onBlur={onB} />
+                    <button onClick={() => delLinkRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#E5A0A0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+                  </div>
+                  <input style={{ ...inp, padding: '10px 13px' }} value={row.url} placeholder="https://…" onChange={e => setLinkRow(i, 'url', e.target.value)} onFocus={onF} onBlur={onB} />
+                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', marginTop: '6px' }}>Must start with http:// or https://</div>}
+                </div>
+              ))}
+              <button onClick={addLinkRow} style={{ background: 'transparent', border: `1px dashed ${HAIR_HI}`, borderRadius: '12px', padding: '12px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'DM Sans' }}>
+                <Plus size={14} /> Add a link
+              </button>
+            </div>
           </Section>
 
           <Section title="THE MUSEUM" hint="One per line. A name — or paste a link (Spotify, YouTube, SoundCloud) and it plays right here.">
@@ -387,7 +573,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
           {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={() => { setEditing(false); setSaveErr(null) }} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>Cancel</button>
+            <button onClick={cancelEdit} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>Cancel</button>
             <button onClick={save} disabled={saving} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: saving ? .6 : 1, transition: 'all .2s' }}>{saving ? 'Saving…' : 'Save your world'}</button>
           </div>
         </div>
@@ -402,9 +588,19 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </motion.p>
           )}
 
+          {/* MOVEMENT — GALLERY (the person's own work leads the museum) */}
+          {show.gallery && (
+            <motion.div {...reveal} style={{ marginTop: data.bio ? '58px' : '44px' }}>
+              <Marker mark={MARKS.gallery} n={num.gallery} label="GALLERY" kicker="the work, on walls" />
+              {gallery.length > 0
+                ? <GalleryGrid items={gallery} />
+                : <Invite icon={ImagePlus}>Your work, on the walls of your world. Upload photos of what you make — shots, canvases, fits, stills — and curate the order.</Invite>}
+            </motion.div>
+          )}
+
           {/* MOVEMENT — SOUND */}
           {show.sound && (
-            <motion.div {...reveal} style={{ marginTop: data.bio ? '58px' : '44px' }}>
+            <motion.div {...reveal} style={{ marginTop: '58px' }}>
               <Marker mark={MARKS.sound} n={num.sound} label="SOUND" kicker="on rotation" />
               {taste.music.length > 0
                 ? <SoundMovement items={taste.music} />
@@ -468,6 +664,66 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
 /* ---------- shared bits ---------- */
 const pill = { background: 'rgba(7,8,14,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
+const galBtn = { background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '7px', width: '26px', height: '25px', color: BONE_MID, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
+
+/* WorldMarquee — the welcome line, looping across the top of the world.
+   The track holds two identical runs; the CSS loop travels exactly one run
+   (-50%), so the seam never shows. Reduced-motion users get a still line. */
+function WorldMarquee({ text, theme }) {
+  const skin = theme === 'outline'
+    ? { color: 'transparent', WebkitTextStroke: `1px ${BONE_MID}` }
+    : { color: BONE }
+  const run = (
+    <div aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+      {Array.from({ length: 10 }, (_, i) => (
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'center' }}>
+          <span style={{ fontFamily: 'Bebas Neue', fontSize: '13px', letterSpacing: '.18em', whiteSpace: 'pre', opacity: .6, ...skin }}>{text.toUpperCase()}</span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: SILVER, opacity: .55, padding: '0 18px' }}>✦</span>
+        </span>
+      ))}
+    </div>
+  )
+  return (
+    <div role="marquee" aria-label={text} style={{ position: 'relative', zIndex: 3, overflow: 'hidden', borderBottom: `1px solid ${HAIR}`, background: VOID, padding: '8px 0 6px' }}>
+      <div className="world-ticker" style={{ '--ticker-dur': `${Math.max(20, Math.min(60, text.length * 1.6))}s` }}>
+        {run}
+        {run}
+      </div>
+    </div>
+  )
+}
+
+/* GalleryGrid — the wall. First image leads full-bleed; the rest hang in a
+   two-across salon row. Captions in catalog mono. Order = the array. */
+function GalleryGrid({ items }) {
+  const [featured, ...rest] = items
+  return (
+    <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <GalleryPiece item={featured} featured />
+      {rest.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+          {rest.map((g, i) => <GalleryPiece key={`${g.url}:${i}`} item={g} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+function GalleryPiece({ item, featured }) {
+  const [ok, setOk] = useState(true)
+  const src = safeImg(item.url)
+  if (!src || !ok) return null
+  return (
+    <a href={src} target="_blank" rel="noopener noreferrer" style={{ display: 'block', textDecoration: 'none' }}>
+      <div style={{ borderRadius: featured ? '16px' : '12px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(242,238,230,.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(0,0,0,.4)' : 'none' }}>
+        <img src={src} alt={item.caption || ''} loading="lazy" onError={() => setOk(false)}
+          style={{ width: '100%', display: 'block', objectFit: 'cover', maxHeight: featured ? '480px' : '220px', minHeight: featured ? undefined : '120px' }} />
+      </div>
+      {item.caption && (
+        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '7px', lineHeight: 1.5 }}>{item.caption}</div>
+      )}
+    </a>
+  )
+}
 
 /* Star-chart geometric mark (filled dot · ring · cross · triangle · diamond). */
 function Mark({ type = 'ring', size = 14, color = SILVER, style }) {

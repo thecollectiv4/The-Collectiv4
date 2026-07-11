@@ -251,8 +251,9 @@ export default function EventsAdmin() {
                     <Select value={t.status} onChange={e => setTier(i, 'status', e.target.value)} options={TIER_STATUSES} />
                   </div>
                   <button onClick={() => delTier(i)} aria-label="Remove tier" title="Remove tier"
-                    style={{ background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', color: BONE_LOW, cursor: 'pointer', padding: '9px', marginTop: desktop ? '18px' : 0, justifySelf: desktop ? 'end' : 'start' }}>
+                    style={{ background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', color: BONE_LOW, cursor: 'pointer', padding: '8px 10px', marginTop: desktop ? '18px' : 0, justifySelf: desktop ? 'end' : 'start', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
                     <Trash2 size={13} />
+                    <span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase' }}>Remove</span>
                   </button>
                 </div>
                 <div style={{ marginTop: '10px' }}>
