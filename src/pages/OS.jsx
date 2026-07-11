@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Lock, X, CalendarDays, Compass, Users, User } from 'lucide-react'
+import { Loader2, Lock, X, ArrowLeft, CalendarDays, Compass, Users, User } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
 import { useIsDesktop, useRailFull } from '@/lib/useIsDesktop'
@@ -189,6 +189,7 @@ export default function OS() {
    here (the DEV harness mounts this with mirror data).
    ========================================================================= */
 export function OSInstrument({ profile, isOwner = false, tasks, content, activity, owners, notice, mutators, refreshAll, brainMsgs, setBrainMsgs }) {
+  const navigate = useNavigate()
   const desktop = useIsDesktop()   // >=768 — instrument shell
   const railFull = useRailFull()   // >=1180 — full rail; below, icon-only
   const [tab, setTab] = useState('board')
@@ -317,10 +318,11 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
       <div style={{ padding: '24px 18px 40px', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', marginBottom: '4px' }}>
           <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '9px' }}>◇</div>
-          <div>
+          <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
+            style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
             <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.28em', textTransform: 'uppercase', marginBottom: '4px' }}>Our network · internal</div>
             <h1 style={{ fontFamily: FONT_DISPLAY, fontSize: '42px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>TEAM OS</h1>
-          </div>
+          </button>
           <div style={{ marginLeft: 'auto', paddingBottom: '6px' }}>{dockBtn}</div>
         </div>
         <div style={{ margin: '16px 0 6px' }}>{helloCard}</div>
@@ -400,8 +402,17 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
   if (!full) {
     return (
       <aside style={{ width: '68px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: `1px solid ${HAIR}`, padding: '24px 8px 18px', background: 'rgba(10,10,13,.55)' }}>
-        <div style={{ fontFamily: FONT_DISPLAY, fontSize: '19px', letterSpacing: '.04em', lineHeight: 1, ...chromeText }} title="Team OS">OS</div>
-        <nav style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+        {/* the brand is a door, not a decoration — tapping it always goes home */}
+        <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
+          style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+          <span style={{ fontFamily: FONT_DISPLAY, fontSize: '19px', letterSpacing: '.04em', lineHeight: 1, ...chromeText }}>OS</span>
+        </button>
+        <button onClick={() => navigate('/')} aria-label="Back to the app"
+          style={{ marginTop: '14px', width: '52px', padding: '6px 2px 5px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', color: BONE_MID, cursor: 'pointer' }}>
+          <ArrowLeft size={12} strokeWidth={1.5} />
+          <span style={{ fontFamily: FONT_MONO, fontSize: '6.5px', letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1 }}>App</span>
+        </button>
+        <nav style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
           {tabs.map(t => {
             const active = tab === t.key
             return (
@@ -440,13 +451,23 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
 
   return (
     <aside style={{ width: '232px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '28px 20px 22px', background: 'rgba(10,10,13,.55)' }}>
-      {/* mark */}
-      <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>The Collectiv4</div>
-      <div style={{ fontFamily: FONT_DISPLAY, fontSize: '31px', letterSpacing: '.03em', lineHeight: .9, marginTop: '6px', ...chromeText }}>TEAM OS</div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.2em', textTransform: 'uppercase', marginTop: '7px' }}>our network · internal</div>
+      {/* mark — the brand is a door, not a decoration: tapping it goes home */}
+      <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
+        style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>The Collectiv4</div>
+        <div style={{ fontFamily: FONT_DISPLAY, fontSize: '31px', letterSpacing: '.03em', lineHeight: .9, marginTop: '6px', ...chromeText }}>TEAM OS</div>
+        <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.2em', textTransform: 'uppercase', marginTop: '7px' }}>our network · internal</div>
+      </button>
+
+      {/* the way OUT is always visible — never trapped in the OS (P0, QA 11 jul) */}
+      <button onClick={() => navigate('/')} aria-label="Back to the app"
+        style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '9px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '9px 12px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', textAlign: 'left' }}>
+        <ArrowLeft size={12} strokeWidth={1.5} />
+        Back to the app
+      </button>
 
       {/* nav — the deck's marks as the navigation language */}
-      <nav style={{ marginTop: '32px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+      <nav style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {tabs.map(t => {
           const active = tab === t.key
           return (

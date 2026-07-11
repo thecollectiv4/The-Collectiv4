@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown } from 'lucide-react'
+import WorldBuilder from '@/components/WorldBuilder'
+import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness } from '@/lib/world'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
 const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2)}`)
@@ -79,26 +81,8 @@ function normTaste(t) {
   }
 }
 const normMedia = (m) => (Array.isArray(m) ? m.filter(x => x && safeUrl(x.url)) : [])
-const normGallery = (g) => (Array.isArray(g) ? g.filter(x => x && safeUrl(x.url)) : [])
-const normLinks = (l) => (Array.isArray(l) ? l.filter(x => x && safeUrl(x.url)) : [])
-
-// --- the welcome marquee (0014 marquee_text): null → the house default,
-//     empty string → the owner turned the ticker off. ---
-const DEFAULT_MARQUEE = 'wlcme 2 my wrld'
-const marqueeOf = (t) => (t === '' ? '' : ((t ?? '').trim() || DEFAULT_MARQUEE))
-
-// --- world skins: composition presets INSIDE cosmos — the display-type
-//     treatment changes, the palette never does (no per-profile colors). ---
-const THEMES = [
-  { key: 'chrome', label: 'Chrome' },
-  { key: 'outline', label: 'Outline' },
-  { key: 'bone', label: 'Bone' },
-]
-function nameSkin(theme) {
-  if (theme === 'outline') return { color: 'transparent', WebkitTextStroke: `1.5px ${BONE}` }
-  if (theme === 'bone') return { color: BONE }
-  return chromeText
-}
+// world vocabulary (marquee/skins/gallery/links/completeness) → @/lib/world,
+// shared with WorldBuilder so the museum and the guided build never drift.
 
 // --- film grain: a real texture layer, cheap + no asset ---
 const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
@@ -123,9 +107,11 @@ const MARKS = { gallery: 'dot', sound: 'ring', screen: 'triangle', influences: '
 // `event` is the normalized live-event object from useLiveEvent (name/edition/date/
 // city); the wrapper passes it so the "going" badge shows the real upcoming event.
 // `ticket` is the boolean "is this person going".
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, ticket, event, topBar, ownerExtras }) {
+export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onViewPublic, ticket, event, topBar, ownerExtras }) {
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
+  const [building, setBuilding] = useState(false)     // the guided build (sheet over the live museum)
+  const [celebrating, setCelebrating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveErr, setSaveErr] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -158,8 +144,22 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const removedSaved = useRef(new Set())
 
   // Entering edit takes a snapshot of `data` (see startEdit). Don't let a parent
-  // re-fetch clobber an open form mid-edit; re-sync only while not editing.
-  useEffect(() => { if (!editing) setData(profile) }, [profile])
+  // re-fetch clobber an open form mid-edit — or mid-BUILD, where unsaved
+  // keystrokes live in `data` as the live preview; re-sync only when idle.
+  useEffect(() => { if (!editing && !building) setData(profile) }, [profile])
+
+  // A newborn world greets its owner with the guided build, once. After that
+  // it's always one tap away — never a forced tour.
+  useEffect(() => {
+    if (!isOwner || !data || editing || building) return
+    const empty = !(data.discipline || '').trim() && !(data.tagline || '').trim() && normGallery(data.gallery).length === 0
+    let seen = null
+    try { seen = localStorage.getItem('world_build_seen_v1') } catch { /* private mode */ }
+    if (empty && !seen) {
+      try { localStorage.setItem('world_build_seen_v1', '1') } catch { /* private mode */ }
+      setBuilding(true)
+    }
+  }, [isOwner, data?.id])
 
   const startEdit = () => {
     const t = normTaste(data?.taste)
@@ -255,7 +255,8 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       bio: bio.trim() || null,
       // '' is a real value: the owner turned the ticker off
       marquee_text: marquee.trim(),
-      world_theme: theme === 'chrome' ? null : theme,
+      // stored explicitly (chrome included) — a chosen skin counts as chosen
+      world_theme: theme,
       taste: { music: toList(music), films: toList(films), influences: toList(influences) },
       media: rows.map(r => ({ url: (r.url || '').trim(), title: (r.title || '').trim() }))
         .filter(r => safeUrl(r.url))
@@ -338,6 +339,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const worldTheme = THEMES.some(x => x.key === data.world_theme) ? data.world_theme : 'chrome'
   const displaySkin = nameSkin(worldTheme)
   const marqueeText = marqueeOf(data.marquee_text)
+  const completeness = worldCompleteness(data)
   const displayName = data.full_name || 'Unnamed'
   const initial = displayName[0].toUpperCase()
   const avatar = safeImg(data.avatar_url)
@@ -474,12 +476,33 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         )}
         {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px' }}>⚠ {upErr}</div>}
 
-        {isOwner && !editing && (
-          <button onClick={startEdit} style={{ marginTop: '20px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
-            onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.11)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
-            onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
-            <Edit3 size={12} /> {worldIsEmpty ? 'Build your world' : 'Edit your world'}
-          </button>
+        {isOwner && !editing && !building && (
+          <div style={{ marginTop: '20px' }}>
+            {/* the meter — how lit the world is, hairline not game */}
+            {completeness.pct < 100 && (
+              <div style={{ maxWidth: '260px', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>your world</span>
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.1em' }}>{completeness.pct}%</span>
+                </div>
+                <div style={{ height: '1px', background: HAIR, position: 'relative' }}>
+                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${completeness.pct}%`, background: SILVER, opacity: .7, transition: 'width .5s ease' }} />
+                </div>
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+              <button onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
+                onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.11)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
+                onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+                <Edit3 size={12} /> {completeness.pct < 100 ? 'Build your world →' : 'Curate your world'}
+              </button>
+              {completeness.pct < 100 && (
+                <button onClick={startEdit} style={{ background: 'transparent', border: 'none', padding: 0, color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                  or curate it all at once
+                </button>
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -606,7 +629,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
               <Marker mark={MARKS.gallery} n={num.gallery} label="GALLERY" kicker="the work, on walls" />
               {gallery.length > 0
                 ? <GalleryGrid items={gallery} />
-                : <Invite icon={ImagePlus}>Your work, on the walls of your world. Upload photos of what you make — shots, canvases, fits, stills — and curate the order.</Invite>}
+                : <Invite icon={ImagePlus}>This space is for your work — three pieces turn it on. Shots, canvases, fits, stills, hung in your order.</Invite>}
             </motion.div>
           )}
 
@@ -670,6 +693,42 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
       {/* ============ page-wide film grain (over everything, non-blocking) ============ */}
       <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 40 }} />
+
+      {/* ============ THE GUIDED BUILD — sheet below, world forming above ============ */}
+      {building && (
+        <WorldBuilder
+          data={data}
+          onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
+          onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
+          onUploadGallery={onUploadGallery}
+          onCleanupImages={onCleanupImages}
+          onClose={() => setBuilding(false)}
+          onPublished={() => { setBuilding(false); setCelebrating(true) }}
+        />
+      )}
+
+      {/* ============ PUBLISHED — a sober moment, then back to the world ============ */}
+      {celebrating && (
+        <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 9500, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
+          <StarField seed={seed} />
+          <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
+          <div style={{ position: 'relative', textAlign: 'center', padding: '0 30px', maxWidth: '380px' }}>
+            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ published</div>
+            <div style={{ fontFamily: 'Bebas Neue', fontSize: '52px', lineHeight: .95, marginTop: '16px', ...chromeText }}>YOUR WORLD<br />IS LIVE</div>
+            <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, marginTop: '16px' }}>
+              Your card in Discover. Your museum. Yours.
+            </p>
+            <button onClick={() => { setCelebrating(false); onViewPublic?.() }}
+              style={{ marginTop: '26px', width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+              SEE IT AS THE WORLD SEES IT
+            </button>
+            <button onClick={() => setCelebrating(false)}
+              style={{ marginTop: '14px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              keep curating
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

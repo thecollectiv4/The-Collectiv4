@@ -242,6 +242,7 @@ export default function Profile() {
       onUploadCover={onUploadCover}
       onUploadGallery={onUploadGallery}
       onCleanupImages={onCleanupImages}
+      onViewPublic={() => navigate(`/user/${user.id}`)}
       topBar={topBar}
       ownerExtras={ownerExtras}
     />
