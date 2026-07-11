@@ -399,19 +399,23 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           </div>
         )}
 
-        {/* name set large + chrome, over the cover's lower edge */}
+        {/* name set large + chrome, over the cover's lower edge. NO entrance
+            animation here, by decision: hidden/headless/background contexts
+            freeze animation timelines at t=0 (walkthrough catch — worlds
+            rendered nameless), and the IDENTITY of a world must never depend
+            on an animation firing. The movements below keep their reveals —
+            those are curation, not identity. */}
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: '20px', padding: '0 24px', zIndex: 3 }}>
           {data.discipline && (
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}
+            <div
               style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.28em', textTransform: 'uppercase', marginBottom: '11px', textShadow: '0 1px 12px rgba(0,0,0,.6)' }}>
               {data.discipline}
-            </motion.div>
+            </div>
           )}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.85, delay: 0.16, ease: [0.22, 0.61, 0.36, 1] }}
-            style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '12px', flexWrap: 'wrap' }}>
             <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...displaySkin }}>{displayName}</h1>
             {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={24} /></span>}
-          </motion.div>
+          </div>
         </div>
       </div>
 
