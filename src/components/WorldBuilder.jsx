@@ -85,6 +85,12 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   const [uploadingN, setUploadingN] = useState(0)
   const [dragOver, setDragOver] = useState(false)
   const galleryRef = useRef(null)
+  // Three doors feed the wall (picker, drop, paste) and each commit replaces
+  // the WHOLE gallery array — overlapping upload chains would base off stale
+  // snapshots and silently erase each other's images (review catch). One
+  // serial chain + one live view of the latest committed wall fixes both.
+  const uploadChain = useRef(Promise.resolve())
+  const galleryNow = useRef(null)             // null → derive from props
 
   // the craft chosen at step one can shorten/reorder the path — never strand the index
   const safeStep = Math.min(step, steps.length - 1)
@@ -118,23 +124,33 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   const skip = () => { setErr(''); setStep(s => Math.min(s + 1, steps.length - 1)) }
 
   // ---- gallery: upload persists IMMEDIATELY (the wall builds live) ----
-  const uploadFiles = async (fileList) => {
+  const readGal = () => galleryNow.current ?? normGallery(data?.gallery)
+  const uploadFiles = (fileList) => {
     const files = Array.from(fileList || []).filter(f => f && f.type?.startsWith('image/'))
     if (!files.length || !onUploadGallery) return
     setErr('')
-    let cur = data
     for (const f of files) {
       setUploadingN(n => n + 1)
-      try {
-        const { path, url } = await onUploadGallery(f)
-        const nextGal = [...normGallery(cur.gallery), { path, url, caption: '' }]
-        onDraft({ gallery: nextGal })
-        try { await onCommit({ gallery: nextGal }) } catch (e2) { onCleanupImages?.([path]); throw e2 }
-        cur = { ...cur, gallery: nextGal } // keep the loop's view current for multi-file drops
-      } catch (e2) {
-        setErr(e2?.message ? `Upload failed — ${e2.message}` : 'Upload failed — try again.')
-      } finally { setUploadingN(n => n - 1) }
+      uploadChain.current = uploadChain.current.then(async () => {
+        try {
+          const { path, url } = await onUploadGallery(f)
+          const prev = readGal()
+          const nextGal = [...prev, { path, url, caption: '' }]
+          galleryNow.current = nextGal
+          onDraft({ gallery: nextGal })
+          try { await onCommit({ gallery: nextGal }) } catch (e2) {
+            // the commit never landed — the wall (draft included) stays honest
+            galleryNow.current = prev
+            onDraft({ gallery: prev })
+            onCleanupImages?.([path])
+            throw e2
+          }
+        } catch (e2) {
+          setErr(e2?.message ? `Upload failed — ${e2.message}` : 'Upload failed — try again.')
+        } finally { setUploadingN(n => n - 1) }
+      })
     }
+    return uploadChain.current
   }
   const addFiles = async (e) => {
     // snapshot + clear FIRST — a dirty input swallows the change event when
@@ -144,15 +160,25 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
     input.value = ''
     await uploadFiles(files)
   }
-  const removePiece = async (i) => {
-    const cur = normGallery(data.gallery)
-    const gone = cur[i]
-    const nextGal = cur.filter((_, j) => j !== i)
-    onDraft({ gallery: nextGal })
-    try {
-      await onCommit({ gallery: nextGal })
-      if (gone?.path) onCleanupImages?.([gone.path])
-    } catch (e2) { setErr(e2?.message || "Couldn't remove — try again.") }
+  const removePiece = (i) => {
+    // removals ride the same serial chain — a remove racing an upload would
+    // otherwise resurrect the removed piece on the next full-array commit
+    uploadChain.current = uploadChain.current.then(async () => {
+      const cur = readGal()
+      const gone = cur[i]
+      const nextGal = cur.filter((_, j) => j !== i)
+      galleryNow.current = nextGal
+      onDraft({ gallery: nextGal })
+      try {
+        await onCommit({ gallery: nextGal })
+        if (gone?.path) onCleanupImages?.([gone.path])
+      } catch (e2) {
+        galleryNow.current = cur
+        onDraft({ gallery: cur })
+        setErr(e2?.message || "Couldn't remove — try again.")
+      }
+    })
+    return uploadChain.current
   }
 
   // paste an image anywhere while on the work step — it lands on the wall
