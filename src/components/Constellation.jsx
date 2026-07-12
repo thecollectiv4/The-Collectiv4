@@ -39,6 +39,9 @@ export default function Constellation({ seed = 'c4' }) {
     let raf = 0
     let last = 0
     let scrollY = window.scrollY
+    let bg = null            // cached background gradients — rebuilt on resize only
+    let glowBg = null
+    let resizeT = 0
 
     const build = () => {
       const w = window.innerWidth
@@ -76,20 +79,25 @@ export default function Constellation({ seed = 'c4' }) {
       }
     }
 
+    const buildBg = (w, h) => {
+      // the void itself — same gradient family as the page backgrounds.
+      // Built once per size, not per frame (gradients rasterize on fill).
+      bg = ctx.createLinearGradient(0, 0, 0, h)
+      bg.addColorStop(0, '#0B0B10')
+      bg.addColorStop(0.55, '#08080D')
+      bg.addColorStop(1, '#07080E')
+      glowBg = ctx.createRadialGradient(w * 0.5, h * 0.04, 0, w * 0.5, h * 0.04, Math.max(w, h) * 0.7)
+      glowBg.addColorStop(0, 'rgba(199,201,209,0.055)')
+      glowBg.addColorStop(1, 'rgba(199,201,209,0)')
+    }
+
     const draw = (t) => {
       const w = window.innerWidth
       const h = window.innerHeight
-      // the void itself — same gradient family as the page backgrounds
-      const g = ctx.createLinearGradient(0, 0, 0, h)
-      g.addColorStop(0, '#0B0B10')
-      g.addColorStop(0.55, '#08080D')
-      g.addColorStop(1, '#07080E')
-      ctx.fillStyle = g
+      if (!bg) buildBg(w, h)
+      ctx.fillStyle = bg
       ctx.fillRect(0, 0, w, h)
-      const glow = ctx.createRadialGradient(w * 0.5, h * 0.04, 0, w * 0.5, h * 0.04, Math.max(w, h) * 0.7)
-      glow.addColorStop(0, 'rgba(199,201,209,0.055)')
-      glow.addColorStop(1, 'rgba(199,201,209,0)')
-      ctx.fillStyle = glow
+      ctx.fillStyle = glowBg
       ctx.fillRect(0, 0, w, h)
 
       const par = reduced ? 0 : scrollY * 0.06
@@ -135,7 +143,12 @@ export default function Constellation({ seed = 'c4' }) {
     }
 
     const onScroll = () => { scrollY = window.scrollY }
-    const onResize = () => { build(); draw(last) }
+    // debounced: mobile URL-bar show/hide fires resize storms — one rebuild
+    // after the dust settles, not a canvas realloc per event
+    const onResize = () => {
+      clearTimeout(resizeT)
+      resizeT = setTimeout(() => { bg = null; glowBg = null; build(); draw(last) }, 160)
+    }
     const onVis = () => {
       cancelAnimationFrame(raf)
       if (!document.hidden && !reduced) raf = requestAnimationFrame(loop)
@@ -149,6 +162,7 @@ export default function Constellation({ seed = 'c4' }) {
     document.addEventListener('visibilitychange', onVis)
     return () => {
       cancelAnimationFrame(raf)
+      clearTimeout(resizeT)
       window.removeEventListener('resize', onResize)
       window.removeEventListener('scroll', onScroll)
       document.removeEventListener('visibilitychange', onVis)
