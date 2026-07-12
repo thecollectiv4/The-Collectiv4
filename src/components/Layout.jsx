@@ -142,7 +142,12 @@ export default function Layout() {
       )}
 
       <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0, paddingBottom: (osDesktop || consumerWide) ? 0 : '100px' }}>
-        <div key={location.pathname} className={transClass}>
+        {/* position+zIndex are load-bearing: while the route transition
+            animates, this div is a stacking context that competes with the
+            body-portaled Constellation canvas (zIndex 0) in DOM order — and
+            the canvas comes later, so without an explicit z the ENTIRE page
+            paints behind the sky for the length of the animation. */}
+        <div key={location.pathname} className={transClass} style={{ position:'relative', zIndex:1 }}>
           <Outlet />
         </div>
       </main>
