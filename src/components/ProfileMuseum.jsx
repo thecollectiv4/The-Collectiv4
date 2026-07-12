@@ -383,7 +383,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           : (
             /* no cover → the open sky (the page's constellation) + monogram */
             <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
-              <StarField seed={seed} />
+              <StarField seed={seed} wide={wide} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '560px' : '340px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.07, ...displaySkin }}>{initial}</span>
               </div>
@@ -877,15 +877,18 @@ function Mark({ type = 'ring', size = 14, color = SILVER, style }) {
   return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={style} aria-hidden="true">{shape}</svg>
 }
 
-/* A deterministic constellation for the no-cover state — the person's own star chart. */
-function StarField({ seed }) {
+/* A deterministic constellation for the no-cover state — the person's own star chart.
+   The viewBox scales with the hero, so on wide screens the radii must scale
+   DOWN or the stars balloon into planets (1 viewBox unit ≈ 14px at 1440). */
+function StarField({ seed, wide }) {
+  const k = wide ? 0.34 : 1
   const rnd = mulberry32(hash(seed) + 9)
   const stars = Array.from({ length: 48 }, () => ({ x: +(rnd() * 100).toFixed(2), y: +(rnd() * 100).toFixed(2), r: +(0.5 + rnd() * 1.4).toFixed(2), o: +(0.12 + rnd() * 0.6).toFixed(2) }))
   const links = Array.from({ length: 6 }, () => [stars[Math.floor(rnd() * stars.length)], stars[Math.floor(rnd() * stars.length)]]).filter(([a, b]) => a && b && a !== b)
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} aria-hidden="true">
-      {links.map((l, i) => <line key={i} x1={l[0].x} y1={l[0].y} x2={l[1].x} y2={l[1].y} stroke={SILVER} strokeWidth="0.1" opacity="0.16" />)}
-      {stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={s.r / 2} fill={STAR} opacity={s.o} />)}
+      {links.map((l, i) => <line key={i} x1={l[0].x} y1={l[0].y} x2={l[1].x} y2={l[1].y} stroke={SILVER} strokeWidth={0.1 * (wide ? 0.5 : 1)} opacity="0.16" />)}
+      {stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={(s.r / 2) * k} fill={STAR} opacity={s.o} />)}
     </svg>
   )
 }
