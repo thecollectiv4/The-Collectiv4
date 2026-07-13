@@ -199,6 +199,17 @@ export default function Discover() {
           shownCreatives.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
               {shownCreatives.map(c => <WorldCard key={c.id} c={c} onOpen={() => navigate('/user/' + c.id)} wide={wide} />)}
+              {/* few worlds → the void composes into an invitation, not
+                  abandonment (Ley 4 + Ley 11: un vacío que invita) */}
+              {shownCreatives.length <= 3 && city === 'all' && discipline === 'all' && (
+                <div onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" aria-label="Claim your world"
+                  style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '16px', minHeight: wide ? '236px' : '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', cursor: 'pointer', transition: 'border-color .25s ease' }}
+                  onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'}
+                  onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
+                  <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', textTransform: 'uppercase', color: BONE_LOW }}>◇ your world goes here</span>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID }}>claim yours →</span>
+                </div>
+              )}
             </div>
           ) : (
             <Empty
@@ -294,6 +305,10 @@ function WorldCard({ c, onOpen, wide }) {
             {tc > 0 && <Stat n={tc} label="taste" />}
             {wc > 0 && <Stat n={wc} label="work" />}
           </div>
+        )}
+        {/* a bare profile is honest, not broken — say what it is (Ley 11) */}
+        {!c.discipline && !c.tagline && !c.city && tc === 0 && wc === 0 && (
+          <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '7px' }}>world forming</div>
         )}
       </div>
     </div>

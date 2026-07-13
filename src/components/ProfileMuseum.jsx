@@ -1002,15 +1002,29 @@ function Track({ index, value }) {
     : inner
 }
 
-/* ---------- SCREEN: a horizontal poster rail (a filmstrip on wide) ---------- */
+/* ---------- SCREEN: a horizontal poster rail (a filmstrip on wide) ----------
+   A SINGLE title on wide composes as a featured spread — poster + a hairline
+   that owns the band — never a lone phone-sized card adrift in void (Ley 4:
+   el espacio se compone, no se abandona). */
 function PosterRail({ items, wide }) {
+  if (wide && items.length === 1) {
+    return (
+      <div style={{ marginTop: '4px', display: 'flex', alignItems: 'flex-end', gap: '32px' }}>
+        <PosterCard value={items[0]} index={1} wide big />
+        <div aria-hidden style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px', paddingBottom: '26px' }}>
+          <div style={{ height: '1px', background: `linear-gradient(90deg, ${HAIR_HI}, transparent)` }} />
+          <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase' }}>01 / 01 on the screen wall</span>
+        </div>
+      </div>
+    )
+  }
   return (
     <div className="no-scrollbar" style={{ marginTop: '4px', display: 'flex', gap: wide ? '20px' : '14px', overflowX: 'auto', scrollSnapType: 'x proximity', paddingBottom: '6px', WebkitOverflowScrolling: 'touch' }}>
       {items.map((it, i) => <PosterCard key={`${it}:${i}`} value={it} index={i + 1} wide={wide} />)}
     </div>
   )
 }
-function PosterCard({ value, index, wide }) {
+function PosterCard({ value, index, wide, big }) {
   const [imgOk, setImgOk] = useState(true)
   const p = parseMedia(value)
   const img = p && p.kind === 'image' ? p.src : (p && p.kind === 'video' ? p.thumb : null)
@@ -1041,7 +1055,7 @@ function PosterCard({ value, index, wide }) {
   )
 
   const card = (
-    <div style={{ position: 'relative', flex: '0 0 auto', width: wide ? '196px' : '148px', height: wide ? '280px' : '212px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, scrollSnapAlign: 'start', transition: 'transform .25s ease, border-color .25s ease', cursor: href ? 'pointer' : 'default' }}
+    <div style={{ position: 'relative', flex: '0 0 auto', width: big ? '286px' : wide ? '196px' : '148px', height: big ? '410px' : wide ? '280px' : '212px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, scrollSnapAlign: 'start', transition: 'transform .25s ease, border-color .25s ease', cursor: href ? 'pointer' : 'default' }}
       onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
       onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = HAIR_HI }}>
       {body}

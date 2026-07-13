@@ -51,6 +51,12 @@ export default function EventLanding() {
   const EXP_ACCENT = '#C7C9D1'
   const EXP_BG = 'rgba(242,238,230,.03)'
   const days = event?.event_date ? Math.max(0, Math.ceil((new Date(event.event_date) - new Date()) / 86400000)) : 0
+  // honest countdown states (Ley 11): a future date counts down, the day-of
+  // says TONIGHT, and a past date says nothing at all — never a "0 DAYS"
+  // machine readout next to a live buy button
+  const eventDate = event?.event_date ? new Date(event.event_date) : null
+  const isToday = !!eventDate && eventDate.toDateString() === new Date().toDateString()
+  const isFuture = !!eventDate && !isToday && eventDate > new Date()
   const availableTiers = tiers.filter((t) => t.status === 'available')
   const fromPrice = availableTiers.length ? Math.min(...availableTiers.map((t) => t.price)) / 100 : null
   const dateDisplay = live.dateLong.toUpperCase()   // "JUNE 13, 2026" / "DATE TBA"
@@ -140,9 +146,14 @@ export default function EventLanding() {
       {/* the editorial frame — one container for every section on wide */}
       <div style={wide ? {maxWidth:'1200px',margin:'0 auto'} : undefined}>
 
-      {/* HERO — compressed: the fold answers "qué es, cuándo, cómo entro"
-          (Ley 2); one quiet glow, not three (Ley 1); no abandoned void (Ley 4) */}
-      <div style={{position:'relative',minHeight: wide ? 'min(56vh, 540px)' : '460px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding: wide ? '48px clamp(40px,5vw,72px) 36px' : '48px 28px 32px'}}>
+      {/* THE FOLD — on wide, a composed two-column spread: the title block
+          left, the door (CTA + who's going) right. No half-screen of
+          abandoned void beside the title (Ley 4); everything the 3-second
+          question needs lives in one frame (Ley 2). Mobile stacks. */}
+      <div style={wide ? {display:'grid',gridTemplateColumns:'minmax(0,1fr) 430px',columnGap:'72px',alignItems:'end',padding:'48px clamp(40px,5vw,72px) 30px',minHeight:'min(56vh, 540px)'} : undefined}>
+
+      {/* HERO title block */}
+      <div style={{position:'relative',minHeight: wide ? 0 : '460px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding: wide ? 0 : '48px 28px 32px'}}>
         {/* Ambient bone glow — one, composed with the title block */}
         <div style={{position:'absolute',top:'60px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.06) 0%,transparent 70%)',filter:'blur(80px)'}} />
         <div style={{position:'relative',zIndex:2}}>
@@ -159,14 +170,17 @@ export default function EventLanding() {
               onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(242,238,230,.08),rgba(242,238,230,.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(242,238,230,.1)';e.currentTarget.style.borderColor='rgba(242,238,230,.35)'}}>
               {event.edition || 'RAN BY ARTISTS'}
             </div>
-            {/* Countdown - green accent */}
-            <div style={{border:'1px solid rgba(199,201,209,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:'pointer',position:'relative',background:'rgba(199,201,209,.04)',animation:'countPulse 3s infinite'}}
-              onMouseOver={()=>setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
-              <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#C7C9D1',animation:'pulse 2s infinite',boxShadow:'0 0 8px rgba(199,201,209,.5)'}} />
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#C7C9D1',letterSpacing:'.06em'}}>
-                {showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
-              </span>
-            </div>
+            {/* Countdown — honest states only: TONIGHT on the day, a real
+                count when it's coming, silence when it's past (Ley 11) */}
+            {(isToday || isFuture) && (
+              <div style={{border:'1px solid rgba(199,201,209,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:isFuture?'pointer':'default',position:'relative',background:'rgba(199,201,209,.04)',animation:'countPulse 3s infinite'}}
+                onMouseOver={()=>isFuture&&setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
+                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#C7C9D1',animation:'pulse 2s infinite',boxShadow:'0 0 8px rgba(199,201,209,.5)'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#C7C9D1',letterSpacing:'.06em'}}>
+                  {isToday ? 'TONIGHT' : showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
+                </span>
+              </div>
+            )}
           </div>
           <div className="fade-up-1" style={{fontSize:'10px',letterSpacing:'.3em',color:'var(--cream-mid)',textTransform:'uppercase',fontWeight:600,marginBottom:'14px'}}>The Collectiv4 presents</div>
           <div className="fade-up-2" style={{margin:0,marginBottom:'4px'}}>
@@ -190,8 +204,8 @@ export default function EventLanding() {
         </div>
       </div>
 
-      {/* CTA */}
-      <div style={{padding: wide ? '0 clamp(40px,5vw,72px) 26px' : '0 28px 22px', maxWidth: wide ? '760px' : undefined}}>
+      {/* CTA — the right column of the fold on wide; a section on mobile */}
+      <div style={{padding: wide ? '0 0 8px' : '0 28px 22px'}}>
         {ticketStatus === 'success' && (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)',marginBottom:'12px'}}>
             <Check size={16} style={{color:'#C7C9D1'}} />
@@ -277,6 +291,8 @@ export default function EventLanding() {
           </div>
         )}
       </div>
+
+      </div>{/* /the fold */}
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
 
@@ -332,8 +348,9 @@ export default function EventLanding() {
       </div>
       )}
 
-      {/* FOOTER */}
-      <div style={{padding: wide ? '32px 28px 40px' : '30px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+      {/* FOOTER — mobile: the tab bar's 100px lives on <main>, so the footer
+          itself stays close to the last section (Ley 4: no floating island) */}
+      <div style={{padding: wide ? '32px 28px 40px' : '30px 28px 36px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em'}}>THE COLLECTIV4</div>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'8px',letterSpacing:'.15em'}}>ART · MUSIC · FASHION · EVENTS</div>
         <div style={{fontSize:'11px',color:'var(--cream-ghost)',marginTop:'12px'}}>@thecollectiv4</div>
