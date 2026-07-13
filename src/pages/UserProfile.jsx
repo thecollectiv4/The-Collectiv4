@@ -4,12 +4,14 @@ import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft } from 'lucide-react'
 import ProfileMuseum from '@/components/ProfileMuseum'
+import { fetchWorldPosts } from '@/lib/worldPosts'
 
 export default function UserProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
+  const [posts, setPosts] = useState([])
   const [going, setGoing] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -31,8 +33,12 @@ export default function UserProfile() {
         att = (data || []).find(a => String(a.id) === String(id)) || null
       } catch { /* RPC optional */ }
 
+      // the world's dated timeline — RLS mirrors the profile's own visibility
+      const wp = await fetchWorldPosts(id)
+
       if (!alive) return
       setGoing(!!att)
+      setPosts(wp)
       setProfile(p || (att ? { id, full_name: att.name, avatar_url: att.avatar_url } : null))
       setLoading(false)
     }
@@ -60,5 +66,5 @@ export default function UserProfile() {
     </>
   )
 
-  return <ProfileMuseum profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar} />
+  return <ProfileMuseum profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar} posts={posts} />
 }

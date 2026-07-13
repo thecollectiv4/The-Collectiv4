@@ -8,14 +8,20 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
+/* The root landing: THE house event, from the single source of truth
+   (useLiveEvent). The composition itself lives in EventShow — /e/:slug
+   dresses ANY published event in the same spread (one room design, many
+   rooms — verified members' events included, migration 0016). */
 export default function EventLanding() {
+  const live = useLiveEvent()
+  return <EventShow live={live} />
+}
+
+export function EventShow({ live }) {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const wide = useWide()                  // >=1024px: editorial spread, not a stretched phone
   const [searchParams] = useSearchParams()
-  // The live event comes from the single source of truth (useLiveEvent), not a
-  // local fetch — same published-row query, shared with every other surface.
-  const live = useLiveEvent()
   const event = live.raw
   const loadingEvent = live.loading
   const [attendeeCount, setAttendeeCount] = useState(0)
@@ -159,7 +165,7 @@ export default function EventLanding() {
         <div style={{position:'relative',zIndex:2}}>
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'22px',flexWrap:'wrap'}}>
             {/* Edition badge - golden glow */}
-            <div onClick={()=>navigate('/editions')} style={{
+            <div className="pressable" onClick={()=>navigate('/editions')} style={{
               border:'1px solid rgba(242,238,230,.35)',borderRadius:'100px',padding:'6px 16px',
               fontFamily:'DM Mono',fontSize:'10px',color:'#F2EEE6',letterSpacing:'.1em',
               cursor:'pointer',transition:'all .2s',
@@ -223,7 +229,7 @@ export default function EventLanding() {
             <span style={{color:'#C7C9D1',fontWeight:500,fontSize:'14px'}}>You're in. See you {shortDate}.</span>
           </div>
         ) : (
-          <button onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
+          <button className="pressable" onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
             style={{width:'100%',background:checkingOut?'var(--cream-low)':'#F2EEE6',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(242,238,230,.12)'}}
             onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(242,238,230,.2)'}}}
             onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(242,238,230,.12)'}}>
@@ -241,7 +247,7 @@ export default function EventLanding() {
             contenido). Real faces from the same RPC Community renders; when
             nobody's confirmed yet, just the honest count line (Ley 11). */}
         {attendees.length > 0 ? (
-          <div onClick={()=>navigate('/community')} role="button" aria-label="See who's going"
+          <div className="pressable" onClick={()=>navigate('/community')} role="button" aria-label="See who's going"
             style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
             onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
             onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
@@ -274,7 +280,7 @@ export default function EventLanding() {
         {ticketOpen && (
           <div style={{marginTop:'16px',display:'flex',flexDirection:'column',gap:'8px',animation:'fadeUp .3s ease'}}>
             {tiers.map((t,i)=>(
-              <div key={i} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
+              <div key={i} className={t.status==='available' ? 'pressable' : undefined} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
                 style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(242,238,230,.06)':'rgba(242,238,230,.02)',border:'1px solid '+(t.status==='available'?'rgba(242,238,230,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
                 onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.5)';e.currentTarget.style.background='rgba(242,238,230,.12)'}}}
                 onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.06)'}}}>
@@ -303,7 +309,7 @@ export default function EventLanding() {
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'16px'}}>LINEUP</div>
         <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(2, minmax(0,1fr))',gap:'12px'} : {display:'flex',flexDirection:'column',gap:'4px'}}>
           {lineup.map((a,i)=>(
-            <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
+            <div key={i} className="pressable" onClick={()=>navigate('/artist/'+a.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:'1px solid rgba(242,238,230,.1)',cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='rgba(242,238,230,.04)'}}>
               <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'rgba(242,238,230,.1)',border:'2px solid rgba(242,238,230,.35)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0}}>{a.name[0]}</div>
@@ -330,7 +336,7 @@ export default function EventLanding() {
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'6px'}}>THE EXPERIENCE</div>
         <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))',columnGap:'44px'} : undefined}>
           {experiences.map((exp,i)=>(
-            <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
+            <div key={i} className="pressable" onClick={()=>navigate('/experience/'+exp.slug)}
               style={{display:'flex',alignItems:'baseline',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer',transition:'padding-left .2s, border-color .2s'}}
               onMouseOver={e=>{e.currentTarget.style.paddingLeft='10px';e.currentTarget.style.borderColor='rgba(242,238,230,.2)'}} onMouseOut={e=>{e.currentTarget.style.paddingLeft='2px';e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
               <span style={{fontFamily:'DM Mono',fontSize:'10px',color:EXP_ACCENT,letterSpacing:'.1em',flexShrink:0,opacity:.8}}>{String(i+1).padStart(2,'0')}</span>

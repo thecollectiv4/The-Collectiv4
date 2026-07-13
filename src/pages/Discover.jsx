@@ -202,7 +202,7 @@ export default function Discover() {
               {/* few worlds → the void composes into an invitation, not
                   abandonment (Ley 4 + Ley 11: un vacío que invita) */}
               {shownCreatives.length <= 3 && city === 'all' && discipline === 'all' && (
-                <div onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" aria-label="Claim your world"
+                <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" aria-label="Claim your world"
                   style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '16px', minHeight: wide ? '236px' : '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', cursor: 'pointer', transition: 'border-color .25s ease' }}
                   onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'}
                   onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
@@ -224,7 +224,7 @@ export default function Discover() {
         ) : (
           shownEvents.length > 0 ? (
             <div style={{ display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))' } : { flexDirection: 'column' }), gap: wide ? '20px' : '14px' }}>
-              {shownEvents.map(e => <EventCard key={e.id} e={e} live={live} onOpen={() => navigate('/')} />)}
+              {shownEvents.map(e => <EventCard key={e.id} e={e} live={live} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />)}
             </div>
           ) : (
             <Empty title="NO EVENTS LIVE" body="No published events right now. The next room is being built — check back soon." />
@@ -248,7 +248,7 @@ function FilterRow({ label, value, onChange, options }) {
         {all.map(opt => {
           const on = value === opt
           return (
-            <button key={opt} onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {opt === 'all' ? 'All' : opt}
             </button>
           )
@@ -270,7 +270,7 @@ function WorldCard({ c, onOpen, wide }) {
   const wc = Array.isArray(c.media) ? c.media.length : 0
 
   return (
-    <div onClick={onOpen} className="disc-card" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+    <div onClick={onOpen} className="disc-card pressable" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
       {/* cosmic banner */}
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
         {cover

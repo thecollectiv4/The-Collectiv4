@@ -8,12 +8,14 @@ import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
 import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/worldStorage'
+import { fetchWorldPosts, deleteWorldPost } from '@/lib/worldPosts'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
+  const [posts, setPosts] = useState([])
   const [ticket, setTicket] = useState(null)
   const [ticketEvent, setTicketEvent] = useState(null)  // the ticket's OWN event row — never the live event's name on someone else's ticket
   const [attended, setAttended] = useState([])          // real past events this user held a confirmed ticket for
@@ -29,6 +31,15 @@ export default function Profile() {
     if (!user) { navigate('/auth'); return }
     load()
   }, [user, authLoading])
+
+  // CREATE central posts from anywhere in the app — when it lands one while
+  // this museum is mounted, the timeline refreshes without a hard reload.
+  useEffect(() => {
+    if (!user) return
+    const onPosted = () => fetchWorldPosts(user.id).then(setPosts)
+    window.addEventListener('c4:posted', onPosted)
+    return () => window.removeEventListener('c4:posted', onPosted)
+  }, [user])
 
   // Cosmos holding state while identity resolves (or right before the redirect fires).
   if (authLoading || !user) return <AuthResolving />
@@ -58,6 +69,7 @@ export default function Profile() {
       }
     }
     setProfile(data)
+    fetchWorldPosts(user.id).then(setPosts)   // the world's dated timeline (0016)
 
     // Best-effort: link any ticket bought under this user's verified email but left
     // orphaned (no user_id at checkout) to their account, so it shows here. Safe to
@@ -143,6 +155,29 @@ export default function Profile() {
   // Gallery: the museum uploads as the owner curates; the array persists on save.
   const onUploadGallery = (file) => uploadWorldImage(user.id, file, 'g')
   const onCleanupImages = (paths) => removeWorldImages(paths)
+
+  // Moments: the owner removes a piece; the timeline re-reads the DB's truth.
+  const onDeletePost = async (post) => {
+    await deleteWorldPost(post)
+    setPosts((ps) => ps.filter((p) => p.id !== post.id))
+  }
+
+  // Builder v3: the conversational opening's polish layer (/api/curate).
+  // Returns null on ANY failure — the client-side decision tree already
+  // composed a full plan, so degradation is silent by design (Ley 15).
+  const onCurate = async ({ craft, feel, show }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) return null
+      const res = await fetch('/api/curate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ craft, feel, show }),
+      })
+      if (!res.ok) return null
+      return await res.json()
+    } catch { return null }
+  }
 
   const topBar = (
     <>
@@ -257,9 +292,12 @@ export default function Profile() {
       onUploadCover={onUploadCover}
       onUploadGallery={onUploadGallery}
       onCleanupImages={onCleanupImages}
+      onCurate={onCurate}
       onViewPublic={() => navigate(`/user/${user.id}`)}
       topBar={topBar}
       ownerExtras={ownerExtras}
+      posts={posts}
+      onDeletePost={onDeletePost}
     />
   )
 }

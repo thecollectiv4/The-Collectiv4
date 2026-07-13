@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown } from 'lucide-react'
 import WorldBuilder from '@/components/WorldBuilder'
+import WorldMoments from '@/components/WorldMoments'
 import Constellation from '@/components/Constellation'
 import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness } from '@/lib/world'
@@ -105,12 +106,12 @@ const onF = (e) => e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'
 const onB = (e) => e.currentTarget.style.borderColor = HAIR_HI
 
 // star-chart marks, one per movement
-const MARKS = { gallery: 'dot', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
+const MARKS = { gallery: 'dot', moments: 'star', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
 
 // `event` is the normalized live-event object from useLiveEvent (name/edition/date/
 // city); the wrapper passes it so the "going" badge shows the real upcoming event.
 // `ticket` is the boolean "is this person going".
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onViewPublic, ticket, event, topBar, ownerExtras }) {
+export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
@@ -352,6 +353,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   // which movements to show — owner sees invitations for the empty ones
   const show = {
     gallery: gallery.length > 0 || isOwner,
+    moments: posts.length > 0 || isOwner,
     sound: taste.music.length > 0 || isOwner,
     screen: taste.films.length > 0 || isOwner,
     influences: taste.influences.length > 0 || isOwner,
@@ -360,8 +362,8 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   // editorial catalog numbering, only across the movements actually rendered
   let counter = 0
   const num = {}
-  ;['gallery', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
-  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length
+  ;['gallery', 'moments', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
+  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length && !posts.length
 
   // the museum's editorial frame on wide screens — one container, all sections
   const frame = wide
@@ -401,9 +403,10 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         {/* top bar (back / sign-out) floats over the cover */}
         {topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>{topBar}</div>}
 
-        {/* owner cover controls */}
+        {/* owner cover controls — BELOW the topBar row (Sign Out lives at the
+            same top-right corner; stacking them collided the two controls) */}
         {isOwner && (
-          <div style={{ position: 'absolute', top: '16px', right: '18px', display: 'flex', gap: '8px', zIndex: 5 }}>
+          <div style={{ position: 'absolute', top: topBar ? '56px' : '16px', right: '18px', display: 'flex', gap: '8px', zIndex: 5 }}>
             {cover && <button onClick={removeCover} style={pill}>Remove</button>}
             <button onClick={() => coverRef.current?.click()} style={{ ...pill, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               {coverUploading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={11} />} {cover ? 'Change' : 'Cover'}
@@ -497,7 +500,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         {!editing && links.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: wide ? '2px' : '16px' }}>
             {links.map((l, i) => (
-              <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer"
+              <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer" className="pressable"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'all .2s' }}
                 onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'; e.currentTarget.style.color = BONE }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
@@ -527,7 +530,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              <button onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
+              <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
                 onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.11)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
                 onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
                 <Edit3 size={12} /> {completeness.pct < 100 ? 'Build your world →' : 'Curate your world'}
@@ -670,6 +673,17 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </motion.div>
           )}
 
+          {/* MOVEMENT — MOMENTS (the gallery extended into a dated timeline;
+              posts arrive through CREATE central — Ley 13) */}
+          {show.moments && (
+            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
+              <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the world, dated" wide={wide} />
+              {posts.length > 0
+                ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
+                : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
+            </motion.div>
+          )}
+
           {/* MOVEMENT — SOUND */}
           {show.sound && (
             <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
@@ -753,6 +767,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
           onUploadGallery={onUploadGallery}
           onCleanupImages={onCleanupImages}
+          onCurate={onCurate}
           onClose={() => setBuilding(false)}
           onPublished={() => { setBuilding(false); setCelebrating(true) }}
         />,
@@ -876,6 +891,7 @@ function Mark({ type = 'ring', size = 14, color = SILVER, style }) {
   const common = { fill: 'none', stroke: color, strokeWidth: sw, strokeLinejoin: 'round', strokeLinecap: 'round' }
   let shape
   if (type === 'dot') shape = <circle cx={c} cy={c} r={r * 0.62} fill={color} />
+  else if (type === 'star') shape = <path d={`M${c} ${s * 0.1} L${c + s * 0.09} ${c - s * 0.09} L${s * 0.9} ${c} L${c + s * 0.09} ${c + s * 0.09} L${c} ${s * 0.9} L${c - s * 0.09} ${c + s * 0.09} L${s * 0.1} ${c} L${c - s * 0.09} ${c - s * 0.09} Z`} fill={color} stroke="none" />
   else if (type === 'ring') shape = <circle cx={c} cy={c} r={r} {...common} />
   else if (type === 'cross') shape = <g {...common}><line x1={c} y1={s * 0.12} x2={c} y2={s * 0.88} /><line x1={s * 0.12} y1={c} x2={s * 0.88} y2={c} /></g>
   else if (type === 'triangle') shape = <path d={`M${c} ${s * 0.15} L${s * 0.86} ${s * 0.83} L${s * 0.14} ${s * 0.83} Z`} {...common} />

@@ -1,10 +1,11 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, Compass, Users, User, LayoutGrid } from 'lucide-react'
+import { CalendarDays, Compass, Users, User, LayoutGrid, Plus } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
+import CreateCentral from './CreateCentral'
 
 const baseTabs = [
   { to: '/',          icon: CalendarDays,  label: 'Event',     requiresAuth: false },
@@ -17,15 +18,16 @@ const osTab = { to: '/os', icon: LayoutGrid, label: 'OS', requiresAuth: true }
 
 // Public routes never force the sign-in modal (Discover is top-of-funnel —
 // and a shared world link must open the world, not a wall: /user/:id is the
-// museum's public face, anon included).
+// museum's public face, anon included; /e/:slug is any event's public room).
 const PUBLIC_PATHS = ['/', '/discover']
-const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/')
+const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/') || path.startsWith('/e/')
 
 // Routes with a real desktop composition — the 430px phone frame releases
 // here at >=1024px. Everything else keeps the centered phone frame under
-// the wide header until it earns its own desktop architecture.
+// the wide header until it earns its own desktop architecture. /e/:slug
+// renders the same EventShow spread as the root landing.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(discover|profile|user)(\/|$)/.test(path)
+  path === '/' || /^\/(discover|profile|user|e)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()
@@ -41,7 +43,16 @@ export default function Layout() {
   // signed-in members. Auto-open only once, on a CONFIRMED unauthenticated state.
   const [showAuth, setShowAuth] = useState(false)
   const [authDismissed, setAuthDismissed] = useState(false)
+  const [createOpen, setCreateOpen] = useState(false)
   const autoPrompted = useRef(false)
+
+  // CREATE — the + at the center of the app (Ley 13). Signed-out taps meet
+  // the door, not a dead button; signed-in taps open the intentions.
+  const openCreate = () => {
+    if (authLoading) return
+    if (!user) { setShowAuth(true); return }
+    setCreateOpen(true)
+  }
   useEffect(() => {
     if (authLoading || autoPrompted.current) return
     // Consume the one-shot on the FIRST resolution regardless of outcome — if it
@@ -124,7 +135,7 @@ export default function Layout() {
             {tabs.map((tab) => {
               const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
               return (
-                <button key={tab.to} onClick={()=>handleTabClick(tab)} style={{
+                <button key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
                   background:'transparent', border:'none', cursor:'pointer',
                   padding:'8px 14px', display:'inline-flex', alignItems:'center', gap:'7px',
                   fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em', textTransform:'uppercase',
@@ -137,6 +148,16 @@ export default function Layout() {
                 </button>
               )
             })}
+            {/* CREATE — present in the instrument, one clear door (Ley 13) */}
+            <button className="pressable" onClick={openCreate} aria-label="Create"
+              style={{ marginLeft:'12px', display:'inline-flex', alignItems:'center', gap:'7px',
+                background:'rgba(242,238,230,.06)', border:'1px solid rgba(242,238,230,.22)', borderRadius:'100px',
+                padding:'7px 15px', color:'#F2EEE6', fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em',
+                textTransform:'uppercase', cursor:'pointer', transition:'background .2s, border-color .2s' }}
+              onMouseOver={e => { e.currentTarget.style.background='rgba(242,238,230,.12)'; e.currentTarget.style.borderColor='rgba(242,238,230,.4)' }}
+              onMouseOut={e => { e.currentTarget.style.background='rgba(242,238,230,.06)'; e.currentTarget.style.borderColor='rgba(242,238,230,.22)' }}>
+              <Plus size={12} strokeWidth={2.2} /> Create
+            </button>
           </nav>
         </header>
       )}
@@ -156,7 +177,9 @@ export default function Layout() {
       {showAuth && !user && <AuthModal onClose={()=>{setShowAuth(false);setAuthDismissed(true)}} />}
       {/* Also show if they try to navigate without auth after dismissing */}
 
-      {/* Nav - consumer surfaces + mobile /os; never on desktop /os or wide (the header carries it) */}
+      {/* Nav - consumer surfaces + mobile /os; never on desktop /os or wide (the header carries it).
+          CREATE sits at the CENTER (Ley 13 — the Base44 steal): the two leading
+          tabs on its left, the rest on its right, the + as the one raised mark. */}
       {!osDesktop && !consumerWide && <nav style={{
         position:'fixed', bottom:0, left:0, right:0,
         background:'rgba(10,10,13,.97)',
@@ -166,23 +189,48 @@ export default function Layout() {
         paddingTop:'10px',
         paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
       }}>
-        {tabs.map((tab) => {
-          const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
-          const Icon = tab.icon
+        {(() => {
+          const renderTab = (tab) => {
+            const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
+            const Icon = tab.icon
+            return (
+              <div key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
+                display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
+                padding:'4px 10px', cursor:'pointer', minWidth:0,
+                color: active ? '#F2EEE6' : '#83838F',
+                WebkitTapHighlightColor:'transparent',
+                transition:'color 0.2s',
+              }}>
+                <Icon size={22} strokeWidth={active ? 2.2 : 1.4} />
+                <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase' }}>{tab.label}</span>
+              </div>
+            )
+          }
+          const mid = Math.ceil(tabs.length / 2)
           return (
-            <div key={tab.to} onClick={()=>handleTabClick(tab)} style={{
-              display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
-              padding:'4px 20px', cursor:'pointer',
-              color: active ? '#F2EEE6' : '#83838F',
-              WebkitTapHighlightColor:'transparent',
-              transition:'color 0.2s',
-            }}>
-              <Icon size={22} strokeWidth={active ? 2.2 : 1.4} />
-              <span style={{ fontSize:'10px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase' }}>{tab.label}</span>
-            </div>
+            <>
+              {tabs.slice(0, mid).map(renderTab)}
+              <button className="pressable" onClick={openCreate} aria-label="Create"
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
+                  background:'transparent', border:'none', padding:'0 10px', cursor:'pointer',
+                  WebkitTapHighlightColor:'transparent' }}>
+                <span style={{ width:'44px', height:'44px', borderRadius:'50%', marginTop:'-16px',
+                  background:'#F2EEE6', color:'#0A0A0D', display:'flex', alignItems:'center', justifyContent:'center',
+                  border:'1px solid rgba(242,238,230,.4)', boxShadow:'0 6px 22px rgba(242,238,230,.18)' }}>
+                  <Plus size={20} strokeWidth={2.4} />
+                </span>
+                <span style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#C7C4BC' }}>Create</span>
+              </button>
+              {tabs.slice(mid).map(renderTab)}
+            </>
           )
-        })}
+        })()}
       </nav>}
+
+      {/* CREATE — the intentions behind the + (only what you can do TODAY) */}
+      {createOpen && user && (
+        <CreateCentral user={user} isMemberVerified={osState === 'granted'} onClose={()=>setCreateOpen(false)} />
+      )}
     </div>
   )
 }

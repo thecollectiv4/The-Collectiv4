@@ -61,6 +61,56 @@ export const CRAFT_STEPS = {
   generic: ['craft', 'work', 'doors', 'marquee', 'skin'],
 }
 
+/* =========================================================================
+   Builder v3 — the conversational opening (Ley 15: the builder knows the
+   person before asking for anything). Three answers — what you make, what
+   entering your world should FEEL like, what you have ready today — become
+   a composed PLAN: step order, emphasis, a suggested skin and a suggested
+   welcome line. This is the client-side decision tree; /api/curate (when
+   the key is live) polishes the suggestions on top. Degrades to exactly
+   this when the endpoint is absent — curated either way, surveyed never.
+   ========================================================================= */
+
+/* feel → skin: the composition should MATCH what the person wants a
+   visitor to feel (Ley 14 — light and color with meaning). */
+export function skinForFeel(feel) {
+  const f = (feel || '').toLowerCase()
+  if (/(raw|dark|bold|loud|underground|grit|heavy|hard|edge|rebel|street)/.test(f)) return 'outline'
+  if (/(warm|human|home|soft|close|cozy|intim|tender|family|safe|calm|peace)/.test(f)) return 'bone'
+  return 'chrome' // timeless / elegant / luminous — the house default
+}
+
+/* The composed plan. `show` is what they said they have ready today:
+   any of 'images' | 'links' | 'words'. The step that matches what they
+   HAVE leads; what they don't have stays available but never leads. */
+export function composeWorldPlan({ craft, feel, show = [] }) {
+  const kind = craftKindOf(craft)
+  const has = new Set(show)
+
+  // content steps, led by what's actually in their hands today
+  const order = []
+  const push = (k) => { if (!order.includes(k)) order.push(k) }
+  if (has.has('words')) push('words')
+  if (has.has('images')) push('work')
+  if (has.has('links')) push('doors')
+  // fill the rest in the craft's own order (minus 'craft' — already answered)
+  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'marquee' && k !== 'skin') push(k) })
+
+  const skin = skinForFeel(feel)
+  // local marquee suggestion: their own feel, spoken as a welcome — never
+  // invented facts, just their words turned toward the door
+  const feelLine = (feel || '').trim().replace(/[.!]+$/, '')
+  const marquee = feelLine && feelLine.length <= 64 ? feelLine.toLowerCase() : ''
+
+  return {
+    kind,
+    steps: ['line', ...order, 'marquee', 'skin'],
+    skin,
+    marquee: marquee || null,   // null → keep the house default
+    line: null,                 // a suggested tagline comes only from /api/curate
+  }
+}
+
 /* Completeness — what "a built world" means, in points (sums to 100):
    craft 15 · your line 15 · 3 gallery pieces 30 (10 each) · a link 15 ·
    marquee decided 10 · skin chosen 10 · a face 5. Deliberately EXCLUDES
