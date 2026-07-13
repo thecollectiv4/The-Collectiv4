@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, Compass, Users, User, LayoutGrid, Plus } from 'lucide-react'
+import { CalendarDays, Users, MessagesSquare, User, LayoutGrid, Plus } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
@@ -7,27 +7,32 @@ import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 
+/* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
+   eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
+   the conversations (D2), PROFILE = your world. Discover dissolved into
+   the first two. Each tab carries its icon AND its word (Leyes 5, 13). */
 const baseTabs = [
-  { to: '/',          icon: CalendarDays,  label: 'Event',     requiresAuth: false },
-  { to: '/discover',  icon: Compass,       label: 'Discover',  requiresAuth: false },
-  { to: '/community', icon: Users,         label: 'Community', requiresAuth: true },
-  { to: '/profile',   icon: User,          label: 'Profile',   requiresAuth: true },
+  { to: '/',          icon: CalendarDays,   label: 'Event',     requiresAuth: false },
+  { to: '/community', icon: Users,          label: 'Community', requiresAuth: false },
+  { to: '/messages',  icon: MessagesSquare, label: 'Messages',  requiresAuth: true },
+  { to: '/profile',   icon: User,           label: 'Profile',   requiresAuth: true },
 ]
 // Network members (verified/owner) get the internal OS as an extra tab.
 const osTab = { to: '/os', icon: LayoutGrid, label: 'OS', requiresAuth: true }
 
-// Public routes never force the sign-in modal (Discover is top-of-funnel —
-// and a shared world link must open the world, not a wall: /user/:id is the
-// museum's public face, anon included; /e/:slug is any event's public room).
-const PUBLIC_PATHS = ['/', '/discover']
+// Public routes never force the sign-in modal (Event + Community are
+// top-of-funnel — and a shared world link must open the world, not a wall:
+// /user/:id is the museum's public face, anon included; /e/:slug is any
+// event's public room).
+const PUBLIC_PATHS = ['/', '/community']
 const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/') || path.startsWith('/e/')
 
 // Routes with a real desktop composition — the 430px phone frame releases
 // here at >=1024px. Everything else keeps the centered phone frame under
 // the wide header until it earns its own desktop architecture. /e/:slug
-// renders the same EventShow spread as the root landing.
+// renders the same EventShow spread the old landing wore.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(discover|profile|user|e)(\/|$)/.test(path)
+  path === '/' || /^\/(community|messages|profile|user|e)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()

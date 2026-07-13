@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
-import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown } from 'lucide-react'
+import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
+import WorldOffer from '@/components/WorldOffer'
 import Constellation from '@/components/Constellation'
 import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness } from '@/lib/world'
@@ -106,12 +107,15 @@ const onF = (e) => e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'
 const onB = (e) => e.currentTarget.style.borderColor = HAIR_HI
 
 // star-chart marks, one per movement
-const MARKS = { gallery: 'dot', moments: 'star', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
+const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
 
 // `event` is the normalized live-event object from useLiveEvent (name/edition/date/
 // city); the wrapper passes it so the "going" badge shows the real upcoming event.
 // `ticket` is the boolean "is this person going".
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost }) {
+// `social` — { ready, followers, following, iFollow } from the wrapper (0017);
+// `listings` — the world's OFFER. Social buttons render only when the layer is
+// live in the DB (Ley 9: a door that can't open doesn't render).
+export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
@@ -350,10 +354,14 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   const avatar = safeImg(data.avatar_url)
   const cover = safeImg(data.cover_url)
 
-  // which movements to show — owner sees invitations for the empty ones
+  // which movements to show — owner sees invitations for the empty ones.
+  // OFFER: public sees it only when live pieces hang; the owner sees the
+  // invitation only once the layer is live in the DB (honest pre-0017).
+  const liveListings = listings.filter((l) => l.status === 'live')
   const show = {
     gallery: gallery.length > 0 || isOwner,
     moments: posts.length > 0 || isOwner,
+    offer: liveListings.length > 0 || (isOwner && (listings.length > 0 || !!social?.ready)),
     sound: taste.music.length > 0 || isOwner,
     screen: taste.films.length > 0 || isOwner,
     influences: taste.influences.length > 0 || isOwner,
@@ -362,8 +370,8 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   // editorial catalog numbering, only across the movements actually rendered
   let counter = 0
   const num = {}
-  ;['gallery', 'moments', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
-  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length && !posts.length
+  ;['gallery', 'moments', 'offer', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
+  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length && !posts.length && !listings.length
 
   // the museum's editorial frame on wide screens — one container, all sections
   const frame = wide
@@ -494,6 +502,50 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         )))}
         {wide && !data.tagline && isOwner && !editing && (
           <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '0' }}>Add a line — what you're on, right now.</p>
+        )}
+
+        {/* CONNECT — the social layer's face on the world (0017): follow +
+            message + the honest count. Renders only when the layer is LIVE
+            in the DB (Ley 9: no dead doors) and never for the owner's own
+            world (you don't follow yourself — you see your count). */}
+        {!editing && social?.ready && !isOwner && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: wide ? '6px' : '16px' }}>
+            <button className="pressable" onClick={onFollowToggle} aria-pressed={social.iFollow}
+              data-testid="follow-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', borderRadius: '100px', padding: '9px 20px', color: social.iFollow ? BONE : VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+              {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
+              {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
+            </button>
+            <button className="pressable" onClick={onMessage} data-testid="message-btn"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
+              onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+              onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+              <MessageCircle size={13} /> MESSAGE
+            </button>
+            {(social.followers > 0 || social.following > 0) && (
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+                {social.followers > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected</span>}
+                {social.following > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> following</span>}
+              </span>
+            )}
+            {social.err && (
+              <span role="alert" style={{ flexBasis: '100%', fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {social.err}</span>
+            )}
+          </div>
+        )}
+        {/* looking at your OWN world from the public side — one honest door
+            back to curating, never follow-yourself buttons (review catch) */}
+        {!editing && selfView && onSelfCurate && (
+          <button className="pressable" onClick={onSelfCurate} data-testid="self-world"
+            style={{ marginTop: wide ? '6px' : '16px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 16px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            ◇ this is your world — curate it →
+          </button>
+        )}
+        {/* the owner's own count — one honest line, never a vanity wall */}
+        {!editing && social?.ready && isOwner && social.followers > 0 && (
+          <div style={{ marginTop: wide ? '6px' : '14px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+            <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected to your world
+          </div>
         )}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
@@ -684,6 +736,18 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </motion.div>
           )}
 
+          {/* MOVEMENT — THE OFFER (listings, 0017 — Estrella Polar: the
+              museum that also WORKS. Pieces + services with a real price;
+              buying is a DM until the payment layer lands — Ley 11) */}
+          {show.offer && (
+            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
+              <Marker mark={MARKS.offer} n={num.offer} label="THE OFFER" kicker="for sale · for hire" wide={wide} />
+              {(isOwner ? listings.length : liveListings.length) > 0
+                ? <WorldOffer listings={listings} isOwner={isOwner} onDMSeller={onDMSeller} onSetStatus={onSetListingStatus} onDelete={onDeleteListing} wide={wide} />
+                : <Invite icon={TagIcon}>Your work, with a price on the wall — a piece to sell or a service to book. Tap the + in the nav and put one up.</Invite>}
+            </motion.div>
+          )}
+
           {/* MOVEMENT — SOUND */}
           {show.sound && (
             <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
@@ -738,8 +802,21 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </motion.div>
           )}
 
-          {/* closing mark */}
-          {!worldIsEmpty && (
+          {/* an EMPTY world visited by the public: one honest statement, not
+              40% of raw void — the absence gets a voice (panel catch, Leyes
+              4/11), and the page still closes with its signature below. */}
+          {!isOwner && worldIsEmpty && (
+            <div style={{ marginTop: '44px', padding: '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', maxWidth: wide ? '560px' : undefined }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ world forming</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: BONE, letterSpacing: '.03em', lineHeight: .95, marginTop: '10px' }}>NOTHING ON THE WALLS YET</div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px auto 0', maxWidth: '320px' }}>
+                {displayName} just claimed this world — the work, the sound and the taste are on their way.
+              </p>
+            </div>
+          )}
+
+          {/* closing mark — every visited world signs its page */}
+          {(!worldIsEmpty || !isOwner) && (
             <div style={{ marginTop: '64px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
               <Mark type="diamond" size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />
@@ -895,6 +972,7 @@ function Mark({ type = 'ring', size = 14, color = SILVER, style }) {
   else if (type === 'ring') shape = <circle cx={c} cy={c} r={r} {...common} />
   else if (type === 'cross') shape = <g {...common}><line x1={c} y1={s * 0.12} x2={c} y2={s * 0.88} /><line x1={s * 0.12} y1={c} x2={s * 0.88} y2={c} /></g>
   else if (type === 'triangle') shape = <path d={`M${c} ${s * 0.15} L${s * 0.86} ${s * 0.83} L${s * 0.14} ${s * 0.83} Z`} {...common} />
+  else if (type === 'square') shape = <rect x={s * 0.18} y={s * 0.18} width={s * 0.64} height={s * 0.64} {...common} />
   else shape = <path d={`M${c} ${s * 0.1} L${s * 0.9} ${c} L${c} ${s * 0.9} L${s * 0.1} ${c} Z`} {...common} />
   return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={style} aria-hidden="true">{shape}</svg>
 }

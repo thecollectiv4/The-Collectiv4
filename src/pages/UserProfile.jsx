@@ -1,19 +1,30 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
+import { useAuth } from '@/lib/AuthContext'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft } from 'lucide-react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import { fetchWorldPosts } from '@/lib/worldPosts'
+import { fetchListings } from '@/lib/listings'
+import { socialReady, fetchFollowState, follow, unfollow, startDM } from '@/lib/social'
 
 export default function UserProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user, loading: authLoading } = useAuth()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
   const [posts, setPosts] = useState([])
+  const [listings, setListings] = useState([])
   const [going, setGoing] = useState(false)
   const [loading, setLoading] = useState(true)
+  // the social layer's face on this world (0017) — ready gates the doors
+  const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
+  const [socialErr, setSocialErr] = useState('')
+  // your own public world: no FOLLOW/MESSAGE doors at yourself (they could
+  // never open — review catch); a quiet door back to curating instead
+  const selfView = !!user && String(user.id) === String(id)
 
   useEffect(() => {
     let alive = true
@@ -24,27 +35,68 @@ export default function UserProfile() {
 
       // "Going" status comes from the PII-safe RPC, NOT a ticket select — the
       // tickets_self_read RLS policy blocks reading another person's ticket.
-      // The RPC also supplies name/avatar when the user has no profile row yet.
-      // Scope to the live event when there is one, so "going" means going to THIS
-      // event; with no published event the RPC defaults to all confirmed.
       let att = null
       try {
         const { data } = await supabase.rpc('confirmed_attendees', live.id ? { p_event: live.id } : {})
         att = (data || []).find(a => String(a.id) === String(id)) || null
       } catch { /* RPC optional */ }
 
-      // the world's dated timeline — RLS mirrors the profile's own visibility
-      const wp = await fetchWorldPosts(id)
+      // the world's dated timeline + its OFFER — RLS mirrors the profile's
+      // own visibility for both (and both resolve empty pre-migration)
+      const [wp, ls, ready] = await Promise.all([
+        fetchWorldPosts(id),
+        fetchListings(id),
+        socialReady(),
+      ])
 
       if (!alive) return
       setGoing(!!att)
       setPosts(wp)
+      setListings(ls)
       setProfile(p || (att ? { id, full_name: att.name, avatar_url: att.avatar_url } : null))
       setLoading(false)
+      if (ready) {
+        fetchFollowState(id, user?.id).then((s) => { if (alive) setSocial({ ready: true, ...s }) })
+      }
     }
     load()
     return () => { alive = false }
-  }, [id, live.id])
+  }, [id, live.id, user?.id])
+
+  // follow / unfollow — optimistic, honest rollback WITH a voice: a failed
+  // write must never revert in silence (review catch — Ley 11).
+  const onFollowToggle = useCallback(async () => {
+    if (!user) { navigate(`/auth?next=/user/${id}`); return }
+    const was = social
+    const next = social.iFollow
+      ? { ...social, iFollow: false, followers: Math.max(0, social.followers - 1) }
+      : { ...social, iFollow: true, followers: social.followers + 1 }
+    setSocial(next); setSocialErr('')
+    try {
+      if (was.iFollow) await unfollow(user.id, id)
+      else await follow(user.id, id)
+    } catch (e) {
+      setSocial(was)
+      setSocialErr(e?.message || "that didn't land — try again")
+    }
+  }, [user, id, social, navigate])
+
+  // message — the DM door (start_dm RPC creates/reopens the pair thread)
+  const onMessage = useCallback(async (prefill) => {
+    if (!user) { navigate(`/auth?next=/user/${id}`); return }
+    try {
+      const threadId = await startDM(id)
+      navigate(`/messages/${threadId}`, typeof prefill === 'string' && prefill ? { state: { prefill } } : undefined)
+    } catch (e) {
+      alert(e?.message || "couldn't open the conversation — try again")
+    }
+  }, [user, id, navigate])
+
+  // DM to buy / book — the same door, seeded with the piece (Ley 9: the
+  // click keeps its promise — a real conversation about a real listing)
+  const onDMSeller = useCallback((l) => {
+    onMessage(`about “${l.title}” (${l.kind === 'service' ? 'booking' : 'buying'}) — `)
+  }, [onMessage])
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
@@ -66,5 +118,17 @@ export default function UserProfile() {
     </>
   )
 
-  return <ProfileMuseum profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar} posts={posts} />
+  return (
+    <ProfileMuseum
+      profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar}
+      posts={posts}
+      listings={listings}
+      social={(authLoading || selfView) ? { ...social, ready: false } : { ...social, err: socialErr }}
+      selfView={selfView}
+      onSelfCurate={() => navigate('/profile')}
+      onFollowToggle={onFollowToggle}
+      onMessage={() => onMessage()}
+      onDMSeller={selfView ? null : onDMSeller}
+    />
+  )
 }
