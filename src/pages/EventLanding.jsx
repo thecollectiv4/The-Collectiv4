@@ -19,6 +19,7 @@ export default function EventLanding() {
   const event = live.raw
   const loadingEvent = live.loading
   const [attendeeCount, setAttendeeCount] = useState(0)
+  const [attendees, setAttendees] = useState([])   // the guest list — people ARE the content (Ley 6)
   const [hasTicket, setHasTicket] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [ticketStatus, setTicketStatus] = useState(null) // 'success' | 'cancelled'
@@ -29,10 +30,13 @@ export default function EventLanding() {
     if (status === 'cancelled') setTicketStatus('cancelled')
   }, [searchParams])
 
-  // Counts + own-ticket check, scoped to the loaded event.
+  // Counts + faces + own-ticket check, scoped to the loaded event. Faces come
+  // from the same PII-safe RPC Community renders — real people or nothing
+  // (Ley 11: data real o vacío honesto).
   useEffect(() => {
     if (!event) return
     supabase.rpc('confirmed_count', { p_event: event.id }).then(({ data }) => setAttendeeCount(data || 0)).catch(() => setAttendeeCount(0))
+    supabase.rpc('confirmed_attendees', { p_event: event.id }).then(({ data }) => setAttendees(data || [])).catch(() => setAttendees([]))
     if (user) {
       supabase.from('tickets').select('id').eq('buyer_id', user.id).eq('event_id', event.id).limit(1)
         .then(({ data }) => setHasTicket(!!(data && data.length))).catch(() => {})
@@ -136,14 +140,13 @@ export default function EventLanding() {
       {/* the editorial frame — one container for every section on wide */}
       <div style={wide ? {maxWidth:'1200px',margin:'0 auto'} : undefined}>
 
-      {/* HERO */}
-      <div style={{position:'relative',minHeight: wide ? 'min(74vh, 780px)' : '540px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding: wide ? '48px clamp(40px,5vw,72px) 64px' : '48px 28px 44px'}}>
-        {/* Ambient bone glow */}
-        <div style={{position:'absolute',top:'40px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.07) 0%,transparent 70%)',filter:'blur(80px)'}} />
-        <div style={{position:'absolute',top:'200px',right:'-40px',width:'250px',height:'250px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.04) 0%,transparent 70%)',filter:'blur(70px)'}} />
-        <div style={{position:'absolute',bottom:'0',left:'30%',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.05) 0%,transparent 70%)',filter:'blur(90px)'}} />
+      {/* HERO — compressed: the fold answers "qué es, cuándo, cómo entro"
+          (Ley 2); one quiet glow, not three (Ley 1); no abandoned void (Ley 4) */}
+      <div style={{position:'relative',minHeight: wide ? 'min(56vh, 540px)' : '460px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding: wide ? '48px clamp(40px,5vw,72px) 36px' : '48px 28px 32px'}}>
+        {/* Ambient bone glow — one, composed with the title block */}
+        <div style={{position:'absolute',top:'60px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.06) 0%,transparent 70%)',filter:'blur(80px)'}} />
         <div style={{position:'relative',zIndex:2}}>
-          <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'36px',flexWrap:'wrap'}}>
+          <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'22px',flexWrap:'wrap'}}>
             {/* Edition badge - golden glow */}
             <div onClick={()=>navigate('/editions')} style={{
               border:'1px solid rgba(242,238,230,.35)',borderRadius:'100px',padding:'6px 16px',
@@ -173,10 +176,10 @@ export default function EventLanding() {
             </div>
             <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize: wide ? 'clamp(120px, 12vw, 168px)' : '82px',lineHeight:.85,letterSpacing:'2px',color:'var(--cream)',marginTop:'4px'}}>ARTISTS</div>
           </div>
-          <p className="fade-up-3" style={{fontSize: wide ? '16px' : '14px',color:'var(--cream-mid)',lineHeight:1.65,marginTop:'22px',maxWidth: wide ? '440px' : '320px'}}>
+          <p className="fade-up-3" style={{fontSize: wide ? '15px' : '14px',color:'var(--cream-mid)',lineHeight:1.6,marginTop:'16px',maxWidth: wide ? '440px' : '320px'}}>
             {event.tagline || "A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room."}
           </p>
-          <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
+          <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'18px'}}>
             {[[Calendar,dateDisplay],[Clock,event.doors||''],[MapPin,(event.venue||'').toUpperCase()]].filter(([,text])=>text).map(([Icon,text],i)=>(
               <div key={i} style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 <Icon size={12} strokeWidth={1.4} style={{color:'var(--cream)'}} />
@@ -188,7 +191,7 @@ export default function EventLanding() {
       </div>
 
       {/* CTA */}
-      <div style={{padding: wide ? '0 clamp(40px,5vw,72px) 40px' : '0 28px 32px', maxWidth: wide ? '760px' : undefined}}>
+      <div style={{padding: wide ? '0 clamp(40px,5vw,72px) 26px' : '0 28px 22px', maxWidth: wide ? '760px' : undefined}}>
         {ticketStatus === 'success' && (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)',marginBottom:'12px'}}>
             <Check size={16} style={{color:'#C7C9D1'}} />
@@ -220,10 +223,38 @@ export default function EventLanding() {
             </div>
           </button>
         )}
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
-          <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
-          {user&&<span onClick={()=>navigate('/community')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
-        </div>
+        {/* WHO'S GOING — the guest list, promoted (Ley 6: la gente ES el
+            contenido). Real faces from the same RPC Community renders; when
+            nobody's confirmed yet, just the honest count line (Ley 11). */}
+        {attendees.length > 0 ? (
+          <div onClick={()=>navigate('/community')} role="button" aria-label="See who's going"
+            style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
+            onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
+            onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
+            <div style={{display:'flex',alignItems:'center'}}>
+              {attendees.slice(0, wide ? 9 : 6).map((a, i) => {
+                const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
+                return (
+                  <div key={a.id || i} title={a.name || ''} style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.5)',background:'var(--bg-card)',marginLeft: i===0?0:'-9px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    {src
+                      ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                      : <span style={{fontFamily:'Bebas Neue',fontSize:'13px',color:'var(--cream)'}}>{(a.name||'?')[0].toUpperCase()}</span>}
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.12em'}}>{attendeeCount} CONFIRMED</div>
+              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>the room is forming</div>
+            </div>
+            <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>SEE WHO →</span>
+          </div>
+        ) : (
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
+            <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
+            {user&&<span onClick={()=>navigate('/community')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
+          </div>
+        )}
 
         {/* TICKET TIERS - expandable */}
         {ticketOpen && (
@@ -250,14 +281,14 @@ export default function EventLanding() {
 
 
 
-      {/* LINEUP */}
+      {/* LINEUP — the people playing, high in the order (Ley 6) */}
       {lineup.length > 0 && (
-      <div style={{padding: wide ? '48px clamp(40px,5vw,72px)' : '36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
+      <div style={{padding: wide ? '28px clamp(40px,5vw,72px)' : '26px 28px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'16px'}}>LINEUP</div>
         <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(2, minmax(0,1fr))',gap:'12px'} : {display:'flex',flexDirection:'column',gap:'4px'}}>
           {lineup.map((a,i)=>(
             <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:'1px solid rgba(242,238,230,.1)',cursor:'pointer',transition:'all .2s'}}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:'1px solid rgba(242,238,230,.1)',cursor:'pointer',transition:'all .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='rgba(242,238,230,.04)'}}>
               <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'rgba(242,238,230,.1)',border:'2px solid rgba(242,238,230,.35)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0}}>{a.name[0]}</div>
               <div style={{flex:1}}>
@@ -275,23 +306,26 @@ export default function EventLanding() {
       )}
       <div style={{height:'1px',background:'linear-gradient(90deg,transparent,rgba(255,255,255,.06),transparent)',margin:'0 28px'}} />
 
-      {/* EXPERIENCES */}
+      {/* EXPERIENCES — an editorial catalog, not floating icon-boxes (Leyes
+          4, 7): numbered hairline entries, signal-dense, the icon serving
+          the title instead of wearing a frame */}
       {experiences.length > 0 && (
-      <div style={{padding: wide ? '48px clamp(40px,5vw,72px)' : '36px 28px'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>THE EXPERIENCE</div>
-        <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))',gap:'12px'} : {display:'flex',flexDirection:'column',gap:'10px'}}>
+      <div style={{padding: wide ? '28px clamp(40px,5vw,72px) 36px' : '26px 28px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'6px'}}>THE EXPERIENCE</div>
+        <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))',columnGap:'44px'} : undefined}>
           {experiences.map((exp,i)=>(
             <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'18px',borderRadius:'12px',background:EXP_BG,border:`1px solid ${EXP_ACCENT}30`,cursor:'pointer',transition:'all .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor=EXP_ACCENT+'60';e.currentTarget.style.background=EXP_ACCENT+'18'}} onMouseOut={e=>{e.currentTarget.style.borderColor=EXP_ACCENT+'30';e.currentTarget.style.background=EXP_BG}}>
-              <div style={{width:'44px',height:'44px',borderRadius:'12px',background:EXP_ACCENT+'18',border:`1px solid ${EXP_ACCENT}30`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                {(()=>{ const IconComp = ICON_MAP[exp.iconName] || Layers; return <IconComp size={20} strokeWidth={1.6} style={{color:EXP_ACCENT}} /> })()}
+              style={{display:'flex',alignItems:'baseline',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer',transition:'padding-left .2s, border-color .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.paddingLeft='10px';e.currentTarget.style.borderColor='rgba(242,238,230,.2)'}} onMouseOut={e=>{e.currentTarget.style.paddingLeft='2px';e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:EXP_ACCENT,letterSpacing:'.1em',flexShrink:0,opacity:.8}}>{String(i+1).padStart(2,'0')}</span>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  {(()=>{ const IconComp = ICON_MAP[exp.iconName] || Layers; return <IconComp size={13} strokeWidth={1.6} style={{color:EXP_ACCENT,flexShrink:0}} /> })()}
+                  <span style={{fontFamily:'Bebas Neue',fontSize:'19px',color:'var(--cream)',letterSpacing:'.04em',lineHeight:1}}>{exp.label}</span>
+                </div>
+                <div style={{fontSize:'12px',color:'var(--cream-mid)',marginTop:'4px',lineHeight:1.45}}>{exp.short}</div>
               </div>
-              <div style={{flex:1}}>
-                <div style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.04em'}}>{exp.label}</div>
-                <div style={{fontSize:'12px',color:'var(--cream-mid)',marginTop:'3px',lineHeight:1.4}}>{exp.short}</div>
-              </div>
-              <ChevronRight size={16} style={{color:EXP_ACCENT,flexShrink:0}} />
+              <ChevronRight size={14} style={{color:'var(--cream-low)',flexShrink:0,alignSelf:'center'}} />
             </div>
           ))}
         </div>
@@ -299,7 +333,7 @@ export default function EventLanding() {
       )}
 
       {/* FOOTER */}
-      <div style={{padding: wide ? '48px 28px' : '36px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+      <div style={{padding: wide ? '32px 28px 40px' : '30px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em'}}>THE COLLECTIV4</div>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'8px',letterSpacing:'.15em'}}>ART · MUSIC · FASHION · EVENTS</div>
         <div style={{fontSize:'11px',color:'var(--cream-ghost)',marginTop:'12px'}}>@thecollectiv4</div>

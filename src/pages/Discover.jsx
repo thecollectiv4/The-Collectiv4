@@ -137,34 +137,41 @@ export default function Discover() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
-      {/* the sky itself — every world in Discover hangs in the same universe */}
-      <Constellation seed="the-creative-universe" />
-      <div style={{ position: 'relative', zIndex: 2, padding: wide ? '44px clamp(40px, 5vw, 76px) 90px' : '26px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
+      {/* the sky itself — quiet register: the worlds are the content, the
+          universe is the room they hang in (Leyes 1, 6, 8) */}
+      <Constellation seed="the-creative-universe" quiet />
+      <div style={{ position: 'relative', zIndex: 2, padding: wide ? '34px clamp(40px, 5vw, 76px) 70px' : '22px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
 
-        {/* header */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
-          <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '9px' }}>◇</div>
-          <div>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '5px' }}>The creative universe</div>
-            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '76px' : '46px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>DISCOVER</h1>
+        {/* header — the title answers with the count beside it, one composed
+            line: "¿a quién quiero conocer?" starts here (Ley 2, Ley 7) */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
+            <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '8px' }}>◇</div>
+            <div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '4px' }}>The creative universe</div>
+              <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '58px' : '40px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>DISCOVER</h1>
+            </div>
           </div>
+          {!loading && (
+            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', paddingBottom: wide ? '7px' : '5px' }}>
+              {String(count).padStart(2, '0')} {tab === 'people' ? (count === 1 ? 'world' : 'worlds') : (count === 1 ? 'event' : 'events')}
+            </div>
+          )}
+          {previewAvailable && (
+            <button onClick={() => setShowDemo(v => !v)} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: showDemo ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${showDemo ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', color: showDemo ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}>
+              <Eye size={12} /> Preview · demo worlds {showDemo ? 'ON' : 'OFF'}
+            </button>
+          )}
         </div>
 
-        {/* preview toggle (owner/team only) */}
-        {previewAvailable && (
-          <button onClick={() => setShowDemo(v => !v)} style={{ marginTop: '18px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: showDemo ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${showDemo ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: showDemo ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
-            <Eye size={12} /> Preview · demo worlds {showDemo ? 'ON' : 'OFF'}
-          </button>
-        )}
-
         {/* segmented tabs */}
-        <div style={{ display: 'flex', gap: '6px', marginTop: '22px', maxWidth: wide ? '420px' : undefined }}>
+        <div style={{ display: 'flex', gap: '6px', marginTop: '14px', maxWidth: wide ? '400px' : undefined }}>
           {[['people', 'PEOPLE', Users], ['events', 'EVENTS', CalendarDays]].map(([id, label, Icon]) => {
             const on = tab === id
             return (
               <button key={id} onClick={() => setTab(id)} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '11px', borderRadius: '11px', border: `1px solid ${on ? HAIR_HI : HAIR}`, background: on ? 'rgba(199,201,209,.06)' : 'transparent', cursor: 'pointer', transition: 'all .2s' }}>
                 <Icon size={14} style={{ color: on ? SILVER : BONE_LOW }} strokeWidth={on ? 2 : 1.4} />
-                <span style={{ fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.16em', ...(on ? chromeText : { color: BONE_LOW }) }}>{label}</span>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.16em', color: on ? BONE : BONE_LOW }}>{label}</span>
               </button>
             )
           })}
@@ -178,12 +185,9 @@ export default function Discover() {
           <FilterRow label="CRAFT" value={discipline} onChange={setDiscipline} options={disciplineOptions} />
         )}
 
-        {/* count line */}
+        {/* hairline before the grid — the count already lives in the header */}
         {!loading && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '20px 0 14px', display: 'flex', alignItems: 'center', gap: '9px' }}>
-            <span>{String(count).padStart(2, '0')} {tab === 'people' ? (count === 1 ? 'world' : 'worlds') : (count === 1 ? 'event' : 'events')}</span>
-            <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
-          </div>
+          <div aria-hidden style={{ margin: '16px 0 12px', height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
         )}
 
         {/* content */}
@@ -193,7 +197,7 @@ export default function Discover() {
           </div>
         ) : tab === 'people' ? (
           shownCreatives.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(240px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '20px' : '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
               {shownCreatives.map(c => <WorldCard key={c.id} c={c} onOpen={() => navigate('/user/' + c.id)} wide={wide} />)}
             </div>
           ) : (
@@ -227,7 +231,7 @@ export default function Discover() {
 function FilterRow({ label, value, onChange, options }) {
   const all = ['all', ...options]
   return (
-    <div style={{ marginTop: '16px' }}>
+    <div style={{ marginTop: '10px' }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', marginBottom: '9px' }}>{label}</div>
       <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         {all.map(opt => {
@@ -269,7 +273,7 @@ function WorldCard({ c, onOpen, wide }) {
       <div style={{ position: 'absolute', left: '12px', top: `${(wide ? 116 : 92) - 22}px`, width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
         {avatar
           ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', ...chromeText }}>{initial}</span>}
+          : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE }}>{initial}</span>}
       </div>
 
       {/* identity */}
@@ -315,7 +319,7 @@ function EventCard({ e, live, onOpen }) {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.1) 30%, rgba(7,8,14,.9) 100%)' }} />
         <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(7,8,14,.5)' }}>UPCOMING</span>
         <div style={{ position: 'absolute', left: '16px', right: '16px', bottom: '14px' }}>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.02em', lineHeight: .9, ...chromeText }}>{e.title}{e.edition ? ` · ${e.edition}` : ''}</div>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.02em', lineHeight: .9, color: BONE }}>{e.title}{e.edition ? ` · ${e.edition}` : ''}</div>
         </div>
       </div>
       <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
@@ -349,7 +353,7 @@ function Empty({ title, body, cta, onCta }) {
     <div style={{ marginTop: '10px', padding: '40px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <MiniStars seed={title} />
       <div style={{ position: 'relative' }}>
-        <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '30px', letterSpacing: '.03em', lineHeight: .95, margin: 0, ...chromeText }}>{title}</h2>
+        <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '30px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>{title}</h2>
         <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '320px' }}>{body}</p>
         {cta && (
           <button onClick={onCta} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>

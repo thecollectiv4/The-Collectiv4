@@ -370,30 +370,33 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
   return (
     <div style={{ position: 'relative', zIndex: 1, background: 'transparent', minHeight: '100vh', overflowX: 'hidden' }}>
-      {/* the universe behind the world — this person's own sky */}
-      <Constellation seed={seed} />
+      {/* the universe behind the world — this person's own sky, in the quiet
+          register: the work and the face are the content (Leyes 1, 6, 8) */}
+      <Constellation seed={seed} quiet />
 
-      {/* ============ MARQUEE — the world's welcome, looping ============ */}
-      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} />}
+      {/* ============ MARQUEE — the world's welcome, once ============ */}
+      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(480px, 72vh, 720px)' : 'clamp(340px, 58vh, 460px)', overflow: 'hidden', background: cover ? VOID : 'transparent' }}>
+      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 60vh, 600px)' : 'clamp(340px, 56vh, 440px)', overflow: 'hidden', background: cover ? VOID : 'transparent' }}>
         {cover
           ? <motion.img src={cover} alt="" initial={{ scale: 1.12 }} animate={{ scale: 1 }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : (
-            /* no cover → the open sky (the page's constellation) + monogram */
+            /* no cover → the open sky (the page's constellation) + monogram
+               (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
             <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
               <StarField seed={seed} wide={wide} />
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '560px' : '340px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.07, ...displaySkin }}>{initial}</span>
+                <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '480px' : '300px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.055, color: BONE }}>{initial}</span>
               </div>
             </div>
           )}
 
         {/* film grain over the cover */}
         <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.06, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
-        {/* scrim so name + kicker sit legibly, fading into the page void */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.08) 0%, rgba(7,8,14,0) 30%, rgba(7,8,14,.55) 70%, #0B0B10 100%)' }} />
+        {/* scrim — GUARANTEED identity legibility over any art (Ley 3): the
+            lower band always lands the name on near-void, busy cover or not */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)' }} />
 
         {/* top bar (back / sign-out) floats over the cover */}
         {topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>{topBar}</div>}
@@ -409,78 +412,90 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           </div>
         )}
 
-        {/* name set large + chrome, over the cover's lower edge. NO entrance
-            animation here, by decision: hidden/headless/background contexts
-            freeze animation timelines at t=0 (walkthrough catch — worlds
-            rendered nameless), and the IDENTITY of a world must never depend
-            on an animation firing. The movements below keep their reveals —
-            those are curation, not identity. */}
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? '40px' : '20px', zIndex: 3 }}>
-          <div style={{ ...frame }}>
-            {data.discipline && (
-              <div
-                style={{ fontFamily: 'DM Mono', fontSize: wide ? '11px' : '10px', color: SILVER, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: wide ? '16px' : '11px', textShadow: '0 1px 12px rgba(0,0,0,.6)' }}>
-                {data.discipline}
+        {/* IDENTITY BLOCK — who this is and what they make, as ONE composed
+            unit above the fold (Ley 2: the 3-second answer; Ley 3: identity
+            never animates, never competes — editorial scale over a hard
+            scrim, not a 140px war with the art). NO entrance animation, by
+            decision: identity must never depend on an animation firing. */}
+        <div style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? '30px' : '18px', zIndex: 3 }}>
+          <div style={{ ...frame, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: wide ? '56px' : '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '20px' : '13px', minWidth: 0 }}>
+              {/* the face — part of the identity block, not a footnote below */}
+              <div style={{ position: 'relative', width: wide ? '74px' : '52px', height: wide ? '74px' : '52px', flexShrink: 0, marginBottom: '6px', cursor: isOwner ? 'pointer' : 'default' }} onClick={() => isOwner && fileRef.current?.click()}>
+                {avatar
+                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', outline: `1px solid ${SILVER}`, outlineOffset: '2px', boxShadow: '0 6px 22px rgba(0,0,0,.55)' }} />
+                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, outline: `1px solid ${SILVER}`, outlineOffset: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
+                {isOwner && (
+                  <>
+                    <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: CARD, border: `1px solid ${HAIR_HI}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Camera size={10} style={{ color: BONE_MID }} />
+                    </div>
+                    <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
+                    {uploading && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(7,8,14,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 size={16} style={{ color: BONE_MID, animation: 'spin 1s linear infinite' }} /></div>}
+                  </>
+                )}
               </div>
-            )}
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '18px' : '12px', flexWrap: 'wrap' }}>
-              <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(88px, 10vw, 140px)' : 'clamp(48px, 15vw, 66px)', letterSpacing: '.01em', lineHeight: 0.86, margin: 0, filter: 'drop-shadow(0 2px 20px rgba(0,0,0,.55))', ...displaySkin }}>{displayName}</h1>
-              {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: wide ? '18px' : '8px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={wide ? 32 : 24} /></span>}
+              <div style={{ minWidth: 0 }}>
+                {data.discipline && (
+                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                    {data.discipline}
+                  </div>
+                )}
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '14px' : '10px', flexWrap: 'wrap' }}>
+                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 88px)' : 'clamp(38px, 11vw, 52px)', letterSpacing: '.01em', lineHeight: 0.88, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.6)', ...displaySkin }}>{displayName}</h1>
+                  {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: wide ? '10px' : '5px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={wide ? 24 : 19} /></span>}
+                </div>
+                {(data.username || data.city || ticket) && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 10px rgba(0,0,0,.7)' }}>
+                    {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
+                    {/* City renders only when the user claimed one — no invented hometown. */}
+                    {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <MapPin size={10} style={{ color: BONE_LOW }} />
+                      <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city}</span>
+                    </span>}
+                    {ticket && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(7,8,14,.45)', borderRadius: '100px', padding: '3px 10px', letterSpacing: '.1em' }}>
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(232,233,237,.7)` }} />
+                        GOING{event?.editionNumber ? ` · ${event.editionNumber}` : ''}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
+            {/* the quote, composed INTO the hero on wide — not floating below */}
+            {wide && data.tagline && (
+              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '360px', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
+              </p>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ============ BYLINE — avatar signature + catalog meta ============ */}
-      <div style={{ position: 'relative', ...frame, paddingTop: wide ? '26px' : '18px', zIndex: 3 }}>
-        {/* wide: an editorial two-column strip — identity left, the quote as a
-            pull-quote right. Mobile keeps the vertical byline untouched. */}
-        <div style={wide ? { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(300px, 460px)', gridTemplateAreas: '"id quote" "links quote" "err quote" "meter quote"', columnGap: '72px', alignItems: 'start' } : undefined}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', ...(wide && { gridArea: 'id' }) }}>
-          <div style={{ position: 'relative', width: '58px', height: '58px', flexShrink: 0, cursor: isOwner ? 'pointer' : 'default' }} onClick={() => isOwner && fileRef.current?.click()}>
-            {avatar
-              ? <img src={avatar} alt="" style={{ width: '58px', height: '58px', borderRadius: '50%', objectFit: 'cover', outline: `1px solid ${SILVER}`, outlineOffset: '2px', boxShadow: `0 6px 22px rgba(0,0,0,.5)` }} />
-              : <div style={{ width: '58px', height: '58px', borderRadius: '50%', background: CARD_HI, outline: `1px solid ${SILVER}`, outlineOffset: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '26px', ...chromeText }}>{initial}</div>}
-            {isOwner && (
-              <>
-                <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '24px', height: '24px', borderRadius: '50%', background: CARD, border: `1px solid ${HAIR_HI}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Camera size={11} style={{ color: BONE_MID }} />
-                </div>
-                <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
-                {uploading && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(7,8,14,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 size={16} style={{ color: BONE_MID, animation: 'spin 1s linear infinite' }} /></div>}
-              </>
-            )}
-          </div>
+      {/* ============ BYLINE — the doors + the owner's tools ============
+          Identity (face, name, craft, handle) lives in the hero block now;
+          this strip carries the quote (mobile), the links, and the meter —
+          composed, not abandoned (Ley 4). */}
+      <div style={{ position: 'relative', ...frame, paddingTop: wide ? '20px' : '16px', zIndex: 3 }}>
+        <div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', rowGap: '4px' }}>
-            {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '12px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
-            {/* City renders only when the user claimed one — no invented hometown. */}
-            {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <MapPin size={11} style={{ color: BONE_LOW }} />
-              <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city}</span>
-            </span>}
-            {ticket && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Mono', fontSize: '10px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(242,238,230,.03)', borderRadius: '100px', padding: '3px 11px', letterSpacing: '.1em' }}>
-                <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(232,233,237,.7)` }} />
-                GOING{event?.editionNumber ? ` · ${event.editionNumber}` : ''}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* tagline — the "right now" line, promoted to a featured statement
-            (a pull-quote on the right column when wide) */}
-        {data.tagline ? (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: wide ? '23px' : '19px', color: BONE, lineHeight: 1.45, margin: wide ? '6px 0 0' : '20px 0 0', maxWidth: '460px', letterSpacing: '.005em', ...(wide && { gridArea: 'quote', borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '26px' }) }}>
+        {/* tagline — mobile keeps it here as the featured statement; on wide
+            it's already composed into the hero */}
+        {!wide && (data.tagline ? (
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: '2px 0 0', maxWidth: '460px', letterSpacing: '.005em' }}>
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
         ) : (isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: wide ? '6px 0 0' : '18px 0 0', ...(wide && { gridArea: 'quote' }) }}>Add a line — what you're on, right now.</p>
-        ))}
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '2px 0 0' }}>Add a line — what you're on, right now.</p>
+        )))}
+        {wide && !data.tagline && isOwner && !editing && (
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '0' }}>Add a line — what you're on, right now.</p>
+        )}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
         {!editing && links.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '18px', ...(wide && { gridArea: 'links' }) }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: wide ? '2px' : '16px' }}>
             {links.map((l, i) => (
               <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'all .2s' }}
@@ -493,12 +508,12 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           </div>
         )}
         {isOwner && !editing && links.length === 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '16px', ...(wide && { gridArea: 'links' }) }}>+ add your links — IG, portfolio, sound</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: wide ? '2px' : '16px' }}>+ add your links — IG, portfolio, sound</div>
         )}
-        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px', ...(wide && { gridArea: 'err' }) }}>⚠ {upErr}</div>}
+        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
-          <div style={{ marginTop: '20px', ...(wide && { gridArea: 'meter' }) }}>
+          <div style={{ marginTop: '18px' }}>
             {/* the meter — how lit the world is, hairline not game */}
             {completeness.pct < 100 && (
               <div style={{ maxWidth: '260px', marginBottom: '12px' }}>
@@ -715,7 +730,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
               <Mark type="diamond" size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />
               <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.24em', color: BONE_LOW, textTransform: 'uppercase' }}>a world by {data.username ? `@${data.username}` : displayName}</span>
-              <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', ...chromeText }}>4</span>
+              <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: SILVER }}>4</span>
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />
             </div>
           )}
@@ -776,28 +791,19 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 const pill = { background: 'rgba(7,8,14,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
 const galBtn = { background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '7px', width: '26px', height: '25px', color: BONE_MID, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
 
-/* WorldMarquee — the welcome line, looping across the top of the world.
-   The track holds two identical runs; the CSS loop travels exactly one run
-   (-50%), so the seam never shows. Reduced-motion users get a still line. */
-function WorldMarquee({ text, theme }) {
+/* WorldMarquee — the world's welcome line. ONE composed instance (Ley 8:
+   el marquee aparece UNA vez, jamás fila repetida). A quiet editorial strip
+   that reads once — the line is information, not wallpaper. */
+function WorldMarquee({ text, theme, wide }) {
   const skin = theme === 'outline'
     ? { color: 'transparent', WebkitTextStroke: `1px ${BONE_MID}` }
     : { color: BONE }
-  const run = (
-    <div aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
-      {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} style={{ display: 'inline-flex', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'Bebas Neue', fontSize: '13px', letterSpacing: '.18em', whiteSpace: 'pre', opacity: .6, ...skin }}>{text.toUpperCase()}</span>
-          <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: SILVER, opacity: .55, padding: '0 18px' }}>✦</span>
-        </span>
-      ))}
-    </div>
-  )
   return (
-    <div role="marquee" aria-label={text} style={{ position: 'relative', zIndex: 3, overflow: 'hidden', borderBottom: `1px solid ${HAIR}`, background: VOID, padding: '8px 0 6px' }}>
-      <div className="world-ticker" style={{ '--ticker-dur': `${Math.max(20, Math.min(60, text.length * 1.6))}s` }}>
-        {run}
-        {run}
+    <div role="note" aria-label={text} style={{ position: 'relative', zIndex: 3, borderBottom: `1px solid ${HAIR}`, background: VOID }}>
+      <div style={{ maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined, padding: wide ? '9px clamp(40px, 5vw, 76px) 7px' : '9px 24px 7px', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+        <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: SILVER, opacity: .55, flexShrink: 0 }}>✦</span>
+        <span style={{ fontFamily: 'Bebas Neue', fontSize: '13px', letterSpacing: '.2em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: .65, ...skin }}>{text.toUpperCase()}</span>
+        <span aria-hidden style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR}, transparent)` }} />
       </div>
     </div>
   )
@@ -893,13 +899,14 @@ function StarField({ seed, wide }) {
   )
 }
 
-/* Editorial catalog marker — [mark] 02  SOUND ———— KICKER. */
+/* Editorial catalog marker — [mark] 02  SOUND ———— KICKER.
+   Labels in solid BONE: the world's single chrome moment is the NAME (Ley 8). */
 function Marker({ mark, n, label, kicker, wide }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '30px' : '22px' }}>
-      <Mark type={mark} size={wide ? 17 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '26px' : '20px' }}>
+      <Mark type={mark} size={wide ? 16 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9 }} />
       <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.1em', flexShrink: 0 }}>{n}</span>
-      <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '44px' : '31px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, ...chromeText }}>{label}</span>
+      <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '29px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, color: BONE }}>{label}</span>
       <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR_HI}, transparent)` }} />
       {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '9px' : '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase', flexShrink: 0 }}>{kicker}</span>}
     </div>
@@ -1028,7 +1035,7 @@ function PosterCard({ value, index, wide }) {
       <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(199,201,209,.11) 0%, rgba(199,201,209,.02) 45%, #08080D 100%)' }} />
       <div style={{ position: 'absolute', top: '10px', left: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: SILVER, letterSpacing: '.16em' }}>{String(index).padStart(2, '0')}</div>
       <div style={{ position: 'absolute', top: '10px', right: '11px' }}><Mark type="diamond" size={9} color={SILVER} style={{ opacity: .5 }} /></div>
-      <div style={{ position: 'absolute', bottom: '-10px', right: '-4px', fontFamily: 'Bebas Neue', fontSize: '120px', lineHeight: 1, opacity: .1, pointerEvents: 'none', ...chromeText }}>{(label || '?')[0].toUpperCase()}</div>
+      <div style={{ position: 'absolute', bottom: '-10px', right: '-4px', fontFamily: 'Bebas Neue', fontSize: '120px', lineHeight: 1, opacity: .08, pointerEvents: 'none', color: BONE }}>{(label || '?')[0].toUpperCase()}</div>
       <div style={{ position: 'absolute', left: '12px', right: '12px', bottom: '14px', fontFamily: 'Bebas Neue', fontSize: '22px', color: BONE, letterSpacing: '.03em', lineHeight: 1.0 }}>{label}</div>
     </>
   )
@@ -1055,11 +1062,11 @@ function WordWall({ items, wide }) {
         const href = p && p.kind === 'link' ? p.href : null
         const text = p && p.kind === 'link' ? (p.host || it) : it
         const size = sizes[i % sizes.length]
-        const mode = i % 3 // 0 bone · 1 outline · 2 chrome
+        const mode = i % 3 // 0 bone · 1 outline · 2 silver (chrome belongs to the name — Ley 8)
         const base = { fontFamily: 'Bebas Neue', fontSize: `${size}px`, lineHeight: 0.98, letterSpacing: '.02em', cursor: href ? 'pointer' : 'default', display: 'inline-flex', alignItems: 'center', gap: '4px', transition: 'opacity .2s' }
         const skin = mode === 1
           ? { color: 'transparent', WebkitTextStroke: `1px ${SILVER}` }
-          : mode === 2 ? chromeText : { color: BONE }
+          : mode === 2 ? { color: SILVER } : { color: BONE }
         const word = (
           <span style={{ ...base, ...skin }}
             onMouseOver={e => { e.currentTarget.style.opacity = '0.62' }}
