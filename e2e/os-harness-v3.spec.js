@@ -44,15 +44,15 @@ test('the instrument: rail, temperature, slides, YOUR TODAY', async ({ browser }
 
   // The Brain — YOUR TODAY from the mirror board, chips born from real items
   await page.getByRole('button', { name: 'The Brain' }).first().click()
-  await expect(page.getByText('DAYS TO FALL 001')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('DAYS TO FALL 001', { exact: true })).toBeVisible({ timeout: 15000 })
   await expect(page.getByText('this week', { exact: false }).first()).toBeVisible()
   // a chip born from a real board item — never a generic starter
   await expect(page.getByText(/what's the move on "/).first()).toBeVisible()
   await page.waitForTimeout(1100)
   await shot(page, 'v3-os-03-brain-your-today')
 
-  // Events pane
-  await page.getByRole('button', { name: 'Events', exact: true }).first().click()
+  // Events pane (the rail button's accessible name carries its catalog code)
+  await page.getByRole('button', { name: /Events/ }).first().click()
   await page.waitForTimeout(900)
   await shot(page, 'v3-os-04-events')
 

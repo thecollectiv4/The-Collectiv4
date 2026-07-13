@@ -258,13 +258,16 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
 
   // THE BRAIN opens with YOUR TODAY (Ley 16) — real state from the board and
   // the live event, never generic chips. All of it already lives in Supabase.
+  // "Next event" must be NEXT: a published event whose date already passed is
+  // an honest absence here, not a next date (Ley 11).
   const live = useLiveEvent()
+  const eventUpcoming = live.hasDate && live.date >= new Date(new Date().toDateString())
   const brainContext = {
     days: counts.days,
     week: tasks.filter(t => t.board_column === 'this_week').map(t => t.title),
     motion: tasks.filter(t => t.board_column === 'in_motion').map(t => t.title),
     toMake: content.filter(c => c.status !== 'posted').map(c => c.title),
-    nextEvent: live.hasDate ? { title: `${live.name}${live.editionNumber ? ' ' + live.editionNumber : ''}`, date: live.dateLong } : null,
+    nextEvent: eventUpcoming ? { title: `${live.name}${live.editionNumber ? ' ' + live.editionNumber : ''}`, date: live.dateLong } : null,
   }
 
   const brainEl = (embedded) => (
