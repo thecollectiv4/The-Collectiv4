@@ -296,7 +296,17 @@ export function EventShow({ live }) {
             </div>
             {tiers.length > 0 && (
               <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.08em'}}>
-                {(() => { const ps = tiers.map(t=>t.price).filter(Number.isFinite); if (!ps.length) return 'the room is being priced'; const lo = Math.min(...ps)/100, hi = Math.max(...ps)/100; return lo === hi ? `$${lo}` : `$${lo} – $${hi}` })()}
+                {(() => {
+                  // the range quotes only tiers whose price the catalog SHOWS —
+                  // a doorLabel tier ("AT DOOR") keeps its number off the wall,
+                  // so it stays out of the range too (re-panel nit, Ley 11)
+                  const ps = tiers.filter(t=>!t.doorLabel).map(t=>t.price).filter(Number.isFinite)
+                  const hasDoor = tiers.some(t=>t.doorLabel)
+                  if (!ps.length) return 'the room is being priced'
+                  const lo = Math.min(...ps)/100, hi = Math.max(...ps)/100
+                  const range = lo === hi ? `$${lo}` : `$${lo} – $${hi}`
+                  return hasDoor ? `${range} · +door` : range
+                })()}
               </span>
             )}
           </div>

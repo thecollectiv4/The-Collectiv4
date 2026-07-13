@@ -158,7 +158,7 @@ export default function Events() {
                 date — on the other, and a click that keeps the "stay close"
                 promise (Ley 9: the copy's invitation gets a real door). */}
             {!featured && upcoming.length === 0 && (
-              <div style={{ marginTop: '22px', display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: '22px', alignItems: 'stretch' } : { flexDirection: 'column', gap: '14px' }) }}>
+              <div style={{ marginTop: '22px', display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: '22px', alignItems: 'start' } : { flexDirection: 'column', gap: '14px' }) }}>
                 <div style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <MiniStars seed="no-rooms" k={wide ? 0.3 : 0.6} />
                   <div style={{ position: 'relative' }}>
@@ -290,7 +290,7 @@ function RoomCard({ e, onOpen, pastRoom }) {
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${e.title}`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer', ...(pastRoom && { height: '100%' }) }}>
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
       <div className="disc-banner" style={{ position: 'relative', height: pastRoom ? '148px' : '128px', overflow: 'hidden', background: VOID }}>
         {cover ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MiniStars seed={e.slug || e.id} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.1) 30%, rgba(7,8,14,.9) 100%)' }} />

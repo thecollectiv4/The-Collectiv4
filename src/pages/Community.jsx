@@ -223,7 +223,7 @@ function WorldCard({ c, connected, onOpen, wide }) {
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -237,7 +237,7 @@ function WorldCard({ c, connected, onOpen, wide }) {
           : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE }}>{initial}</span>}
       </div>
 
-      <div style={{ padding: '26px 13px 14px' }}>
+      <div style={{ padding: '26px 13px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
           <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '22px' : '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
           {connected && (
@@ -257,9 +257,10 @@ function WorldCard({ c, connected, onOpen, wide }) {
           <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
         </div>}
         {/* card anatomy parity (panel catch, Ley 4): every card closes with
-            the same meter band — real stats, or the honest forming state.
-            No card ends in a dead stretch of void beside a full sibling. */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
+            the same meter band — real stats, or the honest forming state —
+            ANCHORED to the card's floor, so a shorter card in a mixed row
+            never ends in a dead stretch above its own baseline. */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
           {tc > 0 && <Stat n={tc} label="taste" />}
           {wc > 0 && <Stat n={wc} label="work" />}
           {tc === 0 && wc === 0 && (

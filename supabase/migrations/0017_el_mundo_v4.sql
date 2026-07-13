@@ -441,7 +441,8 @@ update public.profiles
    '0c9e86d1-d854-4ec9-af33-feca6ea229ba',
    'd6c55ded-1e68-491c-ac9a-4ee64b632e73',
    '4caffcba-1738-4e79-ad0a-14787a8a5549',
-   'faf8775e-7ed5-4e21-8505-b061b52f6190'
+   'faf8775e-7ed5-4e21-8505-b061b52f6190',
+   '576cb6ad-3d68-4835-978d-9f28a7d0f76e'
  );
 
 commit;
