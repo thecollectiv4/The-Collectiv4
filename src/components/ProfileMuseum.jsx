@@ -403,9 +403,10 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
         {/* top bar (back / sign-out) floats over the cover */}
         {topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>{topBar}</div>}
 
-        {/* owner cover controls */}
+        {/* owner cover controls — BELOW the topBar row (Sign Out lives at the
+            same top-right corner; stacking them collided the two controls) */}
         {isOwner && (
-          <div style={{ position: 'absolute', top: '16px', right: '18px', display: 'flex', gap: '8px', zIndex: 5 }}>
+          <div style={{ position: 'absolute', top: topBar ? '56px' : '16px', right: '18px', display: 'flex', gap: '8px', zIndex: 5 }}>
             {cover && <button onClick={removeCover} style={pill}>Remove</button>}
             <button onClick={() => coverRef.current?.click()} style={{ ...pill, display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               {coverUploading ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Camera size={11} />} {cover ? 'Change' : 'Cover'}

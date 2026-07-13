@@ -42,10 +42,12 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
   const navigate = useNavigate()
   const wide = useWide()
   const [stage, setStage] = useState('menu')   // menu | post | posted
+  // while a post is in flight, neither Esc nor the backdrop may abandon it
+  const busyRef = useRef(false)
 
   // Esc closes; lock body scroll while open
   useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
+    const onKey = (e) => { if (e.key === 'Escape' && !busyRef.current) onClose() }
     window.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -59,8 +61,8 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
     : { position: 'relative', width: '100%', maxWidth: '430px', maxHeight: '86dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
 
   return createPortal(
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeIn .25s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Create" style={shell}>
+    <div onClick={() => { if (!busyRef.current) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeIn .25s ease' }}>
+      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Create" style={shell}>
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: .05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
 
         {stage === 'menu' && (
@@ -71,7 +73,8 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
         )}
         {stage === 'post' && (
           <PostComposer wide={wide} user={user} onBack={() => setStage('menu')} onClose={onClose}
-            onPosted={() => setStage('posted')} />
+            onBusy={(b) => { busyRef.current = b }}
+            onPosted={() => { busyRef.current = false; setStage('posted') }} />
         )}
         {stage === 'posted' && (
           <div style={{ position: 'relative', padding: '44px 28px 40px', textAlign: 'center' }}>
@@ -130,7 +133,7 @@ function CreateMenu({ wide, verified, onPost, onHost, onCurate, onClose }) {
 }
 
 /* ---------- the post composer: images + a line, one honest write ---------- */
-function PostComposer({ wide, user, onBack, onClose, onPosted }) {
+function PostComposer({ wide, user, onBack, onClose, onBusy, onPosted }) {
   const [files, setFiles] = useState([])           // [{ file, preview }]
   const [caption, setCaption] = useState('')
   const [busy, setBusy] = useState(false)
@@ -138,8 +141,12 @@ function PostComposer({ wide, user, onBack, onClose, onPosted }) {
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef(null)
 
-  // previews are object URLs — release them on unmount
-  useEffect(() => () => { files.forEach((f) => URL.revokeObjectURL(f.preview)) }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+  // previews are object URLs — a ref mirror releases the CURRENT set on
+  // unmount (an [] effect closure would capture the initial empty array
+  // and revoke nothing)
+  const filesRef = useRef(files)
+  filesRef.current = files
+  useEffect(() => () => { filesRef.current.forEach((f) => URL.revokeObjectURL(f.preview)) }, [])
 
   const addFiles = (list) => {
     const imgs = Array.from(list || []).filter((f) => f && f.type?.startsWith('image/'))
@@ -163,7 +170,7 @@ function PostComposer({ wide, user, onBack, onClose, onPosted }) {
 
   const publish = async () => {
     if (!canPost || !user) return
-    setBusy(true); setErr('')
+    setBusy(true); setErr(''); onBusy?.(true)
     try {
       await createWorldPost(user.id, { files: files.map((f) => f.file), caption })
       // any mounted museum refreshes its timeline without a hard reload
@@ -171,7 +178,7 @@ function PostComposer({ wide, user, onBack, onClose, onPosted }) {
       onPosted()
     } catch (e) {
       setErr(e?.message || "couldn't post — try again")
-    } finally { setBusy(false) }
+    } finally { setBusy(false); onBusy?.(false) }
   }
 
   return (

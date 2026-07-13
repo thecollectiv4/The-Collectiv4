@@ -239,9 +239,12 @@ begin
       return jsonb_build_object('ok', false, 'error', 'event not found');
     end if;
     -- OWNERSHIP: a verified member touches only THEIR events. Founders
-    -- (is_owner) keep every event — publish, unpublish, moderate. Legacy
-    -- rows (host_id null) are the founders' by backfill.
-    if not (public.is_owner() or v_old.host_id::text = auth.uid()::text) then
+    -- (is_owner) keep every event — publish, unpublish, moderate. A legacy
+    -- row (host_id NULL — every pre-0016 event, the house's) must fail
+    -- CLOSED for non-owners: `null = auth.uid()` evaluates to NULL and
+    -- `if not (false or null)` would silently skip this guard.
+    if not (public.is_owner()
+            or (v_old.host_id is not null and v_old.host_id::text = auth.uid()::text)) then
       return jsonb_build_object('ok', false, 'error', 'not_yours');
     end if;
     if v_old.status = 'published' and v_status = 'draft'
@@ -341,8 +344,10 @@ begin
   if not found then
     return jsonb_build_object('ok', false, 'error', 'event not found');
   end if;
-  -- OWNERSHIP: same rule as save — yours, or you're a founder.
-  if not (public.is_owner() or v_host::text = auth.uid()::text) then
+  -- OWNERSHIP: same rule as save — yours, or you're a founder. NULL host
+  -- (legacy/house rows) fails CLOSED for non-owners (see save's guard).
+  if not (public.is_owner()
+          or (v_host is not null and v_host::text = auth.uid()::text)) then
     return jsonb_build_object('ok', false, 'error', 'not_yours');
   end if;
 

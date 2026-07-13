@@ -22,12 +22,15 @@ export default function EventPage() {
   useEffect(() => {
     let alive = true
     setState({ loading: true, row: null })
+    // PUBLISHED only: a 'past' event must never wear a live buy button on a
+    // shareable URL — the checkout function refuses drafts but not archives,
+    // so the honest room simply doesn't open for them (Leyes 9, 11).
     supabase
       .from('events')
       .select('*')
       .eq('slug', slug)
       .eq('is_test', false)
-      .neq('status', 'draft')
+      .eq('status', 'published')
       .maybeSingle()
       .then(({ data }) => { if (alive) setState({ loading: false, row: data || null }) })
       .catch(() => { if (alive) setState({ loading: false, row: null }) })

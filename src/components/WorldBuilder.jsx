@@ -106,6 +106,12 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   const [answers, setAnswers] = useState({ craft: '', feel: '', show: [] })
   const [plan, setPlan] = useState(null)          // { kind, steps, skin, marquee, line }
   const [planSteps, setPlanSteps] = useState(null)
+  // compose() awaits network — if the member closes the sheet mid-composition
+  // the suggestions must NOT keep mutating the museum behind their back, and
+  // a double-tap must not run two compositions
+  const alive = useRef(true)
+  const composing = useRef(false)
+  useEffect(() => () => { alive.current = false }, [])
 
   const kind = plan?.kind ?? craftKindOf(data?.discipline)
   const steps = planSteps || CRAFT_STEPS[craftKindOf(data?.discipline)]
@@ -154,6 +160,8 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   }
 
   const compose = async () => {
+    if (composing.current) return
+    composing.current = true
     setStage('compose')
     // the decision tree ALWAYS composes; /api/curate refines when it's live.
     const local = composeWorldPlan({ craft: answers.craft || data?.discipline, feel: answers.feel, show: answers.show })
@@ -166,6 +174,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
       ])
     }
     await beat
+    if (!alive.current) { composing.current = false; return }   // sheet closed mid-composition — nothing mutates
     const merged = {
       ...local,
       skin: refined?.skin && THEMES.some((t) => t.key === refined.skin) ? refined.skin : local.skin,
@@ -182,6 +191,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
     setPlanSteps(merged.steps)
     setStep(0)
     setStage('plan')
+    composing.current = false
   }
 
   /* ---- per-step commit: persist, then advance (nothing is ever lost) ---- */
@@ -299,8 +309,8 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   // phone: a bottom sheet under the live museum · wide: a studio panel docked
   // right, the world composing at full width beside it
   const shell = wide
-    ? { position: 'fixed', top: '56px', right: 0, bottom: 0, width: '480px', zIndex: 10000, background: 'rgba(10,10,13,.97)', borderLeft: `1px solid ${HAIR_HI}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '-40px 0 90px rgba(0,0,0,.45)' }
-    : { position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '430px', zIndex: 10000, background: 'rgba(10,10,13,.97)', borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '58vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+    ? { position: 'fixed', top: '56px', right: 0, bottom: 0, width: '480px', zIndex: 10000, background: '#0A0A0D', borderLeft: `1px solid ${HAIR_HI}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '-40px 0 90px rgba(0,0,0,.45)' }
+    : { position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '430px', zIndex: 10000, background: '#0A0A0D', borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '58vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
 
   /* ------------------------- header (all stages) ------------------------- */
   const headerLine = stage === 'steps'
@@ -335,7 +345,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
         const canNext = !busy && (!q.required || (q.key === 'craft' ? answers.craft.trim() : true))
         return (
           <>
-            <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 10px' : '16px 18px 8px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
+            <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
               {/* the transcript — what they already told us, quiet, above */}
               {meetIdx > 0 && (
                 <div style={{ marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -356,7 +366,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
                   {SHOW_OPTIONS.map((o) => {
                     const on = answers.show.includes(o.key)
                     return (
-                      <button key={o.key} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
+                      <button key={o.key} aria-pressed={on} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
                         style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'all .2s' }}>
                         <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: on ? BONE : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                         <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID }}>{o.label}</span>
@@ -405,7 +415,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
       {/* ======================= THE PLAN, PRESENTED ======================= */}
       {stage === 'plan' && plan && (
         <>
-          <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 10px' : '16px 18px 8px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
+          <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
             <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>composed for you</div>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', letterSpacing: '.03em', lineHeight: 1, marginTop: '6px', ...chromeDisplayText }}>
               {plan.kind === 'sound' ? 'A SOUND WORLD' : plan.kind === 'word' ? 'A WRITTEN WORLD' : plan.kind === 'visual' ? 'A VISUAL WORLD' : 'YOUR WORLD'}
@@ -439,7 +449,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
       {stage === 'steps' && (
         <>
           {/* step body */}
-          <div className="no-scrollbar" {...dragProps} style={{ padding: wide ? '22px 24px 10px' : '16px 18px 8px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0, ...(dragOver && { outline: `1px dashed ${SILVER}`, outlineOffset: '-8px', background: 'rgba(199,201,209,.04)' }) }}>
+          <div className="no-scrollbar" {...dragProps} style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0, ...(dragOver && { outline: `1px dashed ${SILVER}`, outlineOffset: '-8px', background: 'rgba(199,201,209,.04)' }) }}>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', letterSpacing: '.04em', lineHeight: 1, ...chromeDisplayText }}>{copy.title}</div>
             <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', marginTop: '5px' }}>{copy.kicker}</div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{copy.why}</p>

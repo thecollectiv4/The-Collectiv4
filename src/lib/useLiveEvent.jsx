@@ -78,8 +78,15 @@ export function LiveEventProvider({ children }) {
       .then(({ data, error }) => {
         if (!alive) return
         if (error) {
-          base().then(({ data: d2 }) => { if (alive) setState(shape(d2 && d2[0] ? d2[0] : null, false)) })
-            .catch(() => { if (alive) setState(shape(null, false)) })
+          // ONLY the missing-column error (42703, pre-0016) may widen the
+          // query — a transient failure must never let a member's event
+          // wear the house landing for a frame
+          if (error.code === '42703') {
+            base().then(({ data: d2 }) => { if (alive) setState(shape(d2 && d2[0] ? d2[0] : null, false)) })
+              .catch(() => { if (alive) setState(shape(null, false)) })
+          } else {
+            setState(shape(null, false))
+          }
           return
         }
         setState(shape(data && data[0] ? data[0] : null, false))

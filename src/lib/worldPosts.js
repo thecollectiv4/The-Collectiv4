@@ -32,13 +32,18 @@ export async function fetchWorldPosts(profileId) {
 }
 
 /* Upload each image into the caller's own folder, then insert the post row.
-   If the insert fails, the just-uploaded objects are cleaned up — a failed
-   post never leaves orphans wearing the world's name. */
+   A failure ANYWHERE (mid-upload or at insert) cleans up every object
+   already uploaded — a failed post never leaves orphans in storage. */
 export async function createWorldPost(userId, { files = [], caption = '' }) {
   const images = []
-  for (const f of files) {
-    const { path, url } = await uploadWorldImage(userId, f, 'p')
-    images.push({ path, url })
+  try {
+    for (const f of files) {
+      const { path, url } = await uploadWorldImage(userId, f, 'p')
+      images.push({ path, url })
+    }
+  } catch (e) {
+    removeWorldImages(images.map((i) => i.path))
+    throw e
   }
   const { data, error } = await supabase
     .from('world_posts')
@@ -48,7 +53,8 @@ export async function createWorldPost(userId, { files = [], caption = '' }) {
   if (error) {
     removeWorldImages(images.map((i) => i.path))
     if (MISSING_TABLE.test(error.message || '')) {
-      throw new Error('posting is almost live — the world_posts migration has not run yet')
+      // honest, in human words — no schema names at the member (Ley 5/10)
+      throw new Error("posting isn't switched on yet — the platform update is on its way. your world is safe.")
     }
     throw new Error(error.message || "couldn't post")
   }

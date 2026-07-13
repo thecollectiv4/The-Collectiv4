@@ -223,7 +223,7 @@ test('C · CREATE central — a post becomes a dated MOMENT in the world', async
 
   // two honest outcomes: posted (0016 live) or the pre-migration message
   const posted = modal.getByText('IT LIVES IN YOUR WORLD')
-  const notYet = modal.getByText(/posting is almost live/i)
+  const notYet = modal.getByText(/posting isn't switched on yet/i)
   await expect(posted.or(notYet)).toBeVisible({ timeout: 30000 })
   if (await notYet.isVisible().catch(() => false)) {
     test.info().annotations.push({ type: 'PENDING-MIGRATION', description: 'world_posts (0016) not applied — the composer answered honestly. Re-run after `supabase db push --linked`.' })

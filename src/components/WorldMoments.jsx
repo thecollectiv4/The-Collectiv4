@@ -32,12 +32,15 @@ export default function WorldMoments({ posts, isOwner, onDelete, wide }) {
 function Moment({ post, isOwner, onDelete, wide }) {
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [err, setErr] = useState('')
   const imgs = (post.images || []).map((i) => safeImg(i.url)).filter(Boolean)
 
   const remove = async () => {
     if (busy) return
-    setBusy(true)
-    try { await onDelete?.(post) } finally { setBusy(false); setConfirming(false) }
+    setBusy(true); setErr('')
+    try { await onDelete?.(post) }
+    catch (e) { setErr(e?.message || "couldn't delete — try again") }
+    finally { setBusy(false); setConfirming(false) }
   }
 
   return (
@@ -79,6 +82,8 @@ function Moment({ post, isOwner, onDelete, wide }) {
           ))}
         </div>
       )}
+
+      {err && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '8px' }}>⚠ {err}</div>}
 
       {/* the line — the caption reads like a wall text, not a feed blurb */}
       {post.caption && (
