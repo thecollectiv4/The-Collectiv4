@@ -21,6 +21,10 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true)
   // the social layer's face on this world (0017) — ready gates the doors
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
+  const [socialErr, setSocialErr] = useState('')
+  // your own public world: no FOLLOW/MESSAGE doors at yourself (they could
+  // never open — review catch); a quiet door back to curating instead
+  const selfView = !!user && String(user.id) === String(id)
 
   useEffect(() => {
     let alive = true
@@ -59,20 +63,21 @@ export default function UserProfile() {
     return () => { alive = false }
   }, [id, live.id, user?.id])
 
-  // follow / unfollow — optimistic, honest rollback. Signed-out taps meet
-  // the door (auth), never a dead button.
+  // follow / unfollow — optimistic, honest rollback WITH a voice: a failed
+  // write must never revert in silence (review catch — Ley 11).
   const onFollowToggle = useCallback(async () => {
     if (!user) { navigate(`/auth?next=/user/${id}`); return }
     const was = social
     const next = social.iFollow
       ? { ...social, iFollow: false, followers: Math.max(0, social.followers - 1) }
       : { ...social, iFollow: true, followers: social.followers + 1 }
-    setSocial(next)
+    setSocial(next); setSocialErr('')
     try {
       if (was.iFollow) await unfollow(user.id, id)
       else await follow(user.id, id)
-    } catch {
+    } catch (e) {
       setSocial(was)
+      setSocialErr(e?.message || "that didn't land — try again")
     }
   }, [user, id, social, navigate])
 
@@ -118,10 +123,12 @@ export default function UserProfile() {
       profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar}
       posts={posts}
       listings={listings}
-      social={authLoading ? { ...social, ready: false } : social}
+      social={(authLoading || selfView) ? { ...social, ready: false } : { ...social, err: socialErr }}
+      selfView={selfView}
+      onSelfCurate={() => navigate('/profile')}
       onFollowToggle={onFollowToggle}
       onMessage={() => onMessage()}
-      onDMSeller={onDMSeller}
+      onDMSeller={selfView ? null : onDMSeller}
     />
   )
 }

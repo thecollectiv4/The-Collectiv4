@@ -75,7 +75,9 @@ export default function Community() {
       setLoading(true)
       const FIELDS = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media'
       let rows = []
-      let q = supabase.from('profiles').select(FIELDS + ',is_demo')
+      // bounded: the directory pages later — an unbounded select with jsonb
+      // columns won't survive a real community (review catch)
+      let q = supabase.from('profiles').select(FIELDS + ',is_demo').order('created_at', { ascending: true }).limit(200)
       if (!showDemo) q = q.eq('is_demo', false)
       const { data, error } = await q
       if (error) {
@@ -158,7 +160,8 @@ export default function Community() {
             ))}
             {/* few worlds → the void invites (Leyes 4, 11) */}
             {shown.length <= 3 && city === 'all' && discipline === 'all' && (
-              <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" aria-label="Claim your world"
+              <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" tabIndex={0} aria-label="Claim your world"
+                onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate(user ? '/profile' : '/auth?next=/profile') } }}
                 style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '16px', minHeight: wide ? '236px' : '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', cursor: 'pointer', transition: 'border-color .25s ease' }}
                 onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
@@ -218,7 +221,9 @@ function WorldCard({ c, connected, onOpen, wide }) {
   const wc = Array.isArray(c.media) ? c.media.length : 0
 
   return (
-    <div onClick={onOpen} className="disc-card pressable" style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+    <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
+      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -228,7 +233,7 @@ function WorldCard({ c, connected, onOpen, wide }) {
       </div>
       <div style={{ position: 'absolute', left: '12px', top: `${(wide ? 116 : 92) - 22}px`, width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
         {avatar
-          ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE }}>{initial}</span>}
       </div>
 
@@ -251,15 +256,16 @@ function WorldCard({ c, connected, onOpen, wide }) {
           <MapPin size={9} style={{ color: BONE_LOW }} />
           <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
         </div>}
-        {(tc > 0 || wc > 0) && (
-          <div style={{ display: 'flex', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
-            {tc > 0 && <Stat n={tc} label="taste" />}
-            {wc > 0 && <Stat n={wc} label="work" />}
-          </div>
-        )}
-        {!c.discipline && !c.tagline && !c.city && tc === 0 && wc === 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '7px' }}>world forming</div>
-        )}
+        {/* card anatomy parity (panel catch, Ley 4): every card closes with
+            the same meter band — real stats, or the honest forming state.
+            No card ends in a dead stretch of void beside a full sibling. */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
+          {tc > 0 && <Stat n={tc} label="taste" />}
+          {wc > 0 && <Stat n={wc} label="work" />}
+          {tc === 0 && wc === 0 && (
+            <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase' }}>◇ world forming</span>
+          )}
+        </div>
       </div>
     </div>
   )

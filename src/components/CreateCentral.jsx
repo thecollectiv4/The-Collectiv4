@@ -5,6 +5,7 @@ import { X, ImagePlus, Loader2, ArrowLeft, Tag, Handshake, CalendarPlus, Sparkle
 import { useWide } from '@/lib/useIsDesktop'
 import { createWorldPost } from '@/lib/worldPosts'
 import { createListing, KINDS, priceLabel } from '@/lib/listings'
+import { socialReady } from '@/lib/social'
 
 /* =========================================================================
    CREATE CENTRAL — the + at the center of the app (Ley 13; the Base44
@@ -45,16 +46,29 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
   const wide = useWide()
   const [stage, setStage] = useState('menu')   // menu | post | posted | sell | listed
   const [sellKind, setSellKind] = useState('piece')
+  // the marketplace doors render only when the layer is LIVE in the DB —
+  // pre-migration they're honestly absent, never a full composer that
+  // hits a wall at publish (panel + review catch, Leyes 9/11)
+  const [marketReady, setMarketReady] = useState(false)
+  useEffect(() => { let on = true; socialReady().then((r) => { if (on) setMarketReady(r) }); return () => { on = false } }, [])
   // while a write is in flight, neither Esc nor the backdrop may abandon it
   const busyRef = useRef(false)
+  const dialogRef = useRef(null)
 
-  // Esc closes; lock body scroll while open
+  // Esc closes; lock body scroll while open; focus moves INTO the dialog
+  // and back to the opener on close (a11y catch)
   useEffect(() => {
+    const opener = document.activeElement
+    dialogRef.current?.focus()
     const onKey = (e) => { if (e.key === 'Escape' && !busyRef.current) onClose() }
     window.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+      if (opener && typeof opener.focus === 'function') opener.focus()
+    }
   }, [onClose])
 
   const go = (path) => { onClose(); navigate(path) }
@@ -65,11 +79,11 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
 
   return createPortal(
     <div onClick={() => { if (!busyRef.current) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeIn .25s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Create" style={shell}>
+      <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" style={{ ...shell, outline: 'none' }}>
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: .05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
 
         {stage === 'menu' && (
-          <CreateMenu wide={wide} verified={isMemberVerified} onClose={onClose}
+          <CreateMenu wide={wide} verified={isMemberVerified} marketReady={marketReady} onClose={onClose}
             onPost={() => setStage('post')}
             onSell={(kind) => { setSellKind(kind); setStage('sell') }}
             onHost={() => go('/os?tab=events&new=1')}
@@ -126,11 +140,15 @@ function Done({ kicker, title, line, cta, onCta, onClose }) {
 /* ---------- the menu: intentions as catalog rows, each with ITS icon ----------
    Icon plates carry the intent's temperature (Ley 14) — a lit surface,
    never a mystery glyph: the word is always beside it (Ley 5). */
-function CreateMenu({ wide, verified, onPost, onSell, onHost, onCurate, onClose }) {
+function CreateMenu({ wide, verified, marketReady, onPost, onSell, onHost, onCurate, onClose }) {
   const rows = [
     { icon: Camera,       tint: '242,238,230', title: 'POST TO YOUR WORLD', kicker: 'a dated piece', line: 'Images and a line — it hangs in your museum, today’s date on the label.', onGo: onPost },
-    { icon: Tag,          tint: '199,201,209', title: 'SELL A PIECE',       kicker: 'with a price',  line: 'Clothing, prints, archive — name it, price it, the world DMs you.', onGo: () => onSell('piece') },
-    { icon: Handshake,    tint: '232,233,237', title: 'OFFER A SERVICE',    kicker: 'your craft',    line: 'Shoots, sets, design — put your rate on the wall, get booked by DM.', onGo: () => onSell('service') },
+    // marketplace doors appear only when 0017 is live — honest absence
+    // beats a composer that dead-ends at publish (Leyes 9/11)
+    ...(marketReady ? [
+      { icon: Tag,       tint: '199,201,209', title: 'SELL A PIECE',       kicker: 'with a price',  line: 'Clothing, prints, archive — name it, price it, the world DMs you.', onGo: () => onSell('piece') },
+      { icon: Handshake, tint: '232,233,237', title: 'OFFER A SERVICE',    kicker: 'your craft',    line: 'Shoots, sets, design — put your rate on the wall, get booked by DM.', onGo: () => onSell('service') },
+    ] : []),
     ...(verified ? [{ icon: CalendarPlus, tint: '242,238,230', title: 'HOST AN EVENT', kicker: 'your room', line: 'Create it, publish it, scan the door. Your event, on the platform.', onGo: onHost }] : []),
     { icon: Sparkles,     tint: '199,201,209', title: 'CURATE YOUR WORLD',  kicker: 'the museum',    line: 'Gallery, sound, marquee, skin — shape how the world walks in.', onGo: onCurate },
   ]
@@ -329,26 +347,28 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
 
       <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div>
-          <label style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>{service ? 'THE SERVICE' : 'THE PIECE'}</label>
-          <input value={title} maxLength={120} disabled={busy}
+          <label htmlFor="listing-title" style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>{service ? 'THE SERVICE' : 'THE PIECE'}</label>
+          <input id="listing-title" value={title} maxLength={120} disabled={busy}
             placeholder={service ? 'Event photography · full set' : 'C4 archive tee · 001'}
             onChange={(e) => setTitle(e.target.value)}
             style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }} />
         </div>
         <div>
-          <label style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>THE PRICE (USD)</label>
+          <label htmlFor="listing-price" style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>THE PRICE (USD)</label>
           <div style={{ position: 'relative' }}>
             <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontFamily: 'Bebas Neue', fontSize: '16px', color: SILVER }}>$</span>
-            <input value={price} inputMode="decimal" disabled={busy}
+            <input id="listing-price" value={price} inputMode="decimal" disabled={busy}
               placeholder={service ? '150' : '45'}
+              aria-invalid={!!price && !priceOk}
+              aria-describedby={price && !priceOk ? 'listing-price-err' : undefined}
               onChange={(e) => setPrice(e.target.value.replace(/[^0-9.]/g, ''))}
               style={{ width: '100%', background: CARD, border: `1px solid ${price && !priceOk ? 'rgba(229,160,160,.4)' : HAIR_HI}`, borderRadius: '10px', padding: '12px 14px 12px 30px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }} />
           </div>
-          {price && !priceOk && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: WARN, marginTop: '6px' }}>a real price: $1 – $50,000</div>}
+          {price && !priceOk && <div id="listing-price-err" role="alert" style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: WARN, marginTop: '6px' }}>a real price: $1 – $50,000</div>}
         </div>
         <div>
-          <label style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>THE DETAILS <span style={{ opacity: .6 }}>· optional</span></label>
-          <textarea value={desc} maxLength={1000} rows={2} disabled={busy}
+          <label htmlFor="listing-desc" style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>THE DETAILS <span style={{ opacity: .6 }}>· optional</span></label>
+          <textarea id="listing-desc" value={desc} maxLength={1000} rows={2} disabled={busy}
             placeholder={service ? 'What it includes, turnaround, where you work.' : 'Size, condition, the story behind it.'}
             onChange={(e) => setDesc(e.target.value)}
             style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />

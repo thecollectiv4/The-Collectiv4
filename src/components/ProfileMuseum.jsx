@@ -115,7 +115,7 @@ const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring',
 // `social` — { ready, followers, following, iFollow } from the wrapper (0017);
 // `listings` — the world's OFFER. Social buttons render only when the layer is
 // live in the DB (Ley 9: a door that can't open doesn't render).
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, onFollowToggle, onMessage, onDMSeller }) {
+export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
@@ -528,7 +528,18 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
                 {social.following > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> following</span>}
               </span>
             )}
+            {social.err && (
+              <span role="alert" style={{ flexBasis: '100%', fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {social.err}</span>
+            )}
           </div>
+        )}
+        {/* looking at your OWN world from the public side — one honest door
+            back to curating, never follow-yourself buttons (review catch) */}
+        {!editing && selfView && onSelfCurate && (
+          <button className="pressable" onClick={onSelfCurate} data-testid="self-world"
+            style={{ marginTop: wide ? '6px' : '16px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 16px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            ◇ this is your world — curate it →
+          </button>
         )}
         {/* the owner's own count — one honest line, never a vanity wall */}
         {!editing && social?.ready && isOwner && social.followers > 0 && (
@@ -791,8 +802,21 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
             </motion.div>
           )}
 
-          {/* closing mark */}
-          {!worldIsEmpty && (
+          {/* an EMPTY world visited by the public: one honest statement, not
+              40% of raw void — the absence gets a voice (panel catch, Leyes
+              4/11), and the page still closes with its signature below. */}
+          {!isOwner && worldIsEmpty && (
+            <div style={{ marginTop: '44px', padding: '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', maxWidth: wide ? '560px' : undefined }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ world forming</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: BONE, letterSpacing: '.03em', lineHeight: .95, marginTop: '10px' }}>NOTHING ON THE WALLS YET</div>
+              <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px auto 0', maxWidth: '320px' }}>
+                {displayName} just claimed this world — the work, the sound and the taste are on their way.
+              </p>
+            </div>
+          )}
+
+          {/* closing mark — every visited world signs its page */}
+          {(!worldIsEmpty || !isOwner) && (
             <div style={{ marginTop: '64px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
               <Mark type="diamond" size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />

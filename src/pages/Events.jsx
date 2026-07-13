@@ -80,7 +80,14 @@ export default function Events() {
     () => events.filter((e) => !isPast(e.event_date) && e.id !== featured?.id),
     [events, featured]
   )
-  const pastCount = useMemo(() => events.filter((e) => isPast(e.event_date)).length, [events])
+  const past = useMemo(
+    () => events.filter((e) => isPast(e.event_date)).sort((a, b) => new Date(b.event_date) - new Date(a.event_date)),
+    [events]
+  )
+  const pastCount = past.length
+  // the most recent night — when nothing is upcoming, the archive's last
+  // room keeps the front door alive (panel catch: la ausencia se compone)
+  const lastRoom = past[0] || null
   const total = (featured ? 1 : 0) + upcoming.length
 
   return (
@@ -89,14 +96,13 @@ export default function Events() {
       <Constellation seed="the-rooms" quiet tint="242,238,230" />
       <div style={{ position: 'relative', zIndex: 2, padding: wide ? '34px clamp(40px, 5vw, 76px) 70px' : '22px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
 
-        {/* header — the title answers with the count beside it (Leyes 2, 7) */}
+        {/* header — the title answers with the count beside it (Leyes 2, 7).
+            No stray marks beside the display: an ✕ at the top of a page
+            reads as a close button that closes nothing (panel catch, Ley 9). */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '8px' }}>✕</div>
-            <div>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '4px' }}>The rooms · Ran By Artists</div>
-              <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '58px' : '40px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>EVENTS</h1>
-            </div>
+          <div>
+            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '4px' }}>The rooms · Ran By Artists</div>
+            <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '58px' : '40px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>EVENTS</h1>
           </div>
           {!loading && (
             <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', paddingBottom: wide ? '7px' : '5px' }}>
@@ -147,16 +153,33 @@ export default function Events() {
               </div>
             )}
 
-            {/* nothing on? honest, and forward (Ley 11 + always end forward) */}
+            {/* nothing upcoming? the absence COMPOSES (panel catch, Leyes 4/6/11):
+                the statement on one side, the LAST room — a real night, real
+                date — on the other, and a click that keeps the "stay close"
+                promise (Ley 9: the copy's invitation gets a real door). */}
             {!featured && upcoming.length === 0 && (
-              <div style={{ marginTop: '22px', padding: '46px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
-                <MiniStars seed="no-rooms" k={wide ? 0.3 : 0.6} />
-                <div style={{ position: 'relative' }}>
-                  <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '30px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>NO ROOMS OPEN TONIGHT</h2>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '320px' }}>
-                    The next one is being built. Stay close — the room always comes back.
-                  </p>
+              <div style={{ marginTop: '22px', display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: '22px', alignItems: 'stretch' } : { flexDirection: 'column', gap: '14px' }) }}>
+                <div style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <MiniStars seed="no-rooms" k={wide ? 0.3 : 0.6} />
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '84px' : '54px', lineHeight: .85, ...chromeText }}>00</div>
+                    <h2 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '36px' : '28px', letterSpacing: '.03em', lineHeight: .95, margin: '10px 0 0', color: BONE }}>NO ROOMS OPEN TONIGHT</h2>
+                    <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '12px 0 0', maxWidth: '340px' }}>
+                      The next one is being built. Stay close — the room always comes back.
+                    </p>
+                    <button className="pressable" onClick={() => navigate('/community')}
+                      style={{ marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: '1px solid rgba(242,238,230,.22)', borderRadius: '100px', padding: '10px 18px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                      meanwhile — find your people <ArrowUpRight size={12} />
+                    </button>
+                  </div>
                 </div>
+                {/* the last room — the archive keeps a face on the door */}
+                {lastRoom && (
+                  <div>
+                    <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase', marginBottom: '9px' }}>the last room</div>
+                    <RoomCard e={lastRoom} pastRoom onOpen={() => navigate(lastRoom.slug ? `/e/${lastRoom.slug}` : '/editions')} />
+                  </div>
+                )}
               </div>
             )}
 
@@ -169,7 +192,7 @@ export default function Events() {
                 <Archive size={15} style={{ color: SILVER, flexShrink: 0 }} strokeWidth={1.6} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE, letterSpacing: '.03em', lineHeight: 1 }}>PAST EDITIONS</span>
-                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px' }}>{String(pastCount).padStart(2, '0')} nights in the archive</span>
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px' }}>{pastCount === 1 ? 'one night in the archive' : `${String(pastCount).padStart(2, '0')} nights in the archive`}</span>
                 </span>
                 <ArrowUpRight size={15} style={{ color: SILVER, flexShrink: 0 }} />
               </button>
@@ -196,7 +219,8 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
   ].filter(Boolean)
 
   return (
-    <div className="pressable" onClick={onEnter} role="button" aria-label={`Enter ${e.title}`}
+    <div className="pressable" onClick={onEnter} role="button" tabIndex={0} aria-label={`Enter ${e.title}`}
+      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEnter() } }}
       style={{ marginTop: '18px', position: 'relative', borderRadius: '20px', overflow: 'hidden', border: `1px solid rgba(242,238,230,.16)`, background: CARD, cursor: 'pointer', boxShadow: '0 18px 60px rgba(0,0,0,.45)' }}>
       {/* the banner — cover or the room's own sky */}
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '340px' : '230px', overflow: 'hidden', background: VOID }}>
@@ -260,16 +284,19 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
   )
 }
 
-/* ---- a room in the directory ---- */
-function RoomCard({ e, onOpen }) {
+/* ---- a room in the directory (pastRoom: the archive's face) ---- */
+function RoomCard({ e, onOpen, pastRoom }) {
   const cover = safeImg(e.cover_url)
   return (
-    <div onClick={onOpen} className="disc-card pressable" role="button" aria-label={`Open ${e.title}`}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
-      <div className="disc-banner" style={{ position: 'relative', height: '128px', overflow: 'hidden', background: VOID }}>
+    <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${e.title}`}
+      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer', ...(pastRoom && { height: '100%' }) }}>
+      <div className="disc-banner" style={{ position: 'relative', height: pastRoom ? '148px' : '128px', overflow: 'hidden', background: VOID }}>
         {cover ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MiniStars seed={e.slug || e.id} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.1) 30%, rgba(7,8,14,.9) 100%)' }} />
-        {e.edition && (
+        {pastRoom ? (
+          <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE_MID, border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(7,8,14,.5)', textTransform: 'uppercase' }}>in the archive</span>
+        ) : e.edition && (
           <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(7,8,14,.5)', textTransform: 'uppercase' }}>{e.edition}</span>
         )}
         <div style={{ position: 'absolute', left: '16px', right: '16px', bottom: '13px' }}>

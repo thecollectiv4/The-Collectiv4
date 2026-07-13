@@ -62,7 +62,8 @@ export default function Messages() {
         <Lock size={22} strokeWidth={1.2} style={{ color: BONE_LOW, marginBottom: '18px' }} />
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: BONE, letterSpacing: '.02em', marginBottom: '8px' }}>YOUR CONVERSATIONS LIVE HERE</div>
         <div style={{ fontSize: '13px', color: BONE_MID, marginBottom: '26px', lineHeight: 1.6, maxWidth: '300px', fontFamily: 'DM Sans' }}>Sign in to message creatives and enter your event rooms.</div>
-        <button className="pressable" onClick={() => navigate('/auth')} style={{ background: BONE, border: 'none', borderRadius: '10px', padding: '14px 36px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
+        {/* a shared /messages/:id deep link survives the sign-in (?next) */}
+        <button className="pressable" onClick={() => navigate(`/auth?next=${encodeURIComponent(location.pathname)}`)} style={{ background: BONE, border: 'none', borderRadius: '10px', padding: '14px 36px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Sign in</button>
       </div>
     </Shell>
   )
@@ -152,7 +153,7 @@ function InboxRow({ t, me, last, onOpen }) {
         {t.kind === 'event'
           ? <CalendarDays size={17} strokeWidth={1.5} style={{ color: SILVER }} />
           : avatar
-            ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE }}>{(title || '?')[0].toUpperCase()}</span>}
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
@@ -203,11 +204,13 @@ function Thread({ threadId, me, wide }) {
 
   useEffect(() => { load() }, [load])
 
-  // live: new messages arrive without a reload; RLS gates the stream
+  // live: new messages arrive without a reload; RLS gates the stream.
+  // Only OTHERS' messages move the read cursor — your own echo already
+  // did at send time (write-amplification catch).
   useEffect(() => {
     const off = subscribeThread(threadId, (m) => {
       setMsgs((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m]))
-      markThreadRead(threadId, me.id)
+      if (m.sender_id !== me.id) markThreadRead(threadId, me.id)
     })
     return off
   }, [threadId, me.id])
@@ -293,7 +296,7 @@ function Thread({ threadId, me, wide }) {
             <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: BONE, marginTop: '10px' }}>SAY THE FIRST THING</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div role="log" aria-live="polite" aria-label="Messages" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {msgs.map((m) => {
               const mine = m.sender_id === me.id
               const sender = profilesRef.current[m.sender_id]

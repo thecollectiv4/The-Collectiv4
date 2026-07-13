@@ -136,7 +136,8 @@ test('A · the re-architecture, walked as an anonymous visitor', async ({ page }
   await shot(page, 'v4-03-messages-anon-door')
 })
 
-test('B · two members arrive; CREATE central shows the ecosystem doors', async ({ browser }) => {
+test('B · two members arrive; CREATE central shows the ecosystem doors', async ({ browser, request }) => {
+  const live = await socialLive(request)
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const page = await ctx.newPage()
   const a = await signUp(page, 'QA Seller')
@@ -151,11 +152,19 @@ test('B · two members arrive; CREATE central shows the ecosystem doors', async 
   const modal = page.getByRole('dialog', { name: 'Create' })
   await expect(modal).toBeVisible()
   await expect(modal.getByText('POST TO YOUR WORLD')).toBeVisible()
-  await expect(modal.getByText('SELL A PIECE')).toBeVisible()
-  await expect(modal.getByText('OFFER A SERVICE')).toBeVisible()
   await expect(modal.getByText('CURATE YOUR WORLD')).toBeVisible()
   // a plain member sees NO event door — zero teasers (Leyes 9/11)
   await expect(modal.getByText('HOST AN EVENT')).toHaveCount(0)
+  if (live) {
+    // 0017 live → the marketplace doors are open
+    await expect(modal.getByText('SELL A PIECE')).toBeVisible()
+    await expect(modal.getByText('OFFER A SERVICE')).toBeVisible()
+  } else {
+    // pre-0017 → honestly ABSENT, never a composer that dead-ends
+    await expect(modal.getByText('SELL A PIECE')).toHaveCount(0)
+    await expect(modal.getByText('OFFER A SERVICE')).toHaveCount(0)
+    test.info().annotations.push({ type: 'PENDING-MIGRATION', description: 'listings (0017) not applied — Sell/Offer doors honestly absent from CREATE.' })
+  }
   await page.waitForTimeout(900)
   await shot(page, 'v4-04-create-central')
   await modal.getByRole('button', { name: 'Close' }).click()
@@ -258,6 +267,15 @@ test('E · THE OFFER — a piece with a real price; DM to buy opens a real door'
   const page = await ctx.newPage()
   await signIn(page, a)
 
+  if (!live) {
+    // pre-0017 the Sell/Offer doors don't render at all (B verified their
+    // absence) — there is no composer to walk. The full story runs after
+    // Pato applies the migration.
+    test.info().annotations.push({ type: 'PENDING-MIGRATION', description: 'listings (0017) not applied — Sell/Offer doors absent; the OFFER story runs post-migration.' })
+    await ctx.close()
+    return
+  }
+
   // A lists a piece through the +
   await page.getByRole('button', { name: 'Create' }).click()
   const modal = page.getByRole('dialog', { name: 'Create' })
@@ -271,14 +289,6 @@ test('E · THE OFFER — a piece with a real price; DM to buy opens a real door'
   await page.waitForTimeout(500)
   await shot(page, 'v4-10-listing-composer')
   await modal.getByRole('button', { name: /PUT IT ON THE WALL/ }).click()
-
-  if (!live) {
-    await expect(modal.getByText(/isn't switched on yet/i)).toBeVisible({ timeout: 20000 })
-    test.info().annotations.push({ type: 'PENDING-MIGRATION', description: 'listings (0017) not applied — the composer answered honestly. Re-run after `supabase db push --linked`.' })
-    await shot(page, 'v4-11-listing-premigration-honest')
-    await ctx.close()
-    return
-  }
 
   await expect(modal.getByRole('button', { name: 'SEE YOUR OFFER' })).toBeVisible({ timeout: 60000 })
   await shot(page, 'v4-11-listed')
@@ -371,12 +381,15 @@ test('G · event gates hold; the room stays honest', async ({ browser, request }
     }
   }
 
-  // the public room by slug — honest checkout, honest 404
+  // the public room by slug — honest checkout: a LIVE tier sells (GET YOUR
+  // TICKET), all-coming_soon declares itself (TICKETS SOON + inert catalog)
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
   const page = await ctx.newPage()
   await page.goto('/e/rba-edition-2')
-  await expect(page.getByText('GET YOUR TICKET')).toBeVisible({ timeout: 20000 })
-  await page.getByText('GET YOUR TICKET').click()
+  const buy = page.getByText('GET YOUR TICKET')
+  const soon = page.getByText('TICKETS SOON')
+  await expect(buy.or(soon)).toBeVisible({ timeout: 20000 })
+  if (await buy.isVisible().catch(() => false)) { await buy.click() }
   await page.waitForTimeout(600)
   await shot(page, 'v4-16-event-room-honest')
   await page.goto('/e/this-room-does-not-exist')
@@ -410,9 +423,54 @@ test('H · desktop 1440, anonymous — the ecosystem as an editorial spread', as
   await shot(page, 'v4-20-desktop-world-body')
 
   await page.goto('/e/rba-edition-2')
-  await expect(page.getByText('GET YOUR TICKET')).toBeVisible({ timeout: 20000 })
+  await expect(page.getByText('GET YOUR TICKET').or(page.getByText('TICKETS SOON'))).toBeVisible({ timeout: 20000 })
   await page.waitForTimeout(1100)
   await shot(page, 'v4-21-desktop-event-room')
 
+  await ctx.close()
+})
+
+test('I · the QA accounts retire themselves; Community closes CLEAN', async ({ browser, request }) => {
+  // every account this run created hides behind is_demo (its own RLS row,
+  // its own session — the honest retirement the cleanup script does), so
+  // the public universe ends the walkthrough exactly as it started.
+  const lines = fs.readFileSync(path.join(SHOTS, 'accounts.jsonl'), 'utf8').trim().split('\n')
+  for (const line of lines) {
+    const { uid, email, password } = JSON.parse(line)
+    const login = await request.post(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      headers: { apikey: ANON_KEY, 'Content-Type': 'application/json' },
+      data: { email, password },
+    })
+    const session = await login.json()
+    if (!session.access_token) continue
+    await request.patch(`${SUPABASE_URL}/rest/v1/profiles?id=eq.${uid}`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      data: { is_demo: true, username: null, full_name: 'QA (retired)' },
+    })
+  }
+
+  // the closing capture: Community with only REAL worlds (Leyes 6, 11).
+  // Post-0017 the count is a hard zero (the migration also retires the
+  // early strays); pre-0017 this run's accounts are gone and the strays
+  // are annotated for the founder pass.
+  const live = await socialLive(request)
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await ctx.newPage()
+  await page.goto('/community')
+  await expect(page.getByRole('heading', { name: 'COMMUNITY' })).toBeVisible({ timeout: 20000 })
+  if (live) {
+    await expect(page.getByText('QA Seller')).toHaveCount(0)
+  } else {
+    test.info().annotations.push({ type: 'PENDING-MIGRATION', description: 'Early-run QA strays retire inside 0017 — Community reads fully clean after the push.' })
+  }
+  await page.waitForTimeout(1000)
+  await shot(page, 'v4-22-community-clean')
+  const wideCtx = await browser.newContext({ viewport: { width: 1440, height: 900 } })
+  const widePage = await wideCtx.newPage()
+  await widePage.goto('/community')
+  await expect(widePage.getByRole('heading', { name: 'COMMUNITY' })).toBeVisible({ timeout: 20000 })
+  await widePage.waitForTimeout(1200)
+  await shot(widePage, 'v4-23-desktop-community-clean')
+  await wideCtx.close()
   await ctx.close()
 })

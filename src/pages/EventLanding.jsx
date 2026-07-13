@@ -271,7 +271,7 @@ export function EventShow({ live }) {
               </>
             )}
           </>
-        ) : (
+        ) : availableTiers.length > 0 ? (
           <button className="pressable" onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
             style={{width:'100%',background:checkingOut?'var(--cream-low)':'#F2EEE6',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(242,238,230,.12)'}}
             onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(242,238,230,.2)'}}}
@@ -285,6 +285,35 @@ export function EventShow({ live }) {
               <ArrowRight size={14} style={{color:'var(--bg)'}} />
             </div>
           </button>
+        ) : (
+          /* nothing sellable YET — the brightest element on screen must not
+             promise a purchase the tiers below deny (panel catch, Ley 9).
+             The state declares itself; the tier catalog stays visible. */
+          <div style={{width:'100%',border:'1px solid rgba(242,238,230,.22)',background:'rgba(242,238,230,.05)',borderRadius:'12px',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+            <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+              <Ticket size={18} style={{color:'var(--cream-mid)'}} />
+              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.06em'}}>TICKETS SOON</span>
+            </div>
+            {tiers.length > 0 && (
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.08em'}}>
+                {(() => { const ps = tiers.map(t=>t.price).filter(Number.isFinite); if (!ps.length) return 'the room is being priced'; const lo = Math.min(...ps)/100, hi = Math.max(...ps)/100; return lo === hi ? `$${lo}` : `$${lo} – $${hi}` })()}
+              </span>
+            )}
+          </div>
+        )}
+        {/* the coming tiers, visible without a tap when nothing sells yet */}
+        {availableTiers.length === 0 && tiers.length > 0 && (
+          <div style={{marginTop:'10px',display:'flex',flexDirection:'column',gap:'8px'}}>
+            {tiers.map((t,i)=>(
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:'10px',background:'rgba(242,238,230,.02)',border:'1px solid var(--border)'}}>
+                <div>
+                  <div style={{fontFamily:'Bebas Neue',fontSize:'15px',color:'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
+                  {t.note && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>}
+                </div>
+                <span style={{fontFamily:'Bebas Neue',fontSize:'20px',color:'var(--cream-low)'}}>{t.doorLabel||'$'+Math.round(t.price/100)}</span>
+              </div>
+            ))}
+          </div>
         )}
         {/* WHO'S GOING — the guest list, promoted (Ley 6: la gente ES el
             contenido). Real faces from the same PII-safe RPC; tapping opens
@@ -292,7 +321,8 @@ export function EventShow({ live }) {
             When nobody's confirmed yet, just the honest count (Ley 11). */}
         {attendees.length > 0 ? (
           <>
-            <div className="pressable" onClick={()=>setGuestsOpen(v=>!v)} role="button" aria-expanded={guestsOpen} aria-label="See who's going"
+            <div className="pressable" onClick={()=>setGuestsOpen(v=>!v)} role="button" tabIndex={0} aria-expanded={guestsOpen} aria-label="See who's going"
+              onKeyDown={(ev)=>{ if (ev.key==='Enter'||ev.key===' ') { ev.preventDefault(); setGuestsOpen(v=>!v) } }}
               style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
               onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
               onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
@@ -319,7 +349,8 @@ export function EventShow({ live }) {
                 {attendees.map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
                   return (
-                    <div key={a.id || i} className="pressable" onClick={()=>a.id&&navigate('/user/'+a.id)} role="button"
+                    <div key={a.id || i} className="pressable" onClick={()=>a.id&&navigate('/user/'+a.id)} role={a.id?'button':undefined} tabIndex={a.id?0:undefined}
+                      onKeyDown={(ev)=>{ if (a.id && (ev.key==='Enter'||ev.key===' ')) { ev.preventDefault(); navigate('/user/'+a.id) } }}
                       style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 0',borderBottom:i<attendees.length-1?'1px solid rgba(242,238,230,.06)':'none',cursor:a.id?'pointer':'default',transition:'padding-left .2s'}}
                       onMouseOver={e=>{if(a.id)e.currentTarget.style.paddingLeft='8px'}}
                       onMouseOut={e=>{e.currentTarget.style.paddingLeft='0'}}>

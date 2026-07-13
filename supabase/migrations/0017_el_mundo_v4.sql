@@ -174,12 +174,38 @@ create policy thread_members_member_read on public.thread_members
   for select to authenticated
   using (public.is_thread_member(thread_id));
 
--- your own membership row is yours to update (last_read_at)
+-- your own membership row is yours to update — and ONLY its read cursor.
+-- The RLS row guard alone is NOT enough here: an UPDATE that repoints
+-- thread_id on your OWN row would pass both USING and WITH CHECK (they
+-- only constrain profile_id) and forge membership into ANY thread —
+-- full read of arbitrary DMs (adversarial review catch, HIGH). Two
+-- walls: a column-level grant (only last_read_at is updatable at all)
+-- and a belt-and-suspenders trigger pinning the identity columns.
 drop policy if exists thread_members_self_update on public.thread_members;
 create policy thread_members_self_update on public.thread_members
   for update to authenticated
   using      (profile_id::text = auth.uid()::text)
   with check (profile_id::text = auth.uid()::text);
+
+revoke update on public.thread_members from anon, authenticated;
+grant  update (last_read_at) on public.thread_members to authenticated;
+
+create or replace function public.thread_members_pin_identity()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.thread_id is distinct from old.thread_id
+     or new.profile_id is distinct from old.profile_id then
+    raise exception 'membership_immutable';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists thread_members_pin on public.thread_members;
+create trigger thread_members_pin
+  before update on public.thread_members
+  for each row execute function public.thread_members_pin_identity();
 
 drop policy if exists thread_messages_member_read on public.thread_messages;
 create policy thread_messages_member_read on public.thread_messages
@@ -400,5 +426,22 @@ drop policy if exists listings_owner_delete on public.listings;
 create policy listings_owner_delete on public.listings
   for delete to authenticated
   using (profile_id::text = auth.uid()::text);
+
+-- =====================================================================
+-- (D) HOUSEKEEPING — retire the v4 gate's stray QA profiles.
+-- Four walkthrough accounts from broken early runs lost their credential
+-- ledger before self-retiring (the normal cleanup path); they sit visible
+-- in Community as "QA Seller" clones. Same retirement the script does,
+-- pinned by uid, idempotent. (Hard-deleting their auth.users rows stays
+-- a founder call — listed in the handback.)
+-- =====================================================================
+update public.profiles
+   set is_demo = true, username = null, full_name = 'QA (retired)'
+ where id in (
+   '0c9e86d1-d854-4ec9-af33-feca6ea229ba',
+   'd6c55ded-1e68-491c-ac9a-4ee64b632e73',
+   '4caffcba-1738-4e79-ad0a-14787a8a5549',
+   'faf8775e-7ed5-4e21-8505-b061b52f6190'
+ );
 
 commit;

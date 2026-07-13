@@ -15,19 +15,27 @@ const MISSING = /follows|threads|thread_messages|thread_members|start_dm|join_ev
 const NOT_ON_YET = "connections aren't switched on yet — the platform update is on its way."
 
 let readyProbe = null
-/* One probe per session: is the social layer live in the DB? A GET select
-   limit(0) against follows answers without moving data. NOT head:true —
-   supabase-js can't parse the error out of a body-less HEAD 404, which
-   made a missing table read as "ready" (caught by the v4 local gate).
-   Cached — surfaces may call it freely. */
+/* Is the social layer live in the DB? A GET select limit(0) against
+   follows answers without moving data. NOT head:true — supabase-js can't
+   parse the error out of a body-less HEAD 404, which made a missing table
+   read as "ready" (caught by the v4 local gate).
+   Cache policy (review catch): only DEFINITIVE answers stick — table
+   exists (true) or table missing (false, real pre-migration state). A
+   transient failure (network drop, 5xx) answers false for THIS call but
+   never poisons the whole session. */
 export function socialReady() {
   if (!readyProbe) {
     readyProbe = supabase
       .from('follows')
       .select('follower_id')
       .limit(0)
-      .then(({ error }) => !error)
-      .catch(() => false)
+      .then(({ error }) => {
+        if (!error) return true
+        const missing = error.code === 'PGRST205' || MISSING.test(error.message || '')
+        if (!missing) readyProbe = null   // transient — let the next surface re-ask
+        return false
+      })
+      .catch(() => { readyProbe = null; return false })
   }
   return readyProbe
 }
@@ -149,40 +157,54 @@ export async function fetchInbox(meId) {
     })
 
     return threads
-      .map((t) => ({
-        ...t,
-        others: membersByThread[t.id] || [],
-        event: t.event_id ? evById[t.event_id] || null : null,
-        lastMessage: lastMsgs[t.id] || null,
-        unread: !!(lastMsgs[t.id] && lastRead[t.id] && new Date(lastMsgs[t.id].created_at) > new Date(lastRead[t.id])),
-      }))
+      .map((t) => {
+        const last = lastMsgs[t.id] || null
+        return {
+          ...t,
+          others: membersByThread[t.id] || [],
+          event: t.event_id ? evById[t.event_id] || null : null,
+          lastMessage: last,
+          // your own message is never "unread" (review catch)
+          unread: !!(last && last.sender_id !== meId && lastRead[t.id] && new Date(last.created_at) > new Date(lastRead[t.id])),
+        }
+      })
       .sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at))
   } catch { return [] }
 }
 
-/* newest message per thread (preview lines) — one query, newest first,
-   first-seen wins per thread. */
+/* newest message per thread (preview lines) — one limit(1) per thread so a
+   busy event room can never starve a quiet DM's preview out of a shared
+   window (review catch). Inboxes are small; capped at 50 lookups. */
 async function fetchLastMessages(threadIds) {
   if (!threadIds.length) return {}
-  const { data } = await supabase
-    .from('thread_messages')
-    .select('thread_id,sender_id,body,created_at')
-    .in('thread_id', threadIds)
-    .order('created_at', { ascending: false })
-    .limit(Math.min(200, threadIds.length * 8))
+  const ids = threadIds.slice(0, 50)
+  const rows = await Promise.all(ids.map((id) =>
+    supabase
+      .from('thread_messages')
+      .select('thread_id,sender_id,body,created_at')
+      .eq('thread_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .then(({ data }) => data?.[0] || null)
+      .catch(() => null)
+  ))
   const out = {}
-  ;(data || []).forEach((m) => { if (!out[m.thread_id]) out[m.thread_id] = m })
+  rows.forEach((m) => { if (m) out[m.thread_id] = m })
   return out
 }
 
-/* One thread, fully resolved: meta + roster + messages (oldest first). */
+/* One thread, fully resolved: meta + roster + messages (oldest first).
+   The window is the NEWEST 300, then re-ordered — an ascending limit
+   would freeze a long room at its first 300 messages forever (review
+   catch). */
 export async function fetchThread(threadId, meId) {
-  const [{ data: t }, { data: members }, { data: msgs }] = await Promise.all([
+  const [{ data: t }, { data: members }, { data: msgsDesc }] = await Promise.all([
     supabase.from('threads').select('id,kind,event_id,last_message_at').eq('id', threadId).maybeSingle(),
     supabase.from('thread_members').select('profile_id').eq('thread_id', threadId),
-    supabase.from('thread_messages').select('id,thread_id,sender_id,body,created_at').eq('thread_id', threadId).order('created_at', { ascending: true }).limit(300),
+    supabase.from('thread_messages').select('id,thread_id,sender_id,body,created_at').eq('thread_id', threadId).order('created_at', { ascending: false }).limit(300),
   ])
   if (!t) return null
+  const msgs = (msgsDesc || []).slice().reverse()
   const ids = [...new Set((members || []).map((m) => m.profile_id))]
   const [profRes, evRes] = await Promise.all([
     ids.length ? supabase.from('profiles').select('id,full_name,username,avatar_url').in('id', ids) : Promise.resolve({ data: [] }),
