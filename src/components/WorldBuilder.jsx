@@ -111,7 +111,10 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   // a double-tap must not run two compositions
   const alive = useRef(true)
   const composing = useRef(false)
-  useEffect(() => () => { alive.current = false }, [])
+  // set true on EVERY mount pass — StrictMode double-invokes effects, and a
+  // cleanup-only effect leaves the ref false forever in dev (the compose
+  // beat silently bailed; caught by the v4 local gate)
+  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
   const kind = plan?.kind ?? craftKindOf(data?.discipline)
   const steps = planSteps || CRAFT_STEPS[craftKindOf(data?.discipline)]

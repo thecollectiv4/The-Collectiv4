@@ -15,14 +15,16 @@ const MISSING = /follows|threads|thread_messages|thread_members|start_dm|join_ev
 const NOT_ON_YET = "connections aren't switched on yet — the platform update is on its way."
 
 let readyProbe = null
-/* One probe per session: is the social layer live in the DB? A select
-   limit(0) against follows answers without moving data. Cached — surfaces
-   may call it freely. */
+/* One probe per session: is the social layer live in the DB? A GET select
+   limit(0) against follows answers without moving data. NOT head:true —
+   supabase-js can't parse the error out of a body-less HEAD 404, which
+   made a missing table read as "ready" (caught by the v4 local gate).
+   Cached — surfaces may call it freely. */
 export function socialReady() {
   if (!readyProbe) {
     readyProbe = supabase
       .from('follows')
-      .select('follower_id', { head: true, count: 'exact' })
+      .select('follower_id')
       .limit(0)
       .then(({ error }) => !error)
       .catch(() => false)
