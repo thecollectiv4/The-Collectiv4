@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Loader2, Lock, X, ArrowLeft, CalendarDays, Compass, Users, User } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Loader2, Lock, X, ArrowLeft, CalendarDays, Compass, Users, User, ListTodo, Clapperboard, Sparkles, UsersRound } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
+import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useIsDesktop, useRailFull } from '@/lib/useIsDesktop'
 import { VOID, VOID_2, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg } from '@/lib/cosmos'
 import Board from '@/components/os/Board'
@@ -24,17 +25,21 @@ import Network from '@/components/os/Network'
    ========================================================================= */
 
 const nowISO = () => new Date().toISOString()
-// `short` is the visible word under each mark on the icon-only rail —
-// a mark that needs explaining isn't design (legibility > minimalism).
+// Every tab carries a SEMANTIC icon at a dignified size + its word (Leyes 5 y
+// 14: an icon that needs explaining isn't design; the icon matches what the
+// thing IS). The deck marks stay as the catalog glyph in the header kicker.
+// `tint` is the section's light temperature — same locked palette, different
+// warmth: instrument work reads cool silver, making reads warm bone, the
+// Brain reads starlight. Void and bone never move (Ley 14).
 const TABS = [
-  { key: 'board', code: '01', label: 'Board', short: 'Board', mark: '●' },
-  { key: 'content', code: '02', label: 'Content', short: 'Content', mark: '○' },
-  { key: 'brain', code: '03', label: 'The Brain', short: 'Brain', mark: '◇' },
-  { key: 'events', code: '04', label: 'Events', short: 'Events', mark: '✕' },
+  { key: 'board', code: '01', label: 'Board', short: 'Board', mark: '●', icon: ListTodo, tint: '199,201,209' },
+  { key: 'content', code: '02', label: 'Content', short: 'Content', mark: '○', icon: Clapperboard, tint: '242,238,230' },
+  { key: 'brain', code: '03', label: 'The Brain', short: 'Brain', mark: '◇', icon: Sparkles, tint: '232,233,237' },
+  { key: 'events', code: '04', label: 'Events', short: 'Events', mark: '✕', icon: CalendarDays, tint: '242,238,230' },
 ]
 // Founders only — appended to TABS when the server's my_os_identity() says
 // owner. Display-gating: the admin_* RPCs re-check is_owner() on every call.
-const NETWORK_TAB = { key: 'network', code: '05', label: 'Network', short: 'Network', mark: '△' }
+const NETWORK_TAB = { key: 'network', code: '05', label: 'Network', short: 'Network', mark: '△', icon: UsersRound, tint: '199,201,209' }
 const HELLO_KEY = 'os_hello_v1'
 // Cross-nav out of the OS — same icon vocabulary as Layout.jsx's bottom nav.
 const CROSS_NAV = [
@@ -182,6 +187,19 @@ export default function OS() {
   )
 }
 
+/* CREATE central (and any deep link) can land on a specific pane:
+   /os?tab=events&new=1 opens the Events surface straight onto a blank
+   event. Read once at mount — the instrument owns the state after that. */
+function useOSEntry() {
+  const [searchParams] = useSearchParams()
+  const valid = ['board', 'content', 'brain', 'events', 'network']
+  const t = searchParams.get('tab')
+  return {
+    initialTab: valid.includes(t) ? t : 'board',
+    startNewEvent: searchParams.get('new') === '1',
+  }
+}
+
 /* =========================================================================
    OSInstrument — the entire instrument (rail + header + pulse + roadmap +
    tabs + panels + Brain dock), desktop AND phone branches, as one
@@ -192,7 +210,11 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   const navigate = useNavigate()
   const desktop = useIsDesktop()   // >=768 — instrument shell
   const railFull = useRailFull()   // >=1180 — full rail; below, icon-only
-  const [tab, setTab] = useState('board')
+  const { initialTab, startNewEvent } = useOSEntry()
+  const [tab, setTab] = useState(initialTab)
+  // one-shot: &new=1 opens the blank editor ONCE — leaving and returning to
+  // the Events pane must not keep reopening it
+  const newEventOnce = useRef(startNewEvent)
   // the founder's desk appears only on the server's owner verdict
   const tabs = isOwner ? [...TABS, NETWORK_TAB] : TABS
   const [hello, setHello] = useState(() => { try { return !localStorage.getItem(HELLO_KEY) } catch { return false } })
@@ -234,8 +256,19 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   const specLine = `HOUSTON, TX · ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }).toUpperCase()} · OS V1`
   const firstName = (profile?.full_name || profile?.username || 'you').split(' ')[0]
 
+  // THE BRAIN opens with YOUR TODAY (Ley 16) — real state from the board and
+  // the live event, never generic chips. All of it already lives in Supabase.
+  const live = useLiveEvent()
+  const brainContext = {
+    days: counts.days,
+    week: tasks.filter(t => t.board_column === 'this_week').map(t => t.title),
+    motion: tasks.filter(t => t.board_column === 'in_motion').map(t => t.title),
+    toMake: content.filter(c => c.status !== 'posted').map(c => c.title),
+    nextEvent: live.hasDate ? { title: `${live.name}${live.editionNumber ? ' ' + live.editionNumber : ''}`, date: live.dateLong } : null,
+  }
+
   const brainEl = (embedded) => (
-    <Brain embedded={embedded} onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />
+    <Brain embedded={embedded} context={brainContext} onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />
   )
 
   const dock = dockOpen && tab !== 'brain' && (
@@ -267,24 +300,43 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
     </div>
   )
 
+  // section transitions CONNECT (Ley 13): the pane slides from the side the
+  // tab lives on, never a dry cut. Direction = index delta on the rail.
+  const prevTabIdx = useRef(0)
+  const tabIdx = Math.max(0, tabs.findIndex(t => t.key === tab))
+  const slideClass = tabIdx > prevTabIdx.current ? 'os-slide-in-right' : tabIdx < prevTabIdx.current ? 'os-slide-in-left' : 'os-reveal-fast'
+  useEffect(() => { prevTabIdx.current = tabIdx }, [tabIdx])
+
   const panel = (
     <>
       {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>△ {notice}</div>}
-      <div key={tab} className="os-reveal-fast">
+      <div key={tab} className={slideClass}>
         {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
         {tab === 'content' && <ContentEngine content={content} owners={owners} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
         {tab === 'brain' && brainEl(false)}
-        {tab === 'events' && <EventsAdmin />}
+        {tab === 'events' && <EventsAdmin isOwner={isOwner} startNew={newEventOnce.current} onConsumedNew={() => { newEventOnce.current = false }} />}
         {tab === 'network' && isOwner && <Network />}
       </div>
       {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
     </>
   )
 
+  // the section's light temperature — one glow layer per tab, crossfading on
+  // opacity (backgrounds don't transition; opacity does). Alpha stays ≤.05:
+  // temperature, not color; void and bone intact (Ley 14).
+  const temperature = (
+    <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
+      {tabs.map(t => (
+        <div key={t.key} style={{ position: 'absolute', inset: 0, opacity: tab === t.key ? 1 : 0, transition: 'opacity .9s ease', background: `radial-gradient(110% 70% at 50% -8%, rgba(${t.tint},.05) 0%, rgba(${t.tint},0) 55%)` }} />
+      ))}
+    </div>
+  )
+
   /* --------------------- INSTRUMENT (>=768): rail + main --------------------- */
   if (desktop) {
     return (
       <Shell>
+        {temperature}
         <div style={{ display: 'flex', alignItems: 'stretch', minHeight: '100vh' }}>
           <Rail tabs={tabs} tab={tab} setTab={setTab} profile={profile} counts={counts} full={railFull} />
           <main style={{ flex: 1, minWidth: 0, padding: railFull ? '22px 36px 48px' : '22px 24px 48px' }}>
@@ -318,6 +370,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   /* ------------------------- PHONE (<768): fallback ------------------------- */
   return (
     <Shell>
+      {temperature}
       <div style={{ padding: '24px 18px 40px', maxWidth: '900px', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px', marginBottom: '4px' }}>
           <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: SILVER, letterSpacing: '.28em', paddingBottom: '9px' }}>◇</div>
@@ -332,13 +385,14 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
         <PulseRow counts={counts} />
         <div style={{ height: '10px' }} />
         <RoadmapStrip tasks={tasks} content={content} />
-        {/* tabs */}
+        {/* tabs — semantic icons with their words (Leyes 5, 14) */}
         <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', margin: '4px 0 18px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '2px', overflowX: 'auto' }}>
           {tabs.map(t => {
             const active = tab === t.key
+            const Icon = t.icon
             return (
-              <button key={t.key} onClick={() => setTab(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? SILVER : 'transparent'}`, color: active ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', padding: '8px 4px 10px', cursor: 'pointer', marginBottom: '-3px' }}>
-                <span style={{ fontSize: '9px' }}>{t.mark}</span> {t.label}
+              <button key={t.key} className="pressable" onClick={() => setTab(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? `rgb(${t.tint})` : 'transparent'}`, color: active ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', padding: '8px 4px 10px', cursor: 'pointer', marginBottom: '-3px', whiteSpace: 'nowrap' }}>
+                <Icon size={13} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? `rgb(${t.tint})` : BONE_LOW, flexShrink: 0 }} /> {t.label}
               </button>
             )
           })}
@@ -418,11 +472,12 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
         <nav style={{ marginTop: '18px', display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
           {tabs.map(t => {
             const active = tab === t.key
+            const Icon = t.icon
             return (
-              <button key={t.key} onClick={() => setTab(t.key)} title={t.label} aria-label={t.label} aria-current={active ? 'page' : undefined}
-                style={{ width: '52px', padding: '7px 2px 6px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', background: active ? 'rgba(242,238,230,.06)' : 'transparent', border: `1px solid ${active ? HAIR_HI : 'transparent'}`, borderRadius: '8px', color: active ? STAR : BONE_LOW, cursor: 'pointer' }}>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '12px', lineHeight: 1 }}>{t.mark}</span>
-                <span style={{ fontFamily: FONT_MONO, fontSize: '7px', letterSpacing: '.1em', textTransform: 'uppercase', lineHeight: 1 }}>{t.short || t.label}</span>
+              <button key={t.key} className="pressable" onClick={() => setTab(t.key)} title={t.label} aria-label={t.label} aria-current={active ? 'page' : undefined}
+                style={{ width: '54px', padding: '9px 2px 7px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', background: active ? `rgba(${t.tint},.08)` : 'transparent', border: `1px solid ${active ? `rgba(${t.tint},.3)` : 'transparent'}`, borderRadius: '9px', color: active ? `rgb(${t.tint})` : BONE_LOW, cursor: 'pointer' }}>
+                <Icon size={18} strokeWidth={active ? 1.9 : 1.5} />
+                <span style={{ fontFamily: FONT_MONO, fontSize: '7.5px', letterSpacing: '.08em', textTransform: 'uppercase', lineHeight: 1 }}>{t.short || t.label}</span>
               </button>
             )
           })}
@@ -469,14 +524,15 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
         Back to the app
       </button>
 
-      {/* nav — the deck's marks as the navigation language */}
+      {/* nav — semantic icons at a dignified size, each with its word (Leyes 5, 14) */}
       <nav style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
         {tabs.map(t => {
           const active = tab === t.key
+          const Icon = t.icon
           return (
-            <button key={t.key} onClick={() => setTab(t.key)} aria-current={active ? 'page' : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: '11px', background: active ? 'rgba(242,238,230,.05)' : 'transparent', border: 'none', borderLeft: `1px solid ${active ? SILVER : 'transparent'}`, borderRadius: '0 8px 8px 0', color: active ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', padding: '11px 13px', cursor: 'pointer', textAlign: 'left' }}>
-              <span style={{ fontSize: '9px', color: active ? STAR : FAINT, width: '10px' }}>{t.mark}</span>
+            <button key={t.key} className="pressable" onClick={() => setTab(t.key)} aria-current={active ? 'page' : undefined}
+              style={{ display: 'flex', alignItems: 'center', gap: '11px', background: active ? `rgba(${t.tint},.06)` : 'transparent', border: 'none', borderLeft: `1px solid ${active ? `rgb(${t.tint})` : 'transparent'}`, borderRadius: '0 8px 8px 0', color: active ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', padding: '11px 13px', cursor: 'pointer', textAlign: 'left' }}>
+              <Icon size={15} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? `rgb(${t.tint})` : FAINT, flexShrink: 0 }} />
               {t.label}
               <span style={{ marginLeft: 'auto', fontSize: '8px', color: FAINT, letterSpacing: '.1em' }}>{t.code}</span>
             </button>

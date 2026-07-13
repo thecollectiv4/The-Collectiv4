@@ -15,6 +15,7 @@ import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
 import ClaimWorld from '@/pages/ClaimWorld'
 import Discover from '@/pages/Discover'
+import EventPage from '@/pages/EventPage'
 import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
 import DoorScanner from '@/pages/DoorScanner'
@@ -47,6 +48,7 @@ export default function App() {
           )}
           <Route path="/" element={<Layout />}>
             <Route index element={<EventLanding />} />
+            <Route path="e/:slug" element={<EventPage />} />{/* any published event's public room (0016) */}
             <Route path="discover" element={<Discover />} />
             <Route path="community" element={<Community />} />
             <Route path="profile" element={<Profile />} />

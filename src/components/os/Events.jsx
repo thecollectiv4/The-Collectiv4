@@ -93,13 +93,15 @@ const formToPayload = (form) => {
   }
 }
 
-export default function EventsAdmin() {
+export default function EventsAdmin({ isOwner = false, startNew = false, onConsumedNew }) {
   const navigate = useNavigate()
   const desktop = useIsDesktop()
   const [events, setEvents] = useState([])
   const [loaded, setLoaded] = useState(false)
   const [loadErr, setLoadErr] = useState('')
-  const [view, setView] = useState('list')          // list | edit
+  // CREATE central can open this surface straight onto a blank event
+  // (/os?tab=events&new=1) — the intention lands on the editor, not a list.
+  const [view, setView] = useState(startNew ? 'edit' : 'list')          // list | edit
   const [form, setForm] = useState(emptyForm())
   const [saving, setSaving] = useState(false)
   const [formErr, setFormErr] = useState('')
@@ -116,6 +118,7 @@ export default function EventsAdmin() {
     return true
   }, [])
   useEffect(() => { load() }, [load])
+  useEffect(() => { if (startNew) onConsumedNew?.() }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const say = (msg) => { setNotice(msg); setTimeout(() => setNotice(''), 6000) }
 
@@ -284,27 +287,37 @@ export default function EventsAdmin() {
   }
 
   /* ================================ LIST ================================ */
+  // A verified member MANAGES their own events; the rest of the published
+  // universe shows read-only below (the door scanner needs them scannable,
+  // and honesty needs the split visible). Owners manage everything.
+  const canEdit = (e) => e.mine !== false   // pre-0016 rows carry no `mine` → server still gates writes
+  const mineRows = events.filter(canEdit)
+  const otherRows = events.filter(e => !canEdit(e))
   return (
     <div style={{ maxWidth: '860px' }}>
       {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '0 0 14px' }}>△ {notice}</div>}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase' }}>
-          {events.length} event{events.length === 1 ? '' : 's'} · every write validated server-side
+          {isOwner
+            ? `${events.length} event${events.length === 1 ? '' : 's'} · every write validated server-side`
+            : `${mineRows.length} of your event${mineRows.length === 1 ? '' : 's'} · every write validated server-side`}
         </div>
         <Btn variant="solid" onClick={openNew}><Plus size={12} /> New event</Btn>
       </div>
 
-      {events.length === 0 && (
-        <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: FAINT, letterSpacing: '.06em', padding: '20px 0' }}>no events yet — create the first one.</div>
+      {mineRows.length === 0 && (
+        <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: FAINT, letterSpacing: '.06em', padding: '20px 0' }}>
+          {isOwner ? 'no events yet — create the first one.' : 'no events of yours yet — host the first one.'}
+        </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {events.map((e, i) => {
+        {mineRows.map((e, i) => {
           const tiers = Array.isArray(e.tiers) ? e.tiers : []
           const onSale = tiers.filter(t => t.status === 'available')
           const busy = busyRow === e.id
           return (
-            <div key={e.id} style={{ padding: '14px 2px', borderBottom: i === events.length - 1 ? 'none' : `1px solid ${HAIR}` }}>
+            <div key={e.id} style={{ padding: '14px 2px', borderBottom: i === mineRows.length - 1 ? 'none' : `1px solid ${HAIR}` }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FONT_SANS, fontSize: '14px', fontWeight: 600, color: BONE }}>{e.title}</span>
                 {e.edition && <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>{e.edition}</span>}
@@ -322,6 +335,7 @@ export default function EventsAdmin() {
                 <RowBtn onClick={() => openEdit(e)} disabled={busy}><Pencil size={11} /> Edit</RowBtn>
                 {e.status !== 'published' && <RowBtn onClick={() => quickStatus(e, 'published')} disabled={busy || !e.event_date} title={!e.event_date ? 'needs a date first' : ''}>Publish</RowBtn>}
                 {e.status === 'published' && <RowBtn onClick={() => quickStatus(e, 'draft')} disabled={busy}>Unpublish</RowBtn>}
+                {e.status === 'published' && e.slug && <RowBtn onClick={() => navigate(`/e/${e.slug}`)}>View page</RowBtn>}
                 {e.status === 'published' && <RowBtn onClick={() => navigate(`/door?event=${e.id}`)}><ScanLine size={11} /> Door</RowBtn>}
                 {/* Delete keys on ticket_rows (ALL rows) — the server refuses on any
                     ticket row, so the button must hide on the same truth, not on
@@ -340,6 +354,26 @@ export default function EventsAdmin() {
           )
         })}
       </div>
+
+      {/* the rest of the published universe — read-only for a non-owner
+          member (their door access still works; edits are the host's) */}
+      {!isOwner && otherRows.length > 0 && (
+        <div style={{ marginTop: '26px', borderTop: `1px solid ${HAIR}`, paddingTop: '16px' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '10px' }}>
+            live in the universe · hosted by others
+          </div>
+          {otherRows.map((e) => (
+            <div key={e.id} style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', padding: '9px 2px', borderBottom: `1px solid ${HAIR}` }}>
+              <span style={{ fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID }}>{e.title}</span>
+              <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT, letterSpacing: '.06em' }}>
+                {e.event_date ? new Date(e.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}
+              </span>
+              {e.slug && <RowBtn onClick={() => navigate(`/e/${e.slug}`)}>View page</RowBtn>}
+              <RowBtn onClick={() => navigate(`/door?event=${e.id}`)}><ScanLine size={11} /> Door</RowBtn>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

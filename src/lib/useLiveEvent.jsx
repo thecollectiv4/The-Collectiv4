@@ -30,7 +30,10 @@ function fmt(date, opts) {
 }
 
 // Normalize a raw events row (or the fallback) into the display-ready object
-// every consumer reads. Keeps all date formatting in one place.
+// every consumer reads. Keeps all date formatting in one place. Exported as
+// shapeEvent so /e/:slug can dress ANY published event in the same object
+// the landing already renders — one composition, many rooms.
+export function shapeEvent(row, loading) { return shape(row, loading) }
 function shape(row, loading) {
   const e = row || FALLBACK
   const date = e.event_date ? new Date(e.event_date) : null
@@ -60,14 +63,27 @@ export function LiveEventProvider({ children }) {
 
   useEffect(() => {
     let alive = true
-    supabase
+    // THE live event is a HOUSE event (is_house, migration 0016) — a member
+    // publishing THEIR event must never hijack the root landing. Pre-0016
+    // (column not deployed yet) the filtered query errors → fall back to the
+    // old shape so the landing keeps working while the migration lands.
+    const base = () => supabase
       .from('events')
       .select('*')
       .eq('status', 'published')
       .eq('is_test', false)   // never surface the hidden QA event (migration 0012)
       .order('created_at', { ascending: false })
       .limit(1)
-      .then(({ data }) => { if (alive) setState(shape(data && data[0] ? data[0] : null, false)) })
+    base().eq('is_house', true)
+      .then(({ data, error }) => {
+        if (!alive) return
+        if (error) {
+          base().then(({ data: d2 }) => { if (alive) setState(shape(d2 && d2[0] ? d2[0] : null, false)) })
+            .catch(() => { if (alive) setState(shape(null, false)) })
+          return
+        }
+        setState(shape(data && data[0] ? data[0] : null, false))
+      })
       .catch(() => { if (alive) setState(shape(null, false)) })
     return () => { alive = false }
   }, [])

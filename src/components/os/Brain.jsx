@@ -15,11 +15,18 @@ import { useIsDesktop } from '@/lib/useIsDesktop'
    done". The text is treated as intention, never as fact.
    ========================================================================= */
 
-const STARTERS = [
-  "plan tomorrow's content",
-  'set up a team call',
-  "what's blocking Fall 001",
-]
+/* YOUR TODAY (Ley 16) — the Brain's landing is the board's real state, and
+   every suggestion is born from a real item. No generic chips: when the
+   board is empty the one honest move is offered instead. */
+function contextStarters(ctx) {
+  const s = []
+  if (ctx?.week?.length) s.push(`what's the move on "${ctx.week[0]}"?`)
+  if (ctx?.motion?.length) s.push(`unblock "${ctx.motion[0]}" — what's in the way?`)
+  if (ctx?.toMake?.length) s.push(`plan the shoot for "${ctx.toMake[0]}"`)
+  if (ctx?.nextEvent) s.push(`what's left before ${ctx.nextEvent.title}?`)
+  if (!s.length) s.push('set up this week — what matters most?')
+  return s.slice(0, 3)
+}
 
 function deriveTitle(text) {
   const first = (text || '').trim().split('\n')[0].replace(/^["“#*\-\s]+/, '')
@@ -29,7 +36,7 @@ function deriveTitle(text) {
 /* embedded — dock sizing: fill the host panel's height, no maxWidth, smaller
    empty-state type. Same state, same session — the dock and the tab are one
    continuous conversation (messages live lifted in OS.jsx). */
-export default function Brain({ onSaveContent, onActed, messages, setMessages, embedded }) {
+export default function Brain({ onSaveContent, onActed, messages, setMessages, embedded, context }) {
   const desktop = useIsDesktop()
   const [status, setStatus] = useState('checking')   // checking | online | coming_online | error
   const [input, setInput] = useState('')
@@ -148,14 +155,33 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages, e
       {/* transcript */}
       <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
         {messages.length === 0 && (
+          /* YOUR TODAY — the Brain lands on the real state of the room (Ley 16):
+             days to Fall 001, what's actually on the board, the next real date.
+             The screen's one chrome moment is the days number. */
           <div className="os-reveal" style={{ padding: embedded ? '14px 2px 8px' : '26px 2px 10px' }}>
-            <div style={{ fontFamily: FONT_DISPLAY, fontSize: embedded ? '27px' : desktop ? '44px' : '34px', lineHeight: .9, letterSpacing: '.02em', ...chromeText }}>TALK TO IT.</div>
-            <div style={{ fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '14px', maxWidth: '440px' }}>
-              It knows the board, the pipeline, and the road to Fall 001. Ask it to think — or tell it to act: it creates tasks, drafts content, and hands you calendar events ready to click.
+            <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.28em', textTransform: 'uppercase' }}>
+              ◇ your today · {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '20px' }}>
-              {STARTERS.map((s) => (
-                <button key={s} onClick={() => send(s)} style={{ background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 15px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.08em', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: FONT_DISPLAY, fontSize: embedded ? '44px' : desktop ? '64px' : '50px', lineHeight: .85, letterSpacing: '.01em', ...chromeText }}>
+                {context?.days >= 0 ? String(context.days).padStart(2, '0') : '—'}
+              </span>
+              <span style={{ fontFamily: FONT_DISPLAY, fontSize: embedded ? '20px' : desktop ? '26px' : '22px', lineHeight: 1, color: BONE }}>DAYS TO FALL 001</span>
+            </div>
+
+            <div style={{ marginTop: '16px', maxWidth: '520px', display: 'flex', flexDirection: 'column' }}>
+              <TodayRow label="this week" items={context?.week} empty="nothing pulled in yet — the week is open" />
+              <TodayRow label="in motion" items={context?.motion} empty="nothing moving yet" />
+              <TodayRow label="to make" items={context?.toMake} empty="the pipeline is clear" />
+              <TodayRow label="next event" items={context?.nextEvent ? [`${context.nextEvent.title} · ${context.nextEvent.date}`] : null} empty="no date on the books yet" />
+            </div>
+
+            <div style={{ fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE_MID, lineHeight: 1.6, marginTop: '16px', maxWidth: '440px' }}>
+              This is the room, live. Ask it to think — or tell it to act: it creates tasks, drafts content, and hands you calendar events ready to click.
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '14px' }}>
+              {contextStarters(context).map((s) => (
+                <button key={s} onClick={() => send(s)} style={{ background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 15px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.08em', cursor: 'pointer', textAlign: 'left' }}>
                   ◇ {s}
                 </button>
               ))}
@@ -271,6 +297,21 @@ function ActionChip({ a, busy, onRespond }) {
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(199,201,209,.35)', background: 'rgba(199,201,209,.07)', borderRadius: '100px', padding: '6px 12px', color: STAR, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
       <Check size={11} /> {label}{a.title ? ` · “${a.title}”` : ''}
     </span>
+  )
+}
+
+/* One line of YOUR TODAY — real items or an honest empty, never filler. */
+function TodayRow({ label, items, empty }) {
+  const has = Array.isArray(items) && items.length > 0
+  const shown = has ? items.slice(0, 3) : []
+  const more = has ? items.length - shown.length : 0
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', padding: '6px 0', borderBottom: `1px solid ${HAIR}` }}>
+      <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', flexShrink: 0, width: '76px' }}>{label}</span>
+      <span style={{ fontFamily: FONT_MONO, fontSize: '10px', color: has ? BONE_MID : FAINT, letterSpacing: '.02em', lineHeight: 1.55, minWidth: 0 }}>
+        {has ? <>{shown.join(' · ')}{more > 0 && <span style={{ color: FAINT }}> +{more}</span>}</> : empty}
+      </span>
+    </div>
   )
 }
 
