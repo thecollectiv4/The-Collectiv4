@@ -3,7 +3,7 @@ import { CalendarDays, Compass, Users, User, LayoutGrid } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
-import { useIsDesktop } from '@/lib/useIsDesktop'
+import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 
 const baseTabs = [
@@ -15,8 +15,17 @@ const baseTabs = [
 // Network members (verified/owner) get the internal OS as an extra tab.
 const osTab = { to: '/os', icon: LayoutGrid, label: 'OS', requiresAuth: true }
 
-// Public routes never force the sign-in modal (Discover is top-of-funnel).
+// Public routes never force the sign-in modal (Discover is top-of-funnel —
+// and a shared world link must open the world, not a wall: /user/:id is the
+// museum's public face, anon included).
 const PUBLIC_PATHS = ['/', '/discover']
+const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/')
+
+// Routes with a real desktop composition — the 430px phone frame releases
+// here at >=1024px. Everything else keeps the centered phone frame under
+// the wide header until it earns its own desktop architecture.
+const wideDesigned = (path) =>
+  path === '/' || /^\/(discover|profile|user)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()
@@ -39,7 +48,7 @@ export default function Layout() {
     // only armed-off when unauthenticated, a later mid-session SIGNED_OUT (cross-tab
     // sign-out, failed token refresh) would pop the modal unprompted. First-load only.
     autoPrompted.current = true
-    if (!user && !PUBLIC_PATHS.includes(location.pathname)) setShowAuth(true)
+    if (!user && !isPublicPath(location.pathname)) setShowAuth(true)
   }, [authLoading, user])
 
   // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
@@ -82,10 +91,63 @@ export default function Layout() {
     return () => document.body.classList.remove('os-full')
   }, [osDesktop])
 
+  // CONSUMER wide mode (>=1024px): a top header carries the navigation and
+  // the bottom phone tabs disappear — desktop stops being a stretched phone.
+  // The frame itself releases only on routes with a real desktop composition.
+  const wide = useWide()
+  const consumerWide = wide && !location.pathname.startsWith('/os')
+  const wideFull = consumerWide && wideDesigned(location.pathname)
+  useEffect(() => {
+    document.body.classList.toggle('wide-full', wideFull)
+    return () => document.body.classList.remove('wide-full')
+  }, [wideFull])
+
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh', background:'var(--bg)' }}>
-      <main style={{ flex:1, paddingBottom: osDesktop ? 0 : '100px' }}>
-        <div key={location.pathname} className={transClass}>
+
+      {/* Wide header — the desktop navigation (fixed spans the viewport; the
+          body frame doesn't constrain position:fixed). Bebas mark as the door
+          home, DM Mono tabs, hairline below. One instrument, editorial. */}
+      {consumerWide && (
+        <header style={{
+          position:'fixed', top:0, left:0, right:0, zIndex:9999, height:'56px',
+          background:'rgba(10,10,13,.92)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
+          borderBottom:'1px solid rgba(242,238,230,.08)',
+          display:'flex', alignItems:'center', justifyContent:'space-between',
+          padding:'0 clamp(24px, 4vw, 56px)',
+        }}>
+          <div onClick={()=>navigate('/')} style={{ display:'flex', alignItems:'baseline', gap:'10px', cursor:'pointer' }}>
+            <span style={{ fontFamily:'Bebas Neue', fontSize:'18px', color:'#F2EEE6', letterSpacing:'.08em' }}>THE COLLECTIV4</span>
+            <span style={{ fontFamily:'DM Mono', fontSize:'8px', color:'#5B5952', letterSpacing:'.3em', textTransform:'uppercase' }}>◇ the creative universe</span>
+          </div>
+          <nav style={{ display:'flex', alignItems:'center', gap:'2px' }}>
+            {tabs.map((tab) => {
+              const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
+              return (
+                <button key={tab.to} onClick={()=>handleTabClick(tab)} style={{
+                  background:'transparent', border:'none', cursor:'pointer',
+                  padding:'8px 14px', display:'inline-flex', alignItems:'center', gap:'7px',
+                  fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em', textTransform:'uppercase',
+                  color: active ? '#F2EEE6' : '#83838F', transition:'color .2s',
+                }}
+                  onMouseOver={e => { if (!active) e.currentTarget.style.color = '#C7C4BC' }}
+                  onMouseOut={e => { if (!active) e.currentTarget.style.color = '#83838F' }}>
+                  <span aria-hidden style={{ width:'4px', height:'4px', borderRadius:'50%', background:'#E8E9ED', boxShadow:'0 0 6px rgba(232,233,237,.6)', opacity: active ? 1 : 0, transition:'opacity .2s' }} />
+                  {tab.label}
+                </button>
+              )
+            })}
+          </nav>
+        </header>
+      )}
+
+      <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0, paddingBottom: (osDesktop || consumerWide) ? 0 : '100px' }}>
+        {/* position+zIndex are load-bearing: while the route transition
+            animates, this div is a stacking context that competes with the
+            body-portaled Constellation canvas (zIndex 0) in DOM order — and
+            the canvas comes later, so without an explicit z the ENTIRE page
+            paints behind the sky for the length of the animation. */}
+        <div key={location.pathname} className={transClass} style={{ position:'relative', zIndex:1 }}>
           <Outlet />
         </div>
       </main>
@@ -94,8 +156,8 @@ export default function Layout() {
       {showAuth && !user && <AuthModal onClose={()=>{setShowAuth(false);setAuthDismissed(true)}} />}
       {/* Also show if they try to navigate without auth after dismissing */}
 
-      {/* Nav - consumer surfaces + mobile /os; never on desktop /os */}
-      {!osDesktop && <nav style={{
+      {/* Nav - consumer surfaces + mobile /os; never on desktop /os or wide (the header carries it) */}
+      {!osDesktop && !consumerWide && <nav style={{
         position:'fixed', bottom:0, left:0, right:0,
         background:'rgba(10,10,13,.97)',
         borderTop:'1px solid rgba(242,238,230,.08)',

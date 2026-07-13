@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
+import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers } from 'lucide-react'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
@@ -10,6 +11,7 @@ const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 export default function EventLanding() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const wide = useWide()                  // >=1024px: editorial spread, not a stretched phone
   const [searchParams] = useSearchParams()
   // The live event comes from the single source of truth (useLiveEvent), not a
   // local fetch — same published-row query, shared with every other surface.
@@ -122,17 +124,20 @@ export default function EventLanding() {
   return (
     <div style={{background:'radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.05) 0%, rgba(242,238,230,0) 55%), #0A0A0D',minHeight:'100vh'}}>
 
-      {/* HEADER */}
-      <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,10,13,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,238,230,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+      {/* HEADER — phone only; on wide the Layout header carries the brand */}
+      {!wide && <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,10,13,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,238,230,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'#F2EEE6',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
           <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#C7C9D1',animation:'pulse 2s infinite',boxShadow:'0 0 10px rgba(199,201,209,.5)'}}/>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
         </div>
-      </div>
+      </div>}
+
+      {/* the editorial frame — one container for every section on wide */}
+      <div style={wide ? {maxWidth:'1200px',margin:'0 auto'} : undefined}>
 
       {/* HERO */}
-      <div style={{position:'relative',minHeight:'540px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding:'0 28px 44px',paddingTop:'48px'}}>
+      <div style={{position:'relative',minHeight: wide ? 'min(74vh, 780px)' : '540px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding: wide ? '48px clamp(40px,5vw,72px) 64px' : '48px 28px 44px'}}>
         {/* Ambient bone glow */}
         <div style={{position:'absolute',top:'40px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.07) 0%,transparent 70%)',filter:'blur(80px)'}} />
         <div style={{position:'absolute',top:'200px',right:'-40px',width:'250px',height:'250px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.04) 0%,transparent 70%)',filter:'blur(70px)'}} />
@@ -162,13 +167,13 @@ export default function EventLanding() {
           </div>
           <div className="fade-up-1" style={{fontSize:'10px',letterSpacing:'.3em',color:'var(--cream-mid)',textTransform:'uppercase',fontWeight:600,marginBottom:'14px'}}>The Collectiv4 presents</div>
           <div className="fade-up-2" style={{margin:0,marginBottom:'4px'}}>
-            <div style={{display:'flex',alignItems:'baseline',gap:'12px'}}>
-              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'82px',lineHeight:.85,letterSpacing:'2px',color:'transparent',WebkitTextStroke:'2px var(--cream)'}}>RAN</span>
-              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'32px',lineHeight:1,letterSpacing:'2px',color:'var(--cream)'}}>BY</span>
+            <div style={{display:'flex',alignItems:'baseline',gap: wide ? '20px' : '12px'}}>
+              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize: wide ? 'clamp(120px, 12vw, 168px)' : '82px',lineHeight:.85,letterSpacing:'2px',color:'transparent',WebkitTextStroke:'2px var(--cream)'}}>RAN</span>
+              <span style={{fontFamily:'Bebas Neue,sans-serif',fontSize: wide ? '56px' : '32px',lineHeight:1,letterSpacing:'2px',color:'var(--cream)'}}>BY</span>
             </div>
-            <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize:'82px',lineHeight:.85,letterSpacing:'2px',color:'var(--cream)',marginTop:'4px'}}>ARTISTS</div>
+            <div style={{fontFamily:'Bebas Neue,sans-serif',fontSize: wide ? 'clamp(120px, 12vw, 168px)' : '82px',lineHeight:.85,letterSpacing:'2px',color:'var(--cream)',marginTop:'4px'}}>ARTISTS</div>
           </div>
-          <p className="fade-up-3" style={{fontSize:'14px',color:'var(--cream-mid)',lineHeight:1.65,marginTop:'22px',maxWidth:'320px'}}>
+          <p className="fade-up-3" style={{fontSize: wide ? '16px' : '14px',color:'var(--cream-mid)',lineHeight:1.65,marginTop:'22px',maxWidth: wide ? '440px' : '320px'}}>
             {event.tagline || "A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room."}
           </p>
           <div className="fade-up-4" style={{display:'flex',flexWrap:'wrap',gap:'20px',marginTop:'26px'}}>
@@ -183,7 +188,7 @@ export default function EventLanding() {
       </div>
 
       {/* CTA */}
-      <div style={{padding:'0 28px 32px'}}>
+      <div style={{padding: wide ? '0 clamp(40px,5vw,72px) 40px' : '0 28px 32px', maxWidth: wide ? '760px' : undefined}}>
         {ticketStatus === 'success' && (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)',marginBottom:'12px'}}>
             <Check size={16} style={{color:'#C7C9D1'}} />
@@ -247,9 +252,9 @@ export default function EventLanding() {
 
       {/* LINEUP */}
       {lineup.length > 0 && (
-      <div style={{padding:'36px 28px'}}>
+      <div style={{padding: wide ? '48px clamp(40px,5vw,72px)' : '36px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'22px'}}>LINEUP</div>
-        <div style={{display:'flex',flexDirection:'column',gap:'4px'}}>
+        <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(2, minmax(0,1fr))',gap:'12px'} : {display:'flex',flexDirection:'column',gap:'4px'}}>
           {lineup.map((a,i)=>(
             <div key={i} onClick={()=>navigate('/artist/'+a.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:'1px solid rgba(242,238,230,.1)',cursor:'pointer',transition:'all .2s'}}
@@ -272,9 +277,9 @@ export default function EventLanding() {
 
       {/* EXPERIENCES */}
       {experiences.length > 0 && (
-      <div style={{padding:'36px 28px'}}>
+      <div style={{padding: wide ? '48px clamp(40px,5vw,72px)' : '36px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'22px'}}>THE EXPERIENCE</div>
-        <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+        <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(300px, 1fr))',gap:'12px'} : {display:'flex',flexDirection:'column',gap:'10px'}}>
           {experiences.map((exp,i)=>(
             <div key={i} onClick={()=>navigate('/experience/'+exp.slug)}
               style={{display:'flex',alignItems:'center',gap:'16px',padding:'18px',borderRadius:'12px',background:EXP_BG,border:`1px solid ${EXP_ACCENT}30`,cursor:'pointer',transition:'all .2s'}}
@@ -294,11 +299,13 @@ export default function EventLanding() {
       )}
 
       {/* FOOTER */}
-      <div style={{padding:'36px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
+      <div style={{padding: wide ? '48px 28px' : '36px 28px 120px',borderTop:'1px solid var(--border)',textAlign:'center'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em'}}>THE COLLECTIV4</div>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'8px',letterSpacing:'.15em'}}>ART · MUSIC · FASHION · EVENTS</div>
         <div style={{fontSize:'11px',color:'var(--cream-ghost)',marginTop:'12px'}}>@thecollectiv4</div>
       </div>
+
+      </div>{/* /wide frame */}
     </div>
   )
 }
