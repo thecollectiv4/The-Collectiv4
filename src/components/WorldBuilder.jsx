@@ -307,7 +307,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
     ? `◇ build your world · ${String(safeStep + 1).padStart(2, '0')}/${String(steps.length).padStart(2, '0')}`
     : stage === 'meet'
       ? `◇ getting to know you · ${String(meetIdx + 1).padStart(2, '0')}/${String(MEET.length).padStart(2, '0')}`
-      : '◇ composing your world'
+      : stage === 'plan' ? '◇ your world, composed' : '◇ composing your world'
 
   return (
     // z 10000: ABOVE Layout's bottom nav (9999) — the nav must never cover
