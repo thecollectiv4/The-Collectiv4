@@ -60,7 +60,15 @@ export async function fetchFollowState(profileId, viewerId) {
 }
 
 export async function follow(viewerId, profileId) {
-  const { error } = await supabase.from('follows').insert({ follower_id: viewerId, followee_id: profileId })
+  let { error } = await supabase.from('follows').insert({ follower_id: viewerId, followee_id: profileId })
+  if (error && error.code === '23503') {
+    // the follower has no profiles row yet (it's born lazily on the first
+    // /profile visit) — the FK refuses. ensure_own_profile() (0017) creates
+    // the minimal row server-side; then the edge lands. Caught LIVE by the
+    // first post-migration prod walkthrough.
+    await supabase.rpc('ensure_own_profile')
+    ;({ error } = await supabase.from('follows').insert({ follower_id: viewerId, followee_id: profileId }))
+  }
   if (error && error.code !== '23505') {   // already following = already true
     if (MISSING.test(error.message || '')) throw new Error(NOT_ON_YET)
     throw new Error(error.message || "couldn't follow")
