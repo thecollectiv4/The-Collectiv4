@@ -181,27 +181,23 @@ a { color: inherit; text-decoration: none; }
 
 /* ============================================================
    DISCOVER — the sky of worlds. Cards lift on hover, the banner
-   breathes, the name turns liquid chrome, the tagline reveals.
-   Hover styles live HERE (not inline) so :hover composes with the
-   breathe animation instead of fighting inline mouseover handlers.
+   breathes, the tagline reveals. The screen's ONE chrome moment
+   is the DISCOVER title (Ley 8) — names stay bone and simply
+   brighten. Hover styles live HERE (not inline) so :hover
+   composes with the breathe animation.
    ============================================================ */
-.disc-card { transition: transform .5s cubic-bezier(.2,.7,.2,1), border-color .5s ease, box-shadow .5s ease; }
+.disc-card { transition: transform .5s cubic-bezier(.2,.7,.2,1), border-color .5s ease; }
 .disc-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-5px);
   border-color: rgba(242,238,230,.34) !important;
-  box-shadow: 0 22px 60px rgba(0,0,0,.55);
 }
 /* the banner breathes — slow, alive, never busy */
 @keyframes discBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
 .disc-banner img, .disc-banner svg { transform-origin: 50% 50%; }
 .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation: discBreathe 6s ease-in-out infinite; }
-/* the name goes liquid chrome on hover (display type only — one accent) */
-.disc-name { color: #F2EEE6; }
-.disc-card:hover .disc-name {
-  background: linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%);
-  -webkit-background-clip: text; background-clip: text;
-  -webkit-text-fill-color: transparent; color: transparent;
-}
+/* the name brightens — chrome belongs to the title alone (Ley 8) */
+.disc-name { color: #F2EEE6; transition: text-shadow .3s ease; }
+.disc-card:hover .disc-name { text-shadow: 0 0 18px rgba(242,238,230,.25); }
 /* micro-reveal — the person's line surfaces when you lean in */
 .disc-reveal { opacity: 0; transform: translateY(3px); transition: opacity .35s ease .06s, transform .35s ease .06s; }
 .disc-card:hover .disc-reveal { opacity: 1; transform: translateY(0); }
@@ -211,7 +207,7 @@ a { color: inherit; text-decoration: none; }
 /* touch devices: no hover — reveals are simply visible, nothing breathes */
 @media (hover: none) {
   .disc-reveal { opacity: 1; transform: none; }
-  .disc-card:hover { transform: none; box-shadow: none; }
+  .disc-card:hover { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -25,7 +25,10 @@ import { createPortal } from 'react-dom'
 function hash(seed = '') { let h = 0; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0; return h }
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
 
-export default function Constellation({ seed = 'c4' }) {
+/* `quiet` — the constitutional register (Ley 8: constelación = acento
+   quirúrgico, no wallpaper; Ley 1: la decoración sirve). Fewer, fainter
+   stars and links: atmosphere you feel, never a layer you read. */
+export default function Constellation({ seed = 'c4', quiet = false }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -33,6 +36,8 @@ export default function Constellation({ seed = 'c4' }) {
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const K = quiet ? 0.62 : 1                 // density multiplier
+    const A = quiet ? 0.66 : 1                 // opacity multiplier
 
     let stars = []
     let links = []
@@ -53,13 +58,13 @@ export default function Constellation({ seed = 'c4' }) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
       const rnd = mulberry32(hash(String(seed)) + 77)
-      const count = Math.max(24, Math.min(84, Math.round((w * h) / 24000)))
+      const count = Math.round(Math.max(24, Math.min(84, Math.round((w * h) / 24000))) * K)
       // 12% vertical overscan so parallax never exposes a starless band
       stars = Array.from({ length: count }, () => ({
         x: rnd() * w,
         y: rnd() * h * 1.12,
         r: 0.4 + rnd() * 1.1,
-        base: 0.1 + rnd() * 0.5,
+        base: (0.1 + rnd() * 0.5) * A,
         depth: 0.35 + rnd() * 0.65,          // parallax layer
         phase: rnd() * Math.PI * 2,
         speed: 0.15 + rnd() * 0.35,          // twinkle
@@ -68,9 +73,10 @@ export default function Constellation({ seed = 'c4' }) {
       }))
       // faint links between close neighbors — the chart, not a net
       links = []
+      const maxLinks = quiet ? 18 : 34
       const maxD = Math.min(190, w * 0.16)
-      for (let i = 0; i < stars.length && links.length < 34; i++) {
-        for (let j = i + 1; j < stars.length && links.length < 34; j++) {
+      for (let i = 0; i < stars.length && links.length < maxLinks; i++) {
+        for (let j = i + 1; j < stars.length && links.length < maxLinks; j++) {
           const a = stars[i], b = stars[j]
           const d = Math.hypot(a.x - b.x, a.y - b.y)
           if (d < maxD && Math.abs(a.depth - b.depth) < 0.25) links.push([i, j, 1 - d / maxD])
@@ -118,7 +124,7 @@ export default function Constellation({ seed = 'c4' }) {
       ctx.lineWidth = 0.6
       for (const [i, j, k] of links) {
         const a = stars[i], b = stars[j]
-        ctx.strokeStyle = `rgba(199,201,209,${(0.028 + 0.05 * k).toFixed(3)})`
+        ctx.strokeStyle = `rgba(199,201,209,${((0.028 + 0.05 * k) * A).toFixed(3)})`
         ctx.beginPath()
         ctx.moveTo(a.x, yOf(a))
         ctx.lineTo(b.x, yOf(b))
@@ -174,7 +180,7 @@ export default function Constellation({ seed = 'c4' }) {
       window.removeEventListener('scroll', onScroll)
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [seed])
+  }, [seed, quiet])
 
   return createPortal(
     <canvas ref={ref} aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />,
