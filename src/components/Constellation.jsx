@@ -27,17 +27,25 @@ function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; le
 
 /* `quiet` — the constitutional register (Ley 8: constelación = acento
    quirúrgico, no wallpaper; Ley 1: la decoración sirve). Fewer, fainter
-   stars and links: atmosphere you feel, never a layer you read. */
-export default function Constellation({ seed = 'c4', quiet = false }) {
+   stars and links: atmosphere you feel, never a layer you read.
+   `tint` — the section's light temperature (Ley 14): an 'r,g,b' string
+   from the locked palette that warms the sky's glow and links. Same void,
+   same bone — only the temperature of the light moves. */
+export default function Constellation({ seed = 'c4', quiet = false, tint = '199,201,209' }) {
   const ref = useRef(null)
 
   useEffect(() => {
     const canvas = ref.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
+    // a context can be denied (sandboxed webviews, exhausted GPU memory) —
+    // a sky that can't paint simply doesn't; the page must never die for
+    // decoration (Ley 1: la decoración sirve, jamás tumba la información)
+    if (!ctx) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const K = quiet ? 0.62 : 1                 // density multiplier
     const A = quiet ? 0.66 : 1                 // opacity multiplier
+    const TINT = /^\d{1,3},\d{1,3},\d{1,3}$/.test(tint) ? tint : '199,201,209'
 
     let stars = []
     let links = []
@@ -88,6 +96,10 @@ export default function Constellation({ seed = 'c4', quiet = false }) {
       // the void itself — same gradient family as the page backgrounds.
       // Rasterized ONCE into an offscreen canvas; per-frame it's a single
       // drawImage blit instead of megapixels of gradient math.
+      // A 0-sized viewport (prerendered/hidden tabs, embedded webviews)
+      // must not build: drawImage THROWS on a 0-sized source canvas and
+      // React tears the whole app down for a sky (pane catch, v4).
+      if (w < 1 || h < 1) { bgCanvas = null; return }
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
@@ -101,8 +113,8 @@ export default function Constellation({ seed = 'c4', quiet = false }) {
       b.fillStyle = g
       b.fillRect(0, 0, w, h)
       const glow = b.createRadialGradient(w * 0.5, h * 0.04, 0, w * 0.5, h * 0.04, Math.max(w, h) * 0.7)
-      glow.addColorStop(0, 'rgba(199,201,209,0.055)')
-      glow.addColorStop(1, 'rgba(199,201,209,0)')
+      glow.addColorStop(0, `rgba(${TINT},0.055)`)
+      glow.addColorStop(1, `rgba(${TINT},0)`)
       b.fillStyle = glow
       b.fillRect(0, 0, w, h)
     }
@@ -111,6 +123,8 @@ export default function Constellation({ seed = 'c4', quiet = false }) {
       const w = window.innerWidth
       const h = window.innerHeight
       if (!bgCanvas) buildBg(w, h)
+      if (!bgCanvas) return   // 0-sized viewport — nothing to paint yet;
+                              // resize/visibility recovery rebuilds it
       ctx.drawImage(bgCanvas, 0, 0, w, h)
 
       const par = reduced ? 0 : scrollY * 0.06
@@ -124,7 +138,7 @@ export default function Constellation({ seed = 'c4', quiet = false }) {
       ctx.lineWidth = 0.6
       for (const [i, j, k] of links) {
         const a = stars[i], b = stars[j]
-        ctx.strokeStyle = `rgba(199,201,209,${((0.028 + 0.05 * k) * A).toFixed(3)})`
+        ctx.strokeStyle = `rgba(${TINT},${((0.028 + 0.05 * k) * A).toFixed(3)})`
         ctx.beginPath()
         ctx.moveTo(a.x, yOf(a))
         ctx.lineTo(b.x, yOf(b))
@@ -143,6 +157,9 @@ export default function Constellation({ seed = 'c4', quiet = false }) {
       raf = requestAnimationFrame(loop)
       if (t - last < 33) return            // ~30fps is plenty for a sky
       last = t
+      // born at 0 size (prerender) and now real, without a resize event —
+      // build the sky the moment the viewport exists
+      if (!stars.length && window.innerWidth > 0 && window.innerHeight > 0) build()
       if (!reduced) {
         const dt = 0.033
         const w = window.innerWidth, range = window.innerHeight * 1.12
@@ -180,7 +197,7 @@ export default function Constellation({ seed = 'c4', quiet = false }) {
       window.removeEventListener('scroll', onScroll)
       document.removeEventListener('visibilitychange', onVis)
     }
-  }, [seed, quiet])
+  }, [seed, quiet, tint])
 
   return createPortal(
     <canvas ref={ref} aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }} />,

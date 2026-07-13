@@ -4,8 +4,9 @@ import { AuthProvider } from '@/lib/AuthContext'
 import { LiveEventProvider } from '@/lib/useLiveEvent'
 import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout'
-import EventLanding from '@/pages/EventLanding'
+import Events from '@/pages/Events'
 import Community from '@/pages/Community'
+import Messages from '@/pages/Messages'
 import Profile from '@/pages/Profile'
 import Auth from '@/pages/Auth'
 import ExperienceDetail from '@/pages/ExperienceDetail'
@@ -14,7 +15,6 @@ import ArtistProfile from '@/pages/ArtistProfile'
 import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
 import ClaimWorld from '@/pages/ClaimWorld'
-import Discover from '@/pages/Discover'
 import EventPage from '@/pages/EventPage'
 import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
@@ -34,6 +34,9 @@ function ScrollToTop() {
   return null
 }
 
+/* Discover DISSOLVED (D1, decisión de Pato): its people function lives in
+   /community, its events function in / (the EVENT tab). The old address
+   redirects clean — shared links never 404. */
 export default function App() {
   return (
     <AuthProvider>
@@ -47,10 +50,11 @@ export default function App() {
             <Route path="/__os-harness" element={<Suspense fallback={null}><OSHarness /></Suspense>} />
           )}
           <Route path="/" element={<Layout />}>
-            <Route index element={<EventLanding />} />
+            <Route index element={<Events />} />{/* EVENT tab — every room on the platform */}
             <Route path="e/:slug" element={<EventPage />} />{/* any published event's public room (0016) */}
-            <Route path="discover" element={<Discover />} />
-            <Route path="community" element={<Community />} />
+            <Route path="community" element={<Community />} />{/* the people — find yours */}
+            <Route path="messages" element={<Messages />} />{/* the conversations (0017) */}
+            <Route path="messages/:id" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
@@ -60,9 +64,10 @@ export default function App() {
             <Route path="network" element={<NetworkAdmin />} />{/* owner-only: grant verified */}
             <Route path="os" element={<OS />} />{/* network-only: internal team hub */}
             <Route path="door" element={<DoorScanner />} />{/* network-only: door check-in */}
-            {/* Redirects from old routes */}
-            <Route path="attendees" element={<Navigate to="/community" />} />
-            <Route path="chat" element={<Navigate to="/community" />} />
+            {/* Redirects from dissolved/old routes — clean, never a 404 */}
+            <Route path="discover" element={<Navigate to="/community" replace />} />
+            <Route path="attendees" element={<Navigate to="/community" replace />} />
+            <Route path="chat" element={<Navigate to="/messages" replace />} />
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

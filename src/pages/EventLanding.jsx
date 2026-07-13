@@ -4,7 +4,8 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers, MessagesSquare } from 'lucide-react'
+import { socialReady, joinEventChat } from '@/lib/social'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
@@ -29,6 +30,25 @@ export function EventShow({ live }) {
   const [hasTicket, setHasTicket] = useState(false)
   const [checkingOut, setCheckingOut] = useState(false)
   const [ticketStatus, setTicketStatus] = useState(null) // 'success' | 'cancelled'
+  const [guestsOpen, setGuestsOpen] = useState(false)    // the full guest list, inline
+  const [chatReady, setChatReady] = useState(false)      // room chat live in the DB (0017)
+  const [chatBusy, setChatBusy] = useState(false)
+  const [chatErr, setChatErr] = useState('')
+
+  // the room chat door renders only when the layer is live (Ley 9)
+  useEffect(() => { socialReady().then(setChatReady) }, [])
+
+  const enterRoomChat = async () => {
+    if (chatBusy || !event) return
+    setChatBusy(true); setChatErr('')
+    try {
+      const threadId = await joinEventChat(event.id)
+      navigate(`/messages/${threadId}`)
+    } catch (e) {
+      setChatErr(e?.message || "couldn't open the room — try again")
+      setChatBusy(false)
+    }
+  }
 
   useEffect(() => {
     const status = searchParams.get('ticket')
@@ -224,10 +244,33 @@ export function EventShow({ live }) {
           </div>
         )}
         {hasTicket || ticketStatus === 'success' ? (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)'}}>
-            <Check size={16} style={{color:'#C7C9D1'}} />
-            <span style={{color:'#C7C9D1',fontWeight:500,fontSize:'14px'}}>You're in. See you {shortDate}.</span>
-          </div>
+          <>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)'}}>
+              <Check size={16} style={{color:'#C7C9D1'}} />
+              <span style={{color:'#C7C9D1',fontWeight:500,fontSize:'14px'}}>You're in. See you {shortDate}.</span>
+            </div>
+            {/* THE ROOM CHAT — the room that continues (D2, the Base44 steal
+                rebuilt). Ticket holders only; the door renders only when the
+                layer is live in the DB (Leyes 9, 11). */}
+            {chatReady && hasTicket && (
+              <>
+                <button className="pressable" onClick={enterRoomChat} disabled={chatBusy}
+                  style={{marginTop:'10px',width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'rgba(232,233,237,.05)',border:'1px solid rgba(232,233,237,.2)',borderRadius:'12px',padding:'14px 16px',cursor:chatBusy?'default':'pointer',transition:'border-color .2s, background .2s',textAlign:'left'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.4)';e.currentTarget.style.background='rgba(232,233,237,.09)'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.2)';e.currentTarget.style.background='rgba(232,233,237,.05)'}}>
+                  {chatBusy
+                    ? <Loader2 size={16} style={{color:'#E8E9ED',animation:'spin 1s linear infinite',flexShrink:0}} />
+                    : <MessagesSquare size={16} strokeWidth={1.6} style={{color:'#E8E9ED',flexShrink:0}} />}
+                  <span style={{flex:1,minWidth:0}}>
+                    <span style={{display:'block',fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.05em',lineHeight:1}}>THE ROOM CHAT</span>
+                    <span style={{display:'block',fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em',marginTop:'4px'}}>outfits, USBs, who's bringing what — the room before the room</span>
+                  </span>
+                  <ArrowRight size={13} style={{color:'var(--cream-mid)',flexShrink:0}} />
+                </button>
+                {chatErr && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'#E5A0A0',marginTop:'8px'}}>⚠ {chatErr}</div>}
+              </>
+            )}
+          </>
         ) : (
           <button className="pressable" onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
             style={{width:'100%',background:checkingOut?'var(--cream-low)':'#F2EEE6',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(242,238,230,.12)'}}
@@ -244,35 +287,58 @@ export function EventShow({ live }) {
           </button>
         )}
         {/* WHO'S GOING — the guest list, promoted (Ley 6: la gente ES el
-            contenido). Real faces from the same RPC Community renders; when
-            nobody's confirmed yet, just the honest count line (Ley 11). */}
+            contenido). Real faces from the same PII-safe RPC; tapping opens
+            the FULL list right here — each guest is a door to their world.
+            When nobody's confirmed yet, just the honest count (Ley 11). */}
         {attendees.length > 0 ? (
-          <div className="pressable" onClick={()=>navigate('/community')} role="button" aria-label="See who's going"
-            style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
-            onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
-            onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
-            <div style={{display:'flex',alignItems:'center'}}>
-              {attendees.slice(0, wide ? 9 : 6).map((a, i) => {
-                const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
-                return (
-                  <div key={a.id || i} title={a.name || ''} style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.5)',background:'var(--bg-card)',marginLeft: i===0?0:'-9px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-                    {src
-                      ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
-                      : <span style={{fontFamily:'Bebas Neue',fontSize:'13px',color:'var(--cream)'}}>{(a.name||'?')[0].toUpperCase()}</span>}
-                  </div>
-                )
-              })}
+          <>
+            <div className="pressable" onClick={()=>setGuestsOpen(v=>!v)} role="button" aria-expanded={guestsOpen} aria-label="See who's going"
+              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
+              onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
+              <div style={{display:'flex',alignItems:'center'}}>
+                {attendees.slice(0, wide ? 9 : 6).map((a, i) => {
+                  const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
+                  return (
+                    <div key={a.id || i} title={a.name || ''} style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.5)',background:'var(--bg-card)',marginLeft: i===0?0:'-9px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      {src
+                        ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                        : <span style={{fontFamily:'Bebas Neue',fontSize:'13px',color:'var(--cream)'}}>{(a.name||'?')[0].toUpperCase()}</span>}
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.12em'}}>{attendeeCount} CONFIRMED</div>
+                <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>the room is forming</div>
+              </div>
+              <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>{guestsOpen ? 'CLOSE ×' : 'SEE WHO →'}</span>
             </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.12em'}}>{attendeeCount} CONFIRMED</div>
-              <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>the room is forming</div>
-            </div>
-            <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>SEE WHO →</span>
-          </div>
+            {guestsOpen && (
+              <div style={{marginTop:'8px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',padding:'6px 16px',animation:'fadeUp .3s ease'}}>
+                {attendees.map((a, i) => {
+                  const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
+                  return (
+                    <div key={a.id || i} className="pressable" onClick={()=>a.id&&navigate('/user/'+a.id)} role="button"
+                      style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 0',borderBottom:i<attendees.length-1?'1px solid rgba(242,238,230,.06)':'none',cursor:a.id?'pointer':'default',transition:'padding-left .2s'}}
+                      onMouseOver={e=>{if(a.id)e.currentTarget.style.paddingLeft='8px'}}
+                      onMouseOut={e=>{e.currentTarget.style.paddingLeft='0'}}>
+                      <div style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.35)',background:'var(--bg-card)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                        {src
+                          ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                          : <span style={{fontFamily:'Bebas Neue',fontSize:'13px',color:'var(--cream)'}}>{(a.name||'?')[0].toUpperCase()}</span>}
+                      </div>
+                      <span style={{flex:1,fontSize:'13px',color:'var(--cream)',fontFamily:'DM Sans',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.name||'Guest'}</span>
+                      <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'#C7C9D1',letterSpacing:'.14em',flexShrink:0}}>GOING</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         ) : (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
             <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
-            {user&&<span onClick={()=>navigate('/community')} style={{color:'var(--cream)',cursor:'pointer',marginLeft:'4px',transition:'opacity .2s'}} onMouseOver={e=>e.currentTarget.style.opacity='.7'} onMouseOut={e=>e.currentTarget.style.opacity='1'}>· See who →</span>}
           </div>
         )}
 

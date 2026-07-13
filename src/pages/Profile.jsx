@@ -9,6 +9,8 @@ import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
 import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/worldStorage'
 import { fetchWorldPosts, deleteWorldPost } from '@/lib/worldPosts'
+import { fetchListings, deleteListing, setListingStatus } from '@/lib/listings'
+import { socialReady, fetchFollowState } from '@/lib/social'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
@@ -16,6 +18,8 @@ export default function Profile() {
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
   const [posts, setPosts] = useState([])
+  const [listings, setListings] = useState([])
+  const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
   const [ticket, setTicket] = useState(null)
   const [ticketEvent, setTicketEvent] = useState(null)  // the ticket's OWN event row — never the live event's name on someone else's ticket
   const [attended, setAttended] = useState([])          // real past events this user held a confirmed ticket for
@@ -32,13 +36,18 @@ export default function Profile() {
     load()
   }, [user, authLoading])
 
-  // CREATE central posts from anywhere in the app — when it lands one while
-  // this museum is mounted, the timeline refreshes without a hard reload.
+  // CREATE central posts/listings from anywhere in the app — when it lands
+  // one while this museum is mounted, the wall refreshes without a reload.
   useEffect(() => {
     if (!user) return
     const onPosted = () => fetchWorldPosts(user.id).then(setPosts)
+    const onListed = () => fetchListings(user.id).then(setListings)
     window.addEventListener('c4:posted', onPosted)
-    return () => window.removeEventListener('c4:posted', onPosted)
+    window.addEventListener('c4:listed', onListed)
+    return () => {
+      window.removeEventListener('c4:posted', onPosted)
+      window.removeEventListener('c4:listed', onListed)
+    }
   }, [user])
 
   // Cosmos holding state while identity resolves (or right before the redirect fires).
@@ -70,6 +79,12 @@ export default function Profile() {
     }
     setProfile(data)
     fetchWorldPosts(user.id).then(setPosts)   // the world's dated timeline (0016)
+    fetchListings(user.id).then(setListings)  // the world's OFFER (0017)
+    // the owner's honest count — renders once the social layer is live
+    socialReady().then((ready) => {
+      if (!ready) return
+      fetchFollowState(user.id, null).then((s) => setSocial({ ready: true, ...s }))
+    })
 
     // Best-effort: link any ticket bought under this user's verified email but left
     // orphaned (no user_id at checkout) to their account, so it shows here. Safe to
@@ -160,6 +175,16 @@ export default function Profile() {
   const onDeletePost = async (post) => {
     await deleteWorldPost(post)
     setPosts((ps) => ps.filter((p) => p.id !== post.id))
+  }
+
+  // The OFFER: sold / relist / delete — the owner curates their own wall.
+  const onSetListingStatus = async (l, status) => {
+    await setListingStatus(l.id, status)
+    setListings((ls) => ls.map((x) => x.id === l.id ? { ...x, status } : x))
+  }
+  const onDeleteListing = async (l) => {
+    await deleteListing(l)
+    setListings((ls) => ls.filter((x) => x.id !== l.id))
   }
 
   // Builder v3: the conversational opening's polish layer (/api/curate).
@@ -298,6 +323,10 @@ export default function Profile() {
       ownerExtras={ownerExtras}
       posts={posts}
       onDeletePost={onDeletePost}
+      listings={listings}
+      onSetListingStatus={onSetListingStatus}
+      onDeleteListing={onDeleteListing}
+      social={social}
     />
   )
 }
