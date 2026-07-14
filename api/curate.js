@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { withSentry } from './_sentry.js'
 
 /* =========================================================================
    /api/curate — the polish layer of the builder's conversational opening
@@ -43,7 +44,7 @@ Rules:
 - "skin": how their name is set. "chrome" = liquid metal, timeless/luminous. "outline" = hollow stroke, raw/bold/underground. "bone" = warm ivory, human/close. Pick the one that matches the feel they described.
 - If an answer is empty or unusable, return an empty string for the fields that depend on it (never invent facts about the person).`
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   // --- auth gate: a real session, decided by Supabase (never client-trusted) ---
@@ -115,3 +116,5 @@ Return the three suggestions.`
     return res.status(502).json({ error: 'The curator is unavailable — your own words stand.' })
   }
 }
+
+export default withSentry(handler)

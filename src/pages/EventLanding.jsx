@@ -116,6 +116,11 @@ export function EventShow({ live }) {
 
   const [showCountdown, setShowCountdown] = useState(false)
   const [ticketOpen, setTicketOpen] = useState(false)
+  // Checkout consent — the buyer accepts Terms/Privacy/Refunds before a tier
+  // fires. Client-side gate only (the Stripe function is byte-identical): no
+  // agreement, no redirect. Refund reality (all sales final) is stated here too.
+  const [agreed, setAgreed] = useState(false)
+  const [agreeError, setAgreeError] = useState(false)
 
   // Door check-in moved to /door — network-only, server-gated (migration 0013).
   // Nothing scanner-shaped (and no client secret) ships on the public landing.
@@ -386,8 +391,26 @@ export function EventShow({ live }) {
         {/* TICKET TIERS - expandable */}
         {ticketOpen && (
           <div style={{marginTop:'16px',display:'flex',flexDirection:'column',gap:'8px',animation:'fadeUp .3s ease'}}>
+            {/* consent — the buyer accepts before any available tier can fire.
+                Links open in a new tab so the checkout selection isn't lost. */}
+            {availableTiers.length > 0 && (
+              <div style={{border:`1px solid ${agreeError?'rgba(229,160,160,.5)':'rgba(242,238,230,.14)'}`,borderRadius:'10px',padding:'12px 14px',background:'rgba(242,238,230,.02)',marginBottom:'2px',transition:'border-color .2s'}}>
+                <label style={{display:'flex',gap:'10px',alignItems:'flex-start',cursor:'pointer'}}>
+                  <input type="checkbox" checked={agreed} onChange={e=>{setAgreed(e.target.checked); if(e.target.checked) setAgreeError(false)}}
+                    style={{accentColor:'#F2EEE6',width:'15px',height:'15px',marginTop:'2px',flexShrink:0,cursor:'pointer'}} />
+                  <span style={{fontSize:'11px',color:'var(--cream-mid)',lineHeight:1.55}}>
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:'var(--cream)',textDecoration:'underline'}}>Terms</a>,{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:'var(--cream)',textDecoration:'underline'}}>Privacy</a>, and{' '}
+                    <a href="/refunds" target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:'var(--cream)',textDecoration:'underline'}}>Refund Policy</a>.{' '}
+                    <span style={{color:'var(--cream-low)'}}>All sales are final — refunds only if the event is cancelled.</span>
+                  </span>
+                </label>
+                {agreeError && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'#E5A0A0',letterSpacing:'.06em',marginTop:'8px',paddingLeft:'25px'}}>△ Please accept to continue.</div>}
+              </div>
+            )}
             {tiers.map((t,i)=>(
-              <div key={i} className={t.status==='available' ? 'pressable' : undefined} onClick={()=>t.status==='available'&&handleCheckout(t.id)}
+              <div key={i} className={t.status==='available' ? 'pressable' : undefined} onClick={()=>{ if(t.status!=='available') return; if(!agreed){ setAgreeError(true); return } handleCheckout(t.id) }}
                 style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(242,238,230,.06)':'rgba(242,238,230,.02)',border:'1px solid '+(t.status==='available'?'rgba(242,238,230,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
                 onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.5)';e.currentTarget.style.background='rgba(242,238,230,.12)'}}}
                 onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.06)'}}}>
@@ -467,6 +490,13 @@ export function EventShow({ live }) {
         <div style={{fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',letterSpacing:'.02em'}}>THE COLLECTIV4</div>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'8px',letterSpacing:'.15em'}}>ART · MUSIC · FASHION · EVENTS</div>
         <div style={{fontSize:'11px',color:'var(--cream-ghost)',marginTop:'12px'}}>@thecollectiv4</div>
+        {/* legal — real hrefs (crawlable, right-clickable) with SPA nav */}
+        <div style={{display:'flex',justifyContent:'center',gap:'16px',marginTop:'16px',flexWrap:'wrap'}}>
+          {[['Terms','/terms'],['Privacy','/privacy'],['Refunds','/refunds']].map(([label,to])=>(
+            <a key={to} href={to} onClick={e=>{e.preventDefault();navigate(to)}}
+              style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.12em',textTransform:'uppercase',textDecoration:'none',cursor:'pointer'}}>{label}</a>
+          ))}
+        </div>
       </div>
 
       </div>{/* /wide frame */}
