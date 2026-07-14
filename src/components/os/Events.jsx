@@ -1,10 +1,12 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Plus, ScanLine, Trash2, Pencil, ArrowLeft } from 'lucide-react'
+import { Loader2, Plus, ScanLine, Trash2, Pencil, ArrowLeft, ImagePlus, X } from 'lucide-react'
 import { supabase } from '@/api/supabase'
+import { useAuth } from '@/lib/AuthContext'
 import { useIsDesktop } from '@/lib/useIsDesktop'
-import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, safeImg } from '@/lib/cosmos'
 import { Field, Input, Textarea, Select, Btn } from '@/components/os/ui'
+import { uploadWorldImage, validateImage } from '@/lib/worldStorage'
 
 /* =========================================================================
    EVENTS — create, edit, publish and sell an event without touching SQL.
@@ -95,6 +97,7 @@ const formToPayload = (form) => {
 
 export default function EventsAdmin({ isOwner = false, startNew = false, onConsumedNew }) {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const desktop = useIsDesktop()
   const [events, setEvents] = useState([])
   const [loaded, setLoaded] = useState(false)
@@ -214,8 +217,10 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
           <Field label="Venue"><Input value={form.venue} onChange={e => set('venue', e.target.value)} placeholder="Venue name" /></Field>
           <Field label="Doors (display text)"><Input value={form.doors} onChange={e => set('doors', e.target.value)} placeholder="4PM — 9PM" /></Field>
           <Field label="City"><Input value={form.city} onChange={e => set('city', e.target.value)} placeholder="Houston" /></Field>
-          <Field label="Cover image URL"><Input value={form.cover_url} onChange={e => set('cover_url', e.target.value)} placeholder="https://…" /></Field>
         </div>
+        <Field label="Cover image">
+          <CoverUpload user={user} value={form.cover_url} onChange={(url) => set('cover_url', url)} />
+        </Field>
         <Field label="Tagline"><Input value={form.tagline} onChange={e => set('tagline', e.target.value)} placeholder="One line under the title" /></Field>
         <Field label="Description"><Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} /></Field>
 
@@ -374,6 +379,80 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+/* CoverUpload — drag / paste / click to upload the event cover to Supabase
+   Storage (the 'worlds' bucket, the host's own uid folder — the same RLS as
+   world images: writes only under auth.uid()). Replaces the raw "Cover image
+   URL" input; stores the resulting PUBLIC url in form.cover_url. A legacy URL
+   already on an event row still renders and is replaceable. */
+const pillBtn = { display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(10,10,13,.7)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 11px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }
+
+function CoverUpload({ user, value, onChange }) {
+  const inputRef = useRef(null)
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState('')
+  const [drag, setDrag] = useState(false)
+  const preview = safeImg(value)
+
+  const take = useCallback(async (file) => {
+    if (!file) return
+    setErr('')
+    const bad = validateImage(file)
+    if (bad) { setErr(bad); return }
+    if (!user?.id) { setErr('sign in to upload'); return }
+    setBusy(true)
+    try {
+      const { url } = await uploadWorldImage(user.id, file, 'event')
+      onChange(url)                                  // ACTION INTEGRITY — only a real upload sets it
+      // We deliberately do NOT delete the previous object here: the event row
+      // is saved LATER (admin_save_event on the Save click), so deleting now
+      // would dangle the DB's cover_url if the editor is abandoned unsaved. A
+      // replaced/removed image just orphans harmlessly in Storage — the DB row
+      // is the source of truth (worldStorage.js's documented stance).
+    } catch (e) {
+      setErr(e?.message || 'upload failed')
+    } finally {
+      setBusy(false)
+    }
+  }, [user, onChange])
+
+  const onDrop = (e) => { e.preventDefault(); setDrag(false); const f = e.dataTransfer?.files?.[0]; if (f) take(f) }
+  const onPaste = (e) => { const f = [...(e.clipboardData?.files || [])][0]; if (f) { e.preventDefault(); take(f) } }
+  const remove = () => { onChange(''); setErr('') }  // clears the field only; the now-unreferenced object orphans harmlessly
+
+  return (
+    <div>
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) take(f); e.target.value = '' }} />
+      {preview ? (
+        <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: `1px solid ${HAIR_HI}` }}>
+          <img src={preview} alt="event cover" style={{ display: 'block', width: '100%', maxHeight: '220px', objectFit: 'cover' }} />
+          <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '6px' }}>
+            <button type="button" onClick={() => inputRef.current?.click()} disabled={busy} style={pillBtn}>
+              {busy ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <ImagePlus size={11} />} Replace
+            </button>
+            <button type="button" onClick={remove} disabled={busy} style={{ ...pillBtn, borderColor: 'rgba(229,160,160,.4)', color: WARN }}><X size={11} /> Remove</button>
+          </div>
+        </div>
+      ) : (
+        <div role="button" tabIndex={0} aria-label="Upload event cover image"
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); inputRef.current?.click() } }}
+          onPaste={onPaste}
+          onDragOver={e => { e.preventDefault(); setDrag(true) }}
+          onDragLeave={() => setDrag(false)}
+          onDrop={onDrop}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', minHeight: '120px', border: `1px dashed ${drag ? SILVER : HAIR_HI}`, background: drag ? 'rgba(199,201,209,.06)' : PANEL, borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'border-color .2s, background .2s', textAlign: 'center' }}>
+          {busy ? <Loader2 size={18} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
+            : <ImagePlus size={18} strokeWidth={1.5} style={{ color: BONE_LOW }} />}
+          <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_MID, letterSpacing: '.08em' }}>{busy ? 'uploading…' : 'Drop, paste, or click to upload'}</div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.1em', textTransform: 'uppercase' }}>JPG · PNG · WebP · GIF · max 8MB</div>
+        </div>
+      )}
+      {err && <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: WARN, letterSpacing: '.04em', marginTop: '8px' }}>△ {err}</div>}
     </div>
   )
 }

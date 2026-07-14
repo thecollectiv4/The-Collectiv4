@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { withSentry } from './_sentry.js'
 
 /* =========================================================================
    /api/assistant — THE BRAIN. The AI operator inside the Team OS.
@@ -365,7 +366,7 @@ async function runTool(name, input, ctx) {
   }
 }
 
-export default async function handler(req, res) {
+async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   // --- auth gate: members only, decided by the DB ---
@@ -439,3 +440,5 @@ export default async function handler(req, res) {
     return res.status(502).json({ error: 'Could not reach the model.' })
   }
 }
+
+export default withSentry(handler)

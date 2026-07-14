@@ -12,6 +12,7 @@ import Brain from '@/components/os/Brain'
 import RoadmapStrip from '@/components/os/RoadmapStrip'
 import EventsAdmin from '@/components/os/Events'
 import Network from '@/components/os/Network'
+import { DropButton, DropsFeed } from '@/components/os/Drops'
 
 /* =========================================================================
    TEAM OS — the deck become an app. Fluid work surface: the instrument shell
@@ -62,6 +63,7 @@ export default function OS() {
   const [notice, setNotice] = useState('')
   const [reload, setReload] = useState(0)
   const [brainMsgs, setBrainMsgs] = useState([])
+  const [drops, setDrops] = useState([])
   const noticeTimer = useRef(null)
 
   const say = useCallback((msg) => { setNotice(msg); clearTimeout(noticeTimer.current); noticeTimer.current = setTimeout(() => setNotice(''), 5000) }, [])
@@ -78,6 +80,19 @@ export default function OS() {
     const { data } = await supabase.from('os_activity').select('*').order('created_at', { ascending: false }).limit(30)
     setActivity(data || [])
   }, [])
+  // DROPS — the team's feedback, FOUNDERS ONLY (RLS returns rows only to
+  // owners; 0019). A non-owner member gets [] and never sees the feed.
+  const loadDrops = useCallback(async () => {
+    const { data } = await supabase.from('drops').select('*').order('created_at', { ascending: false }).limit(30)
+    setDrops(data || [])
+  }, [])
+  // Any network member may submit; only the founders read it back.
+  const submitDrop = useCallback(async (body, context) => {
+    const { data, error } = await supabase.rpc('submit_drop', { p_body: body, p_context: context || {} })
+    if (error) return { ok: false, error: error.message }
+    if (data?.ok && owner) loadDrops()
+    return data || { ok: false }
+  }, [owner, loadDrops])
   const refreshAll = useCallback(() => { loadTasks(); loadContent(); loadActivity() }, [loadTasks, loadContent, loadActivity])
 
   useEffect(() => {
@@ -94,6 +109,12 @@ export default function OS() {
     })()
     return () => { alive = false }
   }, [state, reload, loadTasks, loadContent, loadActivity])
+
+  // founders-only DROPS feed — loads only on the server's owner verdict
+  useEffect(() => {
+    if (state !== 'granted' || !owner) return
+    loadDrops()
+  }, [state, owner, reload, loadDrops])
 
   const log = useCallback(async (action) => {
     await supabase.from('os_activity').insert({ profile_id: profile?.id ?? null, action }); loadActivity()
@@ -183,6 +204,7 @@ export default function OS() {
       profile={profile} isOwner={owner} tasks={tasks} content={content} activity={activity} owners={owners} notice={notice}
       mutators={{ createTask, updateTask, moveTaskTo, deleteTask, createContent, updateContent, deleteContent }}
       refreshAll={refreshAll} brainMsgs={brainMsgs} setBrainMsgs={setBrainMsgs}
+      onDrop={submitDrop} drops={drops}
     />
   )
 }
@@ -206,7 +228,7 @@ function useOSEntry() {
    presentational component. Data + mutators come in as props; no supabase
    here (the DEV harness mounts this with mirror data).
    ========================================================================= */
-export function OSInstrument({ profile, isOwner = false, tasks, content, activity, owners, notice, mutators, refreshAll, brainMsgs, setBrainMsgs }) {
+export function OSInstrument({ profile, isOwner = false, tasks, content, activity, owners, notice, mutators, refreshAll, brainMsgs, setBrainMsgs, onDrop = null, drops = [] }) {
   const navigate = useNavigate()
   const desktop = useIsDesktop()   // >=768 — instrument shell
   const railFull = useRailFull()   // >=1180 — full rail; below, icon-only
@@ -321,6 +343,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
         {tab === 'network' && isOwner && <Network />}
       </div>
       {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
+      {tab !== 'brain' && isOwner && <DropsFeed drops={drops} owners={owners} />}
     </>
   )
 
@@ -366,6 +389,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
           </main>
         </div>
         {dock}
+        <DropButton onDrop={onDrop} desktop context={{ tab }} />
       </Shell>
     )
   }
@@ -403,6 +427,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
         {panel}
       </div>
       {dock}
+      <DropButton onDrop={onDrop} context={{ tab }} />
     </Shell>
   )
 }

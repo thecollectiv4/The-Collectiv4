@@ -19,6 +19,7 @@ import EventPage from '@/pages/EventPage'
 import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
 import DoorScanner from '@/pages/DoorScanner'
+import { Terms, Privacy, Refunds } from '@/pages/Legal'
 
 // DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
 // mirror data so layout is verifiable without a member session. The
@@ -46,6 +47,10 @@ export default function App() {
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
+          {/* Legal — standalone cosmos pages, anon-reachable, linked from checkout + footer */}
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/refunds" element={<Refunds />} />
           {import.meta.env.DEV && OSHarness && (
             <Route path="/__os-harness" element={<Suspense fallback={null}><OSHarness /></Suspense>} />
           )}
