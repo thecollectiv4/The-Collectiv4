@@ -19,6 +19,7 @@ import EventPage from '@/pages/EventPage'
 import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
 import DoorScanner from '@/pages/DoorScanner'
+import HouseWorld from '@/pages/HouseWorld'
 import { Terms, Privacy, Refunds } from '@/pages/Legal'
 
 // DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
@@ -56,6 +57,7 @@ export default function App() {
           )}
           <Route path="/" element={<Layout />}>
             <Route index element={<Events />} />{/* EVENT tab — every room on the platform */}
+            <Route path="c4" element={<HouseWorld />} />{/* the house world — the flagship example (D4); becomes the front door when the domain points here */}
             <Route path="e/:slug" element={<EventPage />} />{/* any published event's public room (0016) */}
             <Route path="community" element={<Community />} />{/* the people — find yours */}
             <Route path="messages" element={<Messages />} />{/* the conversations (0017) */}

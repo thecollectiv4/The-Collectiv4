@@ -5,6 +5,7 @@ import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
 import Constellation from '@/components/Constellation'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
+import { normVibe, vibeMeta } from '@/lib/match'
 
 /* =========================================================================
    EVENTS — the EVENT tab (D1, decisión de Pato): solo eventos, TODOS los
@@ -59,7 +60,7 @@ export default function Events() {
     let alive = true
     supabase
       .from('events')
-      .select('id,slug,title,edition,event_date,doors,venue,city,cover_url,status,tiers,is_house')
+      .select('id,slug,title,edition,event_date,doors,venue,city,cover_url,status,tiers,is_house,vibe')
       .eq('status', 'published')
       .eq('is_test', false)
       .order('event_date', { ascending: true })
@@ -109,6 +110,14 @@ export default function Events() {
               {String(total).padStart(2, '0')} {total === 1 ? 'room' : 'rooms'} open
             </div>
           )}
+          {/* the house door — the flagship world (D4): what a world IS,
+              shown not explained */}
+          <button className="pressable" data-testid="house-door" onClick={() => navigate('/c4')}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(242,238,230,.4)'; e.currentTarget.style.color = BONE }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
+            ◇ the house world <ArrowUpRight size={11} />
+          </button>
         </div>
 
         {/* Stripe cancel lands here — say it straight, no drama (Ley 11) */}
@@ -212,6 +221,9 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
   const cover = safeImg(e.cover_url)
   const availableTiers = (e.tiers || []).filter((t) => t.status === 'available')
   const fromPrice = availableTiers.length ? Math.min(...availableTiers.map((t) => t.price)) / 100 : null
+  // the declared character (0021) — the featured spread wears its light (Ley 14)
+  const vibe = normVibe(e.vibe)
+  const vMeta = vibe?.kind ? vibeMeta(vibe.kind) : null
   const facts = [
     [Calendar, fmtDate(e.event_date)],
     e.doors ? [Clock, e.doors.toUpperCase()] : null,
@@ -247,6 +259,15 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
               <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em' }}>{text}</span>
             </span>
           ))}
+          {/* the room's declared character — its light, not decoration (Ley 14) */}
+          {vMeta && (
+            <span className={vMeta.pulse === 'warm' ? 'temp-warm' : vMeta.pulse === 'electric' ? 'temp-electric' : undefined}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', border: `1px solid rgba(${vMeta.tint},.4)`, background: `rgba(${vMeta.tint},.06)`, borderRadius: '100px', padding: '4px 12px' }}>
+              <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgb(${vMeta.tint})` }}>{vMeta.mark}</span>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: BONE }}>{vMeta.label}</span>
+              {vibe.sound.length > 0 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_MID, letterSpacing: '.08em' }}>{vibe.sound.slice(0, 3).join(' · ')}</span>}
+            </span>
+          )}
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '16px', flexWrap: 'wrap' }}>

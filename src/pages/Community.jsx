@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { isNetworkMember } from '@/lib/osAccess'
 import { useWide } from '@/lib/useIsDesktop'
 import Constellation from '@/components/Constellation'
 import { fetchFollowingSet } from '@/lib/social'
+import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, UserCheck } from 'lucide-react'
 
 /* =========================================================================
@@ -52,11 +53,16 @@ export default function Community() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const wide = useWide()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [loading, setLoading] = useState(true)
   const [creatives, setCreatives] = useState([])
   const [city, setCity] = useState('all')
-  const [discipline, setDiscipline] = useState('all')
+  // CRAFT filter (D2): real taxonomy slugs, never free-text chips — event
+  // pages and worlds deep-link here (?craft=dj), the interconnection column
+  const craft = searchParams.get('craft') || 'all'
+  const setCraft = (slug) => setSearchParams(slug === 'all' ? {} : { craft: slug }, { replace: true })
+  const [craftsByProfile, setCraftsByProfile] = useState(new Map())
   const [previewAvailable, setPreviewAvailable] = useState(import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true')
   const [showDemo, setShowDemo] = useState(false)
   const [followingSet, setFollowingSet] = useState(new Set())
@@ -90,6 +96,8 @@ export default function Community() {
       if (!alive) return
       setCreatives(rows)
       setLoading(false)
+      // the craft spine on the cards + the filter's real vocabulary (0020)
+      fetchCraftsForProfiles(rows.map(r => r.id)).then((m) => { if (alive) setCraftsByProfile(m) })
       // connected state on the cards (empty set pre-0017 / signed out)
       if (user?.id) {
         fetchFollowingSet(user.id, rows.map(r => r.id)).then((s) => { if (alive) setFollowingSet(s) })
@@ -104,15 +112,17 @@ export default function Community() {
     creatives.forEach(c => c.city && s.add(c.city))
     return [...s].sort()
   }, [creatives])
-  const disciplineOptions = useMemo(() => {
-    const s = new Set()
-    creatives.forEach(c => c.discipline && s.add(c.discipline))
-    return [...s].sort()
-  }, [creatives])
+  // CRAFT chips come from the community's REAL crafts — curated taxonomy
+  // names, never the old free-text soup ("CEO, DJ & Passionate Human")
+  const craftOptions = useMemo(() => {
+    const bySlug = new Map()
+    craftsByProfile.forEach((list) => list.forEach((c) => { if (!bySlug.has(c.slug)) bySlug.set(c.slug, c) }))
+    return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name))
+  }, [craftsByProfile])
 
   const shown = creatives.filter(c =>
     (city === 'all' || c.city === city) &&
-    (discipline === 'all' || c.discipline === discipline))
+    (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)))
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
@@ -141,9 +151,10 @@ export default function Community() {
           )}
         </div>
 
-        {/* filters — data-driven, honest */}
+        {/* filters — data-driven, honest: city from claimed cities, craft
+            from the community's REAL crafts (the matching column, D2) */}
         {cityOptions.length > 0 && <FilterRow label="CITY" value={city} onChange={setCity} options={cityOptions} />}
-        {disciplineOptions.length > 0 && <FilterRow label="CRAFT" value={discipline} onChange={setDiscipline} options={disciplineOptions} />}
+        {craftOptions.length > 0 && <CraftFilterRow value={craft} onChange={setCraft} options={craftOptions} />}
 
         {!loading && (
           <div aria-hidden style={{ margin: '16px 0 12px', height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
@@ -156,10 +167,10 @@ export default function Community() {
         ) : shown.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
             {shown.map(c => (
-              <WorldCard key={c.id} c={c} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} />
+              <WorldCard key={c.id} c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} />
             ))}
             {/* few worlds → the void invites (Leyes 4, 11) */}
-            {shown.length <= 3 && city === 'all' && discipline === 'all' && (
+            {shown.length <= 3 && city === 'all' && craft === 'all' && (
               <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" tabIndex={0} aria-label="Claim your world"
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate(user ? '/profile' : '/auth?next=/profile') } }}
                 style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '16px', minHeight: wide ? '236px' : '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', cursor: 'pointer', transition: 'border-color .25s ease' }}
@@ -173,8 +184,8 @@ export default function Community() {
         ) : (
           <Empty
             k={wide ? 0.3 : 0.6}
-            title={city !== 'all' || discipline !== 'all' ? 'NOTHING HERE YET' : 'THE UNIVERSE IS FORMING'}
-            body={city !== 'all' || discipline !== 'all'
+            title={city !== 'all' || craft !== 'all' ? 'NOTHING HERE YET' : 'THE UNIVERSE IS FORMING'}
+            body={city !== 'all' || craft !== 'all'
               ? 'No worlds match this filter yet. Clear it, or be the first from here.'
               : 'No worlds have taken shape yet. Build yours — a personal museum of your sound, work and influences — and be one of the first stars in the room.'}
             cta={user ? 'Build your world' : 'Claim your world'}
@@ -209,10 +220,33 @@ function FilterRow({ label, value, onChange, options }) {
   )
 }
 
+/* ---- the CRAFT filter — the taxonomy's own chips, lit by category ---- */
+function CraftFilterRow({ value, onChange, options }) {
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', marginBottom: '9px' }}>CRAFT</div>
+      <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
+        {[{ slug: 'all', name: 'All' }, ...options].map(opt => {
+          const on = value === opt.slug
+          const meta = opt.slug === 'all' ? { tint: '199,201,209', mark: '◇' } : categoryMeta(opt.category)
+          return (
+            <button key={opt.slug} className="pressable" data-testid={`craft-filter-${opt.slug}`} onClick={() => onChange(opt.slug)}
+              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${meta.tint},.6)` : HAIR_HI}`, background: on ? `rgba(${meta.tint},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', boxShadow: on ? `0 0 12px rgba(${meta.tint},.12)` : 'none' }}>
+              {opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: on ? `rgb(${meta.tint})` : BONE_LOW }}>{meta.mark}</span>}
+              {opt.name}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 /* ---- a creative's world, as a card in the sky ----
    `connected` — the viewer already follows this world: a quiet state
-   chip, information not decoration (Leyes 7, 14). */
-function WorldCard({ c, connected, onOpen, wide }) {
+   chip, information not decoration (Leyes 7, 14). `crafts` — the real
+   taxonomy line (primary lit), the legacy free text only as fallback. */
+function WorldCard({ c, crafts = [], connected, onOpen, wide }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -246,7 +280,14 @@ function WorldCard({ c, connected, onOpen, wide }) {
             </span>
           )}
         </div>
-        {c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
+        {crafts.length > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px', minWidth: 0, overflow: 'hidden' }}>
+            {(() => { const meta = categoryMeta(crafts[0].category); return (
+              <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${meta.tint})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</span>
+            ) })()}
+            {crafts.length > 1 && <span style={{ fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.1em', flexShrink: 0 }}>+{crafts.length - 1}</span>}
+          </div>
+        ) : c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
         {c.tagline && (
           <div className="disc-reveal" style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             “{c.tagline}”

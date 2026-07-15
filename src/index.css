@@ -109,6 +109,26 @@ a { color: inherit; text-decoration: none; }
 .pressable:not(:disabled):active { transform: translateY(1px) scale(.99); }
 
 /* ============================================================
+   TEMPERATURE (Ley 14) — light with meaning, palette locked.
+   Live Art breathes warm and slow; Sound flickers cold and
+   electric; Gallery holds still. Animation with purpose, one
+   register per experience — never wallpaper.
+   ============================================================ */
+@keyframes tempWarm {
+  0%,100% { opacity:.78; box-shadow:0 0 8px rgba(242,238,230,.10); }
+  50%     { opacity:1;   box-shadow:0 0 18px rgba(242,238,230,.28); }
+}
+@keyframes tempElectric {
+  0%,100% { opacity:.92; box-shadow:0 0 5px rgba(232,233,237,.18); }
+  6%      { opacity:.6; }
+  11%     { opacity:1;   box-shadow:0 0 20px rgba(232,233,237,.4); }
+  54%     { opacity:.85; }
+  60%     { opacity:1; }
+}
+.temp-warm     { animation: tempWarm 3.4s ease-in-out infinite; }
+.temp-electric { animation: tempElectric 2.3s linear infinite; }
+
+/* ============================================================
    TEAM OS (/os) — the deck become an app. Scoped .os-*.
    Tokens + motion from collectiv4-universe.html; §E density.
    ============================================================ */
@@ -228,6 +248,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .temp-warm, .temp-electric { animation:none; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
   .os-slide-in-right, .os-slide-in-left { animation:none; }
   .os-now-dot, .os-mic-live { animation:none; }

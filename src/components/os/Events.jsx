@@ -7,6 +7,7 @@ import { useIsDesktop } from '@/lib/useIsDesktop'
 import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, safeImg } from '@/lib/cosmos'
 import { Field, Input, Textarea, Select, Btn } from '@/components/os/ui'
 import { uploadWorldImage, validateImage } from '@/lib/worldStorage'
+import { VIBES, normVibe } from '@/lib/match'
 
 /* =========================================================================
    EVENTS — create, edit, publish and sell an event without touching SQL.
@@ -58,20 +59,25 @@ const localInputToISO = (v) => {
 const emptyForm = () => ({
   id: null, title: '', slug: '', slugTouched: false, edition: '', tagline: '', description: '',
   dateLocal: '', doors: '', venue: '', city: 'Houston', cover_url: '', status: 'draft', tiers: [],
+  // CHARACTER (0021): the room's declared temperature + sounds + one line
+  vibeKind: '', vibeSound: '', vibeLine: '',
 })
 
-const eventToForm = (e) => ({
+const eventToForm = (e) => {
+  const vibe = normVibe(e.vibe)
+  return {
   id: e.id, title: e.title || '', slug: e.slug || '', slugTouched: true,
   edition: e.edition || '', tagline: e.tagline || '', description: e.description || '',
   dateLocal: isoToLocalInput(e.event_date), doors: e.doors || '', venue: e.venue || '',
   city: e.city || '', cover_url: e.cover_url || '', status: e.status || 'draft',
+  vibeKind: vibe?.kind || '', vibeSound: (vibe?.sound || []).join(', '), vibeLine: vibe?.line || '',
   // legacy 'soon' normalizes to coming_soon in the editor; doorLabel rides along untouched.
   tiers: (Array.isArray(e.tiers) ? e.tiers : []).map(t => ({
     id: t.id || '', name: t.name || '', dollars: centsToDollarInput(t.price),
     status: t.status === 'soon' ? 'coming_soon' : (t.status || 'coming_soon'),
     note: t.note || '', doorLabel: t.doorLabel,
   })),
-})
+}}
 
 // One payload builder for BOTH the editor save and the list quick-actions —
 // a status flip must never silently rewrite tiers differently than the editor.
@@ -87,11 +93,22 @@ const formToPayload = (form) => {
     if (t.doorLabel != null) out.doorLabel = t.doorLabel
     return out
   })
+  // CHARACTER (0021): only what the host actually declared; empty = null
+  // (the server validates + normalizes; a payload that carries 'vibe'
+  // replaces the stored value, so the editor round-trip preserves it)
+  const soundTags = (form.vibeSound || '').split(',').map(s => s.trim()).filter(Boolean).slice(0, 6)
+  const vibe = (form.vibeKind || soundTags.length || (form.vibeLine || '').trim())
+    ? {
+        ...(form.vibeKind ? { kind: form.vibeKind } : {}),
+        ...(soundTags.length ? { sound: soundTags } : {}),
+        ...((form.vibeLine || '').trim() ? { line: form.vibeLine.trim() } : {}),
+      }
+    : null
   return {
     id: form.id, title: form.title.trim(), slug: slugify(form.slug),
     edition: form.edition.trim(), tagline: form.tagline.trim(), description: form.description.trim(),
     event_date: localInputToISO(form.dateLocal), doors: form.doors.trim(), venue: form.venue.trim(),
-    city: form.city.trim(), cover_url: form.cover_url.trim(), status: form.status, tiers,
+    city: form.city.trim(), cover_url: form.cover_url.trim(), status: form.status, tiers, vibe,
   }
 }
 
@@ -223,6 +240,43 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
         </Field>
         <Field label="Tagline"><Input value={form.tagline} onChange={e => set('tagline', e.target.value)} placeholder="One line under the title" /></Field>
         <Field label="Description"><Textarea value={form.description} onChange={e => set('description', e.target.value)} rows={3} /></Field>
+
+        {/* CHARACTER (D4, 0021) — the host DESIGNS the room's temperature:
+            Live Art glows warm, Sound runs cold-electric, Gallery holds a
+            sober stillness. The public room wears it (Ley 14); the sounds
+            feed the matching column (D2). Optional — an undeclared room
+            renders exactly as before. */}
+        <div style={{ margin: '6px 0 14px', borderTop: `1px solid ${HAIR}`, paddingTop: '16px' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '12px' }}>◇ Character — give the room its own light</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+            {Object.entries(VIBES).map(([kind, v]) => {
+              const on = form.vibeKind === kind
+              const pulseClass = on && v.pulse === 'warm' ? 'temp-warm' : on && v.pulse === 'electric' ? 'temp-electric' : undefined
+              return (
+                <button key={kind} type="button" data-testid={`vibe-${kind}`} aria-pressed={on}
+                  className={pulseClass}
+                  onClick={() => set('vibeKind', on ? '' : kind)}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '8px 15px', background: on ? `rgba(${v.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${v.tint},.55)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
+                  <span aria-hidden style={{ fontSize: '10px', color: on ? `rgb(${v.tint})` : BONE_LOW }}>{v.mark}</span>
+                  {v.label}
+                </button>
+              )
+            })}
+          </div>
+          {form.vibeKind && (
+            <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT, letterSpacing: '.05em', marginBottom: '12px' }}>
+              — {VIBES[form.vibeKind].line}
+            </div>
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: desktop ? '1fr 1fr' : '1fr', columnGap: '18px' }}>
+            <Field label="The sounds (up to 6, comma-separated)">
+              <Input value={form.vibeSound} onChange={e => set('vibeSound', e.target.value)} placeholder="house, techno, disco" />
+            </Field>
+            <Field label="Character line (optional, 80 max)">
+              <Input value={form.vibeLine} maxLength={80} onChange={e => set('vibeLine', e.target.value)} placeholder="paint moving while the music plays" />
+            </Field>
+          </div>
+        </div>
 
         <Field label="Status">
           <Select value={form.status} onChange={e => set('status', e.target.value)} options={[

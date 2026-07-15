@@ -6,8 +6,11 @@ import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
 import Constellation from '@/components/Constellation'
+import CraftPicker from '@/components/CraftPicker'
+import Mark from '@/components/Mark'
 import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness } from '@/lib/world'
+import { craftLine, saveProfileCrafts, categoryMeta } from '@/lib/crafts'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
 const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2)}`)
@@ -115,7 +118,7 @@ const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring',
 // `social` — { ready, followers, following, iFollow } from the wrapper (0017);
 // `listings` — the world's OFFER. Social buttons render only when the layer is
 // live in the DB (Ley 9: a door that can't open doesn't render).
-export default function ProfileMuseum({ profile, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
+export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
@@ -133,7 +136,10 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
   // edit-form state
   const [name, setName] = useState('')
   const [username, setUsername] = useState('')
-  const [discipline, setDiscipline] = useState('')
+  // crafts: the curated set replaces the free-text discipline (0020) — the
+  // summary line is derived on save, never typed
+  const [editCrafts, setEditCrafts] = useState([])
+  const [editPrimary, setEditPrimary] = useState(null)
   const [city, setCity] = useState('')
   const [tagline, setTagline] = useState('')
   const [bio, setBio] = useState('')
@@ -174,7 +180,8 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
     const t = normTaste(data?.taste)
     setName(data?.full_name || '')
     setUsername(data?.username || '')
-    setDiscipline(data?.discipline || '')
+    setEditCrafts(crafts.map((c) => ({ id: c.id, name: c.name, slug: c.slug, category: c.category })))
+    setEditPrimary((crafts.find((c) => c.isPrimary) || crafts[0])?.id || null)
     setCity(data?.city || '')
     setTagline(data?.tagline || '')
     setBio(data?.bio || '')
@@ -255,10 +262,14 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
     if (saving) return
     setSaving(true)
     setSaveErr(null)
+    const craftsWithLead = editCrafts.map((c) => ({ ...c, isPrimary: c.id === editPrimary }))
     const patch = {
       full_name: name.trim() || null,
       username: username.trim().replace(/^@/, '') || null,
-      discipline: discipline.trim() || null,
+      // derived from the chosen crafts — legacy surfaces keep reading truth;
+      // a craft-less save keeps whatever discipline already said (never erase
+      // a legacy line behind someone's back)
+      discipline: editCrafts.length ? craftLine(craftsWithLead) : (data?.discipline || null),
       city: city.trim() || null,
       tagline: tagline.trim() || null,
       bio: bio.trim() || null,
@@ -275,6 +286,11 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       gallery: galRows.map(r => ({ path: r.path || null, url: r.url, caption: (r.caption || '').trim() })),
     }
     try {
+      // crafts commit first (atomic, 0020) — if they refuse, nothing else moves
+      if (editCrafts.length || crafts.length) {
+        await saveProfileCrafts(editCrafts.map((c) => c.id), editPrimary)
+        onCraftsSaved?.(craftsWithLead)
+      }
       if (onSave) await onSave(patch)
       // the save landed — removed saved objects are truly unreferenced now
       if (removedSaved.current.size) onCleanupImages?.([...removedSaved.current])
@@ -447,7 +463,25 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
                 )}
               </div>
               <div style={{ minWidth: 0 }}>
-                {data.discipline && (
+                {/* the craft line — real crafts from the taxonomy when they
+                    exist (primary leads, lit by its category's temperature);
+                    the legacy free-text line only when they don't (Ley 3:
+                    identity always legible, never invented) */}
+                {crafts.length > 0 ? (
+                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                    {crafts.slice(0, 3).map((c, i) => {
+                      const meta = categoryMeta(c.category)
+                      const isP = c.isPrimary || (i === 0 && !crafts.some(x => x.isPrimary))
+                      return (
+                        <span key={c.slug} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '9px' }}>
+                          {i > 0 && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '7px', color: BONE_LOW }}>◆</span>}
+                          <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', letterSpacing: '.3em', textTransform: 'uppercase', color: isP ? `rgb(${meta.tint})` : BONE_MID }}>{c.name}</span>
+                        </span>
+                      )
+                    })}
+                    {crafts.length > 3 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em' }}>+{crafts.length - 3}</span>}
+                  </div>
+                ) : data.discipline && (
                   <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
                     {data.discipline}
                   </div>
@@ -569,6 +603,25 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
 
         {isOwner && !editing && !building && (
           <div style={{ marginTop: '18px' }}>
+            {/* IN-UI CRAFT MIGRATION (D1): a legacy free-text discipline is
+                invited to become REAL crafts — recognition, not a form. The
+                band lives until the person chooses; nothing is rewritten
+                behind their back (Ley 11). */}
+            {crafts.length === 0 && (data.discipline || '').trim() && (
+              <button data-testid="craft-migration" className="pressable" onClick={() => setBuilding(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'linear-gradient(150deg, rgba(199,201,209,.07), rgba(199,201,209,.015))', border: `1px solid rgba(199,201,209,.3)`, borderRadius: '13px', padding: '13px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
+                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.55)'}
+                onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.3)'}>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '13px', color: SILVER, flexShrink: 0 }}>◇</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '17px', color: BONE, letterSpacing: '.04em', lineHeight: 1 }}>THE UNIVERSE NOW SPEAKS CRAFT</span>
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.06em', marginTop: '5px', lineHeight: 1.5 }}>
+                    turn “{(data.discipline || '').slice(0, 32)}{(data.discipline || '').length > 32 ? '…' : ''}” into your real crafts — it powers who finds you
+                  </span>
+                </span>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
+              </button>
+            )}
             {/* the meter — how lit the world is, hairline not game */}
             {completeness.pct < 100 && (
               <div style={{ maxWidth: '260px', marginBottom: '12px' }}>
@@ -608,7 +661,11 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
           <Section title="IDENTITY">
             <Field label="NAME"><input style={inp} value={name} placeholder="Your name" onChange={e => setName(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="HANDLE"><input style={inp} value={username} placeholder="@yourhandle" onChange={e => setUsername(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
-            <Field label="DISCIPLINE"><input style={inp} value={discipline} placeholder="DJ · Painter · Photographer…" onChange={e => setDiscipline(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
+            <Field label="YOUR CRAFTS" hint="Real crafts from the universe's own taxonomy — you can be many. Tap a chosen one to hand it the lead.">
+              <CraftPicker value={editCrafts} primaryId={editPrimary} maxHeight="26vh"
+                seedQuery={editCrafts.length ? '' : ((data?.discipline || '').split(/[·,/&+]| and /i)[0] || '').trim().slice(0, 24)}
+                onChange={(next, nextPrimary) => { setEditCrafts(next); setEditPrimary(nextPrimary) }} />
+            </Field>
             <Field label="CITY"><input style={inp} value={city} placeholder="Houston" onChange={e => setCity(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="RIGHT NOW" hint="One line, your voice. What you're on right now."><input style={inp} value={tagline} placeholder="Chasing the sound that doesn't exist yet." onChange={e => setTagline(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
             <Field label="THE OPENING" hint="A short statement — who you are, in your own words. This opens your world."><textarea style={{ ...inp, resize: 'vertical' }} rows={3} value={bio} placeholder="Where you're from, what you make, what you're chasing." onChange={e => setBio(e.target.value)} onFocus={onF} onBlur={onB} /></Field>
@@ -707,6 +764,12 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       ) : (
         /* ============ VIEW MODE — the world ============ */
         <div style={{ position: 'relative', ...frame, paddingTop: '4px', paddingBottom: wide ? '140px' : '120px', zIndex: 3 }}>
+          {/* the SPINE (D3, Ley 4): one continuous hairline down the margin
+              threads the chapters into a single editorial body — the museum
+              reads as a magazine, never as stacked cards */}
+          {wide && (
+            <div aria-hidden style={{ position: 'absolute', left: 'calc(clamp(40px, 5vw, 76px) - 26px)', top: '90px', bottom: '150px', width: '1px', background: `linear-gradient(180deg, transparent, ${HAIR_HI} 10%, ${HAIR} 90%, transparent)` }} />
+          )}
 
           {/* OPENING STATEMENT */}
           {data.bio && (
@@ -729,7 +792,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
               posts arrive through CREATE central — Ley 13) */}
           {show.moments && (
             <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the world, dated" wide={wide} />
+              <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the wall continues — dated" wide={wide} />
               {posts.length > 0
                 ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
                 : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
@@ -741,7 +804,7 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
               buying is a DM until the payment layer lands — Ley 11) */}
           {show.offer && (
             <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.offer} n={num.offer} label="THE OFFER" kicker="for sale · for hire" wide={wide} />
+              <Marker mark={MARKS.offer} n={num.offer} label="THE OFFER" kicker="the wall, working · for sale" wide={wide} />
               {(isOwner ? listings.length : liveListings.length) > 0
                 ? <WorldOffer listings={listings} isOwner={isOwner} onDMSeller={onDMSeller} onSetStatus={onSetListingStatus} onDelete={onDeleteListing} wide={wide} />
                 : <Invite icon={TagIcon}>Your work, with a price on the wall — a piece to sell or a service to book. Tap the + in the nav and put one up.</Invite>}
@@ -840,6 +903,8 @@ export default function ProfileMuseum({ profile, isOwner = false, onSave, onUplo
       {building && createPortal(
         <WorldBuilder
           data={data}
+          crafts={crafts}
+          onCraftsSaved={onCraftsSaved}
           onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
           onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
           onUploadGallery={onUploadGallery}
@@ -962,20 +1027,8 @@ function GalleryPiece({ item, featured, span, fixedH, index }) {
   )
 }
 
-/* Star-chart geometric mark (filled dot · ring · cross · triangle · diamond). */
-function Mark({ type = 'ring', size = 14, color = SILVER, style }) {
-  const s = size, c = s / 2, r = s * 0.36, sw = Math.max(1, s * 0.085)
-  const common = { fill: 'none', stroke: color, strokeWidth: sw, strokeLinejoin: 'round', strokeLinecap: 'round' }
-  let shape
-  if (type === 'dot') shape = <circle cx={c} cy={c} r={r * 0.62} fill={color} />
-  else if (type === 'star') shape = <path d={`M${c} ${s * 0.1} L${c + s * 0.09} ${c - s * 0.09} L${s * 0.9} ${c} L${c + s * 0.09} ${c + s * 0.09} L${c} ${s * 0.9} L${c - s * 0.09} ${c + s * 0.09} L${s * 0.1} ${c} L${c - s * 0.09} ${c - s * 0.09} Z`} fill={color} stroke="none" />
-  else if (type === 'ring') shape = <circle cx={c} cy={c} r={r} {...common} />
-  else if (type === 'cross') shape = <g {...common}><line x1={c} y1={s * 0.12} x2={c} y2={s * 0.88} /><line x1={s * 0.12} y1={c} x2={s * 0.88} y2={c} /></g>
-  else if (type === 'triangle') shape = <path d={`M${c} ${s * 0.15} L${s * 0.86} ${s * 0.83} L${s * 0.14} ${s * 0.83} Z`} {...common} />
-  else if (type === 'square') shape = <rect x={s * 0.18} y={s * 0.18} width={s * 0.64} height={s * 0.64} {...common} />
-  else shape = <path d={`M${c} ${s * 0.1} L${s * 0.9} ${c} L${c} ${s * 0.9} L${s * 0.1} ${c} Z`} {...common} />
-  return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={style} aria-hidden="true">{shape}</svg>
-}
+/* Mark (the star-chart geometric set) now lives in @/components/Mark —
+   the nav and every surface draw from the same brand-mark vocabulary. */
 
 /* A deterministic constellation for the no-cover state — the person's own star chart.
    The viewBox scales with the hero, so on wide screens the radii must scale
@@ -993,14 +1046,18 @@ function StarField({ seed, wide }) {
   )
 }
 
-/* Editorial catalog marker — [mark] 02  SOUND ———— KICKER.
+/* Editorial CHAPTER marker (D3 — the museum reads as a magazine, not a
+   stack of boxes): an oversized ghost folio numeral sits behind the label
+   like a lookbook spread number; the mark + hairline carry the thread.
    Labels in solid BONE: the world's single chrome moment is the NAME (Ley 8). */
 function Marker({ mark, n, label, kicker, wide }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '26px' : '20px' }}>
-      <Mark type={mark} size={wide ? 16 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9 }} />
-      <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.1em', flexShrink: 0 }}>{n}</span>
-      <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '29px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, color: BONE }}>{label}</span>
+    <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '26px' : '20px' }}>
+      {/* the folio — a chapter numeral, felt more than read */}
+      <span aria-hidden style={{ position: 'absolute', left: wide ? '-10px' : '-6px', bottom: '-8px', fontFamily: 'Bebas Neue', fontSize: wide ? '96px' : '62px', lineHeight: 1, color: BONE, opacity: .05, pointerEvents: 'none', userSelect: 'none' }}>{n}</span>
+      <Mark type={mark} size={wide ? 16 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9, position: 'relative' }} />
+      <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.1em', flexShrink: 0, position: 'relative' }}>{n}</span>
+      <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '29px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, color: BONE, position: 'relative' }}>{label}</span>
       <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR_HI}, transparent)` }} />
       {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '9px' : '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase', flexShrink: 0 }}>{kicker}</span>}
     </div>

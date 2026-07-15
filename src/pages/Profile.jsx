@@ -11,12 +11,14 @@ import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/wor
 import { fetchWorldPosts, deleteWorldPost } from '@/lib/worldPosts'
 import { fetchListings, deleteListing, setListingStatus } from '@/lib/listings'
 import { socialReady, fetchFollowState } from '@/lib/social'
+import { fetchProfileCrafts } from '@/lib/crafts'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
+  const [crafts, setCrafts] = useState([])       // the person's real crafts (0020), primary first
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
@@ -78,6 +80,7 @@ export default function Profile() {
       }
     }
     setProfile(data)
+    fetchProfileCrafts(user.id).then(setCrafts)  // the craft spine (0020)
     fetchWorldPosts(user.id).then(setPosts)   // the world's dated timeline (0016)
     fetchListings(user.id).then(setListings)  // the world's OFFER (0017)
     // the owner's honest count — renders once the social layer is live
@@ -311,6 +314,8 @@ export default function Profile() {
   return (
     <ProfileMuseum
       profile={profile}
+      crafts={crafts}
+      onCraftsSaved={setCrafts}
       isOwner
       onSave={onSave}
       onUploadAvatar={onUploadAvatar}

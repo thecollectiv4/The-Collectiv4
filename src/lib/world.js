@@ -82,9 +82,11 @@ export function skinForFeel(feel) {
 
 /* The composed plan. `show` is what they said they have ready today:
    any of 'images' | 'links' | 'words'. The step that matches what they
-   HAVE leads; what they don't have stays available but never leads. */
-export function composeWorldPlan({ craft, feel, show = [] }) {
-  const kind = craftKindOf(craft)
+   HAVE leads; what they don't have stays available but never leads.
+   `kind` (v5): the chosen crafts' own category decides upstream (0020) —
+   the free-text sniff only serves craft-less legacy worlds. */
+export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride }) {
+  const kind = kindOverride || craftKindOf(craft)
   const has = new Set(show)
 
   // content steps, led by what's actually in their hands today

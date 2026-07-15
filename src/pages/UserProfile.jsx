@@ -8,6 +8,8 @@ import ProfileMuseum from '@/components/ProfileMuseum'
 import { fetchWorldPosts } from '@/lib/worldPosts'
 import { fetchListings } from '@/lib/listings'
 import { socialReady, fetchFollowState, follow, unfollow, startDM } from '@/lib/social'
+import { fetchProfileCrafts } from '@/lib/crafts'
+import RelatedWorlds from '@/components/RelatedWorlds'
 
 export default function UserProfile() {
   const { id } = useParams()
@@ -15,6 +17,7 @@ export default function UserProfile() {
   const { user, loading: authLoading } = useAuth()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
+  const [crafts, setCrafts] = useState([])
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
   const [going, setGoing] = useState(false)
@@ -42,17 +45,20 @@ export default function UserProfile() {
       } catch { /* RPC optional */ }
 
       // the world's dated timeline + its OFFER — RLS mirrors the profile's
-      // own visibility for both (and both resolve empty pre-migration)
-      const [wp, ls, ready] = await Promise.all([
+      // own visibility for both (and both resolve empty pre-migration).
+      // Crafts ride the same read gate (0020's honesty-gated public read).
+      const [wp, ls, ready, pc] = await Promise.all([
         fetchWorldPosts(id),
         fetchListings(id),
         socialReady(),
+        fetchProfileCrafts(id),
       ])
 
       if (!alive) return
       setGoing(!!att)
       setPosts(wp)
       setListings(ls)
+      setCrafts(pc)
       setProfile(p || (att ? { id, full_name: att.name, avatar_url: att.avatar_url } : null))
       setLoading(false)
       if (ready) {
@@ -119,16 +125,21 @@ export default function UserProfile() {
   )
 
   return (
-    <ProfileMuseum
-      profile={profile} isOwner={false} ticket={going} event={live} topBar={topBar}
-      posts={posts}
-      listings={listings}
-      social={(authLoading || selfView) ? { ...social, ready: false } : { ...social, err: socialErr }}
-      selfView={selfView}
-      onSelfCurate={() => navigate('/profile')}
-      onFollowToggle={onFollowToggle}
-      onMessage={() => onMessage()}
-      onDMSeller={selfView ? null : onDMSeller}
-    />
+    <>
+      <ProfileMuseum
+        profile={profile} crafts={crafts} isOwner={false} ticket={going} event={live} topBar={topBar}
+        posts={posts}
+        listings={listings}
+        social={(authLoading || selfView) ? { ...social, ready: false } : { ...social, err: socialErr }}
+        selfView={selfView}
+        onSelfCurate={() => navigate('/profile')}
+        onFollowToggle={onFollowToggle}
+        onMessage={() => onMessage()}
+        onDMSeller={selfView ? null : onDMSeller}
+      />
+      {/* WORLDS IN ORBIT — the matching column's first public face (D2):
+          real worlds sharing this person's craft, or nothing at all */}
+      <RelatedWorlds profileId={id} crafts={crafts} />
+    </>
   )
 }
