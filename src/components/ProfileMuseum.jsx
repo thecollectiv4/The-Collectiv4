@@ -118,7 +118,7 @@ const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring',
 // `social` — { ready, followers, following, iFollow } from the wrapper (0017);
 // `listings` — the world's OFFER. Social buttons render only when the layer is
 // live in the DB (Ley 9: a door that can't open doesn't render).
-export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
+export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
@@ -177,6 +177,11 @@ export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isO
   }, [isOwner, data?.id])
 
   const startEdit = () => {
+    // the edit form SNAPSHOTS the saved crafts — entering before they've
+    // loaded would snapshot [], and saving that would atomically WIPE the
+    // member's real set (review catch, HIGH). The window is sub-second;
+    // the click simply lands when the truth is in hand.
+    if (!craftsReady) return
     const t = normTaste(data?.taste)
     setName(data?.full_name || '')
     setUsername(data?.username || '')
@@ -266,10 +271,11 @@ export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isO
     const patch = {
       full_name: name.trim() || null,
       username: username.trim().replace(/^@/, '') || null,
-      // derived from the chosen crafts — legacy surfaces keep reading truth;
-      // a craft-less save keeps whatever discipline already said (never erase
-      // a legacy line behind someone's back)
-      discipline: editCrafts.length ? craftLine(craftsWithLead) : (data?.discipline || null),
+      // derived from the chosen crafts — legacy surfaces keep reading truth.
+      // Removing EVERY craft removes the derived line too (a stale summary
+      // would survive as zombie truth — review catch); only a NEVER-migrated
+      // legacy line is preserved untouched.
+      discipline: editCrafts.length ? craftLine(craftsWithLead) : (crafts.length ? null : (data?.discipline || null)),
       city: city.trim() || null,
       tagline: tagline.trim() || null,
       bio: bio.trim() || null,
@@ -609,7 +615,7 @@ export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isO
                 invited to become REAL crafts — recognition, not a form. The
                 band lives until the person chooses; nothing is rewritten
                 behind their back (Ley 11). */}
-            {crafts.length === 0 && (data.discipline || '').trim() && (
+            {craftsReady && crafts.length === 0 && (data.discipline || '').trim() && (
               <button data-testid="craft-migration" className="pressable" onClick={() => setBuilding(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'linear-gradient(150deg, rgba(199,201,209,.07), rgba(199,201,209,.015))', border: `1px solid rgba(199,201,209,.3)`, borderRadius: '13px', padding: '13px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
                 onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.55)'}
@@ -902,7 +908,10 @@ export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isO
       {/* ============ THE GUIDED BUILD — sheet below, world forming above ============ */}
       {/* portaled to <body>: fixed overlays must never inherit a transformed
           ancestor as their containing block (walkthrough catch) */}
-      {building && createPortal(
+      {/* craftsReady gates the mount: the builder seeds its picker from the
+          SAVED crafts at mount — opening over a half-loaded set would show a
+          member an empty picker for crafts they already chose */}
+      {building && craftsReady && createPortal(
         <WorldBuilder
           data={data}
           crafts={crafts}

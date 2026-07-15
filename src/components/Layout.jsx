@@ -217,7 +217,9 @@ export default function Layout() {
                 <Mark type={tab.mark} size={19} filled={active}
                   color={active ? '#F2EEE6' : '#83838F'}
                   style={{ filter: active ? 'drop-shadow(0 0 7px rgba(242,238,230,.55))' : 'none', transition:'filter .2s' }} />
-                <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase' }}>{tab.label}</span>
+                {/* nowrap+ellipsis: five tabs (OS members) on a narrow phone
+                    must squeeze, never collide (review catch) */}
+                <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tab.label}</span>
               </div>
             )
           }

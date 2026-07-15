@@ -54,7 +54,10 @@ export const foldText = (s) => (s || '')
 /* ---- lineup → worlds ----
    Returns Map(lineupIndex → { id, username, full_name, avatar_url }).
    Matching is deliberately conservative: a handle equal to the entry's
-   slug (with/without dashes), or a full name that folds equal. */
+   slug (with/without dashes), or a full name that folds equal — and ONLY
+   against VERIFIED members. Names and handles are self-serve; without the
+   verified gate anyone could rename themselves after a headliner and wear
+   the lineup's door on a live event page (review catch, HIGH). */
 export async function resolveLineupWorlds(lineup = []) {
   const out = new Map()
   const entries = lineup
@@ -77,9 +80,10 @@ export async function resolveLineupWorlds(lineup = []) {
     if (!ors.length) return out
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, username, full_name, avatar_url, is_demo')
+      .select('id, username, full_name, avatar_url, is_demo, verified')
       .or(ors.join(','))
       .eq('is_demo', false)
+      .eq('verified', true)
       .limit(40)
     if (error || !data?.length) return out
     entries.forEach((e) => {

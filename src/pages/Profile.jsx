@@ -18,7 +18,10 @@ export default function Profile() {
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
-  const [crafts, setCrafts] = useState([])       // the person's real crafts (0020), primary first
+  // the person's real crafts (0020), primary first. null = still loading —
+  // the migration band must never FLASH at a migrated member while the
+  // fetch is in flight (loaded-empty and not-yet-loaded are different truths)
+  const [crafts, setCrafts] = useState(null)
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
@@ -314,7 +317,8 @@ export default function Profile() {
   return (
     <ProfileMuseum
       profile={profile}
-      crafts={crafts}
+      crafts={crafts || []}
+      craftsReady={crafts !== null}
       onCraftsSaved={setCrafts}
       isOwner
       onSave={onSave}

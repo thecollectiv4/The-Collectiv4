@@ -53,9 +53,11 @@ export default function RelatedWorlds({ profileId, crafts = [] }) {
           e.shared.push({ name: r.crafts.name, slug: r.crafts.slug, category: r.crafts.category })
           byProfile.set(r.profile_id, e)
         })
+        // rank by overlap, keep a wider pool than shown — the is_demo filter
+        // below trims AFTER ranking, and trimming first could starve the rail
         const ranked = [...byProfile.entries()]
           .sort((a, b) => b[1].shared.length - a[1].shared.length)
-          .slice(0, 8)
+          .slice(0, 14)
         const ids = ranked.map(([id]) => id)
         const { data: profs } = await supabase
           .from('profiles')

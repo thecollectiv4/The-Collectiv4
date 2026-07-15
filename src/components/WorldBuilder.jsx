@@ -160,8 +160,11 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
   const commitCrafts = async () => {
     const summary = craftLine(craftsNow)
     await saveProfileCrafts(picked.map((c) => c.id), primaryId)
-    await onCommit({ discipline: summary || null })
+    // the parent learns the DB's truth IMMEDIATELY — if the discipline
+    // write below fails, the crafts are still saved and the UI must not
+    // pretend otherwise (review catch)
     onCraftsSaved?.(craftsNow)
+    await onCommit({ discipline: summary || null })
   }
 
   /* ---- the conversation → the composed plan ---- */

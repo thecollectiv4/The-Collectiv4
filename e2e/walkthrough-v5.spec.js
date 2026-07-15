@@ -375,6 +375,12 @@ test('J · the QA accounts retire; Community closes clean', async ({ browser, re
       headers: { apikey: ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
       data: { is_demo: true, username: null, full_name: 'QA (retired)' },
     })
+    // crafts leave with the account — is_demo hides them from anon, but the
+    // founders' preview toggle still sees demo rows; retire ALL of it
+    await request.post(`${SUPABASE_URL}/rest/v1/rpc/set_profile_crafts`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' },
+      data: { p_craft_ids: [], p_primary_id: null },
+    })
   }
   // a retired demo's crafts leak nothing — 0020's honesty gate, live
   const { b } = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))

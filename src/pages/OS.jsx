@@ -182,7 +182,7 @@ export default function OS() {
   if (state === 'denied') return (
     <Shell center>
       <div style={{ textAlign: 'center', maxWidth: '300px' }}>
-        <Lock size={24} style={{ color: BONE_LOW }} />
+        <Lock size={24} style={{ color: BONE_LOW, display: 'block', margin: '0 auto' }} />
         <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: BONE_MID, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '14px' }}>Our network only</div>
         <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em', marginTop: '10px', lineHeight: 1.6 }}>The Team OS is the internal hub for verified members of The Collectiv4.</div>
         <button onClick={() => navigate('/community')} style={{ marginTop: '18px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>← Community</button>

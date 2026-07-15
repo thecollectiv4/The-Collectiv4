@@ -61,8 +61,15 @@ export default function Community() {
   // CRAFT filter (D2): real taxonomy slugs, never free-text chips — event
   // pages and worlds deep-link here (?craft=dj), the interconnection column
   const craft = searchParams.get('craft') || 'all'
-  const setCraft = (slug) => setSearchParams(slug === 'all' ? {} : { craft: slug }, { replace: true })
+  const setCraft = (slug) => {
+    // touch ONLY the craft param — clearing the whole query string would
+    // silently drop any other param riding the URL (review catch)
+    const p = new URLSearchParams(searchParams)
+    if (slug === 'all') p.delete('craft'); else p.set('craft', slug)
+    setSearchParams(p, { replace: true })
+  }
   const [craftsByProfile, setCraftsByProfile] = useState(new Map())
+  const [craftsLoaded, setCraftsLoaded] = useState(false)
   const [previewAvailable, setPreviewAvailable] = useState(import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true')
   const [showDemo, setShowDemo] = useState(false)
   const [followingSet, setFollowingSet] = useState(new Set())
@@ -97,7 +104,8 @@ export default function Community() {
       setCreatives(rows)
       setLoading(false)
       // the craft spine on the cards + the filter's real vocabulary (0020)
-      fetchCraftsForProfiles(rows.map(r => r.id)).then((m) => { if (alive) setCraftsByProfile(m) })
+      setCraftsLoaded(false)
+      fetchCraftsForProfiles(rows.map(r => r.id)).then((m) => { if (alive) { setCraftsByProfile(m); setCraftsLoaded(true) } })
       // connected state on the cards (empty set pre-0017 / signed out)
       if (user?.id) {
         fetchFollowingSet(user.id, rows.map(r => r.id)).then((s) => { if (alive) setFollowingSet(s) })
@@ -160,7 +168,10 @@ export default function Community() {
           <div aria-hidden style={{ margin: '16px 0 12px', height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
         )}
 
-        {loading ? (
+        {/* a craft deep-link must not flash 'NOTHING HERE YET' while the
+            craft rows are still in flight (review catch) — filtering waits
+            for the truth it filters on */}
+        {loading || (craft !== 'all' && !craftsLoaded) ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
             <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
           </div>

@@ -61,9 +61,12 @@ export default function HouseWorld() {
     let alive = true
     ;(async () => {
       const [evRes, netRes, listRes] = await Promise.all([
+        // is_house=true: THE ROOMS on the HOUSE world are the house's own
+        // nights — a member's event must never wear the C4 flagship's
+        // authorship (review catch). Members' rooms live in the EVENT tab.
         supabase.from('events')
           .select('id,slug,title,edition,event_date,doors,venue,city,cover_url,status,tiers,vibe')
-          .eq('status', 'published').eq('is_test', false)
+          .eq('status', 'published').eq('is_test', false).eq('is_house', true)
           .order('event_date', { ascending: true }),
         supabase.from('profiles')
           .select('id,full_name,username,discipline,avatar_url,cover_url,tagline,verified,is_demo')
@@ -72,7 +75,7 @@ export default function HouseWorld() {
         supabase.from('listings')
           .select('id,profile_id,kind,title,price_cents,images,status,created_at')
           .eq('status', 'live')
-          .order('created_at', { ascending: false }).limit(12),
+          .order('created_at', { ascending: false }).limit(24),
       ])
       if (!alive) return
       setEvents(evRes.data || [])

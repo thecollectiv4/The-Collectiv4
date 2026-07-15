@@ -58,13 +58,26 @@ export default function Events() {
 
   useEffect(() => {
     let alive = true
-    supabase
+    const FIELDS = 'id,slug,title,edition,event_date,doors,venue,city,cover_url,status,tiers,is_house'
+    const base = (withVibe) => supabase
       .from('events')
-      .select('id,slug,title,edition,event_date,doors,venue,city,cover_url,status,tiers,is_house,vibe')
+      .select(withVibe ? `${FIELDS},vibe` : FIELDS)
       .eq('status', 'published')
       .eq('is_test', false)
       .order('event_date', { ascending: true })
-      .then(({ data }) => { if (alive) { setEvents(data || []); setLoading(false) } })
+    base(true)
+      .then(({ data, error }) => {
+        if (!alive) return
+        // ONLY the missing-column error (42703, pre-0021 environment) may
+        // retry without vibe — the directory must never die over a column
+        // that only decorates it (the useLiveEvent 0016 pattern)
+        if (error && error.code === '42703') {
+          base(false).then(({ data: d2 }) => { if (alive) { setEvents(d2 || []); setLoading(false) } })
+            .catch(() => { if (alive) setLoading(false) })
+          return
+        }
+        setEvents(data || []); setLoading(false)
+      })
       .catch(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [])
