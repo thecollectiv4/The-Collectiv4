@@ -1,17 +1,23 @@
 import { supabase } from '@/api/supabase'
 
 /* =========================================================================
-   social — the connective tissue (migration 0017): follows + threads
-   (DMs and event rooms). The Base44 chat REBUILT native — nothing here
-   touches the legacy conversations/messages/chat_messages tables.
+   social — the connective tissue (migrations 0017 + 0023): follows +
+   threads (DMs, event rooms, crews, plan rooms) + the circle (amigos) +
+   plans. The Base44 chat REBUILT native — nothing here touches the
+   legacy conversations/messages/chat_messages tables.
+
+   DOCTRINE (0023): crews and plans are built FROM friendship — you bring
+   YOUR people. Friend lists are PRIVATE (only participants see the bond);
+   no public counts anywhere.
 
    DEGRADES HONESTLY pre-migration (the worldPosts doctrine): a missing
    table resolves reads to empty and surfaces a human sentence on writes —
-   and socialReady() lets surfaces render ABSENCE instead of dead doors
-   (Leyes 9/11: a button that can't keep its promise doesn't render).
+   and socialReady()/circleReady() let surfaces render ABSENCE instead of
+   dead doors (Leyes 9/11: a button that can't keep its promise doesn't
+   render).
    ========================================================================= */
 
-const MISSING = /follows|threads|thread_messages|thread_members|start_dm|join_event_chat|schema cache|does not exist|Could not find/i
+const MISSING = /follows|threads|thread_messages|thread_members|friendships|plan_members|plans|start_dm|join_event_chat|my_circle|my_plans|create_group_thread|create_plan|schema cache|does not exist|Could not find/i
 const NOT_ON_YET = "connections aren't switched on yet — the platform update is on its way."
 
 let readyProbe = null
@@ -38,6 +44,28 @@ export function socialReady() {
       .catch(() => { readyProbe = null; return false })
   }
   return readyProbe
+}
+
+let circleProbe = null
+/* Is the circle layer (0023: friendships / crews / plans) live in the DB?
+   Same probe pattern as socialReady(): a limit(0) select against
+   friendships, and only DEFINITIVE answers stick — a transient failure
+   answers false for THIS call but never poisons the session. */
+export function circleReady() {
+  if (!circleProbe) {
+    circleProbe = supabase
+      .from('friendships')
+      .select('requester_id')
+      .limit(0)
+      .then(({ error }) => {
+        if (!error) return true
+        const missing = error.code === 'PGRST205' || MISSING.test(error.message || '')
+        if (!missing) circleProbe = null   // transient — let the next surface re-ask
+        return false
+      })
+      .catch(() => { circleProbe = null; return false })
+  }
+  return circleProbe
 }
 
 /* ------------------------------ follows ------------------------------ */
@@ -126,7 +154,11 @@ function humanRpcError(msg = '') {
 
 /* The inbox: every thread the member belongs to, newest movement first,
    with the other members resolved to names/faces and the thread's event
-   (for kind='event') resolved to a title. One honest empty on failure. */
+   (for kind='event') resolved to a title. Kinds 'group' and 'plan' (0023)
+   carry their title on the threads row itself — no extra join. The column
+   list is probe-gated (threadCols): asking a pre-0023 DB for title/plan_id
+   would error the WHOLE inbox, not just the new kinds. One honest empty
+   on failure. */
 export async function fetchInbox(meId) {
   if (!meId) return []
   try {
@@ -139,7 +171,7 @@ export async function fetchInbox(meId) {
     const lastRead = Object.fromEntries(mine.map((m) => [m.thread_id, m.last_read_at]))
 
     const [{ data: threads }, { data: members }] = await Promise.all([
-      supabase.from('threads').select('id,kind,event_id,last_message_at,created_at').in('id', ids),
+      supabase.from('threads').select(await threadCols()).in('id', ids),
       supabase.from('thread_members').select('thread_id,profile_id').in('thread_id', ids),
     ])
     if (!threads?.length) return []
@@ -180,6 +212,15 @@ export async function fetchInbox(meId) {
   } catch { return [] }
 }
 
+/* threads columns, probe-gated: title + plan_id exist only once 0023 is
+   live — selecting them earlier would fail the whole read (a missing
+   COLUMN errors the query; there is no per-column grace). */
+async function threadCols() {
+  return (await circleReady())
+    ? 'id,kind,event_id,title,plan_id,last_message_at,created_at'
+    : 'id,kind,event_id,last_message_at,created_at'
+}
+
 /* newest message per thread (preview lines) — one limit(1) per thread so a
    busy event room can never starve a quiet DM's preview out of a shared
    window (review catch). Inboxes are small; capped at 50 lookups. */
@@ -207,7 +248,7 @@ async function fetchLastMessages(threadIds) {
    catch). */
 export async function fetchThread(threadId, meId) {
   const [{ data: t }, { data: members }, { data: msgsDesc }] = await Promise.all([
-    supabase.from('threads').select('id,kind,event_id,last_message_at').eq('id', threadId).maybeSingle(),
+    supabase.from('threads').select(await threadCols()).eq('id', threadId).maybeSingle(),
     supabase.from('thread_members').select('profile_id').eq('thread_id', threadId),
     supabase.from('thread_messages').select('id,thread_id,sender_id,body,created_at').eq('thread_id', threadId).order('created_at', { ascending: false }).limit(300),
   ])
@@ -268,4 +309,164 @@ export function subscribeThread(threadId, onMessage) {
 
 export const msgTime = (iso) => {
   try { return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) } catch { return '' }
+}
+
+/* ------------------------- the circle (0023) -------------------------
+   Amigos — the mutual, PRIVATE bond. Every write below goes through a
+   SECURITY DEFINER door; the client holds no insert grants. Envelope
+   errors ({ok:false, error}) become human sentences here so surfaces
+   never print a code. */
+
+const ENVELOPE_HUMAN = {
+  not_authenticated: 'sign in first.',
+  bad_target: "that world isn't reachable.",
+  not_found: "that world isn't reachable.",
+  no_request: 'that request is gone — it may have been withdrawn.',
+  not_your_friend: 'you can only bring your own amigos.',
+  group_full: 'the crew is full — 24 is the room.',
+  not_a_group: "this room isn't a crew.",
+  not_member: "you're not in this room.",
+  not_invited: "you're not on this plan.",
+  not_yours: 'only the person who made the plan can cancel it.',
+  creator_cancels: 'the plan is yours — cancel it instead of leaving.',
+}
+
+/* one door-call: rpc → envelope checked → data (throws human sentences) */
+async function callDoor(fn, args) {
+  const { data, error } = await supabase.rpc(fn, args)
+  if (error) {
+    if (MISSING.test(error.message || '')) throw new Error(NOT_ON_YET)
+    throw new Error(humanRpcError(error.message))
+  }
+  if (data && typeof data === 'object' && data.ok === false) {
+    throw new Error(ENVELOPE_HUMAN[data.error] || data.error || 'something went wrong — try again.')
+  }
+  return data
+}
+
+/* the pairwise bond between me and ONE other world → 'none' | 'out'
+   (my request waits on them) | 'in' (theirs waits on me) | 'friends'.
+   RLS admits only participants, and the pair is unique (0023) — one row
+   at most. null on error/pre-migration: the museum renders a door only
+   when the state is KNOWN (Ley 9 — no dead promises). */
+export async function fetchFriendState(meId, otherId) {
+  if (!meId || !otherId || meId === otherId) return null
+  try {
+    const { data, error } = await supabase
+      .from('friendships')
+      .select('requester_id,addressee_id,status')
+      .or(`and(requester_id.eq.${meId},addressee_id.eq.${otherId}),and(requester_id.eq.${otherId},addressee_id.eq.${meId})`)
+      .maybeSingle()
+    if (error) return null
+    if (!data) return 'none'
+    if (data.status === 'accepted') return 'friends'
+    if (data.status === 'pending') return data.requester_id === meId ? 'out' : 'in'
+    return 'none'
+  } catch { return null }
+}
+
+/* friends + requests waiting on me + requests I sent — one call, always
+   shaped, empty on any failure (reads resolve to absence, never a crash). */
+export async function myCircle() {
+  const empty = { friends: [], pending_in: [], pending_out: [] }
+  try {
+    const { data, error } = await supabase.rpc('my_circle')
+    if (error || !data?.ok) return empty
+    return {
+      friends: data.friends || [],
+      pending_in: data.pending_in || [],
+      pending_out: data.pending_out || [],
+    }
+  } catch { return empty }
+}
+
+/* ask — or complete a mutual ask (two reaches meet) → 'pending'|'accepted' */
+export async function requestFriend(otherId) {
+  const data = await callDoor('request_friend', { p_other: otherId })
+  return data?.status
+}
+
+/* answer a request waiting on me → 'accepted'|'declined' */
+export async function respondFriend(otherId, accept) {
+  const data = await callDoor('respond_friend', { p_other: otherId, p_accept: !!accept })
+  return data?.status
+}
+
+export async function removeFriend(otherId) {
+  await callDoor('remove_friend', { p_other: otherId })
+}
+
+/* ------------------------------ crews ------------------------------ */
+
+/* start a crew (kind='group' thread) with YOUR friends → thread id.
+   The RPC returns the uuid bare (raises on bad title); strangers in
+   memberIds are silently filtered server-side. Cap 24. */
+export async function createCrew(title, memberIds = []) {
+  const { data, error } = await supabase.rpc('create_group_thread', {
+    p_title: (title || '').trim(),
+    p_member_ids: memberIds,
+  })
+  if (error) {
+    if (MISSING.test(error.message || '')) throw new Error(NOT_ON_YET)
+    if (/bad_title/.test(error.message || '')) throw new Error('give the crew a name — up to 60 characters.')
+    throw new Error(humanRpcError(error.message))
+  }
+  return data
+}
+
+export async function addCrewMember(threadId, otherId) {
+  await callDoor('add_group_member', { p_thread: threadId, p_other: otherId })
+}
+
+/* walk out of a crew (groups only; an empty crew dissolves server-side) */
+export async function leaveCrew(threadId) {
+  await callDoor('leave_thread', { p_thread: threadId })
+}
+
+/* ------------------------------ plans ------------------------------ */
+
+/* the kickback: what / where / when + your people. Born WITH its room —
+   returns { plan_id, thread_id, invited }; non-friend invitees are
+   silently skipped server-side and the honest count comes back. */
+export async function createPlan({ title, spot, detail, startsAt, inviteeIds = [] }) {
+  const p = { title: (title || '').trim() }
+  if ((spot || '').trim()) p.spot = spot.trim()
+  if ((detail || '').trim()) p.detail = detail.trim()
+  if (startsAt) p.starts_at = startsAt
+  if (inviteeIds.length) p.invitee_ids = inviteeIds
+  const data = await callDoor('create_plan', { p })
+  return { plan_id: data.plan_id, thread_id: data.thread_id, invited: data.invited }
+}
+
+/* in / out / maybe — the honest three → the status that landed */
+export async function rsvpPlan(planId, status) {
+  const data = await callDoor('rsvp_plan', { p_plan: planId, p_status: status })
+  return data?.status
+}
+
+/* any member widens the circle — with THEIR friends only → honest count */
+export async function invitePlan(planId, otherIds = []) {
+  const data = await callDoor('invite_to_plan', { p_plan: planId, p_others: otherIds })
+  return data?.invited ?? 0
+}
+
+/* creator only; the room survives the cancellation */
+export async function cancelPlan(planId) {
+  await callDoor('cancel_plan', { p_plan: planId })
+}
+
+/* an invitee walks (0026): removes the caller from the plan. The creator
+   can't leave — they cancel instead ({ok:false,error:'creator_cancels'}). */
+export async function leavePlan(planId) {
+  await callDoor('leave_plan', { p_plan: planId })
+}
+
+/* every plan I'm part of, fully resolved (roster, counts, my_status,
+   thread_id), live-first then by starts_at. Empty on any failure. */
+export async function myPlans() {
+  try {
+    const { data, error } = await supabase.rpc('my_plans')
+    if (error || !data?.ok) return []
+    return data.plans || []
+  } catch { return [] }
 }

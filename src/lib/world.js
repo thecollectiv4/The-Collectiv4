@@ -5,6 +5,8 @@
    the completeness math behind "your world is at 60%".
    ========================================================================= */
 
+import { supabase } from '@/api/supabase'
+
 const BONE = '#F2EEE6'
 // display chrome — the museum's own 176deg liquid gradient (kept identical
 // to the pre-split ProfileMuseum values so nothing shifts visually)
@@ -53,12 +55,78 @@ export function craftKindOf(discipline) {
 }
 
 /* Step order per craft — same steps, different door. `words` (the writer's
-   piece) edits `bio`, which the museum already opens the world with. */
+   piece) edits `bio`, which the museum already opens the world with.
+   `taste` (v6) rides right after the craft: who you are, then what you
+   love — the quiet layer that powers the for-you (0022). */
 export const CRAFT_STEPS = {
-  visual: ['craft', 'work', 'doors', 'marquee', 'skin'],
-  sound: ['craft', 'doors', 'work', 'marquee', 'skin'],
-  word: ['craft', 'words', 'work', 'doors', 'marquee', 'skin'],
-  generic: ['craft', 'work', 'doors', 'marquee', 'skin'],
+  visual: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
+  sound: ['craft', 'taste', 'doors', 'work', 'marquee', 'skin'],
+  word: ['craft', 'taste', 'words', 'work', 'doors', 'marquee', 'skin'],
+  generic: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
+}
+
+/* =========================================================================
+   Modular worlds (v6, 0024) — the museum's rooms as a vocabulary. The
+   world ADAPTS to the primary craft: a DJ's leads with sound + upcoming
+   sets, a photographer's with the gallery + the offer, a discoverer's
+   with public taste + moments. profiles.world_modules holds the owner's
+   own ordered composition; NULL means the kind-default below. Labels and
+   kickers mirror the museum's Marker calls — one vocabulary, no drift.
+   ========================================================================= */
+
+export const MODULES = {
+  gallery: { label: 'GALLERY', kicker: 'the work, on walls' },
+  moments: { label: 'MOMENTS', kicker: 'the wall continues — dated' },
+  offer: { label: 'THE OFFER', kicker: 'the wall, working · for sale' },
+  sound: { label: 'SOUND', kicker: 'on rotation' },
+  screen: { label: 'SCREEN', kicker: 'what i watch' },
+  influences: { label: 'INFLUENCES', kicker: 'what shaped me' },
+  work: { label: 'WORK', kicker: 'what i make' },
+  taste: { label: 'TASTE', kicker: 'made public — the rest works in silence' },
+  sets: { label: 'SETS', kicker: 'where it plays next' },
+}
+
+/* the stored column, defended: whitelist to known keys, dedupe, keep the
+   owner's order. null/invalid/empty → null (the kind-default composes). */
+export function normModules(v) {
+  if (!Array.isArray(v)) return null
+  const seen = new Set()
+  const out = []
+  v.forEach((k) => { if (typeof k === 'string' && MODULES[k] && !seen.has(k)) { seen.add(k); out.push(k) } })
+  return out.length ? out : null
+}
+
+/* the kind-default composition — every room on, ordered by what leads
+   that kind of world. 'generic'/null = the discoverer (no craft yet). */
+const MODULE_DEFAULTS = {
+  sound: ['sound', 'sets', 'gallery', 'moments', 'taste', 'offer', 'screen', 'influences', 'work'],
+  visual: ['gallery', 'work', 'sets', 'moments', 'offer', 'taste', 'sound', 'screen', 'influences'],
+  word: ['influences', 'work', 'gallery', 'moments', 'taste', 'offer', 'sound', 'screen', 'sets'],
+  generic: ['taste', 'moments', 'gallery', 'sound', 'screen', 'influences', 'offer', 'work', 'sets'],
+}
+export function defaultModulesFor(kind) {
+  return MODULE_DEFAULTS[kind] || MODULE_DEFAULTS.generic
+}
+
+/* ---- the SETS movement's read: upcoming published rooms this person
+   hosts (public-read RLS; is_test excluded — honest walls only). The
+   12h grace keeps tonight's room on the wall while it's still going. */
+export async function fetchUpcomingSets(profileId) {
+  if (!profileId) return []
+  try {
+    const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString()
+    const { data, error } = await supabase
+      .from('events')
+      .select('id,slug,title,event_date,venue,city,cover_url,vibe')
+      .eq('host_id', profileId)
+      .eq('status', 'published')
+      .eq('is_test', false)
+      .gte('event_date', since)
+      .order('event_date', { ascending: true })
+      .limit(6)
+    if (error) return []
+    return data || []
+  } catch { return [] }
 }
 
 /* =========================================================================
@@ -95,8 +163,9 @@ export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride })
   if (has.has('words')) push('words')
   if (has.has('images')) push('work')
   if (has.has('links')) push('doors')
-  // fill the rest in the craft's own order (minus 'craft' — already answered)
-  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'marquee' && k !== 'skin') push(k) })
+  // fill the rest in the craft's own order (minus 'craft' — already
+  // answered — and 'taste', which rides right after the line below)
+  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'taste' && k !== 'marquee' && k !== 'skin') push(k) })
 
   const skin = skinForFeel(feel)
   // local marquee suggestion: their own feel, spoken as a welcome — never
@@ -106,7 +175,7 @@ export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride })
 
   return {
     kind,
-    steps: ['line', ...order, 'marquee', 'skin'],
+    steps: ['line', 'taste', ...order, 'marquee', 'skin'],
     skin,
     marquee: marquee || null,   // null → keep the house default
     line: null,                 // a suggested tagline comes only from /api/curate

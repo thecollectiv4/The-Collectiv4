@@ -22,6 +22,9 @@ export const RAIL_QUERY = '(min-width: 1180px)'
 // they keep the phone pattern. 1024 (not 768): a half-screen window reads
 // better as the phone composition than as a cramped editorial spread.
 export const WIDE_QUERY = '(min-width: 1024px)'
+// >=1440px — the editorial spread breathes into a third column (the For You
+// masonry goes 2→3). One consumer step up from WIDE_QUERY, same system.
+export const VERY_WIDE_QUERY = '(min-width: 1440px)'
 
 function useMediaQuery(query) {
   const [matches, setMatches] = useState(() =>
@@ -55,4 +58,9 @@ export function useBoardGrid() {
 /* >=1024px — consumer wide mode: editorial desktop architecture. */
 export function useWide() {
   return useMediaQuery(WIDE_QUERY)
+}
+
+/* >=1440px — the widest consumer spread (For You masonry: 2 cols → 3). */
+export function useVeryWide() {
+  return useMediaQuery(VERY_WIDE_QUERY)
 }

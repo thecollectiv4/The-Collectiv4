@@ -12,6 +12,8 @@ import { fetchWorldPosts, deleteWorldPost } from '@/lib/worldPosts'
 import { fetchListings, deleteListing, setListingStatus } from '@/lib/listings'
 import { socialReady, fetchFollowState } from '@/lib/social'
 import { fetchProfileCrafts } from '@/lib/crafts'
+import { fetchMyTastes } from '@/lib/tastes'
+import { fetchUpcomingSets } from '@/lib/world'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
@@ -22,8 +24,14 @@ export default function Profile() {
   // the migration band must never FLASH at a migrated member while the
   // fetch is in flight (loaded-empty and not-yet-loaded are different truths)
   const [crafts, setCrafts] = useState(null)
+  // the quiet layer (0022). null = still loading — saveTastes replaces the
+  // WHOLE set, so the builder must never mount over a half-loaded one (the
+  // same loaded-empty vs not-yet-loaded discipline as crafts)
+  const [tastes, setTastes] = useState(null)
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
+  // upcoming rooms this member hosts — the SETS movement's rows (v6)
+  const [upcomingSets, setUpcomingSets] = useState([])
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
   const [ticket, setTicket] = useState(null)
   const [ticketEvent, setTicketEvent] = useState(null)  // the ticket's OWN event row — never the live event's name on someone else's ticket
@@ -84,8 +92,10 @@ export default function Profile() {
     }
     setProfile(data)
     fetchProfileCrafts(user.id).then(setCrafts)  // the craft spine (0020)
+    fetchMyTastes(user.id).then(setTastes)    // the quiet layer (0022)
     fetchWorldPosts(user.id).then(setPosts)   // the world's dated timeline (0016)
     fetchListings(user.id).then(setListings)  // the world's OFFER (0017)
+    fetchUpcomingSets(user.id).then(setUpcomingSets)  // the SETS movement (v6)
     // the owner's honest count — renders once the social layer is live
     socialReady().then((ready) => {
       if (!ready) return
@@ -322,6 +332,8 @@ export default function Profile() {
       crafts={crafts || []}
       craftsReady={crafts !== null}
       onCraftsSaved={setCrafts}
+      tastes={tastes}
+      onTastesSaved={setTastes}
       isOwner
       onSave={onSave}
       onUploadAvatar={onUploadAvatar}
@@ -338,6 +350,11 @@ export default function Profile() {
       onSetListingStatus={onSetListingStatus}
       onDeleteListing={onDeleteListing}
       social={social}
+      // the WHOLE set (v6): the museum renders only the public rows and
+      // counts the quiet ones for the owner — never names them. null while
+      // loading keeps the TASTE invite from flashing over an unknown truth.
+      publicTastes={tastes}
+      upcomingSets={upcomingSets}
     />
   )
 }

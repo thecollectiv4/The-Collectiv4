@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
 import WorldBuilder from '@/components/WorldBuilder'
@@ -9,8 +10,9 @@ import Constellation from '@/components/Constellation'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
 import { useWide } from '@/lib/useIsDesktop'
-import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness } from '@/lib/world'
-import { craftLine, saveProfileCrafts, categoryMeta } from '@/lib/crafts'
+import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness, MODULES, normModules, defaultModulesFor, craftKindOf } from '@/lib/world'
+import { craftLine, saveProfileCrafts, categoryMeta, kindOfCrafts } from '@/lib/crafts'
+import { TASTE_DOMAINS } from '@/lib/tastes'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
 const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2)}`)
@@ -110,7 +112,10 @@ const onF = (e) => e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'
 const onB = (e) => e.currentTarget.style.borderColor = HAIR_HI
 
 // star-chart marks, one per movement
-const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross' }
+const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross', taste: 'plus', sets: 'ring' }
+
+// SETS rows: the date as catalog mono — "AUG 28", never an invented time
+const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() } catch { return '' } }
 
 // `event` is the normalized live-event object from useLiveEvent (name/edition/date/
 // city); the wrapper passes it so the "going" badge shows the real upcoming event.
@@ -118,8 +123,14 @@ const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring',
 // `social` — { ready, followers, following, iFollow } from the wrapper (0017);
 // `listings` — the world's OFFER. Social buttons render only when the layer is
 // live in the DB (Ley 9: a door that can't open doesn't render).
-export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
+// v6 (D4): `publicTastes` — the quiet layer's speakable rows (owner gets the
+// whole set and this file filters is_public; null = still loading, never
+// flash an invite over an unknown truth); `upcomingSets` — published rooms
+// this person hosts; `friendship` — { state, onRequest, onAccept, onRemove }
+// from the wrapper (0023), absent = the door doesn't render.
+export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
+  const navigate = useNavigate()                       // SETS rows walk into their event rooms
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
   const [building, setBuilding] = useState(false)     // the guided build (sheet over the live museum)
@@ -151,6 +162,12 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const [rows, setRows] = useState([])
   const [linkRows, setLinkRows] = useState([])
   const [galRows, setGalRows] = useState([])
+  // YOUR ROOMS (v6, 0024): every module key with its switch, in the owner's
+  // order — ON rows persist as world_modules, the kind-default saves as null
+  const [roomRows, setRoomRows] = useState([])
+  // did the owner actually compose rooms THIS session? A seeded-but-untouched
+  // editor must never freeze a stale order — nor wipe a real one (see save()).
+  const [roomsTouched, setRoomsTouched] = useState(false)
   const [galUploading, setGalUploading] = useState(0)
   const [galErr, setGalErr] = useState(null)
   // storage bookkeeping: what THIS edit session uploaded (delete on cancel)
@@ -199,6 +216,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
     setRows(normMedia(data?.media).map(m => ({ id: uid(), title: m.title || '', url: m.url || '' })))
     setLinkRows(normLinks(data?.world_links).map(l => ({ id: uid(), label: l.label || '', url: l.url || '' })))
     setGalRows(normGallery(data?.gallery).map(g => ({ id: uid(), path: g.path || null, url: g.url, caption: g.caption || '' })))
+    // YOUR ROOMS seeds from what composes today: the saved order ON, every
+    // other known room appended OFF at the end (nothing hides from the form)
+    const roomsOn = normModules(data?.world_modules) || defaultModulesFor(kindOfCrafts(crafts) || craftKindOf(data?.discipline))
+    setRoomRows([
+      ...roomsOn.map((k) => ({ key: k, on: true })),
+      ...Object.keys(MODULES).filter((k) => !roomsOn.includes(k)).map((k) => ({ key: k, on: false })),
+    ])
+    setRoomsTouched(false)
     sessionUploads.current = new Set()
     removedSaved.current = new Set()
     setGalErr(null)
@@ -253,6 +278,33 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
     setGalRows(r => r.filter((_, j) => j !== i))
   }
 
+  // YOUR ROOMS: switch, reorder, and the ghost door back to the craft's order.
+  // Every real edit marks the session TOUCHED (roomsTouched → save writes an
+  // explicit composition; untouched stays on truth). Side effects live OUTSIDE
+  // the state updater — StrictMode double-invokes updaters in dev.
+  const toggleRoom = (k) => {
+    const row = roomRows.find(r => r.key === k)
+    // Ley 11 — a world needs at least one open room; block the last one OFF.
+    // Turning a room ON is always allowed.
+    if (row?.on && roomRows.filter(r => r.on).length <= 1) return
+    setRoomsTouched(true)
+    setRoomRows(rs => rs.map(r => r.key === k ? { ...r, on: !r.on } : r))
+  }
+  const moveRoom = (k, dir) => {
+    setRoomsTouched(true)
+    setRoomRows(rs => {
+      const i = rs.findIndex(r => r.key === k)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= rs.length) return rs
+      const c = [...rs]; const [x] = c.splice(i, 1); c.splice(j, 0, x); return c
+    })
+  }
+  const resetRooms = () => {
+    setRoomsTouched(true)
+    const withLead = editCrafts.map((c) => ({ ...c, isPrimary: c.id === editPrimary }))
+    setRoomRows(defaultModulesFor(kindOfCrafts(withLead) || craftKindOf(data?.discipline)).map((k) => ({ key: k, on: true })))
+  }
+
   const cancelEdit = () => {
     // uploads that never got saved don't belong to anyone — clean them up
     if (sessionUploads.current.size) onCleanupImages?.([...sessionUploads.current])
@@ -290,6 +342,29 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       world_links: linkRows.map(r => ({ label: (r.label || '').trim(), url: (r.url || '').trim() }))
         .filter(r => safeUrl(r.url)),
       gallery: galRows.map(r => ({ path: r.path || null, url: r.url, caption: (r.caption || '').trim() })),
+    }
+    // YOUR ROOMS → world_modules (0024): the ON keys in the owner's order.
+    const enabledRooms = roomRows.filter(r => r.on).map(r => r.key)
+    if (!roomsTouched) {
+      // the owner never composed rooms this session — preserve the stored
+      // truth (null = defaults, or a real prior composition). NOT the seeded
+      // order: it was built from the OLD craft's default and would freeze a
+      // stale array when the craft was edited this session (review catch).
+      patch.world_modules = normModules(data?.world_modules)
+    } else {
+      // Ley 11 — a world needs >=1 open room; the editor blocks the last-off,
+      // so this is a defensive stop, never the silent revert-to-full-default.
+      if (enabledRooms.length === 0) {
+        setSaveErr('a world needs at least one open room')
+        setSaving(false)
+        return
+      }
+      // a composition that equals the edited craft's kind-default exactly saves
+      // NULL — the world stays on defaults, so future default improvements reach it.
+      const roomsDefault = defaultModulesFor(kindOfCrafts(craftsWithLead) || craftKindOf(patch.discipline))
+      patch.world_modules = (enabledRooms.length === roomsDefault.length && enabledRooms.every((k, i) => k === roomsDefault[i]))
+        ? null
+        : enabledRooms
     }
     try {
       // crafts commit first (atomic, 0020) — if they refuse, nothing else moves
@@ -376,6 +451,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const avatar = safeImg(data.avatar_url)
   const cover = safeImg(data.cover_url)
 
+  // the world's COMPOSITION (v6, 0024): the owner's saved order, or the
+  // kind-default — the craft decides what leads. A module missing from the
+  // order renders NOTHING, owner included: off is off (honest walls).
+  const moduleOrder = normModules(data.world_modules) || defaultModulesFor(kindOfCrafts(crafts) || craftKindOf(data.discipline))
+  // the quiet layer's speakable face: render ONLY public rows (the owner's
+  // read carries the whole set); the private ones are counted, never named
+  const tasteRows = Array.isArray(publicTastes) ? publicTastes : []
+  const publicTasteItems = tasteRows.filter((t) => t && t.is_public)
+  const quietCount = tasteRows.length - publicTasteItems.length
+
   // which movements to show — owner sees invitations for the empty ones.
   // OFFER: public sees it only when live pieces hang; the owner sees the
   // invitation only once the layer is live in the DB (honest pre-0017).
@@ -388,12 +473,181 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
     screen: taste.films.length > 0 || isOwner,
     influences: taste.influences.length > 0 || isOwner,
     work: media.length > 0 || isOwner,
+    // TASTE: the public sees it only when something stepped into the light;
+    // the owner meets the invite only once the layer has LOADED (null = an
+    // unknown truth, never an invite flash)
+    taste: publicTasteItems.length > 0 || (isOwner && Array.isArray(publicTastes)),
+    // SETS: hosting isn't universal — absence is honest silence, no invite
+    sets: upcomingSets.length > 0,
   }
   // editorial catalog numbering, only across the movements actually rendered
   let counter = 0
   const num = {}
-  ;['gallery', 'moments', 'offer', 'sound', 'screen', 'influences', 'work'].forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
-  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length && !posts.length && !listings.length
+  moduleOrder.forEach(k => { if (show[k]) num[k] = String(++counter).padStart(2, '0') })
+  // v6: public tastes and upcoming sets are walls too — a world showing a
+  // real movement must never also claim "nothing on the walls yet"
+  const worldIsEmpty = !data.bio && !taste.music.length && !taste.films.length && !taste.influences.length && !media.length && !gallery.length && !links.length && !posts.length && !listings.length && !publicTasteItems.length && !upcomingSets.length
+
+  /* the movements as a keyed vocabulary (v6) — the blocks themselves are
+     the SAME rooms as always; moduleOrder decides who renders and in what
+     order. `mt` is the sequencing wrapper's only variable: the first
+     rendered movement composes against the opening. */
+  const MOVEMENTS = {
+    /* MOVEMENT — GALLERY (the person's own work leads the museum) */
+    gallery: (mt) => (
+      <motion.div key="gallery" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.gallery} n={num.gallery} label="GALLERY" kicker="the work, on walls" wide={wide} />
+        {gallery.length > 0
+          ? <GalleryGrid items={gallery} wide={wide} />
+          : <Invite icon={ImagePlus}>This space is for your work — three pieces turn it on. Shots, canvases, fits, stills, hung in your order.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — MOMENTS (the gallery extended into a dated timeline;
+        posts arrive through CREATE central — Ley 13) */
+    moments: (mt) => (
+      <motion.div key="moments" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the wall continues — dated" wide={wide} />
+        {posts.length > 0
+          ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
+          : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — THE OFFER (listings, 0017 — Estrella Polar: the
+        museum that also WORKS. Pieces + services with a real price;
+        buying is a DM until the payment layer lands — Ley 11) */
+    offer: (mt) => (
+      <motion.div key="offer" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.offer} n={num.offer} label="THE OFFER" kicker="the wall, working · for sale" wide={wide} />
+        {(isOwner ? listings.length : liveListings.length) > 0
+          ? <WorldOffer listings={listings} isOwner={isOwner} onDMSeller={onDMSeller} onSetStatus={onSetListingStatus} onDelete={onDeleteListing} wide={wide} />
+          : <Invite icon={TagIcon}>Your work, with a price on the wall — a piece to sell or a service to book. Tap the + in the nav and put one up.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — SOUND */
+    sound: (mt) => (
+      <motion.div key="sound" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.sound} n={num.sound} label="SOUND" kicker="on rotation" wide={wide} />
+        {taste.music.length > 0
+          ? <SoundMovement items={taste.music} wide={wide} />
+          : <Invite icon={Music2}>The sound that runs through you. Paste a Spotify, YouTube or SoundCloud link and it plays right here — or just name the artists on rotation.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — SCREEN */
+    screen: (mt) => (
+      <motion.div key="screen" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.screen} n={num.screen} label="SCREEN" kicker="what i watch" wide={wide} />
+        {taste.films.length > 0
+          ? <PosterRail items={taste.films} wide={wide} />
+          : <Invite icon={Film}>The films that shaped your eye. Titles become posters; a trailer link becomes a still you can open.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — INFLUENCES */
+    influences: (mt) => (
+      <motion.div key="influences" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.influences} n={num.influences} label="INFLUENCES" kicker="what shaped me" wide={wide} />
+        {taste.influences.length > 0
+          ? <WordWall items={taste.influences} wide={wide} />
+          : <Invite icon={Sparkles}>The names, places and ideas behind your work. Written large — a wall of what made you.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — WORK */
+    work: (mt) => (
+      <motion.div key="work" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.work} n={num.work} label="WORK" kicker="what i make" wide={wide} />
+        {media.length > 0 ? (
+          wide ? (
+            /* the first piece leads full-width; the rest hang two-across */
+            <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '26px' }}>
+              <MediaCard item={media[0]} full featured />
+              {media.length > 1 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '26px', alignItems: 'start' }}>
+                  {media.slice(1).map((m, i) => <MediaCard key={`${m.url}:${i + 1}`} item={m} full />)}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              {media.map((m, i) => <MediaCard key={`${m.url}:${i}`} item={m} full featured={i === 0} />)}
+            </div>
+          )
+        ) : <Invite icon={ArrowUpRight}>Show what you make. Drop links to your sets, films, photos, drops — they embed and play, right here.</Invite>}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — TASTE (v6, 0022): the quiet layer's public face — only
+        what stepped into the light hangs; the rest works in silence and
+        is COUNTED for the owner, never named */
+    taste: (mt) => (
+      <motion.div key="taste" data-testid="movement-taste" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.taste} n={num.taste} label="TASTE" kicker="made public — the rest works in silence" wide={wide} />
+        {publicTasteItems.length > 0 ? (
+          <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: wide ? '780px' : undefined }}>
+            {TASTE_DOMAINS.map((d) => {
+              const items = publicTasteItems.filter((t) => t.domain === d.key)
+              if (!items.length) return null
+              return (
+                <div key={d.key}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '10px' }}>
+                    <Mark type={d.mark} size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />
+                    <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.24em', color: BONE_MID, textTransform: 'uppercase' }}>{d.label}</span>
+                    <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {items.map((t) => (
+                      <span key={t.id || `${t.domain}:${t.label}`} style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '4px', padding: '6px 11px' }}>{t.label}</span>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+            {isOwner && quietCount > 0 && (
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em' }}>· {quietCount} quiet</div>
+            )}
+          </div>
+        ) : (
+          /* owner only (the public never reaches this branch) — the same
+              door the listening band opens: the builder, on the brainstorm */
+          <button className="pressable" onClick={() => setBuilding(true)}
+            style={{ display: 'block', width: '100%', maxWidth: '480px', background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
+            <Invite icon={Sparkles}>
+              {quietCount > 0
+                ? `The quiet layer holds ${quietCount} ${quietCount === 1 ? 'taste' : 'tastes'} — step one into the light.`
+                : 'Brainstorm your taste — music, film, what keeps you alive. Quiet by default; only what you make public hangs here.'}
+            </Invite>
+          </button>
+        )}
+      </motion.div>
+    ),
+
+    /* MOVEMENT — SETS (v6): upcoming rooms this person hosts — real
+        published events only; absence is honest silence, never an invite */
+    sets: (mt) => (
+      <motion.div key="sets" data-testid="movement-sets" {...reveal} style={{ marginTop: mt }}>
+        <Marker mark={MARKS.sets} n={num.sets} label="SETS" kicker="where it plays next" wide={wide} />
+        <div style={{ marginTop: '4px', maxWidth: wide ? '780px' : undefined }}>
+          {upcomingSets.map((ev) => (
+            <button key={ev.id} className="pressable" onClick={() => ev.slug && navigate(`/e/${ev.slug}`)}
+              style={{ display: 'flex', alignItems: 'baseline', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '15px 6px', cursor: 'pointer', transition: 'all .25s ease' }}
+              onMouseOver={e => { e.currentTarget.style.paddingLeft = '14px'; e.currentTarget.style.borderColor = HAIR_HI }}
+              onMouseOut={e => { e.currentTarget.style.paddingLeft = '6px'; e.currentTarget.style.borderColor = HAIR }}>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.1em', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '52px' }}>{fmtSetDate(ev.event_date)}</span>
+              <span style={{ flex: 1, minWidth: 0, fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.03em', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
+              {(ev.venue || ev.city) && (
+                <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '38%', flexShrink: 0 }}>{[ev.venue, ev.city].filter(Boolean).join(' · ')}</span>
+              )}
+              <ArrowUpRight size={13} style={{ color: SILVER, flexShrink: 0, alignSelf: 'center' }} />
+            </button>
+          ))}
+        </div>
+      </motion.div>
+    ),
+  }
 
   // the museum's editorial frame on wide screens — one container, all sections
   const frame = wide
@@ -558,6 +812,35 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
               {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
             </button>
+            {/* AMIGO (0023) — the mutual bond's door, in the same chip
+                grammar. No friendship prop = no door (pre-migration or a
+                load error must never render a dead promise — Ley 9). */}
+            {friendship && (
+              friendship.state === 'friends' ? (
+                <button className="pressable" data-testid="friend-btn"
+                  onClick={() => { if (window.confirm('¿deshacer amistad?')) friendship.onRemove?.() }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+                  amigos <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
+                </button>
+              ) : friendship.state === 'in' ? (
+                <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: '1px solid transparent', borderRadius: '100px', padding: '9px 18px', color: VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+                  accept amigo?
+                </button>
+              ) : friendship.state === 'out' ? (
+                <button className="pressable" data-testid="friend-btn" aria-disabled
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_LOW, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'default', transition: 'all .2s' }}>
+                  pending
+                </button>
+              ) : (
+                <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
+                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+                  onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+                  + amigo
+                </button>
+              )
+            )}
             <button className="pressable" onClick={onMessage} data-testid="message-btn"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
               onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
@@ -625,6 +908,26 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '17px', color: BONE, letterSpacing: '.04em', lineHeight: 1 }}>THE UNIVERSE NOW SPEAKS CRAFT</span>
                   <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.06em', marginTop: '5px', lineHeight: 1.5 }}>
                     turn “{(data.discipline || '').slice(0, 32)}{(data.discipline || '').length > 32 ? '…' : ''}” into your real crafts — it powers who finds you
+                  </span>
+                </span>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
+              </button>
+            )}
+            {/* THE LISTENING BAND (v6): a member with real crafts and zero
+                tastes is invited to brainstorm — the quiet layer that turns
+                the for-you on. Same grammar as the craft band, one register
+                quieter. tastes===null (still loading) never flashes it. */}
+            {tastes !== null && tastes.length === 0 && crafts.length > 0 && (
+              <button data-testid="taste-invite" className="pressable" onClick={() => setBuilding(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'rgba(199,201,209,.03)', border: `1px solid ${HAIR_HI}`, borderRadius: '13px', padding: '12px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
+                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.4)'}
+                onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '13px', color: SILVER, flexShrink: 0 }}>○</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>EL MUNDO v6</span>
+                  <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE, letterSpacing: '.04em', lineHeight: 1, marginTop: '4px' }}>THE UNIVERSE LISTENS</span>
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.06em', marginTop: '5px', lineHeight: 1.5 }}>
+                    brainstorm your taste and your for-you comes alive — quiet by default, only you see it
                   </span>
                 </span>
                 <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
@@ -761,6 +1064,44 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             </div>
           </Section>
 
+          <Section title="YOUR ROOMS" hint="The movements of your world — turn a room on or off, and set the order they open in. Off is off: a closed room shows to no one.">
+            <div data-testid="rooms-editor" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {roomRows.map((r, i) => {
+                // Ley 11 — a world needs >=1 open room: the last ON toggle can't
+                // turn itself off (turning others on is always free)
+                const lastOn = r.on && roomRows.filter((x) => x.on).length === 1
+                return (
+                <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: '11px', border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '10px 12px', background: CARD, opacity: r.on ? 1 : .55, transition: 'opacity .2s' }}>
+                  <Mark type={MARKS[r.key]} size={10} color={SILVER} style={{ flexShrink: 0, opacity: .85 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.18em', textTransform: 'uppercase', color: r.on ? BONE : BONE_LOW }}>{MODULES[r.key].label}</div>
+                    <div style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.06em', color: BONE_LOW, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{MODULES[r.key].kicker}</div>
+                  </div>
+                  <button className="pressable" data-testid={`room-toggle-${r.key}`} onClick={() => toggleRoom(r.key)} aria-pressed={r.on} aria-disabled={lastOn}
+                    title={lastOn ? 'a world needs at least one open room' : undefined}
+                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(199,201,209,.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(199,201,209,.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: lastOn ? 'default' : 'pointer', flexShrink: 0, transition: 'all .2s' }}>
+                    {r.on ? 'ON' : 'OFF'}
+                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
+                    <button className="pressable" data-testid={`room-up-${r.key}`} onClick={() => moveRoom(r.key, -1)} disabled={i === 0} aria-label="Move up" style={{ ...galBtn, opacity: i === 0 ? .3 : 1 }}><ArrowUp size={12} /></button>
+                    <button className="pressable" data-testid={`room-down-${r.key}`} onClick={() => moveRoom(r.key, 1)} disabled={i === roomRows.length - 1} aria-label="Move down" style={{ ...galBtn, opacity: i === roomRows.length - 1 ? .3 : 1 }}><ArrowDown size={12} /></button>
+                  </div>
+                </div>
+                )
+              })}
+              {/* the honest floor — surfaced only when one room is holding the world open */}
+              {roomRows.filter((r) => r.on).length === 1 && (
+                <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', padding: '0 2px' }}>
+                  a world needs at least one open room
+                </div>
+              )}
+              <button className="pressable" onClick={resetRooms}
+                style={{ background: 'transparent', border: 'none', padding: '2px 0', alignSelf: 'flex-start', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                reset to my craft's order
+              </button>
+            </div>
+          </Section>
+
           {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
           {/* both gates wait for in-flight gallery uploads — saving or cancelling
               mid-upload would drop the image and orphan its storage object */}
@@ -786,92 +1127,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             </motion.p>
           )}
 
-          {/* MOVEMENT — GALLERY (the person's own work leads the museum) */}
-          {show.gallery && (
-            <motion.div {...reveal} style={{ marginTop: data.bio ? (wide ? '84px' : '58px') : '44px' }}>
-              <Marker mark={MARKS.gallery} n={num.gallery} label="GALLERY" kicker="the work, on walls" wide={wide} />
-              {gallery.length > 0
-                ? <GalleryGrid items={gallery} wide={wide} />
-                : <Invite icon={ImagePlus}>This space is for your work — three pieces turn it on. Shots, canvases, fits, stills, hung in your order.</Invite>}
-            </motion.div>
-          )}
-
-          {/* MOVEMENT — MOMENTS (the gallery extended into a dated timeline;
-              posts arrive through CREATE central — Ley 13) */}
-          {show.moments && (
-            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the wall continues — dated" wide={wide} />
-              {posts.length > 0
-                ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
-                : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
-            </motion.div>
-          )}
-
-          {/* MOVEMENT — THE OFFER (listings, 0017 — Estrella Polar: the
-              museum that also WORKS. Pieces + services with a real price;
-              buying is a DM until the payment layer lands — Ley 11) */}
-          {show.offer && (
-            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.offer} n={num.offer} label="THE OFFER" kicker="the wall, working · for sale" wide={wide} />
-              {(isOwner ? listings.length : liveListings.length) > 0
-                ? <WorldOffer listings={listings} isOwner={isOwner} onDMSeller={onDMSeller} onSetStatus={onSetListingStatus} onDelete={onDeleteListing} wide={wide} />
-                : <Invite icon={TagIcon}>Your work, with a price on the wall — a piece to sell or a service to book. Tap the + in the nav and put one up.</Invite>}
-            </motion.div>
-          )}
-
-          {/* MOVEMENT — SOUND */}
-          {show.sound && (
-            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.sound} n={num.sound} label="SOUND" kicker="on rotation" wide={wide} />
-              {taste.music.length > 0
-                ? <SoundMovement items={taste.music} wide={wide} />
-                : <Invite icon={Music2}>The sound that runs through you. Paste a Spotify, YouTube or SoundCloud link and it plays right here — or just name the artists on rotation.</Invite>}
-            </motion.div>
-          )}
-
-          {/* MOVEMENT — SCREEN */}
-          {show.screen && (
-            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.screen} n={num.screen} label="SCREEN" kicker="what i watch" wide={wide} />
-              {taste.films.length > 0
-                ? <PosterRail items={taste.films} wide={wide} />
-                : <Invite icon={Film}>The films that shaped your eye. Titles become posters; a trailer link becomes a still you can open.</Invite>}
-            </motion.div>
-          )}
-
-          {/* MOVEMENT — INFLUENCES */}
-          {show.influences && (
-            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.influences} n={num.influences} label="INFLUENCES" kicker="what shaped me" wide={wide} />
-              {taste.influences.length > 0
-                ? <WordWall items={taste.influences} wide={wide} />
-                : <Invite icon={Sparkles}>The names, places and ideas behind your work. Written large — a wall of what made you.</Invite>}
-            </motion.div>
-          )}
-
-          {/* MOVEMENT — WORK */}
-          {show.work && (
-            <motion.div {...reveal} style={{ marginTop: wide ? '84px' : '58px' }}>
-              <Marker mark={MARKS.work} n={num.work} label="WORK" kicker="what i make" wide={wide} />
-              {media.length > 0 ? (
-                wide ? (
-                  /* the first piece leads full-width; the rest hang two-across */
-                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '26px' }}>
-                    <MediaCard item={media[0]} full featured />
-                    {media.length > 1 && (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '26px', alignItems: 'start' }}>
-                        {media.slice(1).map((m, i) => <MediaCard key={`${m.url}:${i + 1}`} item={m} full />)}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                    {media.map((m, i) => <MediaCard key={`${m.url}:${i}`} item={m} full featured={i === 0} />)}
-                  </div>
-                )
-              ) : <Invite icon={ArrowUpRight}>Show what you make. Drop links to your sets, films, photos, drops — they embed and play, right here.</Invite>}
-            </motion.div>
-          )}
+          {/* THE MOVEMENTS — composed by moduleOrder (v6): the same rooms
+              as always, sequenced by the craft or the owner's own hand. A
+              module off the order renders NOTHING (off is off). GALLERY
+              keeps its opening margin only when it still leads. */}
+          {moduleOrder.filter((k) => show[k]).map((k, i) => {
+            const std = wide ? '84px' : '58px'
+            return MOVEMENTS[k]((k === 'gallery' && i === 0 && !data.bio) ? '44px' : std)
+          })}
 
           {/* an EMPTY world visited by the public: one honest statement, not
               40% of raw void — the absence gets a voice (panel catch, Leyes
@@ -913,12 +1176,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           ancestor as their containing block (walkthrough catch) */}
       {/* craftsReady gates the mount: the builder seeds its picker from the
           SAVED crafts at mount — opening over a half-loaded set would show a
-          member an empty picker for crafts they already chose */}
-      {building && craftsReady && createPortal(
+          member an empty picker for crafts they already chose. tastes !== null
+          holds the same door for the quiet layer (0022): its save replaces
+          the WHOLE set, so a null-seeded commit would erase a member's tastes */}
+      {building && craftsReady && tastes !== null && createPortal(
         <WorldBuilder
           data={data}
           crafts={crafts}
           onCraftsSaved={onCraftsSaved}
+          tastes={tastes}
+          onTastesSaved={onTastesSaved}
           onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
           onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
           onUploadGallery={onUploadGallery}

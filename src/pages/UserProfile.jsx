@@ -7,8 +7,10 @@ import { ArrowLeft } from 'lucide-react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import { fetchWorldPosts } from '@/lib/worldPosts'
 import { fetchListings } from '@/lib/listings'
-import { socialReady, fetchFollowState, follow, unfollow, startDM } from '@/lib/social'
+import { socialReady, fetchFollowState, follow, unfollow, startDM, fetchFriendState, requestFriend, respondFriend, removeFriend } from '@/lib/social'
 import { fetchProfileCrafts } from '@/lib/crafts'
+import { fetchPublicTastes } from '@/lib/tastes'
+import { fetchUpcomingSets } from '@/lib/world'
 import RelatedWorlds from '@/components/RelatedWorlds'
 
 export default function UserProfile() {
@@ -25,6 +27,12 @@ export default function UserProfile() {
   // the social layer's face on this world (0017) — ready gates the doors
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
   const [socialErr, setSocialErr] = useState('')
+  // v6 (D4): the TASTE movement's speakable rows (RLS filters to public),
+  // the SETS movement's upcoming rooms, and the amigo bond's pairwise state
+  // (null = unknown/pre-0023 — the museum renders no door on null)
+  const [publicTastes, setPublicTastes] = useState([])
+  const [upcomingSets, setUpcomingSets] = useState([])
+  const [friendState, setFriendState] = useState(null)
   // your own public world: no FOLLOW/MESSAGE doors at yourself (they could
   // never open — review catch); a quiet door back to curating instead
   const selfView = !!user && String(user.id) === String(id)
@@ -47,11 +55,16 @@ export default function UserProfile() {
       // the world's dated timeline + its OFFER — RLS mirrors the profile's
       // own visibility for both (and both resolve empty pre-migration).
       // Crafts ride the same read gate (0020's honesty-gated public read).
-      const [wp, ls, ready, pc] = await Promise.all([
+      // v6: the public taste rows + upcoming hosted rooms ride the same
+      // fan-out; the amigo state only asks when a session exists.
+      const [wp, ls, ready, pc, pt, us, fs] = await Promise.all([
         fetchWorldPosts(id),
         fetchListings(id),
         socialReady(),
         fetchProfileCrafts(id),
+        fetchPublicTastes(id),
+        fetchUpcomingSets(id),
+        user?.id ? fetchFriendState(user.id, id) : Promise.resolve(null),
       ])
 
       if (!alive) return
@@ -59,6 +72,9 @@ export default function UserProfile() {
       setPosts(wp)
       setListings(ls)
       setCrafts(pc)
+      setPublicTastes(pt)
+      setUpcomingSets(us)
+      setFriendState(fs)
       setProfile(p || (att ? { id, full_name: att.name, avatar_url: att.avatar_url } : null))
       setLoading(false)
       if (ready) {
@@ -86,6 +102,45 @@ export default function UserProfile() {
       setSocialErr(e?.message || "that didn't land — try again")
     }
   }, [user, id, social, navigate])
+
+  // amigo — the mutual bond's three doors (0023), each optimistic with the
+  // follow button's own discipline: rollback WITH a voice, never in silence.
+  const onFriendRequest = useCallback(async () => {
+    const was = friendState
+    setFriendState('out'); setSocialErr('')
+    try {
+      // two reaches can meet: request_friend answers 'accepted' when
+      // their request was already waiting on me
+      const status = await requestFriend(id)
+      setFriendState(status === 'accepted' ? 'friends' : 'out')
+    } catch (e) {
+      setFriendState(was)
+      setSocialErr(e?.message || "that didn't land — try again")
+    }
+  }, [id, friendState])
+
+  const onFriendAccept = useCallback(async () => {
+    const was = friendState
+    setFriendState('friends'); setSocialErr('')
+    try {
+      const status = await respondFriend(id, true)
+      setFriendState(status === 'accepted' ? 'friends' : 'none')
+    } catch (e) {
+      setFriendState(was)
+      setSocialErr(e?.message || "that didn't land — try again")
+    }
+  }, [id, friendState])
+
+  const onFriendRemove = useCallback(async () => {
+    const was = friendState
+    setFriendState('none'); setSocialErr('')
+    try {
+      await removeFriend(id)
+    } catch (e) {
+      setFriendState(was)
+      setSocialErr(e?.message || "that didn't land — try again")
+    }
+  }, [id, friendState])
 
   // message — the DM door (start_dm RPC creates/reopens the pair thread)
   const onMessage = useCallback(async (prefill) => {
@@ -136,6 +191,9 @@ export default function UserProfile() {
         onFollowToggle={onFollowToggle}
         onMessage={() => onMessage()}
         onDMSeller={selfView ? null : onDMSeller}
+        publicTastes={publicTastes}
+        upcomingSets={upcomingSets}
+        friendship={(!selfView && user && friendState) ? { state: friendState, onRequest: onFriendRequest, onAccept: onFriendAccept, onRemove: onFriendRemove } : null}
       />
       {/* WORLDS IN ORBIT — the matching column's first public face (D2):
           real worlds sharing this person's craft, or nothing at all */}
