@@ -36,8 +36,6 @@ const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const WARN = '#E5A0A0'
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
@@ -63,11 +61,15 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
   const dialogRef = useRef(null)
 
   // Esc closes; lock body scroll while open; focus moves INTO the dialog
-  // and back to the opener on close (a11y catch)
+  // and back to the opener on close (a11y catch). Mount-once with onClose
+  // in a ref — an unstable inline onClose from Layout re-ran this effect
+  // mid-session and stole focus from a member mid-caption (review catch).
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
   useEffect(() => {
     const opener = document.activeElement
     dialogRef.current?.focus()
-    const onKey = (e) => { if (e.key === 'Escape' && !busyRef.current) onClose() }
+    const onKey = (e) => { if (e.key === 'Escape' && !busyRef.current) onCloseRef.current() }
     window.addEventListener('keydown', onKey)
     const prev = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -76,7 +78,7 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
       document.body.style.overflow = prev
       if (opener && typeof opener.focus === 'function') opener.focus()
     }
-  }, [onClose])
+  }, [])
 
   const go = (path) => { onClose(); navigate(path) }
 
@@ -279,7 +281,12 @@ function PostComposer({ wide, user, onBack, onClose, onBusy, onPosted }) {
     const imgs = Array.from(list || []).filter((f) => f && f.type?.startsWith('image/'))
     if (!imgs.length) return
     setErr('')
-    setFiles((cur) => [...cur, ...imgs.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_POST_IMAGES))
+    // create object URLs only for the slots that remain — URLs made past the
+    // cap and discarded by a slice would leak unrevoked (review catch)
+    setFiles((cur) => {
+      const room = Math.max(0, MAX_POST_IMAGES - cur.length)
+      return [...cur, ...imgs.slice(0, room).map((file) => ({ file, preview: URL.createObjectURL(file) }))]
+    })
   }
   const removeAt = (i) => setFiles((cur) => { URL.revokeObjectURL(cur[i]?.preview); return cur.filter((_, j) => j !== i) })
 
@@ -367,7 +374,11 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
     const imgs = Array.from(list || []).filter((f) => f && f.type?.startsWith('image/'))
     if (!imgs.length) return
     setErr('')
-    setFiles((cur) => [...cur, ...imgs.map((file) => ({ file, preview: URL.createObjectURL(file) }))].slice(0, MAX_LISTING_IMAGES))
+    // same slot-cap discipline as the post composer (review catch)
+    setFiles((cur) => {
+      const room = Math.max(0, MAX_LISTING_IMAGES - cur.length)
+      return [...cur, ...imgs.slice(0, room).map((file) => ({ file, preview: URL.createObjectURL(file) }))]
+    })
   }
   const removeAt = (i) => setFiles((cur) => { URL.revokeObjectURL(cur[i]?.preview); return cur.filter((_, j) => j !== i) })
 

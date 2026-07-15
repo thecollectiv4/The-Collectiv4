@@ -95,8 +95,6 @@ const normMedia = (m) => (Array.isArray(m) ? m.filter(x => x && safeUrl(x.url)) 
 // shared with WorldBuilder so the museum and the guided build never drift.
 
 // --- film grain: a real texture layer, cheap + no asset ---
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
 // --- scroll-reveal preset (framer-motion) ---
 const reveal = {

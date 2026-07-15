@@ -140,7 +140,16 @@ export default function OS() {
     const before = tasks.find(t => t.id === id)
     setTasks(ts => ts.map(t => t.id === id ? { ...t, ...f } : t))
     const { error } = await supabase.from('os_tasks').update({ ...f, updated_at: nowISO() }).eq('id', id)
-    if (error) { if (before) setTasks(ts => ts.map(t => t.id === id ? before : t)); say(`couldn't save — ${error.message}`); return false }
+    if (error) {
+      // roll back ONLY the fields this write touched — a whole-row snapshot
+      // would revert a concurrent successful move/ship (review catch)
+      if (before) {
+        const undo = Object.fromEntries(Object.keys(f).map(k => [k, before[k]]))
+        setTasks(ts => ts.map(t => t.id === id ? { ...t, ...undo } : t))
+      }
+      say(`couldn't save — ${error.message}`)
+      return false
+    }
     log(`edited “${f.title || before?.title || 'task'}”`)
     return true
   }
@@ -221,7 +230,10 @@ export default function OS() {
    event. Read once at mount — the instrument owns the state after that. */
 function useOSEntry() {
   const [searchParams] = useSearchParams()
-  const valid = ['board', 'content', 'brain', 'events', 'network']
+  // moderation/cohorts are owner-only panes but valid DEEP LINKS — the
+  // Community seed pill points at ?tab=moderation (v8 C); the render side
+  // still gates them on isOwner (review catch: the pill landed on Board)
+  const valid = ['board', 'content', 'brain', 'events', 'network', 'moderation', 'cohorts']
   const t = searchParams.get('tab')
   return {
     initialTab: valid.includes(t) ? t : 'board',

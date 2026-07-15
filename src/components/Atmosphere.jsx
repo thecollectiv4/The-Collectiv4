@@ -118,6 +118,10 @@ export default function Atmosphere() {
   const preset = PRESETS[cfg.density] || PRESETS.quiet
   const TINT = /^\d{1,3},\d{1,3},\d{1,3}$/.test(cfg.tint) ? cfg.tint : '199,201,209'
   const cfgKey = `${cfg.density}|${TINT}|${cfg.seed}`
+  // survives cfg changes: bg raster cache (size|tint → offscreen canvas) and
+  // the first-mount flag that decides fade-in vs full crossfade (review catch)
+  const bgCache = useRef(new Map())
+  const firstMount = useRef(true)
 
   /* the constellation — deck engine + the hardening the product earned */
   useEffect(() => {
@@ -127,7 +131,11 @@ export default function Atmosphere() {
     if (!ctx) return   // decoration never takes the page down
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const finePointer = window.matchMedia('(pointer: fine)').matches
-    const frameMs = finePointer ? 0 : 31   // 60fps where a mouse looks back, ~30 on touch
+    // ~60fps where a mouse looks back (15ms also tames 120Hz ProMotion —
+    // frameMs=0 let draw() run at display rate, review HIGH), ~30 on touch,
+    // and the QUIET register idles at ~15fps: five bare stars drifting
+    // 0.16px/frame need nothing more (review catch)
+    const frameMs = preset.fixedCount ? 66 : (finePointer ? 15 : 31)
 
     let nodes = []
     let raf = 0
@@ -136,16 +144,23 @@ export default function Atmosphere() {
     let resizeT = 0
     let mx = -9999, my = -9999
     let fadeT = 0
+    let holdBuild = false   // true while the OLD sky fades out — the loop
+                            // must neither rebuild nor repaint over it
 
     const build = () => {
       const w = window.innerWidth
       const h = window.innerHeight
       if (w < 1 || h < 1) { nodes = []; return }
       const dpr = Math.min(2, window.devicePixelRatio || 1)
-      canvas.width = Math.round(w * dpr)
-      canvas.height = Math.round(h * dpr)
-      canvas.style.width = `${w}px`
-      canvas.style.height = `${h}px`
+      // realloc the backing store ONLY when the size actually changed — a
+      // seed/tint change must not repay a multi-MB canvas alloc (review catch)
+      const bw = Math.round(w * dpr), bh = Math.round(h * dpr)
+      if (canvas.width !== bw || canvas.height !== bh) {
+        canvas.width = bw
+        canvas.height = bh
+        canvas.style.width = `${w}px`
+        canvas.style.height = `${h}px`
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       const rnd = mulberry32(hash(cfg.seed) + 77)
       // the deck's own count: min(40, max(14, w/34)) — scaled by register.
@@ -164,7 +179,12 @@ export default function Atmosphere() {
       // void + temperature, rasterized ONCE — a blit per frame, not
       // megapixels of gradient math. 0-sized viewports must not build
       // (drawImage throws on a 0-sized source — the v4 pane catch).
+      // Cached per size|tint across cfg changes: returning to a room with
+      // the same temperature never repays the raster (review catch).
       if (w < 1 || h < 1) { bgCanvas = null; return }
+      const key = `${w}x${h}|${TINT}`
+      const hit = bgCache.current.get(key)
+      if (hit) { bgCanvas = hit; return }
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
@@ -182,6 +202,9 @@ export default function Atmosphere() {
       glow.addColorStop(1, `rgba(${TINT},0)`)
       b.fillStyle = glow
       b.fillRect(0, 0, w, h)
+      // small, bounded: a handful of size|tint pairs ever exist per session
+      if (bgCache.current.size > 8) bgCache.current.delete(bgCache.current.keys().next().value)
+      bgCache.current.set(key, bgCanvas)
     }
 
     const draw = (dtFrames) => {
@@ -233,6 +256,7 @@ export default function Atmosphere() {
 
     const loop = (t) => {
       raf = requestAnimationFrame(loop)
+      if (holdBuild) return   // the old sky is mid-fade — leave its bitmap be
       if (t - last < frameMs) return
       // born at 0 size (prerender) and now real — build when the viewport exists
       if (!nodes.length && window.innerWidth > 0 && window.innerHeight > 0) build()
@@ -244,7 +268,8 @@ export default function Atmosphere() {
     const onMouse = (e) => { mx = e.clientX; my = e.clientY }
     const onLeave = () => { mx = -9999; my = -9999 }
     const onResize = () => {
-      // debounced — mobile URL-bar show/hide fires resize storms
+      // debounced — mobile URL-bar show/hide fires resize storms. New size →
+      // new cache key; bgCanvas just re-resolves through the cache.
       clearTimeout(resizeT)
       resizeT = setTimeout(() => { bgCanvas = null; build(); draw(0) }, 160)
     }
@@ -253,11 +278,29 @@ export default function Atmosphere() {
       if (!document.hidden && !reduced) { last = 0; raf = requestAnimationFrame(loop) }
     }
 
-    // room-to-room: the sky settles in rather than snapping (Ley 13)
-    canvas.style.opacity = '0'
-    build()
-    draw(0)
-    fadeT = setTimeout(() => { canvas.style.opacity = '1' }, 30)
+    // room-to-room: the sky settles rather than snapping (Ley 13). First
+    // mount fades straight in; a RE-configuration fades the old sky OUT,
+    // rebuilds behind the dark, then fades the new one in — stars never
+    // teleport mid-view (review catch: the old 30ms swap repainted first).
+    if (firstMount.current) {
+      firstMount.current = false
+      canvas.style.transition = 'opacity .6s ease'
+      canvas.style.opacity = '0'
+      build()
+      draw(0)
+      fadeT = setTimeout(() => { canvas.style.opacity = '1' }, 30)
+    } else {
+      holdBuild = true
+      canvas.style.transition = 'opacity .22s ease'
+      canvas.style.opacity = '0'
+      fadeT = setTimeout(() => {
+        holdBuild = false
+        build()
+        draw(0)
+        canvas.style.transition = 'opacity .5s ease'
+        canvas.style.opacity = '1'
+      }, 240)
+    }
 
     if (!reduced) raf = requestAnimationFrame(loop)
     if (preset.mouse && finePointer && !reduced) {
@@ -278,10 +321,12 @@ export default function Atmosphere() {
   }, [cfgKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /* the double starfield's parallax — two speeds, one gesture (deck: 13/24).
-     Desktop pointers only; rAF-throttled; dead under reduced-motion. */
+     Desktop pointers only; rAF-throttled; dead under reduced-motion — and
+     dead on QUIET surfaces: where you read, even the tiles hold still
+     (review catch: the register promised zero pointer reaction). */
   useEffect(() => {
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced || !window.matchMedia('(pointer: fine)').matches) return undefined
+    if (reduced || !preset.mouse || !window.matchMedia('(pointer: fine)').matches) return undefined
     let raf = 0
     const onMove = (ev) => {
       if (raf) return
@@ -295,14 +340,19 @@ export default function Atmosphere() {
     }
     window.addEventListener('mousemove', onMove, { passive: true })
     return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove) }
-  }, [])
+  }, [preset.mouse])
 
-  const layer = { position: 'fixed', inset: '-40%', pointerEvents: 'none', backgroundRepeat: 'repeat', transition: 'opacity .8s ease' }
+  // -28px covers the ±12px max parallax travel with margin (the tiles repeat,
+  // no empty band can show); -40% rasterized 3.24x the viewport per layer for
+  // nothing (review catch). willChange: these layers animate for the app's
+  // whole life — the one legitimate use.
+  const layer = { position: 'fixed', inset: '-28px', pointerEvents: 'none', backgroundRepeat: 'repeat', transition: 'opacity .8s ease', willChange: 'transform' }
 
   return (
     <div ref={wrapRef} aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-      {/* the constellation — void gradient + temperature painted by the canvas */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, transition: 'opacity .6s ease' }} />
+      {/* the constellation — void gradient + temperature painted by the canvas;
+          opacity/transition are driven imperatively (mount fade / crossfade) */}
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0 }} />
       {/* two star depths — the deck tiles, scaled by the surface's register */}
       <div ref={s1Ref} style={{ ...layer, backgroundImage: STARS_1, backgroundSize: '560px 560px', opacity: preset.starsO[0] }} />
       <div ref={s2Ref} style={{ ...layer, backgroundImage: STARS_2, backgroundSize: '360px 360px', opacity: preset.starsO[1] }} />

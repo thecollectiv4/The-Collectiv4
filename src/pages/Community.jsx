@@ -35,8 +35,6 @@ const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 function hash(s = '') { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h }
@@ -96,12 +94,13 @@ export default function Community() {
 
   useEffect(() => {
     let alive = true
-    if (!user) return
     let seedPref = import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true'
     try { seedPref = seedPref || localStorage.getItem('c4_seed_visible') === '1' } catch { /* private mode */ }
-    if (!seedPref) return
+    // assign the FULL verdict both ways — a latch that only ever set true
+    // would survive an account switch mid-session (review catch)
+    if (!user || !seedPref) { setShowDemo(false); return undefined }
     // display-gating only — 0033 returns zero seed rows to non-owners anyway
-    isOwnerFounder().then((ok) => { if (alive && ok) setShowDemo(true) })
+    isOwnerFounder().then((ok) => { if (alive) setShowDemo(!!ok) })
     return () => { alive = false }
   }, [user])
 

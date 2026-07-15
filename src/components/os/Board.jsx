@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, RotateCcw } from 'lucide-react'
 import { BOARD_COLUMNS, VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, HAIR, HAIR_HI, PANEL, CARD_HI, FONT_MONO, FONT_SANS, safeImg } from '@/lib/cosmos'
 import { useIsDesktop, useBoardGrid } from '@/lib/useIsDesktop'
@@ -190,6 +191,7 @@ function Face({ p, size = 18 }) {
 
 function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssignToggle, onAssign, onDragStart, onDragEnd, onEdit, onShip, onReopen, onArrow, onDelete }) {
   const [dragging, setDragging] = useState(false)
+  const chipRef = useRef(null)
   const idx = BOARD_COLUMNS.findIndex(c => c.key === colKey)
   const due = task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
   const done = colKey === 'done'
@@ -200,10 +202,7 @@ function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssi
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); setDragging(true) }}
       onDragEnd={() => { setDragging(false); onDragEnd() }}
-      style={{ position: 'relative', padding: '11px 4px 10px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms`, cursor: 'grab', borderRadius: '6px',
-        // sibling cards' reveal animations hold their own stacking contexts —
-        // the open menu must lift THIS card above them or it bleeds through
-        ...(assignOpen ? { zIndex: 40 } : {}) }}>
+      style={{ position: 'relative', padding: '11px 4px 10px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms`, cursor: 'grab', borderRadius: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
         {/* SHIP / REOPEN — the one-tap gesture that makes the board a tool:
             a card closes (or comes back) without opening anything */}
@@ -219,7 +218,7 @@ function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssi
           <div style={{ fontFamily: FONT_SANS, fontSize: '13.5px', color: done ? BONE_MID : BONE, lineHeight: 1.4, ...(done ? { textDecoration: 'line-through', textDecorationColor: 'rgba(199,201,209,.4)' } : {}) }}>{task.title}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px', minWidth: 0 }}>
             {/* ASSIGN — the owner chip is a control, not a caption */}
-            <button data-testid="board-assign" onClick={onAssignToggle} title="Assign"
+            <button ref={chipRef} data-testid="board-assign" onClick={onAssignToggle} title="Assign"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', minWidth: 0 }}>
               <Face p={owner} size={16} />
               <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: ownerName ? BONE_MID : FAINT, letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
@@ -238,38 +237,59 @@ function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssi
         </div>
       </div>
 
-      {/* the team, one tap away — real faces, unassign honest */}
-      {assignOpen && (
-        <>
-          <div onClick={onAssignToggle} style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
-          <div data-testid="board-owner-menu" role="menu" style={{ position: 'absolute', left: '26px', top: 'calc(100% - 6px)', zIndex: 31, minWidth: '210px', maxHeight: '240px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)' }}>
-            {members.map(m => {
-              const name = m.full_name || m.username
-              const mine = m.id === task.owner_profile_id
-              return (
-                <button key={m.id} role="menuitem" onClick={() => onAssign(m.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: mine ? 'rgba(199,201,209,.1)' : 'transparent', border: 'none', borderRadius: '8px', padding: '7px 9px', cursor: 'pointer' }}
-                  onMouseOver={(e) => { if (!mine) e.currentTarget.style.background = 'rgba(242,238,230,.05)' }}
-                  onMouseOut={(e) => { if (!mine) e.currentTarget.style.background = 'transparent' }}>
-                  <Face p={m} size={20} />
-                  <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                  {mine && <Check size={12} style={{ color: STAR, flexShrink: 0 }} />}
-                </button>
-              )
-            })}
-            {task.owner_profile_id && (
-              <button role="menuitem" onClick={() => onAssign(null)}
-                style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderRadius: '0 0 8px 8px', padding: '8px 9px', cursor: 'pointer', color: BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>
-                unassign
-              </button>
-            )}
-            {members.length === 0 && (
-              <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT, padding: '10px', letterSpacing: '.08em' }}>no members loaded</div>
-            )}
-          </div>
-        </>
+      {/* the team, one tap away — PORTALED to body: cards and lanes carry
+          forwards-filled reveal transforms (containing blocks for fixed) and
+          overflow scrollers that would trap or clip an inline menu (review
+          catches ×3). The portal escapes all of it. */}
+      {assignOpen && chipRef.current && createPortal(
+        <AssignMenu anchor={chipRef.current} members={members} currentId={task.owner_profile_id}
+          onPick={onAssign} onClose={onAssignToggle} />,
+        document.body
       )}
     </div>
+  )
+}
+
+/* the assign menu — fixed to the viewport, anchored to the chip's rect,
+   flipping upward when the chip sits in the lower third */
+function AssignMenu({ anchor, members, currentId, onPick, onClose }) {
+  const rect = anchor.getBoundingClientRect()
+  const MENU_W = 230
+  const MENU_H = Math.min(260, 44 * Math.max(1, members.length + 1) + 12)
+  const openUp = rect.bottom + MENU_H + 8 > window.innerHeight
+  const left = Math.max(8, Math.min(rect.left, window.innerWidth - MENU_W - 8))
+  const pos = openUp
+    ? { left, bottom: window.innerHeight - rect.top + 6 }
+    : { left, top: rect.bottom + 6 }
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001 }} />
+      <div data-testid="board-owner-menu" role="menu" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)' }}>
+        {members.map(m => {
+          const name = m.full_name || m.username
+          const mine = m.id === currentId
+          return (
+            <button key={m.id} role="menuitem" onClick={() => onPick(m.id)}
+              style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: mine ? 'rgba(199,201,209,.1)' : 'transparent', border: 'none', borderRadius: '8px', padding: '7px 9px', cursor: 'pointer' }}
+              onMouseOver={(e) => { if (!mine) e.currentTarget.style.background = 'rgba(242,238,230,.05)' }}
+              onMouseOut={(e) => { if (!mine) e.currentTarget.style.background = 'transparent' }}>
+              <Face p={m} size={20} />
+              <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+              {mine && <Check size={12} style={{ color: STAR, flexShrink: 0 }} />}
+            </button>
+          )
+        })}
+        {currentId && (
+          <button role="menuitem" onClick={() => onPick(null)}
+            style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderRadius: '0 0 8px 8px', padding: '8px 9px', cursor: 'pointer', color: BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>
+            unassign
+          </button>
+        )}
+        {members.length === 0 && (
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT, padding: '10px', letterSpacing: '.08em' }}>no members loaded</div>
+        )}
+      </div>
+    </>
   )
 }
 
@@ -303,8 +323,14 @@ function TaskEditor({ entry, members, onClose, onSave }) {
       <Field label="Title"><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs to happen…" autoFocus /></Field>
       <Field label="Type"><Input value={type} onChange={e => setType(e.target.value)} placeholder="venue · content · marketing · ops" /></Field>
       <Field label="Owner">
+        {/* an owner outside the member list (retired/demo) still shows as a
+            real option — what you see is what saves (review catch) */}
         <Select value={ownerId} onChange={e => setOwnerId(e.target.value)}
-          options={[{ value: '', label: 'Unassigned' }, ...members.map(m => ({ value: m.id, label: m.full_name || m.username }))]} />
+          options={[
+            { value: '', label: 'Unassigned' },
+            ...(ownerId && !members.some(m => m.id === ownerId) ? [{ value: ownerId, label: 'former member' }] : []),
+            ...members.map(m => ({ value: m.id, label: m.full_name || m.username })),
+          ]} />
       </Field>
       <div style={{ display: 'flex', gap: '12px' }}>
         <div style={{ flex: 1 }}><Field label="Due date"><Input type="date" value={due} onChange={e => setDue(e.target.value)} /></Field></div>

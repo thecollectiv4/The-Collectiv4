@@ -124,7 +124,13 @@ test('C · sign up, open CREATE: three doors, honest per member', async ({ page 
   await page.screenshot({ path: path.join(SHOTS, 'c-share-open.png') })
 })
 
-/* ---------------- D · the seed is invisible (0033) ---------------- */
+/* ---------------- D · the seed is invisible (0033) ----------------
+   Honest scope (review catch): a fresh QA account is UNVERIFIED, so this
+   proves the anon + authed floors — not the verified-member invariant
+   itself (no owner credentials exist in the gate to mint a verified
+   session, correctly). The verified case is proven at the schema layer:
+   0033/0034 are applied to the remote (supabase migration list) and the
+   live policy text carries no caller_is_verified branch for demo rows. */
 test('D · zero is_demo rows for anon AND for a fresh session; no pill', async ({ page, request }) => {
   // anon floor
   const anon = await (await rest(request, '/rest/v1/profiles?select=username&is_demo=eq.true&limit=5')).json()
