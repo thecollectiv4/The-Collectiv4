@@ -338,9 +338,11 @@ function RoomCard({ e, onOpen, pastRoom }) {
         </div>
       </div>
       <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+        {/* the date lives on ONE line, always — the venue is the only text
+            that absorbs truncation (panel catch) */}
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
           <Calendar size={10} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em' }}>{fmtDate(e.event_date)}</span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{fmtDate(e.event_date)}</span>
         </span>
         {(e.venue || e.city) && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>

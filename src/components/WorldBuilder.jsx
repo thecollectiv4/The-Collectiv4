@@ -150,7 +150,10 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
   const safeStep = Math.min(step, steps.length - 1)
   const key = steps[safeStep]
   const copy = { ...STEP_COPY[key], ...(CRAFT_COPY[kind]?.[key] || {}) }
-  const { pct } = worldCompleteness(data)
+  // the meter answers the HAND, not the Next button (panel catch): a chosen
+  // craft lights its 15 points the moment it's chosen — commit follows
+  const { pct: savedPct } = worldCompleteness(data)
+  const pct = Math.min(100, savedPct + (picked.length && !(data?.discipline || '').trim() ? 15 : 0))
   const gallery = normGallery(data?.gallery)
   const links = Array.isArray(data?.world_links) ? data.world_links : []
 

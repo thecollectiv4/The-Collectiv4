@@ -150,7 +150,7 @@ export default function HouseWorld() {
         ) : (
           <>
             {/* ============ 01 · THE ROOMS — the events engine ============ */}
-            <Chapter n="01" mark="cross" label="THE ROOMS" kicker="Ran By Artists · the engine" wide={wide}>
+            <Chapter n="01" mark="dot" label="THE ROOMS" kicker={wide ? 'Ran By Artists · the engine' : 'Ran By Artists'} wide={wide}>
               {featured ? (
                 <HouseRoom e={featured} wide={wide} featured onOpen={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')} />
               ) : lastRoom ? (
@@ -296,8 +296,10 @@ function Chapter({ n, mark, label, kicker, wide, children }) {
         <Mark type={mark} size={wide ? 16 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9, position: 'relative' }} />
         <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.1em', flexShrink: 0, position: 'relative' }}>{n}</span>
         <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '36px' : '27px', letterSpacing: '.05em', lineHeight: 1, flexShrink: 0, color: BONE, position: 'relative' }}>{label}</span>
-        <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR_HI}, transparent)` }} />
-        {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '9px' : '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase', flexShrink: 0 }}>{kicker}</span>}
+        <div style={{ flex: 1, minWidth: '14px', height: '1px', background: `linear-gradient(90deg, ${HAIR_HI}, transparent)` }} />
+        {/* the kicker may shrink and trim — it must never touch the viewport
+            edge on a phone (panel catch) */}
+        {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '9px' : '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{kicker}</span>}
       </div>
       {children}
     </div>
@@ -316,7 +318,13 @@ function HouseRoom({ e, wide, featured, pastRoom, onOpen }) {
       <div className="disc-banner" style={{ position: 'relative', height: featured ? (wide ? '280px' : '190px') : '136px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(242,238,230,.08) 0%, transparent 60%), ${VOID}` }} />}
+          : (
+            /* no flyer → a DESIGNED void, never a black slab (panel catch):
+               the house glow + the 4 monogram, faint, centered */
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(242,238,230,.08) 0%, transparent 60%), ${VOID}` }}>
+              <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: featured ? '120px' : '76px', lineHeight: 1, color: BONE, opacity: .06, userSelect: 'none' }}>4</span>
+            </div>
+          )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.08) 25%, rgba(7,8,14,.6) 65%, rgba(9,9,14,.96) 100%)' }} />
         <span style={{ position: 'absolute', top: '12px', left: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.18em', color: pastRoom ? BONE_MID : BONE, border: `1px solid ${pastRoom ? HAIR : 'rgba(242,238,230,.3)'}`, borderRadius: '100px', padding: '3px 10px', background: 'rgba(7,8,14,.55)', textTransform: 'uppercase' }}>
           {pastRoom ? 'the last room' : (e.edition || 'Ran By Artists')}
@@ -325,10 +333,10 @@ function HouseRoom({ e, wide, featured, pastRoom, onOpen }) {
           <div style={{ fontFamily: 'Bebas Neue', fontSize: featured ? (wide ? '44px' : '32px') : '25px', letterSpacing: '.02em', lineHeight: .9, color: BONE, textShadow: '0 2px 20px rgba(0,0,0,.6)' }}>{e.title}</div>
         </div>
       </div>
-      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
           <Calendar size={10} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em' }}>{fmtDate(e.event_date)}</span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{fmtDate(e.event_date)}</span>
         </span>
         {(e.venue || e.city) && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>

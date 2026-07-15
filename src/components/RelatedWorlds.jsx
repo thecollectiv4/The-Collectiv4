@@ -94,9 +94,13 @@ export default function RelatedWorlds({ profileId, crafts = [] }) {
           <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '9px' : '8px', letterSpacing: '.26em', color: BONE_LOW, textTransform: 'uppercase' }}>same craft, same sky</span>
         </div>
 
+        {/* 3+ worlds ride a rail; one or two OWN their row full-width — a
+            half-width island in void is abandoned space (panel catch, Ley 4) */}
         <div className="no-scrollbar" style={wide
           ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '14px' }
-          : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '6px', WebkitOverflowScrolling: 'touch' }}>
+          : related.length <= 2
+            ? { display: 'flex', flexDirection: 'column', gap: '12px' }
+            : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '6px', WebkitOverflowScrolling: 'touch' }}>
           {related.map((p) => {
             const avatar = safeImg(p.avatar_url)
             const name = p.full_name || 'Unnamed'
@@ -106,7 +110,7 @@ export default function RelatedWorlds({ profileId, crafts = [] }) {
               <div key={p.id} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
                 onClick={() => navigate('/user/' + p.id)}
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate('/user/' + p.id) } }}
-                style={{ flexShrink: 0, minWidth: wide ? 0 : '186px', display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: CARD, padding: '13px 14px', cursor: 'pointer' }}>
+                style={{ flexShrink: 0, minWidth: wide ? 0 : (related.length <= 2 ? 0 : '186px'), display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: CARD, padding: '13px 14px', cursor: 'pointer' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(${meta.tint},.5)`, background: VOID, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 0 12px rgba(${meta.tint},.1)` }}>
                   {avatar
                     ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

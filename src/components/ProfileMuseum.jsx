@@ -877,7 +877,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               40% of raw void — the absence gets a voice (panel catch, Leyes
               4/11), and the page still closes with its signature below. */}
           {!isOwner && worldIsEmpty && (
-            <div style={{ marginTop: '44px', padding: '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', maxWidth: wide ? '560px' : undefined }}>
+            /* the empty state OWNS its row on desktop — centered on the
+               layout's axis, never a lone cell beside two-thirds of raw
+               void (panel catch, Ley 4) */
+            <div style={{ marginTop: '44px', padding: wide ? '46px 40px' : '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', maxWidth: wide ? '680px' : undefined, marginLeft: wide ? 'auto' : undefined, marginRight: wide ? 'auto' : undefined }}>
               <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ world forming</div>
               <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: BONE, letterSpacing: '.03em', lineHeight: .95, marginTop: '10px' }}>NOTHING ON THE WALLS YET</div>
               <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px auto 0', maxWidth: '320px' }}>
