@@ -362,7 +362,7 @@ test('H · the plan — fucho sábado, real RSVPs, a room with a name', async ({
   await pageB.goto('/messages?seg=plans')
   await pageB.getByTestId('plan-create').click()
   await pageB.getByTestId('plan-title-input').fill('fucho sábado')
-  await pageB.getByPlaceholder(/where|spot/i).fill('memorial park')
+  await pageB.locator('#plan-spot').fill('memorial park')
   await pageB.getByTestId(`plan-friend-${st.c.uid}`).click()
   await pageB.getByRole('button', { name: /make it real/i }).click()
   const card = pageB.locator('[data-testid^="plan-card-"]').filter({ hasText: 'fucho sábado' }).first()
