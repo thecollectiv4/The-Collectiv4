@@ -5,6 +5,8 @@
    the completeness math behind "your world is at 60%".
    ========================================================================= */
 
+import { supabase } from '@/api/supabase'
+
 const BONE = '#F2EEE6'
 // display chrome — the museum's own 176deg liquid gradient (kept identical
 // to the pre-split ProfileMuseum values so nothing shifts visually)
@@ -61,6 +63,70 @@ export const CRAFT_STEPS = {
   sound: ['craft', 'taste', 'doors', 'work', 'marquee', 'skin'],
   word: ['craft', 'taste', 'words', 'work', 'doors', 'marquee', 'skin'],
   generic: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
+}
+
+/* =========================================================================
+   Modular worlds (v6, 0024) — the museum's rooms as a vocabulary. The
+   world ADAPTS to the primary craft: a DJ's leads with sound + upcoming
+   sets, a photographer's with the gallery + the offer, a discoverer's
+   with public taste + moments. profiles.world_modules holds the owner's
+   own ordered composition; NULL means the kind-default below. Labels and
+   kickers mirror the museum's Marker calls — one vocabulary, no drift.
+   ========================================================================= */
+
+export const MODULES = {
+  gallery: { label: 'GALLERY', kicker: 'the work, on walls' },
+  moments: { label: 'MOMENTS', kicker: 'the wall continues — dated' },
+  offer: { label: 'THE OFFER', kicker: 'the wall, working · for sale' },
+  sound: { label: 'SOUND', kicker: 'on rotation' },
+  screen: { label: 'SCREEN', kicker: 'what i watch' },
+  influences: { label: 'INFLUENCES', kicker: 'what shaped me' },
+  work: { label: 'WORK', kicker: 'what i make' },
+  taste: { label: 'TASTE', kicker: 'made public — the rest works in silence' },
+  sets: { label: 'SETS', kicker: 'where it plays next' },
+}
+
+/* the stored column, defended: whitelist to known keys, dedupe, keep the
+   owner's order. null/invalid/empty → null (the kind-default composes). */
+export function normModules(v) {
+  if (!Array.isArray(v)) return null
+  const seen = new Set()
+  const out = []
+  v.forEach((k) => { if (typeof k === 'string' && MODULES[k] && !seen.has(k)) { seen.add(k); out.push(k) } })
+  return out.length ? out : null
+}
+
+/* the kind-default composition — every room on, ordered by what leads
+   that kind of world. 'generic'/null = the discoverer (no craft yet). */
+const MODULE_DEFAULTS = {
+  sound: ['sound', 'sets', 'gallery', 'moments', 'taste', 'offer', 'screen', 'influences', 'work'],
+  visual: ['gallery', 'work', 'sets', 'moments', 'offer', 'taste', 'sound', 'screen', 'influences'],
+  word: ['influences', 'work', 'gallery', 'moments', 'taste', 'offer', 'sound', 'screen', 'sets'],
+  generic: ['taste', 'moments', 'gallery', 'sound', 'screen', 'influences', 'offer', 'work', 'sets'],
+}
+export function defaultModulesFor(kind) {
+  return MODULE_DEFAULTS[kind] || MODULE_DEFAULTS.generic
+}
+
+/* ---- the SETS movement's read: upcoming published rooms this person
+   hosts (public-read RLS; is_test excluded — honest walls only). The
+   12h grace keeps tonight's room on the wall while it's still going. */
+export async function fetchUpcomingSets(profileId) {
+  if (!profileId) return []
+  try {
+    const since = new Date(Date.now() - 12 * 3600 * 1000).toISOString()
+    const { data, error } = await supabase
+      .from('events')
+      .select('id,slug,title,event_date,venue,city,cover_url,vibe')
+      .eq('host_id', profileId)
+      .eq('status', 'published')
+      .eq('is_test', false)
+      .gte('event_date', since)
+      .order('event_date', { ascending: true })
+      .limit(6)
+    if (error) return []
+    return data || []
+  } catch { return [] }
 }
 
 /* =========================================================================

@@ -343,6 +343,27 @@ async function callDoor(fn, args) {
   return data
 }
 
+/* the pairwise bond between me and ONE other world → 'none' | 'out'
+   (my request waits on them) | 'in' (theirs waits on me) | 'friends'.
+   RLS admits only participants, and the pair is unique (0023) — one row
+   at most. null on error/pre-migration: the museum renders a door only
+   when the state is KNOWN (Ley 9 — no dead promises). */
+export async function fetchFriendState(meId, otherId) {
+  if (!meId || !otherId || meId === otherId) return null
+  try {
+    const { data, error } = await supabase
+      .from('friendships')
+      .select('requester_id,addressee_id,status')
+      .or(`and(requester_id.eq.${meId},addressee_id.eq.${otherId}),and(requester_id.eq.${otherId},addressee_id.eq.${meId})`)
+      .maybeSingle()
+    if (error) return null
+    if (!data) return 'none'
+    if (data.status === 'accepted') return 'friends'
+    if (data.status === 'pending') return data.requester_id === meId ? 'out' : 'in'
+    return 'none'
+  } catch { return null }
+}
+
 /* friends + requests waiting on me + requests I sent — one call, always
    shaped, empty on any failure (reads resolve to absence, never a crash). */
 export async function myCircle() {
