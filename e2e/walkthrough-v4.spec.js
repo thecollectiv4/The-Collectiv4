@@ -77,12 +77,17 @@ async function signIn(page, acct) {
 }
 
 /* the world builder greets a newborn world on /profile — settle it fast
-   so later stories can walk the museum (publish with all skips). */
+   so later stories can walk the museum (publish with all skips).
+   v5: the craft question became the curated CraftPicker (0020) — `craft`
+   is now a taxonomy slug ('photographer', 'dj'…), not free text. */
 async function publishBareWorld(page, craft) {
   await page.goto('/profile')
   const sheet = page.getByRole('dialog', { name: 'Build your world' })
   await expect(sheet).toBeVisible({ timeout: 20000 })
-  await sheet.getByPlaceholder('DJ · Painter · Photographer · Writer…').fill(craft)
+  const slug = craft.toLowerCase()
+  await sheet.getByTestId('craft-search').fill(slug)
+  await sheet.getByTestId(`craft-opt-${slug}`).first().click()
+  await expect(sheet.getByTestId(`craft-chip-${slug}`)).toBeVisible({ timeout: 10000 })
   await sheet.getByRole('button', { name: /Next/ }).click()
   await expect(sheet.getByText('WHAT SHOULD THEY FEEL?')).toBeVisible({ timeout: 15000 })
   await sheet.getByRole('button', { name: /skip this one/ }).click()

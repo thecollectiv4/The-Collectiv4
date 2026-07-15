@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Loader2, X, ImagePlus, Plus, ArrowLeft, ArrowRight } from 'lucide-react'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, normGallery, normLinks, worldSafeUrl, worldCompleteness, chromeDisplayText, craftKindOf, CRAFT_STEPS, composeWorldPlan } from '@/lib/world'
+import { craftLine, kindOfCrafts, saveProfileCrafts } from '@/lib/crafts'
+import CraftPicker from '@/components/CraftPicker'
 import { useWide } from '@/lib/useIsDesktop'
 
 /* =========================================================================
@@ -45,9 +47,12 @@ const monoLabel = { fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22e
 /* The reason this exists — shown on the first beat, verbatim guidance. */
 const WHY = 'Your world is your card in Discover, your museum — and soon, where you get booked.'
 
-/* The conversation — three questions, each with a reason to exist. */
+/* The conversation — three questions, each with a reason to exist.
+   01 is the craft — from the CURATED taxonomy (0020), never free text:
+   the app recognizes you as you type (Ley 15), and the structured craft
+   is what turns the matching column on. */
 const MEET = [
-  { key: 'craft', kicker: 'question 01 · who you are', title: 'WHAT DO YOU MAKE?', why: `${WHY} Start with the craft — everything composes around it.`, placeholder: 'DJ · Painter · Photographer · Writer…', required: true },
+  { key: 'craft', kicker: 'question 01 · who you are', title: 'WHAT DO YOU MAKE?', why: `${WHY} Start with the craft — everything composes around it. You can be many at once.`, required: true },
   { key: 'feel', kicker: 'question 02 · the door', title: 'WHEN SOMEONE STEPS IN — WHAT SHOULD THEY FEEL?', why: 'One phrase. It seeds your welcome line and how your name is set.', placeholder: 'like walking into a warm room · raw energy · timeless…', required: false },
   { key: 'show', kicker: 'question 03 · today', title: 'WHAT DO YOU HAVE READY TO SHOW TODAY?', why: 'Only what exists — the world starts honest. What you have leads; the rest waits for you.', required: false },
 ]
@@ -82,11 +87,13 @@ const CRAFT_COPY = {
   },
 }
 
-/* Land on the first unfinished step of THIS order, not always at zero. */
-function firstUnfinished(steps, d) {
+/* Land on the first unfinished step of THIS order, not always at zero.
+   The craft step counts as done only when REAL crafts are chosen — a legacy
+   free-text discipline alone re-opens the step (the in-UI migration door). */
+function firstUnfinished(steps, d, crafts) {
   for (let i = 0; i < steps.length; i++) {
     const k = steps[i]
-    if (k === 'craft' && !(d?.discipline || '').trim()) return i
+    if (k === 'craft' && !(crafts || []).length) return i
     if (k === 'line' && !(d?.tagline || '').trim()) return i
     if (k === 'words' && !(d?.bio || '').trim()) return i
     if (k === 'work' && normGallery(d?.gallery).length < 3) return i
@@ -96,14 +103,18 @@ function firstUnfinished(steps, d) {
   return steps.length - 1
 }
 
-export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery, onCleanupImages, onCurate, onClose, onPublished }) {
+export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft, onCommit, onUploadGallery, onCleanupImages, onCurate, onClose, onPublished }) {
   const wide = useWide()
   // A world with no craft yet meets the conversation; a returning member's
   // world goes straight to its first unfinished step.
-  const isNew = !(data?.discipline || '').trim() && normGallery(data?.gallery).length === 0
+  const isNew = !crafts.length && !(data?.discipline || '').trim() && normGallery(data?.gallery).length === 0
   const [stage, setStage] = useState(isNew ? 'meet' : 'steps')  // meet | compose | plan | steps
   const [meetIdx, setMeetIdx] = useState(0)
   const [answers, setAnswers] = useState({ craft: '', feel: '', show: [] })
+  // the chosen crafts — the picker's controlled state, seeded from what's
+  // already saved (a returning member edits, never re-answers from zero)
+  const [picked, setPicked] = useState(() => crafts.map((c) => ({ id: c.id, name: c.name, slug: c.slug, category: c.category })))
+  const [primaryId, setPrimaryId] = useState(() => (crafts.find((c) => c.isPrimary) || crafts[0])?.id || null)
   const [plan, setPlan] = useState(null)          // { kind, steps, skin, marquee, line }
   const [planSteps, setPlanSteps] = useState(null)
   // compose() awaits network — if the member closes the sheet mid-composition
@@ -116,9 +127,13 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   // beat silently bailed; caught by the v4 local gate)
   useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
 
-  const kind = plan?.kind ?? craftKindOf(data?.discipline)
-  const steps = planSteps || CRAFT_STEPS[craftKindOf(data?.discipline)]
-  const [step, setStep] = useState(() => (isNew ? 0 : firstUnfinished(CRAFT_STEPS[craftKindOf(data?.discipline)], data)))
+  // what leads this world: the chosen crafts' own category decides (0020);
+  // a craft-less legacy world falls back to the old free-text sniff
+  const craftsNow = picked.map((c) => ({ ...c, isPrimary: c.id === primaryId }))
+  const liveKind = kindOfCrafts(craftsNow) || craftKindOf(data?.discipline)
+  const kind = plan?.kind ?? liveKind
+  const steps = planSteps || CRAFT_STEPS[liveKind]
+  const [step, setStep] = useState(() => (isNew ? 0 : firstUnfinished(CRAFT_STEPS[kindOfCrafts(crafts) || craftKindOf(data?.discipline)], data, crafts)))
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [uploadingN, setUploadingN] = useState(0)
@@ -135,9 +150,25 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   const safeStep = Math.min(step, steps.length - 1)
   const key = steps[safeStep]
   const copy = { ...STEP_COPY[key], ...(CRAFT_COPY[kind]?.[key] || {}) }
-  const { pct } = worldCompleteness(data)
+  // the meter answers the HAND, not the Next button (panel catch): a chosen
+  // craft lights its 15 points the moment it's chosen — commit follows
+  const { pct: savedPct } = worldCompleteness(data)
+  const pct = Math.min(100, savedPct + (picked.length && !(data?.discipline || '').trim() ? 15 : 0))
   const gallery = normGallery(data?.gallery)
   const links = Array.isArray(data?.world_links) ? data.world_links : []
+
+  /* ---- persist the chosen crafts: the set (0020, atomic) + the derived
+     summary line into discipline, so every legacy surface keeps reading
+     something true. Nothing is ever lost — saved the moment it's spoken. */
+  const commitCrafts = async () => {
+    const summary = craftLine(craftsNow)
+    await saveProfileCrafts(picked.map((c) => c.id), primaryId)
+    // the parent learns the DB's truth IMMEDIATELY — if the discipline
+    // write below fails, the crafts are still saved and the UI must not
+    // pretend otherwise (review catch)
+    onCraftsSaved?.(craftsNow)
+    await onCommit({ discipline: summary || null })
+  }
 
   /* ---- the conversation → the composed plan ---- */
   const meetNext = async () => {
@@ -145,10 +176,9 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
     const q = MEET[meetIdx]
     if (q.key === 'craft') {
       // the craft persists the moment it's spoken — nothing is ever lost
-      const craft = answers.craft.trim()
-      if (!craft) return
+      if (!picked.length) return
       setBusy(true)
-      try { await onCommit({ discipline: craft }) } catch (e) {
+      try { await commitCrafts() } catch (e) {
         setErr(e?.message ? `Couldn't save — ${e.message}` : "Couldn't save — try again.")
         setBusy(false); return
       }
@@ -167,12 +197,15 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
     composing.current = true
     setStage('compose')
     // the decision tree ALWAYS composes; /api/curate refines when it's live.
-    const local = composeWorldPlan({ craft: answers.craft || data?.discipline, feel: answers.feel, show: answers.show })
+    // The kind comes from the chosen crafts' own categories (0020) — the
+    // free-text sniff only serves craft-less legacy worlds.
+    const craftWords = craftLine(craftsNow) || data?.discipline || ''
+    const local = composeWorldPlan({ craft: craftWords, feel: answers.feel, show: answers.show, kind: kindOfCrafts(craftsNow) || undefined })
     const beat = new Promise((r) => setTimeout(r, 900))   // the moment reads as composed, not instant
     let refined = null
     if (onCurate) {
       refined = await Promise.race([
-        onCurate({ craft: answers.craft || data?.discipline || '', feel: answers.feel, show: answers.show }).catch(() => null),
+        onCurate({ craft: craftWords, feel: answers.feel, show: answers.show }).catch(() => null),
         new Promise((r) => setTimeout(() => r(null), 3500)),   // never hold the door for the polish
       ])
     }
@@ -208,8 +241,20 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
     } finally { setBusy(false) }
   }
 
-  const next = () => {
-    if (key === 'craft') return commitAndGo({ discipline: (data.discipline || '').trim() || null, tagline: (data.tagline || '').trim() || null }, safeStep + 1)
+  const next = async () => {
+    if (key === 'craft') {
+      // crafts save atomically first (0020), then the derived line + tagline
+      setBusy(true); setErr('')
+      try {
+        await saveProfileCrafts(picked.map((c) => c.id), primaryId)
+        onCraftsSaved?.(craftsNow)
+      } catch (e) {
+        setErr(e?.message ? `Couldn't save — ${e.message}` : "Couldn't save — try again.")
+        setBusy(false); return
+      }
+      setBusy(false)
+      return commitAndGo({ discipline: craftLine(craftsNow) || null, tagline: (data.tagline || '').trim() || null }, safeStep + 1)
+    }
     if (key === 'line') return commitAndGo({ tagline: (data.tagline || '').trim() || null }, safeStep + 1)
     if (key === 'words') return commitAndGo({ bio: (data.bio || '').trim() || null }, safeStep + 1)
     if (key === 'work') return commitAndGo({ gallery: gallery.map(g => ({ path: g.path || null, url: g.url, caption: (g.caption || '').trim() })) }, safeStep + 1)
@@ -306,7 +351,7 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
   const delLink = (i) => onDraft({ world_links: links.filter((_, j) => j !== i) })
 
   const nextDisabled = busy || uploadingN > 0 ||
-    (key === 'craft' && !(data.discipline || '').trim()) ||
+    (key === 'craft' && !picked.length) ||
     (key === 'doors' && links.length > 0 && !links.some(l => worldSafeUrl(l.url)))
 
   // phone: a bottom sheet under the live museum · wide: a studio panel docked
@@ -345,14 +390,14 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
       {/* ======================= THE CONVERSATION ======================= */}
       {stage === 'meet' && (() => {
         const q = MEET[meetIdx]
-        const canNext = !busy && (!q.required || (q.key === 'craft' ? answers.craft.trim() : true))
+        const canNext = !busy && (!q.required || (q.key === 'craft' ? picked.length > 0 : true))
         return (
           <>
             <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
               {/* the transcript — what they already told us, quiet, above */}
               {meetIdx > 0 && (
                 <div style={{ marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {answers.craft.trim() && <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>— you make · <span style={{ color: BONE_MID }}>{answers.craft.trim()}</span></div>}
+                  {picked.length > 0 && <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>— you make · <span style={{ color: BONE_MID }}>{craftLine(craftsNow).toLowerCase()}</span></div>}
                   {meetIdx > 1 && answers.feel.trim() && <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>— it should feel · <span style={{ color: BONE_MID }}>{answers.feel.trim()}</span></div>}
                 </div>
               )}
@@ -360,8 +405,11 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
               <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '24px', letterSpacing: '.03em', lineHeight: 1.02, marginTop: '6px', ...chromeDisplayText }}>{q.title}</div>
               <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{q.why}</p>
 
-              {q.key !== 'show' ? (
-                <input autoFocus={wide} style={inp} value={answers[q.key]} placeholder={q.placeholder} maxLength={q.key === 'craft' ? 60 : 120}
+              {q.key === 'craft' ? (
+                <CraftPicker value={picked} primaryId={primaryId} autoFocus={wide}
+                  onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
+              ) : q.key !== 'show' ? (
+                <input autoFocus={wide} style={inp} value={answers[q.key]} placeholder={q.placeholder} maxLength={120}
                   onChange={(e) => setAnswers(a => ({ ...a, [q.key]: e.target.value }))}
                   onKeyDown={(e) => { if (e.key === 'Enter' && canNext) meetNext() }} />
               ) : (
@@ -461,17 +509,17 @@ export default function WorldBuilder({ data, onDraft, onCommit, onUploadGallery,
               <div style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
                 <div>
                   <label style={monoLabel}>WHAT YOU MAKE</label>
-                  <input style={inp} value={data.discipline || ''} placeholder="DJ · Painter · Photographer…" maxLength={60} onChange={e => onDraft({ discipline: e.target.value })} />
+                  {/* the curated taxonomy, never free text — the migration door
+                      for legacy worlds too: a text-only discipline seeds the
+                      search so the person finds their REAL crafts fast */}
+                  <CraftPicker value={picked} primaryId={primaryId} maxHeight="30vh"
+                    seedQuery={picked.length ? '' : ((data.discipline || '').split(/[·,/&+]| and /i)[0] || '').trim().slice(0, 24)}
+                    onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
                 </div>
                 <div>
                   <label style={monoLabel}>YOUR LINE</label>
                   <input style={inp} value={data.tagline || ''} placeholder="One line, your voice — what you're on right now." maxLength={120} onChange={e => onDraft({ tagline: e.target.value })} />
                 </div>
-                {kind !== 'generic' && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', lineHeight: 1.6 }}>
-                    {kind === 'sound' ? '♪ a sound world — your links will lead' : kind === 'word' ? '◆ a written world — your piece comes next' : '● a visual world — your wall leads'}
-                  </div>
-                )}
               </div>
             )}
 

@@ -4,10 +4,9 @@ import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
-import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, Paintbrush, Frame, Shirt, Layers, MessagesSquare } from 'lucide-react'
+import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, MessagesSquare } from 'lucide-react'
 import { socialReady, joinEventChat } from '@/lib/social'
-
-const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
+import { resolveLineupWorlds, normVibe, vibeMeta, experienceTemp } from '@/lib/match'
 
 /* The root landing: THE house event, from the single source of truth
    (useLiveEvent). The composition itself lives in EventShow — /e/:slug
@@ -34,6 +33,8 @@ export function EventShow({ live }) {
   const [chatReady, setChatReady] = useState(false)      // room chat live in the DB (0017)
   const [chatBusy, setChatBusy] = useState(false)
   const [chatErr, setChatErr] = useState('')
+  // lineup names → live doors to their worlds (D2) — only real matches link
+  const [lineupWorlds, setLineupWorlds] = useState(new Map())
 
   // the room chat door renders only when the layer is live (Ley 9)
   useEffect(() => { socialReady().then(setChatReady) }, [])
@@ -72,10 +73,17 @@ export function EventShow({ live }) {
   const tiers = event?.tiers || []
   const lineup = event?.lineup || []
   const experiences = event?.experiences || []
-  // Cosmos: neutralize warm per-experience accents that arrive in event data.
-  // Visual override only, no data change. (Cool per-artist accents are left as-is.)
-  const EXP_ACCENT = '#C7C9D1'
-  const EXP_BG = 'rgba(242,238,230,.03)'
+  const vibe = normVibe(event?.vibe)               // the declared character (0021)
+  const vMeta = vibe?.kind ? vibeMeta(vibe.kind) : null
+
+  // resolve the lineup against real worlds — the names become doors (D2)
+  useEffect(() => {
+    let alive = true
+    setLineupWorlds(new Map())
+    if (!event?.lineup?.length) return
+    resolveLineupWorlds(event.lineup).then((m) => { if (alive) setLineupWorlds(m) })
+    return () => { alive = false }
+  }, [event?.id])
   const days = event?.event_date ? Math.max(0, Math.ceil((new Date(event.event_date) - new Date()) / 86400000)) : 0
   // honest countdown states (Ley 11): a future date counts down, the day-of
   // says TONIGHT, and a past date says nothing at all — never a "0 DAYS"
@@ -232,6 +240,23 @@ export function EventShow({ live }) {
               </div>
             ))}
           </div>
+          {/* THE CHARACTER — the room's declared temperature + sounds (0021,
+              Ley 14: light with meaning). Undeclared events render nothing. */}
+          {vibe && (
+            <div className="fade-up-4" data-testid="event-vibe" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:'8px',rowGap:'10px',marginTop:'16px'}}>
+              {vMeta && (
+                <span className={vMeta.pulse==='warm'?'temp-warm':vMeta.pulse==='electric'?'temp-electric':undefined}
+                  style={{display:'inline-flex',alignItems:'center',gap:'8px',border:`1px solid rgba(${vMeta.tint},.4)`,background:`rgba(${vMeta.tint},.06)`,borderRadius:'100px',padding:'6px 14px',boxShadow:`0 0 18px rgba(${vMeta.tint},.14)`}}>
+                  <span aria-hidden style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgb(${vMeta.tint})`}}>{vMeta.mark}</span>
+                  <span style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',textTransform:'uppercase',color:'var(--cream)'}}>{vMeta.label}</span>
+                </span>
+              )}
+              {vibe.sound.map((s)=>(
+                <span key={s} style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.12em',textTransform:'uppercase',color:'var(--cream-mid)',border:'1px solid rgba(242,238,230,.14)',borderRadius:'100px',padding:'5px 12px'}}>{s}</span>
+              ))}
+              {vibe.line && <span style={{flexBasis:'100%',fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',fontStyle:'normal'}}>— {vibe.line}</span>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -438,21 +463,34 @@ export function EventShow({ live }) {
       <div style={{padding: wide ? '28px clamp(40px,5vw,72px)' : '26px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream)',textTransform:'uppercase',marginBottom:'16px'}}>LINEUP</div>
         <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(2, minmax(0,1fr))',gap:'12px'} : {display:'flex',flexDirection:'column',gap:'4px'}}>
-          {lineup.map((a,i)=>(
-            <div key={i} className="pressable" onClick={()=>navigate('/artist/'+a.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:'1px solid rgba(242,238,230,.1)',cursor:'pointer',transition:'all .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='rgba(242,238,230,.04)'}}>
-              <div style={{width:'50px',height:'50px',borderRadius:'50%',background:'rgba(242,238,230,.1)',border:'2px solid rgba(242,238,230,.35)',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0}}>{a.name[0]}</div>
-              <div style={{flex:1}}>
+          {lineup.map((a,i)=>{
+            // a lineup name is a LIVE DOOR to its world when the person
+            // exists on the platform (D2); otherwise the legacy artist page
+            const world = lineupWorlds.get(i)
+            const avatar = world && (/^https?:\/\//i.test((world.avatar_url||'').trim()) || (world.avatar_url||'').startsWith('data:image/')) ? world.avatar_url : ''
+            return (
+            <div key={i} className="pressable" data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={()=>navigate(world ? '/user/'+world.id : '/artist/'+a.slug)}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:'pointer',transition:'all .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor=world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)';e.currentTarget.style.background='rgba(242,238,230,.04)'}}>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(242,238,230,.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(242,238,230,.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
+                {avatar ? <img src={avatar} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : a.name[0]}
+              </div>
+              <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
+                {world && (
+                  <div style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:'6px',fontFamily:'DM Mono',fontSize:'8px',color:'#E8E9ED',letterSpacing:'.16em',textTransform:'uppercase'}}>
+                    <span aria-hidden style={{width:'4px',height:'4px',borderRadius:'50%',background:'#E8E9ED',boxShadow:'0 0 6px rgba(232,233,237,.7)'}} />
+                    their world is open →
+                  </div>
+                )}
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
                 <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream)',background:'rgba(242,238,230,.08)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
                 <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </div>
       )}
@@ -465,21 +503,29 @@ export function EventShow({ live }) {
       <div style={{padding: wide ? '28px clamp(40px,5vw,72px) 36px' : '26px 28px'}}>
         <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.3em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'6px'}}>THE EXPERIENCE</div>
         <div style={wide ? {display:'grid',gridTemplateColumns:'repeat(auto-fit, minmax(280px, 1fr))',columnGap:'44px'} : undefined}>
-          {experiences.map((exp,i)=>(
-            <div key={i} className="pressable" onClick={()=>navigate('/experience/'+exp.slug)}
-              style={{display:'flex',alignItems:'baseline',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer',transition:'padding-left .2s, border-color .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.paddingLeft='10px';e.currentTarget.style.borderColor='rgba(242,238,230,.2)'}} onMouseOut={e=>{e.currentTarget.style.paddingLeft='2px';e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:EXP_ACCENT,letterSpacing:'.1em',flexShrink:0,opacity:.8}}>{String(i+1).padStart(2,'0')}</span>
+          {experiences.map((exp,i)=>{
+            // each experience wears ITS temperature (Ley 14): live paint
+            // glows warm and pulses, sound runs cold-electric, the gallery
+            // holds a sober stillness. The icon is a brand MARK in a lit
+            // plate — never an explain-me pictogram (Ley 5: the word rides
+            // right beside it).
+            const temp = experienceTemp(exp)
+            const pulseClass = temp.pulse==='warm' ? 'temp-warm' : temp.pulse==='electric' ? 'temp-electric' : undefined
+            return (
+            <div key={i} className="pressable" data-testid="event-experience" onClick={()=>navigate('/experience/'+exp.slug)}
+              style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer',transition:'padding-left .2s, border-color .2s'}}
+              onMouseOver={e=>{e.currentTarget.style.paddingLeft='10px';e.currentTarget.style.borderColor=`rgba(${temp.tint},.3)`}} onMouseOut={e=>{e.currentTarget.style.paddingLeft='2px';e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgba(${temp.tint},.75)`,letterSpacing:'.1em',flexShrink:0}}>{String(i+1).padStart(2,'0')}</span>
+              <span aria-hidden className={pulseClass} style={{width:'34px',height:'34px',flexShrink:0,borderRadius:'10px',border:`1px solid rgba(${temp.tint},.32)`,background:`rgba(${temp.tint},.06)`,display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:'DM Mono',fontSize:'13px',color:`rgb(${temp.tint})`,boxShadow:`0 0 14px rgba(${temp.tint},.1)`}}>
+                {temp.mark}
+              </span>
               <div style={{flex:1,minWidth:0}}>
-                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  {(()=>{ const IconComp = ICON_MAP[exp.iconName] || Layers; return <IconComp size={13} strokeWidth={1.6} style={{color:EXP_ACCENT,flexShrink:0}} /> })()}
-                  <span style={{fontFamily:'Bebas Neue',fontSize:'19px',color:'var(--cream)',letterSpacing:'.04em',lineHeight:1}}>{exp.label}</span>
-                </div>
+                <span style={{fontFamily:'Bebas Neue',fontSize:'19px',color:'var(--cream)',letterSpacing:'.04em',lineHeight:1}}>{exp.label}</span>
                 <div style={{fontSize:'12px',color:'var(--cream-mid)',marginTop:'4px',lineHeight:1.45}}>{exp.short}</div>
               </div>
               <ChevronRight size={14} style={{color:'var(--cream-low)',flexShrink:0,alignSelf:'center'}} />
             </div>
-          ))}
+          )})}
         </div>
       </div>
       )}

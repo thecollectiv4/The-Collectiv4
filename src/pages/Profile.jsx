@@ -11,12 +11,17 @@ import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/wor
 import { fetchWorldPosts, deleteWorldPost } from '@/lib/worldPosts'
 import { fetchListings, deleteListing, setListingStatus } from '@/lib/listings'
 import { socialReady, fetchFollowState } from '@/lib/social'
+import { fetchProfileCrafts } from '@/lib/crafts'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
+  // the person's real crafts (0020), primary first. null = still loading —
+  // the migration band must never FLASH at a migrated member while the
+  // fetch is in flight (loaded-empty and not-yet-loaded are different truths)
+  const [crafts, setCrafts] = useState(null)
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
@@ -78,6 +83,7 @@ export default function Profile() {
       }
     }
     setProfile(data)
+    fetchProfileCrafts(user.id).then(setCrafts)  // the craft spine (0020)
     fetchWorldPosts(user.id).then(setPosts)   // the world's dated timeline (0016)
     fetchListings(user.id).then(setListings)  // the world's OFFER (0017)
     // the owner's honest count — renders once the social layer is live
@@ -207,9 +213,11 @@ export default function Profile() {
   const topBar = (
     <>
       <span />
+      {/* ghost silver, same register as the Cover pill — the palette admits
+          no salmon, not even as "danger" (panel catch, Ley 14) */}
       <button onClick={async () => { await signOut(); navigate('/') }}
-        style={{ background: 'rgba(229,160,160,.06)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', padding: '6px 14px', color: '#E5A0A0', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'all .2s' }}
-        onMouseOver={e => e.currentTarget.style.background = 'rgba(229,160,160,.15)'} onMouseOut={e => e.currentTarget.style.background = 'rgba(229,160,160,.06)'}>
+        style={{ background: 'rgba(10,10,13,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(199,201,209,.22)', borderRadius: '100px', padding: '6px 14px', color: '#C7C9D1', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'all .2s' }}
+        onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.45)'} onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.22)'}>
         <LogOut size={11} /> Sign Out
       </button>
     </>
@@ -311,6 +319,9 @@ export default function Profile() {
   return (
     <ProfileMuseum
       profile={profile}
+      crafts={crafts || []}
+      craftsReady={crafts !== null}
+      onCraftsSaved={setCrafts}
       isOwner
       onSave={onSave}
       onUploadAvatar={onUploadAvatar}

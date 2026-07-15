@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, Lock, X, ArrowLeft, CalendarDays, Compass, Users, User, ListTodo, Clapperboard, Sparkles, UsersRound } from 'lucide-react'
+import { Loader2, Lock, X, ArrowLeft, CalendarDays, MessagesSquare, Users, User, ListTodo, Clapperboard, Sparkles, UsersRound } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
 import { useLiveEvent } from '@/lib/useLiveEvent'
@@ -45,8 +45,8 @@ const HELLO_KEY = 'os_hello_v1'
 // Cross-nav out of the OS — same icon vocabulary as Layout.jsx's bottom nav.
 const CROSS_NAV = [
   { to: '/', icon: CalendarDays, label: 'Event' },
-  { to: '/discover', icon: Compass, label: 'Discover' },
   { to: '/community', icon: Users, label: 'Community' },
+  { to: '/messages', icon: MessagesSquare, label: 'Messages' },
   { to: '/profile', icon: User, label: 'Profile' },
 ]
 const GRAIN_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")`
@@ -182,10 +182,10 @@ export default function OS() {
   if (state === 'denied') return (
     <Shell center>
       <div style={{ textAlign: 'center', maxWidth: '300px' }}>
-        <Lock size={24} style={{ color: BONE_LOW }} />
+        <Lock size={24} style={{ color: BONE_LOW, display: 'block', margin: '0 auto' }} />
         <div style={{ fontFamily: FONT_MONO, fontSize: '11px', color: BONE_MID, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '14px' }}>Our network only</div>
         <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em', marginTop: '10px', lineHeight: 1.6 }}>The Team OS is the internal hub for verified members of The Collectiv4.</div>
-        <button onClick={() => navigate('/discover')} style={{ marginTop: '18px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>← Discover</button>
+        <button onClick={() => navigate('/community')} style={{ marginTop: '18px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>← Community</button>
       </div>
     </Shell>
   )

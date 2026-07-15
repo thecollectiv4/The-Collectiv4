@@ -1,30 +1,35 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { CalendarDays, Users, MessagesSquare, User, LayoutGrid, Plus } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
+import Mark from './Mark'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
    the conversations (D2), PROFILE = your world. Discover dissolved into
-   the first two. Each tab carries its icon AND its word (Leyes 5, 13). */
+   the first two. Each tab carries its icon AND its word (Leyes 5, 13).
+   v5 (D3): the icons are the house's OWN star-chart marks — ✕ the night,
+   ○ the circle of people, ◇ the signal, ● the self, △ the instrument —
+   an icon system that is brand, not stock pictograms (Ley 14). */
 const baseTabs = [
-  { to: '/',          icon: CalendarDays,   label: 'Event',     requiresAuth: false },
-  { to: '/community', icon: Users,          label: 'Community', requiresAuth: false },
-  { to: '/messages',  icon: MessagesSquare, label: 'Messages',  requiresAuth: true },
-  { to: '/profile',   icon: User,           label: 'Profile',   requiresAuth: true },
+  { to: '/',          mark: 'cross',   label: 'Event',     requiresAuth: false },
+  { to: '/community', mark: 'ring',    label: 'Community', requiresAuth: false },
+  { to: '/messages',  mark: 'diamond', label: 'Messages',  requiresAuth: true },
+  { to: '/profile',   mark: 'dot',     label: 'Profile',   requiresAuth: true },
 ]
 // Network members (verified/owner) get the internal OS as an extra tab.
-const osTab = { to: '/os', icon: LayoutGrid, label: 'OS', requiresAuth: true }
+const osTab = { to: '/os', mark: 'triangle', label: 'OS', requiresAuth: true }
 
 // Public routes never force the sign-in modal (Event + Community are
 // top-of-funnel — and a shared world link must open the world, not a wall:
 // /user/:id is the museum's public face, anon included; /e/:slug is any
-// event's public room).
-const PUBLIC_PATHS = ['/', '/community']
+// event's public room; /c4 is the HOUSE world — the flagship front door
+// when the domain points here, so a wall there would defeat its purpose).
+const PUBLIC_PATHS = ['/', '/community', '/c4']
 const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/') || path.startsWith('/e/')
 
 // Routes with a real desktop composition — the 430px phone frame releases
@@ -32,7 +37,7 @@ const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/
 // the wide header until it earns its own desktop architecture. /e/:slug
 // renders the same EventShow spread the old landing wore.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(community|messages|profile|user|e)(\/|$)/.test(path)
+  path === '/' || /^\/(community|messages|profile|user|e|c4)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()
@@ -142,13 +147,16 @@ export default function Layout() {
               return (
                 <button key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
                   background:'transparent', border:'none', cursor:'pointer',
-                  padding:'8px 14px', display:'inline-flex', alignItems:'center', gap:'7px',
+                  padding:'8px 14px', display:'inline-flex', alignItems:'center', gap:'8px',
                   fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em', textTransform:'uppercase',
                   color: active ? '#F2EEE6' : '#83838F', transition:'color .2s',
                 }}
                   onMouseOver={e => { if (!active) e.currentTarget.style.color = '#C7C4BC' }}
                   onMouseOut={e => { if (!active) e.currentTarget.style.color = '#83838F' }}>
-                  <span aria-hidden style={{ width:'4px', height:'4px', borderRadius:'50%', background:'#E8E9ED', boxShadow:'0 0 6px rgba(232,233,237,.6)', opacity: active ? 1 : 0, transition:'opacity .2s' }} />
+                  {/* the house mark — lit when this room is where you stand */}
+                  <Mark type={tab.mark} size={10} filled={active}
+                    color={active ? '#E8E9ED' : '#5B5952'}
+                    style={{ flexShrink:0, filter: active ? 'drop-shadow(0 0 5px rgba(232,233,237,.7))' : 'none', transition:'filter .2s' }} />
                   {tab.label}
                 </button>
               )
@@ -189,7 +197,7 @@ export default function Layout() {
         position:'fixed', bottom:0, left:0, right:0,
         background:'rgba(10,10,13,.97)',
         borderTop:'1px solid rgba(242,238,230,.08)',
-        display:'flex', justifyContent:'space-around', alignItems:'center',
+        display:'flex', justifyContent:'center', alignItems:'center',
         zIndex:9999,
         paddingTop:'10px',
         paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
@@ -197,27 +205,36 @@ export default function Layout() {
         {(() => {
           const renderTab = (tab) => {
             const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
-            const Icon = tab.icon
             return (
               <div key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
-                display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
-                padding:'4px 10px', cursor:'pointer', minWidth:0,
+                display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
+                padding:'4px 6px', cursor:'pointer', minWidth:0,
                 color: active ? '#F2EEE6' : '#83838F',
                 WebkitTapHighlightColor:'transparent',
                 transition:'color 0.2s',
               }}>
-                <Icon size={22} strokeWidth={active ? 2.2 : 1.4} />
-                <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase' }}>{tab.label}</span>
+                {/* the house mark, lit where you stand (D3, Ley 14) */}
+                <Mark type={tab.mark} size={19} filled={active}
+                  color={active ? '#F2EEE6' : '#83838F'}
+                  style={{ filter: active ? 'drop-shadow(0 0 7px rgba(242,238,230,.55))' : 'none', transition:'filter .2s' }} />
+                {/* nowrap+ellipsis: five tabs (OS members) on a narrow phone
+                    must squeeze, never collide (review catch) */}
+                <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tab.label}</span>
               </div>
             )
           }
+          // CREATE sits at the GEOMETRIC center of the bar (D5): both sides
+          // take equal flex space, so a fifth tab (OS) can never shove the
+          // + off-axis the way a per-item split did.
           const mid = Math.ceil(tabs.length / 2)
           return (
             <>
-              {tabs.slice(0, mid).map(renderTab)}
+              <div style={{ flex:1, minWidth:0, display:'flex', justifyContent:'space-evenly', alignItems:'center' }}>
+                {tabs.slice(0, mid).map(renderTab)}
+              </div>
               <button className="pressable" onClick={openCreate} aria-label="Create"
-                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px',
-                  background:'transparent', border:'none', padding:'0 10px', cursor:'pointer',
+                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', flexShrink:0,
+                  background:'transparent', border:'none', padding:'0 6px', cursor:'pointer',
                   WebkitTapHighlightColor:'transparent' }}>
                 <span style={{ width:'44px', height:'44px', borderRadius:'50%', marginTop:'-16px',
                   background:'#F2EEE6', color:'#0A0A0D', display:'flex', alignItems:'center', justifyContent:'center',
@@ -226,7 +243,9 @@ export default function Layout() {
                 </span>
                 <span style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#C7C4BC' }}>Create</span>
               </button>
-              {tabs.slice(mid).map(renderTab)}
+              <div style={{ flex:1, minWidth:0, display:'flex', justifyContent:'space-evenly', alignItems:'center' }}>
+                {tabs.slice(mid).map(renderTab)}
+              </div>
             </>
           )
         })()}
