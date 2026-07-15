@@ -218,6 +218,17 @@ export default function Events() {
                 <ArrowUpRight size={15} style={{ color: SILVER, flexShrink: 0 }} />
               </button>
             )}
+
+            {/* the close — the page ends on purpose, not by running out
+                (panel catch, Ley 4): the house signature anchors the void */}
+            <div style={{ marginTop: wide ? '54px' : '38px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
+              <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                Pato Durán & Diego Villaseñor · Founders
+              </span>
+              <span style={{ fontFamily: 'Bebas Neue', fontSize: '15px', color: SILVER }}>4</span>
+              <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />
+            </div>
           </>
         )}
       </div>

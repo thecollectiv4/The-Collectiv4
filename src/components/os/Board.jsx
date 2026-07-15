@@ -196,7 +196,10 @@ function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssi
   const due = task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
   const done = colKey === 'done'
   const meta = [due && `◇ ${due}`, task.type].filter(Boolean).join(' · ')
-  const ownerName = owner?.full_name || owner?.username || ''
+  // first name on the chip — the due date and tag are operative information
+  // and must never lose to a long full name (panel catch, Ley 5)
+  const ownerFull = owner?.full_name || owner?.username || ''
+  const ownerName = ownerFull.split(' ')[0]
   return (
     <div className={`os-card os-reveal-fast${dragging ? ' os-dragging' : ''}`} tabIndex={0}
       draggable
@@ -218,7 +221,7 @@ function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssi
           <div style={{ fontFamily: FONT_SANS, fontSize: '13.5px', color: done ? BONE_MID : BONE, lineHeight: 1.4, ...(done ? { textDecoration: 'line-through', textDecorationColor: 'rgba(199,201,209,.4)' } : {}) }}>{task.title}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px', minWidth: 0 }}>
             {/* ASSIGN — the owner chip is a control, not a caption */}
-            <button ref={chipRef} data-testid="board-assign" onClick={onAssignToggle} title="Assign"
+            <button ref={chipRef} data-testid="board-assign" onClick={onAssignToggle} title={ownerFull ? `Assign · ${ownerFull}` : 'Assign'}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', minWidth: 0 }}>
               <Face p={owner} size={16} />
               <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: ownerName ? BONE_MID : FAINT, letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>

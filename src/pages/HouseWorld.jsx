@@ -200,7 +200,9 @@ export default function HouseWorld() {
                             <span className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
                             <BadgeCheck size={13} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 5px rgba(232,233,237,.5))' }} />
                           </div>
-                          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: lead ? `rgb(${meta.tint})` : BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {/* the craft is identity — it clamps to two lines,
+                              never dies mid-word (panel catch, Ley 5) */}
+                          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: lead ? `rgb(${meta.tint})` : BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>
                             {lead ? `${lead.name}${crafts.length > 1 ? ` +${crafts.length - 1}` : ''}` : (p.discipline || 'in the network')}
                           </div>
                         </div>
