@@ -5,7 +5,7 @@ import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, MessagesSquare } from 'lucide-react'
-import { socialReady, joinEventChat } from '@/lib/social'
+import { socialReady, joinEventChat, setAttendanceVisibility, VIS_TIERS, VIS_LABEL } from '@/lib/social'
 import { resolveLineupWorlds, normVibe, vibeMeta, experienceTemp } from '@/lib/match'
 
 /* The root landing: THE house event, from the single source of truth
@@ -30,6 +30,8 @@ export function EventShow({ live }) {
   const [checkingOut, setCheckingOut] = useState(false)
   const [ticketStatus, setTicketStatus] = useState(null) // 'success' | 'cancelled'
   const [guestsOpen, setGuestsOpen] = useState(false)    // the full guest list, inline
+  const [myVis, setMyVis] = useState(null)               // D5: who sees I'm going (default amigos, server-side)
+  const [visBusy, setVisBusy] = useState(false)
   const [chatReady, setChatReady] = useState(false)      // room chat live in the DB (0017)
   const [chatBusy, setChatBusy] = useState(false)
   const [chatErr, setChatErr] = useState('')
@@ -38,6 +40,18 @@ export function EventShow({ live }) {
 
   // the room chat door renders only when the layer is live (Ley 9)
   useEffect(() => { socialReady().then(setChatReady) }, [])
+
+  // D5: load MY saved attendance visibility so the control shows the truth,
+  // not a default. eap_self_read RLS admits only my own row.
+  useEffect(() => {
+    if (!user || !hasTicket || !event?.id) return
+    let alive = true
+    supabase.from('event_attendance_prefs').select('visibility')
+      .eq('event_id', event.id).eq('profile_id', user.id).maybeSingle()
+      .then(({ data }) => { if (alive && data?.visibility) setMyVis(data.visibility) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [user, hasTicket, event?.id])
 
   const enterRoomChat = async () => {
     if (chatBusy || !event) return
@@ -412,6 +426,24 @@ export function EventShow({ live }) {
             <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
           </div>
         )}
+        {/* D5: your call — who sees you're going. Default amigos; the wall
+            only shows a guest to those their tier admits (enforced server-side). */}
+        {hasTicket && user && (
+          <div style={{marginTop:'10px',padding:'12px 14px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px'}}>
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.14em',textTransform:'uppercase',marginBottom:'9px'}}>Who sees you're going</div>
+            <div style={{display:'flex',gap:'6px'}}>
+              {VIS_TIERS.map(t => {
+                const on = (myVis || 'friends') === t
+                return (
+                  <button key={t} disabled={visBusy} onClick={async()=>{ setVisBusy(true); try { const v = await setAttendanceVisibility(event.id, t); setMyVis(v || t) } catch(_) {} finally { setVisBusy(false) } }}
+                    style={{flex:1,borderRadius:'100px',padding:'8px 8px',cursor:visBusy?'default':'pointer',opacity:visBusy?0.6:1,border:`1px solid ${on?'rgba(199,201,209,.5)':'rgba(242,238,230,.14)'}`,background:on?'rgba(199,201,209,.1)':'transparent',color:on?'var(--cream)':'var(--cream-low)',fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.06em',textTransform:'uppercase'}}>
+                    {VIS_LABEL[t]}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* TICKET TIERS - expandable */}
         {ticketOpen && (
@@ -469,9 +501,9 @@ export function EventShow({ live }) {
             const world = lineupWorlds.get(i)
             const avatar = world && (/^https?:\/\//i.test((world.avatar_url||'').trim()) || (world.avatar_url||'').startsWith('data:image/')) ? world.avatar_url : ''
             return (
-            <div key={i} className="pressable" data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={()=>navigate(world ? '/user/'+world.id : '/artist/'+a.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:'pointer',transition:'all .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor=world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)';e.currentTarget.style.background='rgba(242,238,230,.04)'}}>
+            <div key={i} className={world ? 'pressable' : undefined} data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={world ? ()=>navigate('/user/'+world.id) : undefined}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:world?'pointer':'default',transition:'all .2s'}}
+              onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.22)';e.currentTarget.style.background='rgba(242,238,230,.04)'}):undefined}>
               <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(242,238,230,.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(242,238,230,.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
                 {avatar ? <img src={avatar} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : a.name[0]}
               </div>
@@ -487,7 +519,7 @@ export function EventShow({ live }) {
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
                 <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream)',background:'rgba(242,238,230,.08)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
-                <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
+                {world && <ChevronRight size={14} style={{color:'var(--cream-low)'}} />}
               </div>
             </div>
           )})}

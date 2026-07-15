@@ -12,7 +12,12 @@ import { supabase } from '@/api/supabase'
 
    resolveLineupWorlds: lineup names become LIVE DOORS to their worlds —
    but only when the person actually exists on the platform (matched by
-   handle or name). No match, no invented link (Ley 11).
+   handle, slug, or name). No match, no invented link (Ley 11). v7 (D1):
+   the entry's own `handle` (the IG @, e.g. 'patoduranc') is now the primary
+   key — it equals the username, where the display slug ('pato-duran') does
+   not. This is what makes PATO's real world open from the RBA lineup instead
+   of the dead /artist page. Purged worlds never resolve (profiles_public_read
+   RLS filters deleted_at, 0027 — no client filter needed).
    ========================================================================= */
 
 export const VIBES = {
@@ -61,8 +66,13 @@ export const foldText = (s) => (s || '')
 export async function resolveLineupWorlds(lineup = []) {
   const out = new Map()
   const entries = lineup
-    .map((a, i) => ({ i, name: (a?.name || '').trim(), slug: (a?.slug || '').trim().toLowerCase() }))
-    .filter((e) => e.name || e.slug)
+    .map((a, i) => ({
+      i,
+      name: (a?.name || '').trim(),
+      slug: (a?.slug || '').trim().toLowerCase(),
+      handle: (a?.handle || '').replace(/^@/, '').trim().toLowerCase(),
+    }))
+    .filter((e) => e.name || e.slug || e.handle)
   if (!entries.length) return out
   try {
     // one bounded query: candidate handles + candidate names (PostgREST
@@ -70,6 +80,7 @@ export async function resolveLineupWorlds(lineup = []) {
     const clean = (s) => /^[^,()"]*$/.test(s)
     const handles = new Set()
     entries.forEach((e) => {
+      if (e.handle && clean(e.handle)) handles.add(e.handle)   // the IG @ == the username (primary key)
       if (e.slug && clean(e.slug)) { handles.add(e.slug); handles.add(e.slug.replace(/-/g, '')) }
     })
     const names = entries.map((e) => e.name).filter((n) => n && clean(n))
@@ -87,11 +98,13 @@ export async function resolveLineupWorlds(lineup = []) {
       .limit(40)
     if (error || !data?.length) return out
     entries.forEach((e) => {
-      const hit = data.find((p) => {
-        const u = (p.username || '').toLowerCase()
-        if (e.slug && (u === e.slug || u === e.slug.replace(/-/g, ''))) return true
-        return e.name && foldText(p.full_name) === foldText(e.name)
-      })
+      // strict precedence handle > slug > name: the handle IS the username,
+      // so a precise handle match must never lose to a weaker name-fold match
+      // that happens to sort first in the unordered result.
+      const byHandle = e.handle ? data.find((p) => (p.username || '').toLowerCase() === e.handle) : null
+      const bySlug = !byHandle && e.slug ? data.find((p) => { const u = (p.username || '').toLowerCase(); return u === e.slug || u === e.slug.replace(/-/g, '') }) : null
+      const byName = !byHandle && !bySlug && e.name ? data.find((p) => foldText(p.full_name) === foldText(e.name)) : null
+      const hit = byHandle || bySlug || byName
       if (hit) out.set(e.i, hit)
     })
     return out

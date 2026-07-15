@@ -23,12 +23,20 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signUp = (email, password, name) => supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
+  // full_name carries the name to the eventual profile row (lazy-created on
+  // first /profile visit). first_name/last_name are stored too for future use.
+  const signUp = (email, password, name, extra = {}) =>
+    supabase.auth.signUp({ email, password, options: { data: { full_name: name, ...extra } } })
   const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password })
   const signOut = () => supabase.auth.signOut()
+  // D3: password reset — the member enters their email and gets a link back.
+  // redirectTo self-resolves across localhost / preview / prod; the link lands
+  // on /reset-password where updateUser sets the new password.
+  const resetPassword = (email) =>
+    supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` })
 
   return (
-    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signUp, signIn, signOut, resetPassword }}>
       {children}
     </AuthContext.Provider>
   )

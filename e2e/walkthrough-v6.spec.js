@@ -56,7 +56,9 @@ async function signUp(page, name) {
   const email = `c4-qa-${ts}@example.com`
   const password = `QaWorld!${ts}`
   await page.goto('/auth')
-  await page.getByPlaceholder('Your name').fill(name)
+  const [fn, ...rest] = name.trim().split(/\s+/)
+  await page.getByPlaceholder('First name').fill(fn || name)
+  await page.getByPlaceholder('Last name').fill(rest.join(' ') || 'QA')
   await page.getByPlaceholder('Email').fill(email)
   await page.getByPlaceholder('Password').fill(password)
   await page.getByRole('button', { name: 'Create Account' }).click()

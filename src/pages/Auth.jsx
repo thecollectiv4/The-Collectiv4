@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
+import { humanizeAuthError } from '@/lib/authErrors'
 import { ArrowLeft } from 'lucide-react'
 
 export default function Auth() {
   const [mode, setMode] = useState('signup')
-  const [name, setName] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
   const [loading, setLoading] = useState(false)
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, resetPassword } = useAuth()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   // Only ever honor a local, same-app return path (leading "/", no "//") — never an
@@ -20,15 +23,29 @@ export default function Auth() {
   const inp = { width:'100%', background:'var(--bg-card)', border:'1px solid var(--border-hi)', borderRadius:'10px', padding:'14px 16px', color:'var(--cream)', fontFamily:'DM Sans', fontSize:'14px', outline:'none' }
 
   const handle = async () => {
-    if (mode==='signup' && !name.trim()) { setError('Name is required'); return }
-    setLoading(true); setError('')
+    if (mode==='signup' && (!firstName.trim() || !lastName.trim())) { setError('Escribe tu nombre y apellido'); return }
+    setLoading(true); setError(''); setNotice('')
     try {
       // Everyone — members included — lands on the public app after signing in.
       // The OS is reached deliberately via its own server-gated entry (the OS tab
       // in the nav, shown only to network members), never by an auto-redirect.
       if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate(next) }
-      else { const {error}=await signUp(email,password,name.trim()); if(error)throw error; navigate(next) }
-    } catch(e){ setError(e.message) } finally{ setLoading(false) }
+      else {
+        const fullName = `${firstName.trim()} ${lastName.trim()}`
+        const {error}=await signUp(email,password,fullName,{first_name:firstName.trim(),last_name:lastName.trim()}); if(error)throw error; navigate(next)
+      }
+    } catch(e){ setError(humanizeAuthError(e)) } finally{ setLoading(false) }
+  }
+
+  // D3: forgot password — send the reset link. Anti-enumeration: the same
+  // confirmation shows whether or not an account exists at that email.
+  const forgot = async () => {
+    if (!email.trim()) { setError('Escribe tu correo para mandarte el enlace'); return }
+    setLoading(true); setError(''); setNotice('')
+    try {
+      await resetPassword(email.trim())
+      setNotice('Si hay una cuenta con ese correo, te mandamos un enlace para restablecer tu contraseña.')
+    } catch(e){ setError(humanizeAuthError(e)) } finally{ setLoading(false) }
   }
 
   return (
@@ -43,15 +60,20 @@ export default function Auth() {
       <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
         <div style={{display:'flex',background:'var(--bg-card)',borderRadius:'10px',padding:'3px',marginBottom:'8px'}}>
           {['signup','signin'].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError('')}} style={{flex:1,background:mode===m?'var(--cream)':'transparent',border:'none',borderRadius:'8px',padding:'10px',color:mode===m?'var(--bg)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'all .2s'}}>
+            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} style={{flex:1,background:mode===m?'var(--cream)':'transparent',border:'none',borderRadius:'8px',padding:'10px',color:mode===m?'var(--bg)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'all .2s'}}>
               {m==='signin'?'Sign In':'Sign Up'}
             </button>
           ))}
         </div>
-        {mode==='signup'&&<input type="text" placeholder="Your name" value={name} onChange={e=>setName(e.target.value)} style={inp}/>}
+        {mode==='signup'&&<div style={{display:'flex',gap:'8px'}}>
+          <input type="text" placeholder="First name" value={firstName} onChange={e=>setFirstName(e.target.value)} style={inp}/>
+          <input type="text" placeholder="Last name" value={lastName} onChange={e=>setLastName(e.target.value)} style={inp}/>
+        </div>}
         <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={inp}/>
         <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handle()} style={inp}/>
+        {mode==='signin'&&<button onClick={forgot} disabled={loading} style={{background:'none',border:'none',color:'var(--cream-low)',fontSize:'12px',fontFamily:'DM Sans',cursor:'pointer',textAlign:'right',padding:'2px',textDecoration:'underline',opacity:loading?.6:1}}>Forgot password?</button>}
         {error&&<div style={{fontSize:'12px',color:'var(--rust)',padding:'10px 14px',background:'var(--rust-dim)',borderRadius:'8px'}}>{error}</div>}
+        {notice&&<div style={{fontSize:'12px',color:'var(--cream-mid)',padding:'10px 14px',background:'rgba(242,238,230,.06)',border:'1px solid rgba(242,238,230,.12)',borderRadius:'8px',lineHeight:1.5}}>{notice}</div>}
         <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'16px',color:'var(--bg)',fontWeight:600,fontSize:'14px',cursor:'pointer',fontFamily:'DM Sans',opacity:loading?.6:1,marginTop:'4px',transition:'all .25s'}}
           onMouseOver={e=>{if(!loading){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,238,230,.15)'}}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>

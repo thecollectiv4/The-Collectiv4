@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, Lock, X, ArrowLeft, CalendarDays, MessagesSquare, Users, User, ListTodo, Clapperboard, Sparkles, UsersRound } from 'lucide-react'
+import { Loader2, Lock, X, ArrowLeft, CalendarDays, MessagesSquare, Users, User, ListTodo, Clapperboard, Sparkles, UsersRound, UserX, Activity } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
 import { useLiveEvent } from '@/lib/useLiveEvent'
@@ -12,6 +12,8 @@ import Brain from '@/components/os/Brain'
 import RoadmapStrip from '@/components/os/RoadmapStrip'
 import EventsAdmin from '@/components/os/Events'
 import Network from '@/components/os/Network'
+import Moderation from '@/components/os/Moderation'
+import Cohorts from '@/components/os/Cohorts'
 import { DropButton, DropsFeed } from '@/components/os/Drops'
 
 /* =========================================================================
@@ -41,6 +43,10 @@ const TABS = [
 // Founders only — appended to TABS when the server's my_os_identity() says
 // owner. Display-gating: the admin_* RPCs re-check is_owner() on every call.
 const NETWORK_TAB = { key: 'network', code: '05', label: 'Network', short: 'Network', mark: '△', icon: UsersRound, tint: '199,201,209' }
+// v7 — founders-only surfaces (same server gate as Network/DROPS): the bot
+// cleanup (D2) and the retention number (D4).
+const MODERATION_TAB = { key: 'moderation', code: '06', label: 'Moderation', short: 'Clean', mark: '✕', icon: UserX, tint: '199,201,209' }
+const COHORTS_TAB = { key: 'cohorts', code: '07', label: 'Retention', short: 'Retention', mark: '△', icon: Activity, tint: '232,233,237' }
 const HELLO_KEY = 'os_hello_v1'
 // Cross-nav out of the OS — same icon vocabulary as Layout.jsx's bottom nav.
 const CROSS_NAV = [
@@ -238,7 +244,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   // the Events pane must not keep reopening it
   const newEventOnce = useRef(startNewEvent)
   // the founder's desk appears only on the server's owner verdict
-  const tabs = isOwner ? [...TABS, NETWORK_TAB] : TABS
+  const tabs = isOwner ? [...TABS, NETWORK_TAB, MODERATION_TAB, COHORTS_TAB] : TABS
   const [hello, setHello] = useState(() => { try { return !localStorage.getItem(HELLO_KEY) } catch { return false } })
   const [dockOpen, setDockOpen] = useState(false)
   const dismissHello = () => { setHello(false); try { localStorage.setItem(HELLO_KEY, '1') } catch {} }
@@ -341,6 +347,8 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
         {tab === 'brain' && brainEl(false)}
         {tab === 'events' && <EventsAdmin isOwner={isOwner} startNew={newEventOnce.current} onConsumedNew={() => { newEventOnce.current = false }} />}
         {tab === 'network' && isOwner && <Network />}
+        {tab === 'moderation' && isOwner && <Moderation />}
+        {tab === 'cohorts' && isOwner && <Cohorts />}
       </div>
       {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
       {tab !== 'brain' && isOwner && <DropsFeed drops={drops} owners={owners} />}
