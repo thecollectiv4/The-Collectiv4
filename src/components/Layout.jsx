@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
+import { supabase } from '@/api/supabase'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
@@ -71,6 +72,15 @@ export default function Layout() {
     autoPrompted.current = true
     if (!user && !isPublicPath(location.pathname)) setShowAuth(true)
   }, [authLoading, user])
+
+  // D4 retention heartbeat: one honest ping per authed session (the RPC is
+  // idempotent — one row per profile per day; demo/purged never inflate it,
+  // enforced server-side). Pinned to auth.uid(); fires once when identity
+  // resolves, never for anon. Fire-and-forget — never blocks the UI.
+  useEffect(() => {
+    if (authLoading || !user) return
+    supabase.rpc('log_return', { p_surface: location.pathname.slice(0, 40) }).then(() => {}, () => {})
+  }, [authLoading, user]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
   const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs

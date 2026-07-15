@@ -108,15 +108,13 @@ export default function ExperienceDetail() {
               {exp.artists.map((a,i)=>{
                 const c = a.color || exp.accent
                 return (
-                <div key={i} onClick={()=>a.slug&&navigate('/artist/'+a.slug)} style={{padding:'16px',border:`1px solid ${c}20`,borderRadius:'12px',background:`${c}08`,cursor:a.slug?'pointer':'default',transition:'all .2s'}}
-                  onMouseOver={e=>{if(a.slug){e.currentTarget.style.borderColor=c+'50';e.currentTarget.style.transform='translateX(4px)';e.currentTarget.style.background=c+'12'}}} onMouseOut={e=>{if(a.slug){e.currentTarget.style.borderColor=c+'20';e.currentTarget.style.transform='translateX(0)';e.currentTarget.style.background=c+'08'}}}>
+                <div key={i} style={{padding:'16px',border:`1px solid ${c}20`,borderRadius:'12px',background:`${c}08`}}>{/* D1: a name is not a door unless a real world resolves — static cards stay dead text, never a /artist dead-end */}
                   <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'8px'}}>
                     <div style={{width:'36px',height:'36px',borderRadius:'50%',background:`${c}12`,border:`1px solid ${c}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'15px',color:c}}>{a.name[0]}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{a.name}</div>
                       <div style={{fontFamily:'DM Mono',fontSize:'9px',color:c,letterSpacing:'.04em',marginTop:'1px'}}>{a.role}</div>
                     </div>
-                    {a.slug && <ArrowLeft size={14} style={{color:c,transform:'rotate(180deg)',opacity:.5}} />}
                   </div>
                   <div style={{fontSize:'12px',color:'var(--cream-mid)',lineHeight:1.5}}>{a.desc}</div>
                 </div>

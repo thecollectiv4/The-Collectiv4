@@ -5,7 +5,7 @@ import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, MessagesSquare } from 'lucide-react'
-import { socialReady, joinEventChat } from '@/lib/social'
+import { socialReady, joinEventChat, setAttendanceVisibility, VIS_TIERS, VIS_LABEL } from '@/lib/social'
 import { resolveLineupWorlds, normVibe, vibeMeta, experienceTemp } from '@/lib/match'
 
 /* The root landing: THE house event, from the single source of truth
@@ -30,6 +30,8 @@ export function EventShow({ live }) {
   const [checkingOut, setCheckingOut] = useState(false)
   const [ticketStatus, setTicketStatus] = useState(null) // 'success' | 'cancelled'
   const [guestsOpen, setGuestsOpen] = useState(false)    // the full guest list, inline
+  const [myVis, setMyVis] = useState(null)               // D5: who sees I'm going (default amigos, server-side)
+  const [visBusy, setVisBusy] = useState(false)
   const [chatReady, setChatReady] = useState(false)      // room chat live in the DB (0017)
   const [chatBusy, setChatBusy] = useState(false)
   const [chatErr, setChatErr] = useState('')
@@ -38,6 +40,18 @@ export function EventShow({ live }) {
 
   // the room chat door renders only when the layer is live (Ley 9)
   useEffect(() => { socialReady().then(setChatReady) }, [])
+
+  // D5: load MY saved attendance visibility so the control shows the truth,
+  // not a default. eap_self_read RLS admits only my own row.
+  useEffect(() => {
+    if (!user || !hasTicket || !event?.id) return
+    let alive = true
+    supabase.from('event_attendance_prefs').select('visibility')
+      .eq('event_id', event.id).eq('profile_id', user.id).maybeSingle()
+      .then(({ data }) => { if (alive && data?.visibility) setMyVis(data.visibility) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [user, hasTicket, event?.id])
 
   const enterRoomChat = async () => {
     if (chatBusy || !event) return
@@ -359,14 +373,19 @@ export function EventShow({ live }) {
             contenido). Real faces from the same PII-safe RPC; tapping opens
             the FULL list right here — each guest is a door to their world.
             When nobody's confirmed yet, just the honest count (Ley 11). */}
-        {attendees.length > 0 ? (
+        {attendeeCount > 0 ? (
           <>
-            <div className="pressable" onClick={()=>setGuestsOpen(v=>!v)} role="button" tabIndex={0} aria-expanded={guestsOpen} aria-label="See who's going"
-              onKeyDown={(ev)=>{ if (ev.key==='Enter'||ev.key===' ') { ev.preventDefault(); setGuestsOpen(v=>!v) } }}
-              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
-              onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
-              <div style={{display:'flex',alignItems:'center'}}>
+            {/* The COUNT is the room's data — public + honest (all real buyers,
+                demo/purged excluded by code, 0032). The NAMES respect each
+                attendee's tier: avatars + SEE WHO show only when the viewer is
+                allowed to see someone. A stranger still sees "N CONFIRMED · the
+                room is forming" (the sales signal), never the private guest list. */}
+            <div className={attendees.length > 0 ? 'pressable' : undefined} onClick={attendees.length > 0 ? (()=>setGuestsOpen(v=>!v)) : undefined} role={attendees.length > 0 ? 'button' : undefined} tabIndex={attendees.length > 0 ? 0 : undefined} aria-expanded={attendees.length > 0 ? guestsOpen : undefined} aria-label="Who's confirmed"
+              onKeyDown={attendees.length > 0 ? ((ev)=>{ if (ev.key==='Enter'||ev.key===' ') { ev.preventDefault(); setGuestsOpen(v=>!v) } }) : undefined}
+              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:attendees.length > 0 ? 'pointer' : 'default',transition:'border-color .2s, background .2s'}}
+              onMouseOver={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}) : undefined}
+              onMouseOut={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}) : undefined}>
+              {attendees.length > 0 && (<div style={{display:'flex',alignItems:'center'}}>
                 {attendees.slice(0, wide ? 9 : 6).map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
                   return (
@@ -377,14 +396,14 @@ export function EventShow({ live }) {
                     </div>
                   )
                 })}
-              </div>
+              </div>)}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.12em'}}>{attendeeCount} CONFIRMED</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>the room is forming</div>
               </div>
-              <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>{guestsOpen ? 'CLOSE ×' : 'SEE WHO →'}</span>
+              {attendees.length > 0 && <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>{guestsOpen ? 'CLOSE ×' : 'SEE WHO →'}</span>}
             </div>
-            {guestsOpen && (
+            {guestsOpen && attendees.length > 0 && (
               <div style={{marginTop:'8px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',padding:'6px 16px',animation:'fadeUp .3s ease'}}>
                 {attendees.map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
@@ -410,6 +429,24 @@ export function EventShow({ live }) {
         ) : (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'8px',marginTop:'12px',fontSize:'11px',color:'var(--cream-low)'}}>
             <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
+          </div>
+        )}
+        {/* D5: your call — who sees you're going. Default amigos; the wall
+            only shows a guest to those their tier admits (enforced server-side). */}
+        {hasTicket && user && (
+          <div style={{marginTop:'10px',padding:'12px 14px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px'}}>
+            <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.14em',textTransform:'uppercase',marginBottom:'9px'}}>Who sees you're going</div>
+            <div style={{display:'flex',gap:'6px'}}>
+              {VIS_TIERS.map(t => {
+                const on = (myVis || 'friends') === t
+                return (
+                  <button key={t} disabled={visBusy} onClick={async()=>{ setVisBusy(true); try { const v = await setAttendanceVisibility(event.id, t); setMyVis(v || t) } catch(_) {} finally { setVisBusy(false) } }}
+                    style={{flex:1,borderRadius:'100px',padding:'8px 8px',cursor:visBusy?'default':'pointer',opacity:visBusy?0.6:1,border:`1px solid ${on?'rgba(199,201,209,.5)':'rgba(242,238,230,.14)'}`,background:on?'rgba(199,201,209,.1)':'transparent',color:on?'var(--cream)':'var(--cream-low)',fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.06em',textTransform:'uppercase'}}>
+                    {VIS_LABEL[t]}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -469,9 +506,9 @@ export function EventShow({ live }) {
             const world = lineupWorlds.get(i)
             const avatar = world && (/^https?:\/\//i.test((world.avatar_url||'').trim()) || (world.avatar_url||'').startsWith('data:image/')) ? world.avatar_url : ''
             return (
-            <div key={i} className="pressable" data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={()=>navigate(world ? '/user/'+world.id : '/artist/'+a.slug)}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:'pointer',transition:'all .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor=world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)';e.currentTarget.style.background='rgba(242,238,230,.04)'}}>
+            <div key={i} className={world ? 'pressable' : undefined} data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={world ? ()=>navigate('/user/'+world.id) : undefined}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:world?'pointer':'default',transition:'all .2s'}}
+              onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.22)';e.currentTarget.style.background='rgba(242,238,230,.04)'}):undefined}>
               <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(242,238,230,.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(242,238,230,.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
                 {avatar ? <img src={avatar} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : a.name[0]}
               </div>
@@ -487,7 +524,7 @@ export function EventShow({ live }) {
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
                 <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream)',background:'rgba(242,238,230,.08)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
-                <ChevronRight size={14} style={{color:'var(--cream-low)'}} />
+                {world && <ChevronRight size={14} style={{color:'var(--cream-low)'}} />}
               </div>
             </div>
           )})}

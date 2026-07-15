@@ -329,6 +329,10 @@ const ENVELOPE_HUMAN = {
   not_invited: "you're not on this plan.",
   not_yours: 'only the person who made the plan can cancel it.',
   creator_cancels: 'the plan is yours — cancel it instead of leaving.',
+  not_signed_in: 'sign in first.',
+  bad_visibility: 'pick public, friends, or close friends.',
+  not_creator: 'only the person who made the plan can change who sees it.',
+  no_event: "that event isn't reachable.",
 }
 
 /* one door-call: rpc → envelope checked → data (throws human sentences) */
@@ -394,6 +398,40 @@ export async function respondFriend(otherId, accept) {
 
 export async function removeFriend(otherId) {
   await callDoor('remove_friend', { p_other: otherId })
+}
+
+/* --------------------- visibility tiers (D5) ---------------------
+   PÚBLICO / AMIGOS / CLOSE FRIENDS — the Instagram Close Friends model, on
+   event attendance AND plans. Default amigos. Close friends is a curated
+   subset WITHIN your amigos (add_close_friend gates on are_friends). */
+export const VIS_TIERS = ['public', 'friends', 'close']
+export const VIS_LABEL = { public: 'Public', friends: 'Friends', close: 'Close friends' }
+
+/* who can see you're going to this event → the chosen tier ('public'|'friends'|'close') */
+export async function setAttendanceVisibility(eventId, tier) {
+  const data = await callDoor('set_attendance_visibility', { p_event: eventId, p_tier: tier })
+  return data?.visibility
+}
+
+/* creator opens/closes who can discover a plan → the chosen tier */
+export async function setPlanVisibility(planId, tier) {
+  const data = await callDoor('set_plan_visibility', { p_plan: planId, p_tier: tier })
+  return data?.visibility
+}
+
+/* curate the close-friends list (must already be your amigo) */
+export async function addCloseFriend(otherId) {
+  await callDoor('add_close_friend', { p_other: otherId })
+}
+export async function removeCloseFriend(otherId) {
+  await callDoor('remove_close_friend', { p_other: otherId })
+}
+export async function myCloseFriends() {
+  try {
+    const { data, error } = await supabase.rpc('my_close_friends')
+    if (error || !data?.ok) return []
+    return data.close || []
+  } catch { return [] }
 }
 
 /* ------------------------------ crews ------------------------------ */

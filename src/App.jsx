@@ -9,9 +9,10 @@ import Community from '@/pages/Community'
 import Messages from '@/pages/Messages'
 import Profile from '@/pages/Profile'
 import Auth from '@/pages/Auth'
+import ResetPassword from '@/pages/ResetPassword'
 import ExperienceDetail from '@/pages/ExperienceDetail'
 import PastEditions from '@/pages/PastEditions'
-import ArtistProfile from '@/pages/ArtistProfile'
+import ArtistRedirect from '@/pages/ArtistRedirect'
 import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
 import ClaimWorld from '@/pages/ClaimWorld'
@@ -47,6 +48,7 @@ export default function App() {
         <ScrollToTop />
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />{/* D3: recovery link lands here (top-level, before the catch-all) */}
           <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
           {/* Legal — standalone cosmos pages, anon-reachable, linked from checkout + footer */}
           <Route path="/terms" element={<Terms />} />
@@ -65,7 +67,7 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
-            <Route path="artist/:slug" element={<ArtistProfile />} />
+            <Route path="artist/:slug" element={<ArtistRedirect />} />{/* D1: /artist is dead — resolve to the real world or clean gone */}
             <Route path="test-purchase" element={<TestPurchase />} />
             <Route path="user/:id" element={<UserProfile />} />
             <Route path="network" element={<NetworkAdmin />} />{/* owner-only: grant verified */}
