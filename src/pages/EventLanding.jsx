@@ -373,14 +373,19 @@ export function EventShow({ live }) {
             contenido). Real faces from the same PII-safe RPC; tapping opens
             the FULL list right here — each guest is a door to their world.
             When nobody's confirmed yet, just the honest count (Ley 11). */}
-        {attendees.length > 0 ? (
+        {attendeeCount > 0 ? (
           <>
-            <div className="pressable" onClick={()=>setGuestsOpen(v=>!v)} role="button" tabIndex={0} aria-expanded={guestsOpen} aria-label="See who's going"
-              onKeyDown={(ev)=>{ if (ev.key==='Enter'||ev.key===' ') { ev.preventDefault(); setGuestsOpen(v=>!v) } }}
-              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:'pointer',transition:'border-color .2s, background .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}}
-              onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}}>
-              <div style={{display:'flex',alignItems:'center'}}>
+            {/* The COUNT is the room's data — public + honest (all real buyers,
+                demo/purged excluded by code, 0032). The NAMES respect each
+                attendee's tier: avatars + SEE WHO show only when the viewer is
+                allowed to see someone. A stranger still sees "N CONFIRMED · the
+                room is forming" (the sales signal), never the private guest list. */}
+            <div className={attendees.length > 0 ? 'pressable' : undefined} onClick={attendees.length > 0 ? (()=>setGuestsOpen(v=>!v)) : undefined} role={attendees.length > 0 ? 'button' : undefined} tabIndex={attendees.length > 0 ? 0 : undefined} aria-expanded={attendees.length > 0 ? guestsOpen : undefined} aria-label="Who's confirmed"
+              onKeyDown={attendees.length > 0 ? ((ev)=>{ if (ev.key==='Enter'||ev.key===' ') { ev.preventDefault(); setGuestsOpen(v=>!v) } }) : undefined}
+              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:attendees.length > 0 ? 'pointer' : 'default',transition:'border-color .2s, background .2s'}}
+              onMouseOver={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}) : undefined}
+              onMouseOut={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}) : undefined}>
+              {attendees.length > 0 && (<div style={{display:'flex',alignItems:'center'}}>
                 {attendees.slice(0, wide ? 9 : 6).map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
                   return (
@@ -391,14 +396,14 @@ export function EventShow({ live }) {
                     </div>
                   )
                 })}
-              </div>
+              </div>)}
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.12em'}}>{attendeeCount} CONFIRMED</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',marginTop:'2px'}}>the room is forming</div>
               </div>
-              <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>{guestsOpen ? 'CLOSE ×' : 'SEE WHO →'}</span>
+              {attendees.length > 0 && <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>{guestsOpen ? 'CLOSE ×' : 'SEE WHO →'}</span>}
             </div>
-            {guestsOpen && (
+            {guestsOpen && attendees.length > 0 && (
               <div style={{marginTop:'8px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',padding:'6px 16px',animation:'fadeUp .3s ease'}}>
                 {attendees.map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''

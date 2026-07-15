@@ -104,6 +104,17 @@ test('S · one identity — /artist resolves to the real world or clean-gone, ne
   await expect(page.getByText("THIS WORLD ISN'T HERE")).toBeVisible({ timeout: 15000 })
 })
 
+test('U · the count is public + honest, the wall stays tiered', async ({ request }) => {
+  const RBA = '3e1669b2-7302-4061-8eac-55d7c82e7ea1' // has 1 real buyer (friends-default)
+  const count = (await rpc(request, 'confirmed_count', { p_event: RBA })).body
+  const wall = await (await rest(request, '/rest/v1/rpc/confirmed_attendees', { method: 'POST', data: { p_event: RBA } })).json()
+  const names = Array.isArray(wall) ? wall : []
+  expect(typeof count, 'count is a public aggregate').toBe('number')
+  expect(count, 'a real buyer exists → the count is public and > 0').toBeGreaterThan(0)
+  expect(names.length, 'the tiered wall never exceeds the honest count').toBeLessThanOrEqual(count)
+  expect(names.length, 'anon is nobody\'s friend → no names leak from a friends-default attendee').toBe(0)
+})
+
 test('T · retire the v7 QA account', async ({ page }) => {
   const file = path.join(SHOTS, 'accounts-v7.jsonl')
   if (!fs.existsSync(file)) return
