@@ -441,6 +441,100 @@ test('J · desktop 1440 — the wide composition holds', async ({ browser }) => 
   await ctx.close()
 })
 
+test('L · the taste wall — public speaks on the world, quiet stays counted', async ({ browser }) => {
+  const st = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
+
+  // anon on Nova's world: the ONE public taste hangs on the wall;
+  // the private ones exist nowhere in the page
+  const ctxA = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const pageA = await ctxA.newPage()
+  await pageA.goto(`/user/${st.b.uid}`)
+  const wall = pageA.getByTestId('movement-taste')
+  await expect(wall).toBeVisible({ timeout: 20000 })
+  await expect(wall).toContainText('House')
+  const body = await pageA.locator('body').innerText()
+  expect(body.toLowerCase()).not.toContain('interstellar')
+  expect(body.toLowerCase()).not.toContain('fucho sábados')
+  await pageA.waitForTimeout(600)
+  await shot(pageA, 'v6-19-taste-wall-public')
+  await ctxA.close()
+
+  // the owner sees the same wall plus the honest count of the quiet
+  const ctxB = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const pageB = await ctxB.newPage()
+  await signIn(pageB, st.b)
+  await pageB.goto('/profile')
+  const ownWall = pageB.getByTestId('movement-taste')
+  await expect(ownWall).toBeVisible({ timeout: 20000 })
+  await expect(ownWall).toContainText('2 quiet')
+  await shot(pageB, 'v6-20-taste-wall-owner')
+  await ctxB.close()
+})
+
+test('M · your rooms — the owner composes the world, off is off', async ({ browser, request }) => {
+  const st = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await ctx.newPage()
+  await signIn(page, st.b)
+  await page.goto('/profile')
+  // startEdit silently ignores clicks until crafts are in hand (the v5
+  // anti-wipe lock) — hero-crafts appearing IS the craftsReady signal
+  await expect(page.getByTestId('hero-crafts')).toBeVisible({ timeout: 20000 })
+  await page.getByText('or curate it all at once').click()
+  const editor = page.getByTestId('rooms-editor')
+  await expect(editor).toBeVisible({ timeout: 20000 })
+  await page.waitForTimeout(400)
+  await shot(page, 'v6-21-rooms-editor')
+
+  // turn the taste room off — the wall comes down, even for the owner
+  await page.getByTestId('room-toggle-taste').click()
+  await page.getByRole('button', { name: 'Save your world' }).click()
+  // edit mode CLOSING is the save's success signal — only then is the
+  // recomposed view (and the DB row) a fact to assert against
+  await expect(editor).toHaveCount(0, { timeout: 20000 })
+  await expect(page.getByTestId('hero-crafts')).toBeVisible({ timeout: 20000 })
+  await expect(page.getByTestId('movement-taste')).toHaveCount(0)
+  await shot(page, 'v6-22-room-off')
+
+  // the composition is a ROW: world_modules persisted without 'taste'
+  const token = await tokenOf(page)
+  const prof = await rest(request, `/rest/v1/profiles?id=eq.${st.b.uid}&select=world_modules`, { token }).then(r => r.json())
+  expect(Array.isArray(prof[0].world_modules)).toBeTruthy()
+  expect(prof[0].world_modules).not.toContain('taste')
+
+  // and back on — the wall returns with its public piece
+  await page.getByText('or curate it all at once').click()
+  await expect(page.getByTestId('rooms-editor')).toBeVisible({ timeout: 20000 })
+  await page.getByTestId('room-toggle-taste').click()
+  await page.getByRole('button', { name: 'Save your world' }).click()
+  await expect(page.getByTestId('rooms-editor')).toHaveCount(0, { timeout: 20000 })
+  await expect(page.getByTestId('movement-taste')).toBeVisible({ timeout: 20000 })
+  await expect(page.getByTestId('movement-taste')).toContainText('House')
+  await ctx.close()
+})
+
+test('N · the amigo button — a hand extended from a world', async ({ browser, request }) => {
+  const st = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const page = await ctx.newPage()
+  await signIn(page, st.e)
+  await page.goto(`/user/${st.b.uid}`)
+  const btn = page.getByTestId('friend-btn')
+  await expect(btn).toBeVisible({ timeout: 20000 })
+  await expect(btn).toContainText(/amigo/i)
+  await btn.click()
+  await expect(btn).toContainText(/pending/i, { timeout: 15000 })
+  await page.waitForTimeout(500)
+  await shot(page, 'v6-23-amigo-pending')
+
+  // server truth: the reach is a row only the pair can see
+  const token = await tokenOf(page)
+  const rows = await rest(request, `/rest/v1/friendships?requester_id=eq.${st.e.uid}&addressee_id=eq.${st.b.uid}&select=status`, { token }).then(r => r.json())
+  expect(rows.length).toBe(1)
+  expect(rows[0].status).toBe('pending')
+  await ctx.close()
+})
+
 test('K · the QA accounts retire; the universe closes clean', async ({ browser, request }) => {
   const st = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'))
   const accounts = fs.readFileSync(path.join(SHOTS, 'accounts.jsonl'), 'utf8')
