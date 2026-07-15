@@ -8,7 +8,7 @@ import AuthResolving from '@/components/AuthResolving'
 import Mark from '@/components/Mark'
 import {
   socialReady, circleReady, fetchInbox, fetchThread, sendMessage, markThreadRead, subscribeThread, msgTime,
-  myCircle, respondFriend, createCrew, leaveCrew, createPlan, rsvpPlan, cancelPlan, myPlans,
+  myCircle, respondFriend, createCrew, leaveCrew, createPlan, rsvpPlan, cancelPlan, leavePlan, myPlans,
 } from '@/lib/social'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X } from 'lucide-react'
 
@@ -197,6 +197,16 @@ function Inbox({ me, wide }) {
     } catch (e) { setSegErr(e?.message || "couldn't cancel — try again") }
   }
 
+  // an invitee walks out — leave_plan (0026), then the card disappears (refetch)
+  const doLeave = async (planId) => {
+    if (!window.confirm('¿salir del plan?')) return
+    setSegErr('')
+    try {
+      await leavePlan(planId)
+      refreshPlans()
+    } catch (e) { setSegErr(e?.message || "couldn't leave — try again") }
+  }
+
   // plan rooms live under PLANS (behind each card's door) — SIGNALS and
   // CREWS stay clean of kind='plan' threads
   const signals = threads.filter((t) => t.kind === 'dm' || t.kind === 'event')
@@ -289,7 +299,7 @@ function Inbox({ me, wide }) {
                   <div style={{ marginTop: '16px' }}>
                     {plans.map((p) => (
                       <PlanCard key={p.id} p={p} meId={me.id}
-                        onRsvp={doRsvp} onCancel={doCancel}
+                        onRsvp={doRsvp} onCancel={doCancel} onLeave={doLeave}
                         onRoom={() => p.thread_id && navigate('/messages/' + p.thread_id)} />
                     ))}
                   </div>
@@ -481,7 +491,7 @@ function withMyRsvp(p, meId, status) {
   }
 }
 
-function PlanCard({ p, meId, onRsvp, onCancel, onRoom }) {
+function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onRoom }) {
   const canceled = p.status === 'canceled'
   const mine = p.creator?.id === meId
   const creatorName = p.creator?.name || (p.creator?.username ? '@' + p.creator.username : null)
@@ -524,6 +534,13 @@ function PlanCard({ p, meId, onRsvp, onCancel, onRoom }) {
           <button className="pressable" onClick={() => onCancel(p.id)}
             style={{ background: 'transparent', border: 'none', minHeight: '40px', padding: '10px 2px', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
             cancel the plan
+          </button>
+        )}
+        {/* an invitee walks — consent, not a trap; the creator cancels instead */}
+        {!mine && !canceled && (
+          <button className="pressable" data-testid={`plan-leave-${p.id}`} onClick={() => onLeave(p.id)}
+            style={{ background: 'transparent', border: 'none', minHeight: '40px', padding: '10px 2px', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            leave this plan
           </button>
         )}
       </div>

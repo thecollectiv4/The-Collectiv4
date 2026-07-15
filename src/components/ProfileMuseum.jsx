@@ -165,6 +165,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   // YOUR ROOMS (v6, 0024): every module key with its switch, in the owner's
   // order — ON rows persist as world_modules, the kind-default saves as null
   const [roomRows, setRoomRows] = useState([])
+  // did the owner actually compose rooms THIS session? A seeded-but-untouched
+  // editor must never freeze a stale order — nor wipe a real one (see save()).
+  const [roomsTouched, setRoomsTouched] = useState(false)
   const [galUploading, setGalUploading] = useState(0)
   const [galErr, setGalErr] = useState(null)
   // storage bookkeeping: what THIS edit session uploaded (delete on cancel)
@@ -220,6 +223,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       ...roomsOn.map((k) => ({ key: k, on: true })),
       ...Object.keys(MODULES).filter((k) => !roomsOn.includes(k)).map((k) => ({ key: k, on: false })),
     ])
+    setRoomsTouched(false)
     sessionUploads.current = new Set()
     removedSaved.current = new Set()
     setGalErr(null)
@@ -274,15 +278,29 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
     setGalRows(r => r.filter((_, j) => j !== i))
   }
 
-  // YOUR ROOMS: switch, reorder, and the ghost door back to the craft's order
-  const toggleRoom = (k) => setRoomRows(rs => rs.map(r => r.key === k ? { ...r, on: !r.on } : r))
-  const moveRoom = (k, dir) => setRoomRows(rs => {
-    const i = rs.findIndex(r => r.key === k)
-    const j = i + dir
-    if (i < 0 || j < 0 || j >= rs.length) return rs
-    const c = [...rs]; const [x] = c.splice(i, 1); c.splice(j, 0, x); return c
-  })
+  // YOUR ROOMS: switch, reorder, and the ghost door back to the craft's order.
+  // Every real edit marks the session TOUCHED (roomsTouched → save writes an
+  // explicit composition; untouched stays on truth). Side effects live OUTSIDE
+  // the state updater — StrictMode double-invokes updaters in dev.
+  const toggleRoom = (k) => {
+    const row = roomRows.find(r => r.key === k)
+    // Ley 11 — a world needs at least one open room; block the last one OFF.
+    // Turning a room ON is always allowed.
+    if (row?.on && roomRows.filter(r => r.on).length <= 1) return
+    setRoomsTouched(true)
+    setRoomRows(rs => rs.map(r => r.key === k ? { ...r, on: !r.on } : r))
+  }
+  const moveRoom = (k, dir) => {
+    setRoomsTouched(true)
+    setRoomRows(rs => {
+      const i = rs.findIndex(r => r.key === k)
+      const j = i + dir
+      if (i < 0 || j < 0 || j >= rs.length) return rs
+      const c = [...rs]; const [x] = c.splice(i, 1); c.splice(j, 0, x); return c
+    })
+  }
   const resetRooms = () => {
+    setRoomsTouched(true)
     const withLead = editCrafts.map((c) => ({ ...c, isPrimary: c.id === editPrimary }))
     setRoomRows(defaultModulesFor(kindOfCrafts(withLead) || craftKindOf(data?.discipline)).map((k) => ({ key: k, on: true })))
   }
@@ -326,13 +344,28 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       gallery: galRows.map(r => ({ path: r.path || null, url: r.url, caption: (r.caption || '').trim() })),
     }
     // YOUR ROOMS → world_modules (0024): the ON keys in the owner's order.
-    // A config that equals the kind-default exactly saves NULL — the world
-    // stays on defaults, so future default improvements still reach it.
     const enabledRooms = roomRows.filter(r => r.on).map(r => r.key)
-    const roomsDefault = defaultModulesFor(kindOfCrafts(craftsWithLead) || craftKindOf(patch.discipline))
-    patch.world_modules = (enabledRooms.length === roomsDefault.length && enabledRooms.every((k, i) => k === roomsDefault[i]))
-      ? null
-      : enabledRooms
+    if (!roomsTouched) {
+      // the owner never composed rooms this session — preserve the stored
+      // truth (null = defaults, or a real prior composition). NOT the seeded
+      // order: it was built from the OLD craft's default and would freeze a
+      // stale array when the craft was edited this session (review catch).
+      patch.world_modules = normModules(data?.world_modules)
+    } else {
+      // Ley 11 — a world needs >=1 open room; the editor blocks the last-off,
+      // so this is a defensive stop, never the silent revert-to-full-default.
+      if (enabledRooms.length === 0) {
+        setSaveErr('a world needs at least one open room')
+        setSaving(false)
+        return
+      }
+      // a composition that equals the edited craft's kind-default exactly saves
+      // NULL — the world stays on defaults, so future default improvements reach it.
+      const roomsDefault = defaultModulesFor(kindOfCrafts(craftsWithLead) || craftKindOf(patch.discipline))
+      patch.world_modules = (enabledRooms.length === roomsDefault.length && enabledRooms.every((k, i) => k === roomsDefault[i]))
+        ? null
+        : enabledRooms
+    }
     try {
       // crafts commit first (atomic, 0020) — if they refuse, nothing else moves
       if (editCrafts.length || crafts.length) {
@@ -1033,15 +1066,20 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
           <Section title="YOUR ROOMS" hint="The movements of your world — turn a room on or off, and set the order they open in. Off is off: a closed room shows to no one.">
             <div data-testid="rooms-editor" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {roomRows.map((r, i) => (
+              {roomRows.map((r, i) => {
+                // Ley 11 — a world needs >=1 open room: the last ON toggle can't
+                // turn itself off (turning others on is always free)
+                const lastOn = r.on && roomRows.filter((x) => x.on).length === 1
+                return (
                 <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: '11px', border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '10px 12px', background: CARD, opacity: r.on ? 1 : .55, transition: 'opacity .2s' }}>
                   <Mark type={MARKS[r.key]} size={10} color={SILVER} style={{ flexShrink: 0, opacity: .85 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.18em', textTransform: 'uppercase', color: r.on ? BONE : BONE_LOW }}>{MODULES[r.key].label}</div>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.06em', color: BONE_LOW, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{MODULES[r.key].kicker}</div>
                   </div>
-                  <button className="pressable" data-testid={`room-toggle-${r.key}`} onClick={() => toggleRoom(r.key)} aria-pressed={r.on}
-                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(199,201,209,.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(199,201,209,.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: 'pointer', flexShrink: 0, transition: 'all .2s' }}>
+                  <button className="pressable" data-testid={`room-toggle-${r.key}`} onClick={() => toggleRoom(r.key)} aria-pressed={r.on} aria-disabled={lastOn}
+                    title={lastOn ? 'a world needs at least one open room' : undefined}
+                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(199,201,209,.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(199,201,209,.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: lastOn ? 'default' : 'pointer', flexShrink: 0, transition: 'all .2s' }}>
                     {r.on ? 'ON' : 'OFF'}
                   </button>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
@@ -1049,7 +1087,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     <button className="pressable" data-testid={`room-down-${r.key}`} onClick={() => moveRoom(r.key, 1)} disabled={i === roomRows.length - 1} aria-label="Move down" style={{ ...galBtn, opacity: i === roomRows.length - 1 ? .3 : 1 }}><ArrowDown size={12} /></button>
                   </div>
                 </div>
-              ))}
+                )
+              })}
+              {/* the honest floor — surfaced only when one room is holding the world open */}
+              {roomRows.filter((r) => r.on).length === 1 && (
+                <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', padding: '0 2px' }}>
+                  a world needs at least one open room
+                </div>
+              )}
               <button className="pressable" onClick={resetRooms}
                 style={{ background: 'transparent', border: 'none', padding: '2px 0', alignSelf: 'flex-start', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }}>
                 reset to my craft's order

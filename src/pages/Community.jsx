@@ -279,7 +279,10 @@ export default function Community() {
       </div>
 
       {/* the auth door — local, exactly the Layout nav pattern */}
-      {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)} />}
+      {/* this door only ever opens from the For You entry — a first-touch
+          invitation, never "welcome back" to someone who's never been here */}
+      {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)}
+        signinTitle="SEE WHO SHARES YOUR TASTE" signinKicker="sign in to meet your people" />}
 
       {/* page-wide film grain */}
       <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 20 }} />

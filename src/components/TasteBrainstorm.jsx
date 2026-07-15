@@ -224,8 +224,10 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
         </div>
       )}
 
-      {/* the privacy line — always visible, the product promise in one breath */}
-      <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', lineHeight: 1.6, marginTop: value.length >= 3 ? '6px' : '10px' }}>
+      {/* the privacy line — always visible, the product promise in one breath.
+          wraps freely and never runs under the sheet's right edge at 390px
+          (overflowWrap + a hair of right room: no clip, whatever the font). */}
+      <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', lineHeight: 1.6, marginTop: value.length >= 3 ? '6px' : '10px', overflowWrap: 'break-word', paddingRight: '2px' }}>
         quiet by default — only you see these. the universe matches in silence.
         {shownN > 0 && <span style={{ color: BONE_MID }}> ● shown in your world · ○ quiet</span>}
       </div>

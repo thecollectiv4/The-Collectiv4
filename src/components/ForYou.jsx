@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useWide } from '@/lib/useIsDesktop'
+import { useWide, useVeryWide } from '@/lib/useIsDesktop'
 import { fetchForYou, reasonsFor, eventReasonsFor } from '@/lib/forYou'
 import { socialReady, follow, unfollow } from '@/lib/social'
 import { categoryMeta } from '@/lib/crafts'
@@ -40,6 +40,7 @@ const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month
 export default function ForYou({ user, onBrainstorm, onEveryone }) {
   const navigate = useNavigate()
   const wide = useWide()
+  const veryWide = useVeryWide()   // >=1440px: the masonry breathes into a third column
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState(null)
   // follow chips only render when the social layer can keep their promise
@@ -97,7 +98,11 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
   const empty = !loading && (!data || (!data.people?.length && !data.events?.length))
 
   return (
-    <div style={{ maxWidth: wide ? '620px' : undefined, margin: wide ? '0 auto' : undefined }}>
+    /* wide (>=1024): fill the composed frame Community already sets (1440-capped,
+       padded) — NOT an iPhone column centered in a desert (Ley 12 + Ley 4). The
+       header and the masonry share the same left edge. Mobile stays a single
+       vertical column, untouched. */
+    <div>
 
       {/* the kicker — where the matching stands, city lowercase-proud */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', marginTop: '18px' }}>
@@ -131,14 +136,27 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
           </button>
         </div>
       ) : (
-        <div data-testid="foryou-feed" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '14px' }}>
-          {feed.map((item) => item.kind === 'person' ? (
-            <PersonCard key={item.p.id} p={item.p} flip={item.flip}
-              following={isFollowing(item.p)} canFollow={socialOn} err={followErr[item.p.id]}
-              onOpen={() => navigate('/user/' + item.p.id)} onFollow={() => toggleFollow(item.p)} />
-          ) : (
-            <EventCard key={item.ev.slug} ev={item.ev} onOpen={() => navigate('/e/' + item.ev.slug)} />
-          ))}
+        /* wide: a real editorial spread — a CSS masonry (2 cols, 3 at >=1440)
+           the person + event cards flow through, filling the composed width.
+           Mobile: the single vertical column, byte-for-byte as before. */
+        <div data-testid="foryou-feed" style={wide
+          ? { columnCount: veryWide ? 3 : 2, columnGap: '16px', marginTop: '14px' }
+          : { display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '14px' }}>
+          {feed.map((item) => {
+            const key = item.kind === 'person' ? item.p.id : item.ev.slug
+            const card = item.kind === 'person' ? (
+              <PersonCard key={key} p={item.p} flip={item.flip}
+                following={isFollowing(item.p)} canFollow={socialOn} err={followErr[item.p.id]}
+                onOpen={() => navigate('/user/' + item.p.id)} onFollow={() => toggleFollow(item.p)} />
+            ) : (
+              <EventCard key={key} ev={item.ev} onOpen={() => navigate('/e/' + item.ev.slug)} />
+            )
+            // the masonry column-break wrapper only exists on wide; mobile
+            // returns the bare card so its vertical rhythm never changes
+            return wide
+              ? <div key={key} style={{ breakInside: 'avoid', WebkitColumnBreakInside: 'avoid', marginBottom: '16px' }}>{card}</div>
+              : card
+          })}
         </div>
       )}
     </div>

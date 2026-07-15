@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { supabase } from '@/api/supabase'
 import { X } from 'lucide-react'
 
-export default function AuthModal({ onClose }) {
+// signinTitle / signinKicker override the sign-in greeting for a first-touch
+// context (e.g. the For You door): a first-time visitor must never be greeted
+// with "WELCOME BACK". Signup copy is unchanged. Defaults keep every other call.
+export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signinKicker = 'Sign in to continue' }) {
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -42,10 +45,10 @@ export default function AuthModal({ onClose }) {
         </button>
 
         <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',textAlign:'center',marginBottom:'4px'}}>
-          {mode==='signin'?'WELCOME BACK':'JOIN THE COMMUNITY'}
+          {mode==='signin'?signinTitle:'JOIN THE COMMUNITY'}
         </div>
         <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',textAlign:'center',letterSpacing:'.06em',marginBottom:'24px'}}>
-          {mode==='signin'?'Sign in to continue':'Create your account'}
+          {mode==='signin'?signinKicker:'Create your account'}
         </div>
 
         {/* Toggle */}

@@ -328,6 +328,7 @@ const ENVELOPE_HUMAN = {
   not_member: "you're not in this room.",
   not_invited: "you're not on this plan.",
   not_yours: 'only the person who made the plan can cancel it.',
+  creator_cancels: 'the plan is yours — cancel it instead of leaving.',
 }
 
 /* one door-call: rpc → envelope checked → data (throws human sentences) */
@@ -452,6 +453,12 @@ export async function invitePlan(planId, otherIds = []) {
 /* creator only; the room survives the cancellation */
 export async function cancelPlan(planId) {
   await callDoor('cancel_plan', { p_plan: planId })
+}
+
+/* an invitee walks (0026): removes the caller from the plan. The creator
+   can't leave — they cancel instead ({ok:false,error:'creator_cancels'}). */
+export async function leavePlan(planId) {
+  await callDoor('leave_plan', { p_plan: planId })
 }
 
 /* every plan I'm part of, fully resolved (roster, counts, my_status,
