@@ -1,15 +1,22 @@
 import { useState, useEffect, useRef } from 'react'
-import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus } from 'lucide-react'
-import { BOARD_COLUMNS, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, HAIR, HAIR_HI, PANEL, CARD_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { ChevronLeft, ChevronRight, Pencil, Trash2, Plus, Check, RotateCcw } from 'lucide-react'
+import { BOARD_COLUMNS, VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, HAIR, HAIR_HI, PANEL, CARD_HI, FONT_MONO, FONT_SANS, safeImg } from '@/lib/cosmos'
 import { useIsDesktop, useBoardGrid } from '@/lib/useIsDesktop'
 import { Modal, Field, Input, Select, Btn } from './ui'
 
-/* Board — the deck's catalog language on a working surface. Four numbered
-   lanes ("◇ 01 IDEAS ——"); §E instrument rows; drag a card between lanes
-   (arrows remain as the fallback), quick-add inline (the N key opens it),
-   everything optimistic. Three width modes: >=1100px the four lanes fit as a
-   grid; 768–1100px they become a horizontal snap-scroll row (full-width
-   columns, never squashed); <768px keeps the phone swipe lanes. */
+/* Board — the deck's catalog language on a WORKING surface (v8 adición B).
+   Pato's drop: "el board está super messy… ¿está apto para operar, para
+   mandarle a Brandon?" Two answers in one pass:
+
+   LEGIBLE — lanes never squash below ~300px: the grid measures itself and
+   drops columns instead of strangling text one word per line. >=768px a
+   horizontal snap row when only one lane fits; <768px the phone swipe lanes.
+
+   OPERABLE — the first real work gestures, without inventing a Jira:
+     · SHIP (✓) on every card — one tap moves it to Done. Reopen from Done.
+     · ASSIGN — the owner chip on every card opens the team; a person's
+       name lands on the card (owner select in the editor too).
+   The OS is where the team WORKS, not where it looks at work. */
 
 const EMPTY_LINE = {
   ideas: 'no ideas parked yet',
@@ -17,15 +24,36 @@ const EMPTY_LINE = {
   in_motion: 'nothing moving yet',
   done: 'nothing shipped yet',
 }
+const LANE_MIN = 300   // px — below this, text breaks one word per line (the bug)
 
 export default function Board({ tasks, profileId, owners, onCreate, onUpdate, onMoveTo, onDelete }) {
   const desktop = useIsDesktop()   // >=768 — instrument shell
-  const grid = useBoardGrid()      // >=1100 — four lanes fit side by side
+  const grid = useBoardGrid()      // >=1100 — lanes may fit side by side
   const [mineOnly, setMineOnly] = useState(false)
   const [editing, setEditing] = useState(null)     // { mode, task }
   const [quickCol, setQuickCol] = useState(null)   // column key with quick-add open
   const [dragOver, setDragOver] = useState(null)   // column key under the dragged card
+  const [assignFor, setAssignFor] = useState(null) // task id with the assign menu open
   const dragId = useRef(null)
+
+  // the grid measures itself: columns = how many REAL lanes fit (Ley 4 —
+  // el espacio se compone; never four strangled strips)
+  const laneWrap = useRef(null)
+  const [cols, setCols] = useState(4)
+  useEffect(() => {
+    if (!grid || !laneWrap.current) return undefined
+    const el = laneWrap.current
+    const measure = () => setCols(Math.min(BOARD_COLUMNS.length, Math.max(1, Math.floor(el.clientWidth / LANE_MIN))))
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [grid])
+
+  // the team the board can hand work to — real members with a face
+  const members = Object.values(owners || {})
+    .filter(p => p && (p.full_name || p.username))
+    .sort((a, b) => (a.full_name || a.username || '').localeCompare(b.full_name || b.username || ''))
 
   // N opens quick-add in Ideas — unless the member is already typing somewhere.
   useEffect(() => {
@@ -64,21 +92,21 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
         </div>
       </div>
 
-      {/* lanes — grid / snap row / phone swipe (see header comment) */}
-      <div className={desktop && !grid ? 'os-board-snap' : undefined}
-        style={grid
-          ? { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: '18px', alignItems: 'start' }
+      {/* lanes — measured grid / snap row / phone swipe (see header comment) */}
+      <div ref={laneWrap} className={desktop && (!grid || cols === 1) ? 'os-board-snap' : undefined}
+        style={grid && cols > 1
+          ? { display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: '18px', alignItems: 'start' }
           : desktop
             ? { display: 'flex', gap: '14px', overflowX: 'auto', alignItems: 'flex-start', paddingBottom: '10px' }
             : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
         {BOARD_COLUMNS.map((col, ci) => {
           const items = byCol(col.key)
           return (
-            <section key={col.key} className={`os-reveal${dragOver === col.key ? ' os-lane-over' : ''}`}
+            <section key={col.key} data-testid={`board-lane-${col.key}`} className={`os-reveal${dragOver === col.key ? ' os-lane-over' : ''}`}
               onDragOver={(e) => { e.preventDefault(); if (dragOver !== col.key) setDragOver(col.key) }}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null) }}
               onDrop={(e) => { e.preventDefault(); dropOn(col.key) }}
-              style={{ ...(grid ? { minWidth: 0 } : desktop ? { flex: '0 0 300px', minWidth: '280px' } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 70}ms`, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
+              style={{ ...(grid && cols > 1 ? { minWidth: 0 } : desktop ? { flex: `0 0 ${LANE_MIN}px`, minWidth: `${LANE_MIN - 20}px` } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 70}ms`, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
               {/* lane kicker — deck eyebrow with catalog number */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '11px', borderBottom: `1px solid ${HAIR_HI}` }}>
                 <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, padding: '2px 7px', borderRadius: '3px', letterSpacing: '.16em' }}>{String(ci + 1).padStart(2, '0')}</span>
@@ -99,9 +127,15 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
                 {items.map((t, i) => (
                   <TaskRow key={t.id} task={t} owner={owners[t.owner_profile_id]} colKey={col.key} last={i === items.length - 1}
                     delay={ci * 70 + i * 35}
+                    members={members}
+                    assignOpen={assignFor === t.id}
+                    onAssignToggle={() => setAssignFor(cur => cur === t.id ? null : t.id)}
+                    onAssign={(pid) => { setAssignFor(null); if (pid !== t.owner_profile_id) onUpdate(t.id, { owner_profile_id: pid }) }}
                     onDragStart={() => { dragId.current = t.id }}
                     onDragEnd={() => { dragId.current = null; setDragOver(null) }}
                     onEdit={() => setEditing({ mode: 'edit', task: t })}
+                    onShip={() => onMoveTo(t, 'done')}
+                    onReopen={() => onMoveTo(t, 'this_week')}
                     onArrow={(dir) => {
                       const ni = Math.max(0, Math.min(BOARD_COLUMNS.length - 1, ci + dir))
                       if (ni !== ci) onMoveTo(t, BOARD_COLUMNS[ni].key)
@@ -118,7 +152,7 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
       </div>
 
       {editing && (
-        <TaskEditor entry={editing} onClose={() => setEditing(null)}
+        <TaskEditor entry={editing} members={members} onClose={() => setEditing(null)}
           onSave={(fields) => { onUpdate(editing.task.id, fields); setEditing(null) }} />
       )}
     </div>
@@ -141,23 +175,59 @@ function QuickAdd({ onSave, onCancel }) {
   )
 }
 
-function TaskRow({ task, owner, colKey, last, delay, onDragStart, onDragEnd, onEdit, onArrow, onDelete }) {
+/* one face, tiny — the assign control and the menu rows share it */
+function Face({ p, size = 18 }) {
+  const name = p?.full_name || p?.username || '?'
+  const avatar = safeImg(p?.avatar_url)
+  return (
+    <span aria-hidden style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+      {avatar
+        ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: `${Math.round(size * 0.55)}px`, color: BONE, lineHeight: 1 }}>{name[0].toUpperCase()}</span>}
+    </span>
+  )
+}
+
+function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssignToggle, onAssign, onDragStart, onDragEnd, onEdit, onShip, onReopen, onArrow, onDelete }) {
   const [dragging, setDragging] = useState(false)
   const idx = BOARD_COLUMNS.findIndex(c => c.key === colKey)
   const due = task.due_date ? new Date(task.due_date + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
   const done = colKey === 'done'
-  const meta = [due && `◇ ${due}`, task.type, owner?.full_name || owner?.username || 'unassigned'].filter(Boolean).join(' · ')
+  const meta = [due && `◇ ${due}`, task.type].filter(Boolean).join(' · ')
+  const ownerName = owner?.full_name || owner?.username || ''
   return (
     <div className={`os-card os-reveal-fast${dragging ? ' os-dragging' : ''}`} tabIndex={0}
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); setDragging(true) }}
       onDragEnd={() => { setDragging(false); onDragEnd() }}
-      style={{ padding: '10px 4px 9px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms`, cursor: 'grab', borderRadius: '6px' }}>
+      style={{ position: 'relative', padding: '11px 4px 10px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms`, cursor: 'grab', borderRadius: '6px',
+        // sibling cards' reveal animations hold their own stacking contexts —
+        // the open menu must lift THIS card above them or it bleeds through
+        ...(assignOpen ? { zIndex: 40 } : {}) }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+        {/* SHIP / REOPEN — the one-tap gesture that makes the board a tool:
+            a card closes (or comes back) without opening anything */}
+        <button data-testid={done ? 'board-reopen' : 'board-ship'}
+          onClick={done ? onReopen : onShip}
+          aria-label={done ? 'Reopen' : 'Ship it'} title={done ? 'Reopen' : 'Ship it'}
+          style={{ marginTop: '1px', width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', border: `1px solid ${done ? SILVER : HAIR_HI}`, background: done ? 'rgba(199,201,209,.14)' : 'transparent', color: done ? STAR : BONE_LOW, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'border-color .15s, background .15s, color .15s' }}
+          onMouseOver={(e) => { if (!done) { e.currentTarget.style.borderColor = SILVER; e.currentTarget.style.color = STAR } }}
+          onMouseOut={(e) => { if (!done) { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_LOW } }}>
+          {done ? <RotateCcw size={9} /> : <Check size={11} />}
+        </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: FONT_SANS, fontSize: '13px', color: done ? BONE_MID : BONE, lineHeight: 1.35 }}>{task.title}</div>
-          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.07em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {done ? `✕ shipped · ${meta}` : meta}
+          <div style={{ fontFamily: FONT_SANS, fontSize: '13.5px', color: done ? BONE_MID : BONE, lineHeight: 1.4, ...(done ? { textDecoration: 'line-through', textDecorationColor: 'rgba(199,201,209,.4)' } : {}) }}>{task.title}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px', minWidth: 0 }}>
+            {/* ASSIGN — the owner chip is a control, not a caption */}
+            <button data-testid="board-assign" onClick={onAssignToggle} title="Assign"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', minWidth: 0 }}>
+              <Face p={owner} size={16} />
+              <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: ownerName ? BONE_MID : FAINT, letterSpacing: '.05em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>
+                {ownerName || 'assign'}
+              </span>
+            </button>
+            {meta && <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.07em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{done ? `✕ shipped · ${meta}` : meta}</span>}
+            {done && !meta && <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.07em', textTransform: 'uppercase' }}>✕ shipped</span>}
           </div>
         </div>
         <div className="os-actions" style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, marginTop: '-1px' }}>
@@ -167,6 +237,38 @@ function TaskRow({ task, owner, colKey, last, delay, onDragStart, onDragEnd, onE
           <IconBtn onClick={() => { if (confirm(`Delete "${task.title}"?`)) onDelete(task) }} label="Delete" text="Del"><Trash2 size={11} /></IconBtn>
         </div>
       </div>
+
+      {/* the team, one tap away — real faces, unassign honest */}
+      {assignOpen && (
+        <>
+          <div onClick={onAssignToggle} style={{ position: 'fixed', inset: 0, zIndex: 30 }} />
+          <div data-testid="board-owner-menu" role="menu" style={{ position: 'absolute', left: '26px', top: 'calc(100% - 6px)', zIndex: 31, minWidth: '210px', maxHeight: '240px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)' }}>
+            {members.map(m => {
+              const name = m.full_name || m.username
+              const mine = m.id === task.owner_profile_id
+              return (
+                <button key={m.id} role="menuitem" onClick={() => onAssign(m.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: mine ? 'rgba(199,201,209,.1)' : 'transparent', border: 'none', borderRadius: '8px', padding: '7px 9px', cursor: 'pointer' }}
+                  onMouseOver={(e) => { if (!mine) e.currentTarget.style.background = 'rgba(242,238,230,.05)' }}
+                  onMouseOut={(e) => { if (!mine) e.currentTarget.style.background = 'transparent' }}>
+                  <Face p={m} size={20} />
+                  <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                  {mine && <Check size={12} style={{ color: STAR, flexShrink: 0 }} />}
+                </button>
+              )
+            })}
+            {task.owner_profile_id && (
+              <button role="menuitem" onClick={() => onAssign(null)}
+                style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderRadius: '0 0 8px 8px', padding: '8px 9px', cursor: 'pointer', color: BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>
+                unassign
+              </button>
+            )}
+            {members.length === 0 && (
+              <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT, padding: '10px', letterSpacing: '.08em' }}>no members loaded</div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -182,14 +284,15 @@ function IconBtn({ children, onClick, disabled, label, text }) {
   )
 }
 
-function TaskEditor({ entry, onClose, onSave }) {
+function TaskEditor({ entry, members, onClose, onSave }) {
   const t = entry.task || {}
   const [title, setTitle] = useState(t.title || '')
   const [type, setType] = useState(t.type || '')
   const [due, setDue] = useState(t.due_date || '')
   const [col, setCol] = useState(t.board_column || 'ideas')
+  const [ownerId, setOwnerId] = useState(t.owner_profile_id || '')
   const valid = title.trim().length > 0
-  const save = () => { if (valid) onSave({ title: title.trim(), type: type.trim() || null, due_date: due || null, board_column: col }) }
+  const save = () => { if (valid) onSave({ title: title.trim(), type: type.trim() || null, due_date: due || null, board_column: col, owner_profile_id: ownerId || null }) }
 
   return (
     <Modal title="Edit task" onClose={onClose} onEnter={save}
@@ -199,6 +302,10 @@ function TaskEditor({ entry, onClose, onSave }) {
       </>}>
       <Field label="Title"><Input value={title} onChange={e => setTitle(e.target.value)} placeholder="What needs to happen…" autoFocus /></Field>
       <Field label="Type"><Input value={type} onChange={e => setType(e.target.value)} placeholder="venue · content · marketing · ops" /></Field>
+      <Field label="Owner">
+        <Select value={ownerId} onChange={e => setOwnerId(e.target.value)}
+          options={[{ value: '', label: 'Unassigned' }, ...members.map(m => ({ value: m.id, label: m.full_name || m.username }))]} />
+      </Field>
       <div style={{ display: 'flex', gap: '12px' }}>
         <div style={{ flex: 1 }}><Field label="Due date"><Input type="date" value={due} onChange={e => setDue(e.target.value)} /></Field></div>
         <div style={{ flex: 1 }}><Field label="Column"><Select value={col} onChange={e => setCol(e.target.value)} options={BOARD_COLUMNS.map(c => ({ value: c.key, label: c.label }))} /></Field></div>

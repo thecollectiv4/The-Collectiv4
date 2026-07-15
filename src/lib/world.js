@@ -8,9 +8,9 @@
 import { supabase } from '@/api/supabase'
 
 const BONE = '#F2EEE6'
-// display chrome — the museum's own 176deg liquid gradient (kept identical
-// to the pre-split ProfileMuseum values so nothing shifts visually)
-export const CHROME_DISPLAY = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+// display chrome — the deck's exact liquid formula (v8 D3): one chrome
+// language across the whole universe, jewelry never paint
+export const CHROME_DISPLAY = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)'
 export const chromeDisplayText = { background: CHROME_DISPLAY, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 export function worldSafeUrl(raw) { const u = (raw || '').trim(); return /^https?:\/\//i.test(u) ? u : '' }

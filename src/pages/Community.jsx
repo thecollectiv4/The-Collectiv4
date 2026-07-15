@@ -2,9 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
-import { isNetworkMember } from '@/lib/osAccess'
+import { isOwnerFounder } from '@/lib/osAccess'
 import { useWide } from '@/lib/useIsDesktop'
-import Constellation from '@/components/Constellation'
 import ForYou from '@/components/ForYou'
 import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
@@ -34,7 +33,7 @@ const STAR = '#E8E9ED'
 const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
 const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
@@ -88,15 +87,21 @@ export default function Community() {
   const [showAuth, setShowAuth] = useState(false)
   const [craftsByProfile, setCraftsByProfile] = useState(new Map())
   const [craftsLoaded, setCraftsLoaded] = useState(false)
-  const [previewAvailable, setPreviewAvailable] = useState(import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true')
+  // v8 (adición C): the seed preview is no longer a per-page toggle — it's
+  // governed by the founders' SHOW SEED switch in /os (default OFF) and the
+  // 0033 RLS floor (verified ≠ seed access; owners only). This page only
+  // shows an honest pill when the seed is deliberately visible.
   const [showDemo, setShowDemo] = useState(false)
   const [followingSet, setFollowingSet] = useState(new Set())
 
-  // preview gate — the SAME server verdict that protects /os
   useEffect(() => {
     let alive = true
     if (!user) return
-    isNetworkMember().then((ok) => { if (alive && ok) setPreviewAvailable(true) })
+    let seedPref = import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true'
+    try { seedPref = seedPref || localStorage.getItem('c4_seed_visible') === '1' } catch { /* private mode */ }
+    if (!seedPref) return
+    // display-gating only — 0033 returns zero seed rows to non-owners anyway
+    isOwnerFounder().then((ok) => { if (alive && ok) setShowDemo(true) })
     return () => { alive = false }
   }, [user])
 
@@ -152,8 +157,8 @@ export default function Community() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
-      {/* the sky — cool silver: the instrument light of finding people (Ley 14) */}
-      <Constellation seed="the-creative-universe" quiet tint="199,201,209" />
+      {/* the sky is the app's shared atmosphere (v8 D1) — cool silver, medium
+          register: the constellation as suggestion while you find your people */}
       <div style={{ position: 'relative', zIndex: 2, padding: wide ? '34px clamp(40px, 5vw, 76px) 70px' : '22px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
 
         {/* header (Leyes 2, 7) */}
@@ -170,9 +175,13 @@ export default function Community() {
               {String(shown.length).padStart(2, '0')} {shown.length === 1 ? 'world' : 'worlds'}
             </div>
           )}
-          {previewAvailable && (
-            <button onClick={() => setShowDemo(v => !v)} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: showDemo ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${showDemo ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', color: showDemo ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}>
-              <Eye size={12} /> Preview · demo worlds {showDemo ? 'ON' : 'OFF'}
+          {/* honest state, not a control (v8 C): the seed shows only when the
+              founder flipped SHOW SEED in /os — this pill says so and walks
+              back to the switch (Ley 9: every click keeps its promise) */}
+          {showDemo && (
+            <button data-testid="seed-visible-pill" onClick={() => navigate('/os?tab=moderation')}
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}>
+              <Eye size={12} /> seed visible · manage in /os
             </button>
           )}
         </div>
@@ -284,8 +293,7 @@ export default function Community() {
       {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)}
         signinTitle="SEE WHO SHARES YOUR TASTE" signinKicker="sign in to meet your people" />}
 
-      {/* page-wide film grain */}
-      <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 20 }} />
+      {/* grain lives in the app-wide varnish now (v8: one grain, 5%, over all) */}
     </div>
   )
 }

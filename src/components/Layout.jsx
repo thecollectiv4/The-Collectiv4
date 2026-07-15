@@ -8,6 +8,7 @@ import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 import Mark from './Mark'
+import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
@@ -134,7 +135,16 @@ export default function Layout() {
   }, [wideFull])
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh', background:'var(--bg)' }}>
+    <CosmosProvider>
+    <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
+
+      {/* v8: THE atmosphere — one sky behind every room (D1). The page div
+          below carries zIndex 1, so content always reads above it. Density
+          and temperature resolve per route inside; a world can claim its
+          own sky via useCosmosOverride. The grain rides at the very top of
+          the stack — film over the whole lens, modals included. */}
+      <Atmosphere />
+      <Grain />
 
       {/* Wide header — the desktop navigation (fixed spans the viewport; the
           body frame doesn't constrain position:fixed). Bebas mark as the door
@@ -186,11 +196,9 @@ export default function Layout() {
       )}
 
       <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0, paddingBottom: (osDesktop || consumerWide) ? 0 : '100px' }}>
-        {/* position+zIndex are load-bearing: while the route transition
-            animates, this div is a stacking context that competes with the
-            body-portaled Constellation canvas (zIndex 0) in DOM order — and
-            the canvas comes later, so without an explicit z the ENTIRE page
-            paints behind the sky for the length of the animation. */}
+        {/* position+zIndex are load-bearing: the shared Atmosphere sits at
+            zIndex 0 — the page lifts itself one layer above the sky, and
+            the sky shows through wherever the page leaves void. */}
         <div key={location.pathname} className={transClass} style={{ position:'relative', zIndex:1 }}>
           <Outlet />
         </div>
@@ -266,5 +274,6 @@ export default function Layout() {
         <CreateCentral user={user} isMemberVerified={osState === 'granted'} onClose={()=>setCreateOpen(false)} />
       )}
     </div>
+    </CosmosProvider>
   )
 }

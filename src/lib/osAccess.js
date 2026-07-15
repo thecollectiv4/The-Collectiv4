@@ -39,3 +39,12 @@ export async function isNetworkMember() {
     return !error && !!data?.member
   } catch { return false }
 }
+
+/* Founder verdict (v8 C) — display-gating only: the seed's RLS floor (0033)
+   re-checks is_owner() server-side on every read regardless. */
+export async function isOwnerFounder() {
+  try {
+    const { data, error } = await supabase.rpc('my_os_identity')
+    return !error && !!data?.owner
+  } catch { return false }
+}

@@ -6,7 +6,7 @@ import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loa
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
-import Constellation from '@/components/Constellation'
+import { useCosmosOverride } from '@/components/Atmosphere'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
 import { useWide } from '@/lib/useIsDesktop'
@@ -43,7 +43,7 @@ const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
-const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 // --- only ever trust http(s) urls (no javascript:, data:, etc.) ---
@@ -131,6 +131,15 @@ const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-
 export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const navigate = useNavigate()                       // SETS rows walk into their event rooms
+  // v8 (D2): this world claims the app's shared sky — its own deterministic
+  // stars, tinted by the primary craft's temperature (Ley 14). Must run
+  // before any early return (hooks law); falls back to instrument silver.
+  const skyCraft = crafts.find((c) => c.isPrimary) || crafts[0]
+  useCosmosOverride(
+    profile?.id || profile?.username || 'a-world',
+    skyCraft ? categoryMeta(skyCraft.category).tint : '199,201,209',
+    'medium',
+  )
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
   const [building, setBuilding] = useState(false)     // the guided build (sheet over the live museum)
@@ -656,9 +665,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
   return (
     <div style={{ position: 'relative', zIndex: 1, background: 'transparent', minHeight: '100vh', overflowX: 'hidden' }}>
-      {/* the universe behind the world — this person's own sky, in the quiet
-          register: the work and the face are the content (Leyes 1, 6, 8) */}
-      <Constellation seed={seed} quiet />
+      {/* the sky behind this world is the app's shared atmosphere (v8 D1) —
+          claimed above with this person's seed + craft temperature */}
 
       {/* ============ MARQUEE — the world's welcome, once ============ */}
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
@@ -678,8 +686,6 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             </div>
           )}
 
-        {/* film grain over the cover */}
-        <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.06, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
         {/* scrim — GUARANTEED identity legibility over any art (Ley 3): the
             lower band always lands the name on near-void, busy cover or not */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)' }} />
@@ -1168,8 +1174,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         </div>
       )}
 
-      {/* ============ page-wide film grain (over everything, non-blocking) ============ */}
-      <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 40 }} />
+      {/* page grain now lives in the app-wide varnish (v8: one grain, 5%, over all) */}
 
       {/* ============ THE GUIDED BUILD — sheet below, world forming above ============ */}
       {/* portaled to <body>: fixed overlays must never inherit a transformed
@@ -1200,9 +1205,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {/* ============ PUBLISHED — a sober moment, then back to the world ============ */}
       {celebrating && createPortal(
         <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
-          {/* void + grain + type only — the person's starfield belongs to their
-              hero, not stretched into fullscreen blobs */}
-          <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
+          {/* void + type only — the app-wide grain varnishes this moment too;
+              the person's starfield belongs to their hero, not fullscreen blobs */}
           <div style={{ position: 'relative', textAlign: 'center', padding: '0 30px', maxWidth: '380px' }}>
             <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ published</div>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: '52px', lineHeight: .95, marginTop: '16px', ...chromeText }}>YOUR WORLD<br />IS LIVE</div>

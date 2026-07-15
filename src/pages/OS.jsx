@@ -55,7 +55,6 @@ const CROSS_NAV = [
   { to: '/messages', icon: MessagesSquare, label: 'Messages' },
   { to: '/profile', icon: User, label: 'Profile' },
 ]
-const GRAIN_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)' opacity='0.6'/%3E%3C/svg%3E")`
 
 export default function OS() {
   const navigate = useNavigate()
@@ -106,7 +105,9 @@ export default function OS() {
     let alive = true
     ;(async () => {
       setLoadErr('')
-      const { data: profs, error: pErr } = await supabase.from('profiles').select('id,full_name,username,avatar_url,verified')
+      // real people only (v8 C): the board assigns work to the TEAM — 112
+      // seed personas must never appear in an owner menu
+      const { data: profs, error: pErr } = await supabase.from('profiles').select('id,full_name,username,avatar_url,verified').eq('is_demo', false)
       const [tErr, cErr] = await Promise.all([loadTasks(), loadContent(), loadActivity()])
       if (!alive) return
       if (pErr || tErr || cErr) { setLoadErr((pErr || tErr || cErr).message || 'could not reach the board'); return }
@@ -446,7 +447,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
    shell (void + grain continuity, hairline border-left); a bottom sheet on
    the phone. Hosts the SAME <Brain> session as the tab. */
 function BrainDock({ mobile, onClose, children }) {
-  const grain = <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', opacity: .04, backgroundImage: GRAIN_BG }} />
+  // the app-wide grain (v8) varnishes the dock too — no local layer
   const header = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px', position: 'relative', zIndex: 1 }}>
       <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>◇ The Brain</div>
@@ -461,7 +462,6 @@ function BrainDock({ mobile, onClose, children }) {
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
         <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="The Brain"
           style={{ position: 'relative', width: '100%', height: '85dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', padding: '16px 16px calc(14px + env(safe-area-inset-bottom,0px))', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          {grain}
           {header}
           <div style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
         </div>
@@ -471,7 +471,6 @@ function BrainDock({ mobile, onClose, children }) {
   return (
     <aside role="dialog" aria-label="The Brain"
       style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 92vw)', zIndex: 10000, background: `radial-gradient(120% 60% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}`, borderLeft: `1px solid ${HAIR_HI}`, padding: '16px 18px 14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {grain}
       {header}
       <div style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
     </aside>
@@ -664,11 +663,12 @@ export function Signal({ activity, owners }) {
   )
 }
 
-/* Shell — void gradient + film grain (deck: fixed, ~4–5%). */
+/* Shell — transparent over the app's shared atmosphere (v8): /os rides the
+   QUIET register (grain and a far star — a work surface, not a stage). The
+   faint bone glow stays; the solid void is gone so the sky shows through. */
 export function Shell({ children, center }) {
   return (
-    <div className="os-root" style={{ position: 'relative', minHeight: '100vh', background: `radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}` }}>
-      <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', opacity: .04, zIndex: 0, backgroundImage: GRAIN_BG }} />
+    <div className="os-root" style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%)' }}>
       <div style={{ position: 'relative', zIndex: 1, ...(center ? { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' } : {}) }}>
         {children}
       </div>

@@ -10,19 +10,20 @@ import { socialReady, circleReady } from '@/lib/social'
 
 /* =========================================================================
    CREATE CENTRAL — the + at the center of the app (Ley 13; the Base44
-   steal, modernized under the Constitution — v4: the ecosystem's doors).
-   One door, and behind it only the intentions the member can act on
-   TODAY (Leyes 9/11 — zero coming-soon teasers, zero dead doors):
+   steal). v8 (adición A): the six flat intentions become THREE DOORS —
+   Pato's drop: "post your world y curate your world podrían estar más
+   juntos. Make a plan o just an event, más juntos. Offer a service y
+   sell, más juntos."
 
-     01 POST TO YOUR WORLD   — every member: image(s) + a line (0016)
-     02 MAKE A PLAN          — every member: real life with your amigos (0023)
-     03 SELL A PIECE         — every member: a piece with a real price
-     04 OFFER A SERVICE      — every member: your craft, bookable (0017)
-     05 HOST AN EVENT        — verified members only
-     06 CURATE YOUR WORLD    — every member: straight to the builder
+     ○ SHARE   — post to your world · curate your world
+     ◇ GATHER  — make a plan · host an event (verified)
+     △ OFFER   — offer a service · sell a piece
 
-   Each intention wears ITS icon in a lit plate — color with meaning,
-   alpha low, void and bone intact (Ley 14). Catalog rows stay the design.
+   The structural reason is not cleanliness: six flat buttons cannot
+   become twelve. Three doors hold four each without the member feeling
+   anything. Each door wears its house mark (Ley 14); honest absence
+   holds per door AND per intention (Leyes 9/11) — a door with nothing
+   live behind it simply isn't there.
    ========================================================================= */
 
 const VOID = '#0A0A0D'
@@ -37,7 +38,7 @@ const HAIR_HI = 'rgba(242,238,230,0.15)'
 const WARN = '#E5A0A0'
 const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
 const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
-const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const MAX_POST_IMAGES = 4
@@ -46,7 +47,8 @@ const MAX_LISTING_IMAGES = 4
 export default function CreateCentral({ user, isMemberVerified, onClose }) {
   const navigate = useNavigate()
   const wide = useWide()
-  const [stage, setStage] = useState('menu')   // menu | post | posted | sell | listed
+  // menu (the doors) | share | gather | offer (a door open) | post | posted | sell | listed
+  const [stage, setStage] = useState('menu')
   const [sellKind, setSellKind] = useState('piece')
   // the marketplace doors render only when the layer is LIVE in the DB —
   // pre-migration they're honestly absent, never a full composer that
@@ -85,10 +87,10 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
   return createPortal(
     <div onClick={() => { if (!busyRef.current) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeIn .25s ease' }}>
       <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" style={{ ...shell, outline: 'none' }}>
-        <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: .05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
 
-        {stage === 'menu' && (
-          <CreateMenu wide={wide} verified={isMemberVerified} marketReady={marketReady} planReady={planReady} onClose={onClose}
+        {(stage === 'menu' || stage === 'share' || stage === 'gather' || stage === 'offer') && (
+          <CreateDoors wide={wide} stage={stage} setStage={setStage}
+            verified={isMemberVerified} marketReady={marketReady} planReady={planReady} onClose={onClose}
             onPost={() => setStage('post')}
             onPlan={() => go('/messages?seg=plans&new=1')}
             onSell={(kind) => { setSellKind(kind); setStage('sell') }}
@@ -96,7 +98,7 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
             onCurate={() => go('/profile')} />
         )}
         {stage === 'post' && (
-          <PostComposer wide={wide} user={user} onBack={() => setStage('menu')} onClose={onClose}
+          <PostComposer wide={wide} user={user} onBack={() => setStage('share')} onClose={onClose}
             onBusy={(b) => { busyRef.current = b }}
             onPosted={() => { busyRef.current = false; setStage('posted') }} />
         )}
@@ -107,7 +109,7 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
             cta="SEE IT IN YOUR WORLD" onCta={() => go('/profile')} onClose={onClose} />
         )}
         {stage === 'sell' && (
-          <ListingComposer wide={wide} user={user} kind={sellKind} onBack={() => setStage('menu')} onClose={onClose}
+          <ListingComposer wide={wide} user={user} kind={sellKind} onBack={() => setStage('offer')} onClose={onClose}
             onBusy={(b) => { busyRef.current = b }}
             onListed={() => { busyRef.current = false; setStage('listed') }} />
         )}
@@ -143,59 +145,117 @@ function Done({ kicker, title, line, cta, onCta, onClose }) {
   )
 }
 
-/* ---------- the menu: intentions as catalog rows, each with ITS icon ----------
-   Icon plates carry the intent's temperature (Ley 14) — a lit surface,
-   never a mystery glyph: the word is always beside it (Ley 5). */
-function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, onSell, onHost, onCurate, onClose }) {
-  const rows = [
-    { icon: Camera,       tint: '242,238,230', title: 'POST TO YOUR WORLD', kicker: 'a dated piece', line: 'Images and a line — it hangs in your museum, today’s date on the label.', onGo: onPost },
-    // the plan door appears only when 0023 is live — same honest-absence
-    // doctrine as the marketplace doors below (Leyes 9/11)
-    ...(planReady ? [
-      { mark: 'star',    tint: '232,233,237', title: 'MAKE A PLAN',        kicker: 'real life',     line: 'A kickback, a roadtrip, real life — it gets a room, your amigos get the door.', onGo: onPlan },
-    ] : []),
-    // marketplace doors appear only when 0017 is live — honest absence
-    // beats a composer that dead-ends at publish (Leyes 9/11)
-    ...(marketReady ? [
-      { icon: Tag,       tint: '199,201,209', title: 'SELL A PIECE',       kicker: 'with a price',  line: 'Clothing, prints, archive — name it, price it, the world DMs you.', onGo: () => onSell('piece') },
-      { icon: Handshake, tint: '232,233,237', title: 'OFFER A SERVICE',    kicker: 'your craft',    line: 'Shoots, sets, design — put your rate on the wall, get booked by DM.', onGo: () => onSell('service') },
-    ] : []),
-    ...(verified ? [{ icon: CalendarPlus, tint: '242,238,230', title: 'HOST AN EVENT', kicker: 'your room', line: 'Create it, publish it, scan the door. Your event, on the platform.', onGo: onHost }] : []),
-    { icon: Sparkles,     tint: '199,201,209', title: 'CURATE YOUR WORLD',  kicker: 'the museum',    line: 'Gallery, sound, marquee, skin — shape how the world walks in.', onGo: onCurate },
-  ]
+/* ---------- the three doors + the rooms behind them (v8 adición A) ----------
+   'menu' shows the doors; tapping one opens its intentions in place.
+   Doors and intentions are both catalog rows — the house's own marks,
+   temperature per door (Ley 14), the word always beside the mark (Ley 5). */
+function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, onPost, onPlan, onSell, onHost, onCurate, onClose }) {
+  // each intention exists only when its layer is LIVE (Leyes 9/11)
+  const INTENTS = {
+    share: [
+      { icon: Camera,   tint: '242,238,230', title: 'POST TO YOUR WORLD', kicker: 'a dated piece', line: 'Images and a line — it hangs in your museum, today’s date on the label.', onGo: onPost },
+      { icon: Sparkles, tint: '242,238,230', title: 'CURATE YOUR WORLD',  kicker: 'the museum',    line: 'Gallery, sound, marquee, skin — shape how the world walks in.', onGo: onCurate },
+    ],
+    gather: [
+      ...(planReady ? [{ mark: 'star', tint: '232,233,237', title: 'MAKE A PLAN', kicker: 'real life', line: 'A kickback, a roadtrip, real life — it gets a room, your amigos get the door.', onGo: onPlan }] : []),
+      ...(verified ? [{ icon: CalendarPlus, tint: '232,233,237', title: 'HOST AN EVENT', kicker: 'your room', line: 'Create it, publish it, scan the door. Your event, on the platform.', onGo: onHost }] : []),
+    ],
+    offer: [
+      ...(marketReady ? [
+        { icon: Handshake, tint: '199,201,209', title: 'OFFER A SERVICE', kicker: 'your craft',   line: 'Shoots, sets, design — put your rate on the wall, get booked by DM.', onGo: () => onSell('service') },
+        { icon: Tag,       tint: '199,201,209', title: 'SELL A PIECE',    kicker: 'with a price', line: 'Clothing, prints, archive — name it, price it, the world DMs you.', onGo: () => onSell('piece') },
+      ] : []),
+    ],
+  }
+  // a door with nothing live behind it isn't there (honest absence)
+  const DOORS = [
+    { key: 'share',  mark: 'ring',     tint: '242,238,230', title: 'SHARE',  line: 'your world speaks' },
+    { key: 'gather', mark: 'diamond',  tint: '232,233,237', title: 'GATHER', line: 'real life, planned' },
+    { key: 'offer',  mark: 'triangle', tint: '199,201,209', title: 'OFFER',  line: 'your craft, priced' },
+  ].filter((d) => INTENTS[d.key].length > 0)
+
+  const open = stage !== 'menu' ? DOORS.find((d) => d.key === stage) : null
+  const rows = open ? INTENTS[open.key] : []
+
   return (
     <div style={{ position: 'relative', padding: wide ? '26px 28px 24px' : '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))', overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ create</div>
+        {open ? (
+          <button onClick={() => setStage('menu')} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}>
+            <ArrowLeft size={12} /> create
+          </button>
+        ) : (
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ create</div>
+        )}
         <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px', display: 'inline-flex' }}><X size={16} /></button>
       </div>
-      <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, marginTop: '10px', ...chromeText }}>PUT SOMETHING<br />INTO THE WORLD</div>
-      <div style={{ marginTop: '16px' }}>
-        {rows.map((r, i) => {
-          const Icon = r.icon
-          return (
-            <button key={r.title} className="pressable" onClick={r.onGo}
-              style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === rows.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-              onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-              onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
-              <span aria-hidden style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid rgba(${r.tint},.28)`, background: `rgba(${r.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${r.tint},.08)` }}>
-                {r.mark
-                  ? <Mark type={r.mark} size={16} color={`rgb(${r.tint})`} />
-                  : <Icon size={17} strokeWidth={1.6} style={{ color: `rgb(${r.tint})` }} />}
-              </span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'Bebas Neue', fontSize: '21px', color: BONE, letterSpacing: '.03em', lineHeight: 1 }}>{r.title}</span>
-                  <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>{r.kicker}</span>
+
+      {open ? (
+        <>
+          {/* the door, open: its mark + name lead, its rooms follow */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
+            <Mark type={open.mark} size={18} color={`rgb(${open.tint})`} />
+            <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, ...chromeText }}>{open.title}</div>
+            <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase', paddingTop: '6px' }}>{open.line}</span>
+          </div>
+          <div style={{ marginTop: '14px' }}>
+            {rows.map((r, i) => <IntentRow key={r.title} r={r} last={i === rows.length - 1} wide={wide} />)}
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, marginTop: '10px', ...chromeText }}>PUT SOMETHING<br />INTO THE WORLD</div>
+          <div style={{ marginTop: '16px' }}>
+            {DOORS.map((d, i) => (
+              <button key={d.key} className="pressable" data-testid={`create-door-${d.key}`} onClick={() => setStage(d.key)}
+                style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === DOORS.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '19px 2px' : '17px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
+                onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
+                onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+                <span aria-hidden style={{ width: '46px', height: '46px', flexShrink: 0, borderRadius: '13px', border: `1px solid rgba(${d.tint},.28)`, background: `rgba(${d.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${d.tint},.08)` }}>
+                  <Mark type={d.mark} size={18} color={`rgb(${d.tint})`} />
                 </span>
-                <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: '12px', color: BONE_MID, lineHeight: 1.45, marginTop: '4px' }}>{r.line}</span>
-              </span>
-              <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
-            </button>
-          )
-        })}
-      </div>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+                    <span style={{ fontFamily: 'Bebas Neue', fontSize: '25px', color: BONE, letterSpacing: '.04em', lineHeight: 1 }}>{d.title}</span>
+                    <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>{d.line}</span>
+                  </span>
+                  {/* what's inside, legible before opening (Ley 5) */}
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '9.5px', color: BONE_MID, letterSpacing: '.06em', marginTop: '5px', textTransform: 'lowercase' }}>
+                    {INTENTS[d.key].map((r) => r.title.toLowerCase()).join(' · ')}
+                  </span>
+                </span>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
+  )
+}
+
+/* one intention — the same catalog row language as always */
+function IntentRow({ r, last, wide }) {
+  const Icon = r.icon
+  return (
+    <button className="pressable" onClick={r.onGo}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
+      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
+      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+      <span aria-hidden style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid rgba(${r.tint},.28)`, background: `rgba(${r.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${r.tint},.08)` }}>
+        {r.mark
+          ? <Mark type={r.mark} size={16} color={`rgb(${r.tint})`} />
+          : <Icon size={17} strokeWidth={1.6} style={{ color: `rgb(${r.tint})` }} />}
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
+          <span style={{ fontFamily: 'Bebas Neue', fontSize: '21px', color: BONE, letterSpacing: '.03em', lineHeight: 1 }}>{r.title}</span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>{r.kicker}</span>
+        </span>
+        <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: '12px', color: BONE_MID, lineHeight: 1.45, marginTop: '4px' }}>{r.line}</span>
+      </span>
+      <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
+    </button>
   )
 }
 
