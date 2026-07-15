@@ -53,12 +53,14 @@ export function craftKindOf(discipline) {
 }
 
 /* Step order per craft — same steps, different door. `words` (the writer's
-   piece) edits `bio`, which the museum already opens the world with. */
+   piece) edits `bio`, which the museum already opens the world with.
+   `taste` (v6) rides right after the craft: who you are, then what you
+   love — the quiet layer that powers the for-you (0022). */
 export const CRAFT_STEPS = {
-  visual: ['craft', 'work', 'doors', 'marquee', 'skin'],
-  sound: ['craft', 'doors', 'work', 'marquee', 'skin'],
-  word: ['craft', 'words', 'work', 'doors', 'marquee', 'skin'],
-  generic: ['craft', 'work', 'doors', 'marquee', 'skin'],
+  visual: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
+  sound: ['craft', 'taste', 'doors', 'work', 'marquee', 'skin'],
+  word: ['craft', 'taste', 'words', 'work', 'doors', 'marquee', 'skin'],
+  generic: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
 }
 
 /* =========================================================================
@@ -95,8 +97,9 @@ export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride })
   if (has.has('words')) push('words')
   if (has.has('images')) push('work')
   if (has.has('links')) push('doors')
-  // fill the rest in the craft's own order (minus 'craft' — already answered)
-  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'marquee' && k !== 'skin') push(k) })
+  // fill the rest in the craft's own order (minus 'craft' — already
+  // answered — and 'taste', which rides right after the line below)
+  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'taste' && k !== 'marquee' && k !== 'skin') push(k) })
 
   const skin = skinForFeel(feel)
   // local marquee suggestion: their own feel, spoken as a welcome — never
@@ -106,7 +109,7 @@ export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride })
 
   return {
     kind,
-    steps: ['line', ...order, 'marquee', 'skin'],
+    steps: ['line', 'taste', ...order, 'marquee', 'skin'],
     skin,
     marquee: marquee || null,   // null → keep the house default
     line: null,                 // a suggested tagline comes only from /api/curate

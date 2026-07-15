@@ -5,6 +5,8 @@ import { supabase } from '@/api/supabase'
 import { isNetworkMember } from '@/lib/osAccess'
 import { useWide } from '@/lib/useIsDesktop'
 import Constellation from '@/components/Constellation'
+import ForYou from '@/components/ForYou'
+import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, UserCheck } from 'lucide-react'
@@ -51,7 +53,7 @@ const tasteCount = (t) => {
 
 export default function Community() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const wide = useWide()
   const [searchParams, setSearchParams] = useSearchParams()
 
@@ -68,6 +70,22 @@ export default function Community() {
     if (slug === 'all') p.delete('craft'); else p.set('craft', slug)
     setSearchParams(p, { replace: true })
   }
+  // FOR YOU / EVERYONE (D2): the view rides the URL like craft does. No
+  // explicit view + a craft deep-link (?craft=dj) → 'everyone', so old
+  // links land on the filtered grid, never for-you; otherwise signed-in
+  // defaults to the matched feed and anon to the open room.
+  const viewParam = searchParams.get('view')
+  const view = (viewParam === 'foryou' || viewParam === 'everyone')
+    ? viewParam
+    : (craft !== 'all' ? 'everyone' : (user ? 'foryou' : 'everyone'))
+  const setView = (v) => {
+    // mirror setCraft: touch ONLY the view param
+    const p = new URLSearchParams(searchParams)
+    p.set('view', v)
+    setSearchParams(p, { replace: true })
+  }
+  // anon tapping FOR YOU meets the same door the nav's gated tabs open
+  const [showAuth, setShowAuth] = useState(false)
   const [craftsByProfile, setCraftsByProfile] = useState(new Map())
   const [craftsLoaded, setCraftsLoaded] = useState(false)
   const [previewAvailable, setPreviewAvailable] = useState(import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true')
@@ -147,7 +165,7 @@ export default function Community() {
               <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '58px' : '40px', letterSpacing: '.02em', lineHeight: .85, margin: 0, ...chromeText }}>COMMUNITY</h1>
             </div>
           </div>
-          {!loading && (
+          {!loading && view === 'everyone' && (
             <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', paddingBottom: wide ? '7px' : '5px' }}>
               {String(shown.length).padStart(2, '0')} {shown.length === 1 ? 'world' : 'worlds'}
             </div>
@@ -159,6 +177,47 @@ export default function Community() {
           )}
         </div>
 
+        {/* FOR YOU / EVERYONE — two ways into the same room (D2): the
+            matched feed or the open grid. Anon tapping FOR YOU meets the
+            auth door exactly like the nav's gated tabs (Ley 9). */}
+        <div style={{ display: 'flex', gap: '22px', marginTop: '18px', borderBottom: `1px solid ${HAIR}` }}>
+          {[['foryou', 'For You', 'foryou-toggle'], ['everyone', 'Everyone', 'everyone-toggle']].map(([key, label, tid]) => {
+            const on = view === key
+            return (
+              <button key={key} className="pressable" data-testid={tid}
+                onClick={() => { if (key === 'foryou' && !authLoading && !user) { setShowAuth(true); return } setView(key) }}
+                style={{ background: 'transparent', border: 'none', padding: '0 2px 10px', marginBottom: '-1px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.22em', textTransform: 'uppercase', color: on ? BONE : 'rgba(199,201,209,.45)', borderBottom: `1px solid ${on ? BONE : 'transparent'}`, transition: 'color .2s, border-color .2s' }}>
+                {label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* while identity is UNKNOWN and no view was asked for, hold —
+            defaulting on an unresolved session would flash the wrong room
+            (three-way auth doctrine) */}
+        {authLoading && !viewParam && craft === 'all' ? (
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
+            <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
+          </div>
+        ) : view === 'foryou' ? (
+          user ? (
+            <ForYou user={user} onBrainstorm={() => navigate('/profile')} onEveryone={() => setView('everyone')} />
+          ) : (
+            /* deep-linked anon on ?view=foryou — a sober invitation, not a wall */
+            <div style={{ marginTop: '26px', padding: '44px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center' }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>◇ matched by taste</div>
+              <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '30px', letterSpacing: '.03em', lineHeight: .95, margin: '14px 0 0', color: BONE }}>A FEED THAT KNOWS YOUR TASTE</h2>
+              <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '310px' }}>
+                For you is composed from your taste, your crafts and your people — not follower counts. Sign in and the universe starts listening.
+              </p>
+              <button className="pressable" onClick={() => setShowAuth(true)} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                Sign in <ArrowUpRight size={16} />
+              </button>
+            </div>
+          )
+        ) : (
+        <>
         {/* filters — data-driven, honest: city from claimed cities, craft
             from the community's REAL crafts (the matching column, D2) */}
         {cityOptions.length > 0 && <FilterRow label="CITY" value={city} onChange={setCity} options={cityOptions} />}
@@ -215,7 +274,12 @@ export default function Community() {
             onCta={() => navigate(user ? '/profile' : '/auth?next=/profile')}
           />
         )}
+        </>
+        )}
       </div>
+
+      {/* the auth door — local, exactly the Layout nav pattern */}
+      {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)} />}
 
       {/* page-wide film grain */}
       <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 20 }} />

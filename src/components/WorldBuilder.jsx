@@ -2,7 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { Loader2, X, ImagePlus, Plus, ArrowLeft, ArrowRight } from 'lucide-react'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, normGallery, normLinks, worldSafeUrl, worldCompleteness, chromeDisplayText, craftKindOf, CRAFT_STEPS, composeWorldPlan } from '@/lib/world'
 import { craftLine, kindOfCrafts, saveProfileCrafts } from '@/lib/crafts'
+import { saveTastes } from '@/lib/tastes'
 import CraftPicker from '@/components/CraftPicker'
+import TasteBrainstorm from '@/components/TasteBrainstorm'
 import { useWide } from '@/lib/useIsDesktop'
 
 /* =========================================================================
@@ -65,6 +67,7 @@ const SHOW_OPTIONS = [
 /* Base copy per step — one cosmos line that says WHY, never a demand. */
 const STEP_COPY = {
   craft: { title: 'YOUR CRAFT', kicker: 'the door sign', why: `${WHY} Start with what you make.` },
+  taste: { title: 'BRAINSTORM YOUR TASTE', kicker: 'the quiet layer', why: 'Music, film, what keeps you alive. Quiet by default — the universe uses it to find your people, only you decide what shows.' },
   line: { title: 'YOUR LINE', kicker: 'in your voice', why: 'One line under your name — what you\'re on right now. Rewrite the suggestion or clear it; it ships in YOUR words only.' },
   work: { title: 'THE WORK', kicker: 'what turns it on', why: 'This space is for your work — three pieces turn it on. Shots, canvases, fits, stills.' },
   doors: { title: 'THE DOORS', kicker: 'where it leads', why: 'Every link is a door out of your world — IG, portfolio, sound. One keeps it open.' },
@@ -89,11 +92,14 @@ const CRAFT_COPY = {
 
 /* Land on the first unfinished step of THIS order, not always at zero.
    The craft step counts as done only when REAL crafts are chosen — a legacy
-   free-text discipline alone re-opens the step (the in-UI migration door). */
-function firstUnfinished(steps, d, crafts) {
+   free-text discipline alone re-opens the step (the in-UI migration door).
+   Taste counts as done only when ≥1 taste is held — a member with crafts
+   but zero tastes re-enters at the brainstorm (the v6 door). */
+function firstUnfinished(steps, d, crafts, tastes) {
   for (let i = 0; i < steps.length; i++) {
     const k = steps[i]
     if (k === 'craft' && !(crafts || []).length) return i
+    if (k === 'taste' && !(tastes || []).length) return i
     if (k === 'line' && !(d?.tagline || '').trim()) return i
     if (k === 'words' && !(d?.bio || '').trim()) return i
     if (k === 'work' && normGallery(d?.gallery).length < 3) return i
@@ -103,7 +109,7 @@ function firstUnfinished(steps, d, crafts) {
   return steps.length - 1
 }
 
-export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft, onCommit, onUploadGallery, onCleanupImages, onCurate, onClose, onPublished }) {
+export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes = null, onTastesSaved, onDraft, onCommit, onUploadGallery, onCleanupImages, onCurate, onClose, onPublished }) {
   const wide = useWide()
   // A world with no craft yet meets the conversation; a returning member's
   // world goes straight to its first unfinished step.
@@ -115,6 +121,12 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
   // already saved (a returning member edits, never re-answers from zero)
   const [picked, setPicked] = useState(() => crafts.map((c) => ({ id: c.id, name: c.name, slug: c.slug, category: c.category })))
   const [primaryId, setPrimaryId] = useState(() => (crafts.find((c) => c.isPrimary) || crafts[0])?.id || null)
+  // the brainstorm's controlled state — null until the hand touches it, the
+  // SAVED tastes lead until then. WIPE GUARD: saveTastes replaces the WHOLE
+  // set, so the step never renders (and Next never commits) while the parent
+  // is still loading (tastes === null) — the craftsReady discipline.
+  const [tasteDraft, setTasteDraft] = useState(null)
+  const tasteValue = tasteDraft ?? (tastes || []).map((t) => ({ domain: t.domain, label: t.label, is_public: !!t.is_public }))
   const [plan, setPlan] = useState(null)          // { kind, steps, skin, marquee, line }
   const [planSteps, setPlanSteps] = useState(null)
   // compose() awaits network — if the member closes the sheet mid-composition
@@ -133,7 +145,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
   const liveKind = kindOfCrafts(craftsNow) || craftKindOf(data?.discipline)
   const kind = plan?.kind ?? liveKind
   const steps = planSteps || CRAFT_STEPS[liveKind]
-  const [step, setStep] = useState(() => (isNew ? 0 : firstUnfinished(CRAFT_STEPS[kindOfCrafts(crafts) || craftKindOf(data?.discipline)], data, crafts)))
+  const [step, setStep] = useState(() => (isNew ? 0 : firstUnfinished(CRAFT_STEPS[kindOfCrafts(crafts) || craftKindOf(data?.discipline)], data, crafts, tastes)))
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [uploadingN, setUploadingN] = useState(0)
@@ -255,6 +267,21 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
       setBusy(false)
       return commitAndGo({ discipline: craftLine(craftsNow) || null, tagline: (data.tagline || '').trim() || null }, safeStep + 1)
     }
+    if (key === 'taste') {
+      // the whole set replaces atomically (0022) — never from an unloaded
+      // state (the step body and nextDisabled both hold that door)
+      if (tastes === null) return
+      setBusy(true); setErr('')
+      try {
+        await saveTastes(tasteValue)
+        onTastesSaved?.(tasteValue)
+      } catch (e) {
+        setErr(e?.message ? `Couldn't save — ${e.message}` : "Couldn't save — try again.")
+        setBusy(false); return
+      }
+      setBusy(false)
+      return setStep(safeStep + 1)
+    }
     if (key === 'line') return commitAndGo({ tagline: (data.tagline || '').trim() || null }, safeStep + 1)
     if (key === 'words') return commitAndGo({ bio: (data.bio || '').trim() || null }, safeStep + 1)
     if (key === 'work') return commitAndGo({ gallery: gallery.map(g => ({ path: g.path || null, url: g.url, caption: (g.caption || '').trim() })) }, safeStep + 1)
@@ -352,6 +379,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
 
   const nextDisabled = busy || uploadingN > 0 ||
     (key === 'craft' && !picked.length) ||
+    (key === 'taste' && tastes === null) ||
     (key === 'doors' && links.length > 0 && !links.some(l => worldSafeUrl(l.url)))
 
   // phone: a bottom sheet under the live museum · wide: a studio panel docked
@@ -521,6 +549,18 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, onDraft
                   <input style={inp} value={data.tagline || ''} placeholder="One line, your voice — what you're on right now." maxLength={120} onChange={e => onDraft({ tagline: e.target.value })} />
                 </div>
               </div>
+            )}
+
+            {key === 'taste' && (
+              tastes === null ? (
+                /* WIPE GUARD: the brainstorm never opens over an unloaded set —
+                   a commit seeded from null would erase a member's tastes */
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '26px 0' }}>
+                  <Loader2 size={15} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />
+                </div>
+              ) : (
+                <TasteBrainstorm value={tasteValue} onChange={setTasteDraft} maxHeight="22vh" />
+              )
             )}
 
             {key === 'line' && (

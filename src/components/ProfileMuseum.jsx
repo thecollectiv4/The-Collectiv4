@@ -118,7 +118,7 @@ const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring',
 // `social` — { ready, followers, following, iFollow } from the wrapper (0017);
 // `listings` — the world's OFFER. Social buttons render only when the layer is
 // live in the DB (Ley 9: a door that can't open doesn't render).
-export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
+export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const [data, setData] = useState(profile)
   const [editing, setEditing] = useState(false)
@@ -630,6 +630,26 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
               </button>
             )}
+            {/* THE LISTENING BAND (v6): a member with real crafts and zero
+                tastes is invited to brainstorm — the quiet layer that turns
+                the for-you on. Same grammar as the craft band, one register
+                quieter. tastes===null (still loading) never flashes it. */}
+            {tastes !== null && tastes.length === 0 && crafts.length > 0 && (
+              <button data-testid="taste-invite" className="pressable" onClick={() => setBuilding(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'rgba(199,201,209,.03)', border: `1px solid ${HAIR_HI}`, borderRadius: '13px', padding: '12px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
+                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.4)'}
+                onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '13px', color: SILVER, flexShrink: 0 }}>○</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>EL MUNDO v6</span>
+                  <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE, letterSpacing: '.04em', lineHeight: 1, marginTop: '4px' }}>THE UNIVERSE LISTENS</span>
+                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.06em', marginTop: '5px', lineHeight: 1.5 }}>
+                    brainstorm your taste and your for-you comes alive — quiet by default, only you see it
+                  </span>
+                </span>
+                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
+              </button>
+            )}
             {/* the meter — how lit the world is, hairline not game */}
             {completeness.pct < 100 && (
               <div style={{ maxWidth: '260px', marginBottom: '12px' }}>
@@ -913,12 +933,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           ancestor as their containing block (walkthrough catch) */}
       {/* craftsReady gates the mount: the builder seeds its picker from the
           SAVED crafts at mount — opening over a half-loaded set would show a
-          member an empty picker for crafts they already chose */}
-      {building && craftsReady && createPortal(
+          member an empty picker for crafts they already chose. tastes !== null
+          holds the same door for the quiet layer (0022): its save replaces
+          the WHOLE set, so a null-seeded commit would erase a member's tastes */}
+      {building && craftsReady && tastes !== null && createPortal(
         <WorldBuilder
           data={data}
           crafts={crafts}
           onCraftsSaved={onCraftsSaved}
+          tastes={tastes}
+          onTastesSaved={onTastesSaved}
           onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
           onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
           onUploadGallery={onUploadGallery}

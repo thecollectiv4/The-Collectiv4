@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { X, ImagePlus, Loader2, ArrowLeft, Tag, Handshake, CalendarPlus, Sparkles, Camera } from 'lucide-react'
 import { useWide } from '@/lib/useIsDesktop'
+import Mark from '@/components/Mark'
 import { createWorldPost } from '@/lib/worldPosts'
 import { createListing, KINDS, priceLabel } from '@/lib/listings'
-import { socialReady } from '@/lib/social'
+import { socialReady, circleReady } from '@/lib/social'
 
 /* =========================================================================
    CREATE CENTRAL — the + at the center of the app (Ley 13; the Base44
@@ -14,10 +15,11 @@ import { socialReady } from '@/lib/social'
    TODAY (Leyes 9/11 — zero coming-soon teasers, zero dead doors):
 
      01 POST TO YOUR WORLD   — every member: image(s) + a line (0016)
-     02 SELL A PIECE         — every member: a piece with a real price
-     03 OFFER A SERVICE      — every member: your craft, bookable (0017)
-     04 HOST AN EVENT        — verified members only
-     05 CURATE YOUR WORLD    — every member: straight to the builder
+     02 MAKE A PLAN          — every member: real life with your amigos (0023)
+     03 SELL A PIECE         — every member: a piece with a real price
+     04 OFFER A SERVICE      — every member: your craft, bookable (0017)
+     05 HOST AN EVENT        — verified members only
+     06 CURATE YOUR WORLD    — every member: straight to the builder
 
    Each intention wears ITS icon in a lit plate — color with meaning,
    alpha low, void and bone intact (Ley 14). Catalog rows stay the design.
@@ -51,6 +53,9 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
   // hits a wall at publish (panel + review catch, Leyes 9/11)
   const [marketReady, setMarketReady] = useState(false)
   useEffect(() => { let on = true; socialReady().then((r) => { if (on) setMarketReady(r) }); return () => { on = false } }, [])
+  // same doctrine for the plan door: it renders only once 0023 is live
+  const [planReady, setPlanReady] = useState(false)
+  useEffect(() => { let on = true; circleReady().then((r) => { if (on) setPlanReady(r) }); return () => { on = false } }, [])
   // while a write is in flight, neither Esc nor the backdrop may abandon it
   const busyRef = useRef(false)
   const dialogRef = useRef(null)
@@ -83,8 +88,9 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
         <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: .05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
 
         {stage === 'menu' && (
-          <CreateMenu wide={wide} verified={isMemberVerified} marketReady={marketReady} onClose={onClose}
+          <CreateMenu wide={wide} verified={isMemberVerified} marketReady={marketReady} planReady={planReady} onClose={onClose}
             onPost={() => setStage('post')}
+            onPlan={() => go('/messages?seg=plans&new=1')}
             onSell={(kind) => { setSellKind(kind); setStage('sell') }}
             onHost={() => go('/os?tab=events&new=1')}
             onCurate={() => go('/profile')} />
@@ -140,9 +146,14 @@ function Done({ kicker, title, line, cta, onCta, onClose }) {
 /* ---------- the menu: intentions as catalog rows, each with ITS icon ----------
    Icon plates carry the intent's temperature (Ley 14) — a lit surface,
    never a mystery glyph: the word is always beside it (Ley 5). */
-function CreateMenu({ wide, verified, marketReady, onPost, onSell, onHost, onCurate, onClose }) {
+function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, onSell, onHost, onCurate, onClose }) {
   const rows = [
     { icon: Camera,       tint: '242,238,230', title: 'POST TO YOUR WORLD', kicker: 'a dated piece', line: 'Images and a line — it hangs in your museum, today’s date on the label.', onGo: onPost },
+    // the plan door appears only when 0023 is live — same honest-absence
+    // doctrine as the marketplace doors below (Leyes 9/11)
+    ...(planReady ? [
+      { mark: 'star',    tint: '232,233,237', title: 'MAKE A PLAN',        kicker: 'real life',     line: 'A kickback, a roadtrip, real life — it gets a room, your amigos get the door.', onGo: onPlan },
+    ] : []),
     // marketplace doors appear only when 0017 is live — honest absence
     // beats a composer that dead-ends at publish (Leyes 9/11)
     ...(marketReady ? [
@@ -168,7 +179,9 @@ function CreateMenu({ wide, verified, marketReady, onPost, onSell, onHost, onCur
               onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
               onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
               <span aria-hidden style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid rgba(${r.tint},.28)`, background: `rgba(${r.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${r.tint},.08)` }}>
-                <Icon size={17} strokeWidth={1.6} style={{ color: `rgb(${r.tint})` }} />
+                {r.mark
+                  ? <Mark type={r.mark} size={16} color={`rgb(${r.tint})`} />
+                  : <Icon size={17} strokeWidth={1.6} style={{ color: `rgb(${r.tint})` }} />}
               </span>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
