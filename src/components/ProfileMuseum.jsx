@@ -469,7 +469,9 @@ export default function ProfileMuseum({ profile, crafts = [], onCraftsSaved, isO
                     identity always legible, never invented) */}
                 {crafts.length > 0 ? (
                   <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
-                    {crafts.slice(0, 3).map((c, i) => {
+                    {/* primary ALWAYS leads — regardless of the order the
+                        set arrived in (fresh save vs DB read) */}
+                    {[...crafts].sort((a, b) => (b.isPrimary === true) - (a.isPrimary === true)).slice(0, 3).map((c, i) => {
                       const meta = categoryMeta(c.category)
                       const isP = c.isPrimary || (i === 0 && !crafts.some(x => x.isPrimary))
                       return (

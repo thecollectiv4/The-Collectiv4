@@ -27,8 +27,9 @@ const osTab = { to: '/os', mark: 'triangle', label: 'OS', requiresAuth: true }
 // Public routes never force the sign-in modal (Event + Community are
 // top-of-funnel — and a shared world link must open the world, not a wall:
 // /user/:id is the museum's public face, anon included; /e/:slug is any
-// event's public room).
-const PUBLIC_PATHS = ['/', '/community']
+// event's public room; /c4 is the HOUSE world — the flagship front door
+// when the domain points here, so a wall there would defeat its purpose).
+const PUBLIC_PATHS = ['/', '/community', '/c4']
 const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/') || path.startsWith('/e/')
 
 // Routes with a real desktop composition — the 430px phone frame releases
