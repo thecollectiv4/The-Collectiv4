@@ -29,6 +29,14 @@ export const FONT_DISPLAY = "'Bebas Neue', sans-serif"
 export const FONT_MONO = "'DM Mono', monospace"
 export const FONT_SANS = "'DM Sans', sans-serif"
 
+// Motion — mirrors the :root tokens in index.css (same rule as the palette:
+// one source of truth, two notations). House curve = the deck's.
+export const EASE_HOUSE = 'cubic-bezier(.2, .7, .2, 1)'
+export const EASE_HOUSE_ARR = [0.2, 0.7, 0.2, 1]     // framer-motion notation
+export const EASE_EXIT = 'cubic-bezier(0.23, 1, 0.32, 1)'
+export const EASE_DRAWER = 'cubic-bezier(0.32, 0.72, 0, 1)'
+export const DUR = { press: 160, fast: 200, base: 250, slow: 500, cinematic: 950 } // ms
+
 // Team OS domain constants
 export const FALL_001_ISO = '2026-08-28'            // Fall 001 — the north star date
 export const CHAPTER_START_ISO = '2026-07-01'       // Fall chapter window opens (roadmap strip origin)
