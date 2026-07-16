@@ -400,6 +400,36 @@ export async function removeFriend(otherId) {
   await callDoor('remove_friend', { p_other: otherId })
 }
 
+/* find people by name or @handle — the entry door to a friend request from
+   your OWN surface, not just from their world (v9 D1: "buscar gente… desde
+   una superficie propia"). RLS floors is_demo to founders (0033), so a
+   normal member's search never surfaces seed; a founder's does — exactly
+   the reach the launch test needs ("agrega a Diego"). Empty on any failure;
+   never a crash. Special chars are stripped so a stray comma/paren can't
+   break PostgREST's or() grammar or inject an ilike wildcard. */
+export async function searchPeople(query, meId, limit = 16) {
+  const clean = (query || '').replace(/[,()%_\\]/g, ' ').trim()
+  if (clean.length < 2) return []
+  try {
+    const pattern = `%${clean}%`
+    let sel = supabase
+      .from('profiles')
+      .select('id,full_name,username,avatar_url,verified,city,discipline,is_demo')
+      .or(`full_name.ilike.${pattern},username.ilike.${pattern}`)
+      .limit(limit)
+    if (meId) sel = sel.neq('id', meId)
+    const { data, error } = await sel
+    if (error) return []
+    // name first, then handle — a full_name hit is the stronger match
+    const q = clean.toLowerCase()
+    return (data || []).sort((a, b) => {
+      const an = (a.full_name || '').toLowerCase().includes(q) ? 0 : 1
+      const bn = (b.full_name || '').toLowerCase().includes(q) ? 0 : 1
+      return an - bn
+    })
+  } catch { return [] }
+}
+
 /* --------------------- visibility tiers (D5) ---------------------
    PÚBLICO / AMIGOS / CLOSE FRIENDS — the Instagram Close Friends model, on
    event attendance AND plans. Default amigos. Close friends is a curated

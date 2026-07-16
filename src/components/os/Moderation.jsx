@@ -48,6 +48,7 @@ export default function Moderation() {
   const [filter, setFilter] = useState('review')
   const [pending, setPending] = useState(null)
   const [confirmPurge, setConfirmPurge] = useState(null)   // id awaiting a second tap
+  const [purgingSeed, setPurgingSeed] = useState(false)    // v9 D3: bulk seed purge in flight
   const [reload, setReload] = useState(0)
   // SHOW SEED (v8 adición C) — the founders' deliberate door back into the
   // 112 demo personas. Default OFF: since 0033 the seed is invisible to
@@ -105,6 +106,22 @@ export default function Moderation() {
     act('admin_soft_purge', { p_user: a.id }, a.id)
   }
 
+  // v9 D3 (guardrail 3): the seed is purgable in ONE action, not ~200 taps.
+  // Soft-delete (reversible via the Purged filter); protected rows untouched.
+  const purgeSeed = async () => {
+    const n = accounts.filter(a => a.is_demo && !a.deleted_at && !a.protected).length
+    if (!n || purgingSeed) return
+    if (!window.confirm(`Soft-delete all ${n} seed worlds? Reversible — restore any from the Purged filter.`)) return
+    setErr(''); setPurgingSeed(true)
+    try {
+      const { data, error } = await supabase.rpc('admin_purge_seed')
+      if (error) throw new Error(error.message)
+      if (!data?.ok) throw new Error(data?.error === 'not_owner' ? 'Owners only (server said no).' : (data?.error || 'Could not purge the seed.'))
+      await refresh()
+    } catch (e) { setErr(e.message || 'Could not purge the seed.') }
+    finally { setPurgingSeed(false) }
+  }
+
   if (loading) return <div style={{ padding: '60px 0', display: 'flex', justifyContent: 'center' }}><Loader2 size={18} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} /></div>
 
   if (denied) return (
@@ -125,6 +142,7 @@ export default function Moderation() {
 
   const real = accounts.filter(a => !a.is_demo && !a.deleted_at).length
   const purged = accounts.filter(a => a.deleted_at).length
+  const seedCount = accounts.filter(a => a.is_demo && !a.deleted_at && !a.protected).length
 
   return (
     <div style={{ maxWidth: '820px' }}>
@@ -139,6 +157,15 @@ export default function Moderation() {
           style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: seedVisible ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${seedVisible ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '5px 12px', color: seedVisible ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
           {seedVisible ? <Eye size={11} /> : <EyeOff size={11} />} show seed · {seedVisible ? 'on' : 'off'}
         </button>
+        {/* v9 D3 (guardrail 3): purge the whole seed in one action — soft,
+            reversible, protected rows spared. Only shows when there's seed. */}
+        {seedCount > 0 && (
+          <button data-testid="purge-seed-all" onClick={purgeSeed} disabled={purgingSeed}
+            title="Soft-delete every seed world at once (reversible from the Purged filter)"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent', border: '1px solid rgba(214,120,120,.4)', borderRadius: '100px', padding: '5px 12px', color: WARN, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: purgingSeed ? 'default' : 'pointer', opacity: purgingSeed ? .6 : 1 }}>
+            {purgingSeed ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <Trash2 size={11} />} purge seed · {seedCount}
+          </button>
+        )}
       </div>
 
       {/* filter chips */}

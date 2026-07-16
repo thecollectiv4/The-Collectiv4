@@ -8,7 +8,7 @@ import ForYou from '@/components/ForYou'
 import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
-import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, UserCheck } from 'lucide-react'
+import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
 
 /* =========================================================================
    COMMUNITY — solo personas (D1, decisión de Pato): descubrir creativos,
@@ -91,6 +91,10 @@ export default function Community() {
   // shows an honest pill when the seed is deliberately visible.
   const [showDemo, setShowDemo] = useState(false)
   const [followingSet, setFollowingSet] = useState(new Set())
+  // find a specific person (v9 D1) — a name/handle filter over the loaded
+  // worlds, killing the luck-browse. Client-side is exact at this scale
+  // (<200 total, all loaded); it upgrades to a server search when it grows.
+  const [nameQ, setNameQ] = useState('')
 
   useEffect(() => {
     let alive = true
@@ -150,9 +154,11 @@ export default function Community() {
     return [...bySlug.values()].sort((a, b) => a.name.localeCompare(b.name))
   }, [craftsByProfile])
 
+  const nq = nameQ.trim().toLowerCase()
   const shown = creatives.filter(c =>
     (city === 'all' || c.city === city) &&
-    (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)))
+    (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)) &&
+    (!nq || (c.full_name || '').toLowerCase().includes(nq) || (c.username || '').toLowerCase().includes(nq)))
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
@@ -226,6 +232,20 @@ export default function Community() {
           )
         ) : (
         <>
+        {/* find a specific person — name or @handle (v9 D1: no more luck-browse
+            a 200-grid; tap a result to their world, where + amigo lives) */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '16px', maxWidth: wide ? '440px' : undefined }}>
+          <Search size={14} strokeWidth={1.6} style={{ position: 'absolute', left: '13px', color: BONE_LOW, pointerEvents: 'none' }} />
+          <input value={nameQ} onChange={(e) => setNameQ(e.target.value)} data-testid="community-search"
+            placeholder="search people by name or @handle" aria-label="Search people by name or handle" autoComplete="off"
+            style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '11px 38px 11px 36px', color: BONE, fontFamily: 'DM Sans', fontSize: '13.5px', outline: 'none' }} />
+          {nameQ && (
+            <button onClick={() => setNameQ('')} aria-label="Clear search" className="pressable"
+              style={{ position: 'absolute', right: '8px', background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '6px', display: 'inline-flex' }}>
+              <X size={14} />
+            </button>
+          )}
+        </div>
         {/* filters — data-driven, honest: city from claimed cities, craft
             from the community's REAL crafts (the matching column, D2) */}
         {cityOptions.length > 0 && <FilterRow label="CITY" value={city} onChange={setCity} options={cityOptions} />}
@@ -245,7 +265,7 @@ export default function Community() {
         ) : shown.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
             {shown.map(c => (
-              <WorldCard key={c.id} c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} />
+              <WorldCard key={c.id} c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
             ))}
             {/* a filtered list CLOSES — the void under the last card gets a
                 composed, pressable seam back to everyone (panel catch, Ley 4) */}
@@ -274,10 +294,12 @@ export default function Community() {
         ) : (
           <Empty
             k={wide ? 0.3 : 0.6}
-            title={city !== 'all' || craft !== 'all' ? 'NOTHING HERE YET' : 'THE UNIVERSE IS FORMING'}
-            body={city !== 'all' || craft !== 'all'
-              ? 'No worlds match this filter yet. Clear it, or be the first from here.'
-              : 'No worlds have taken shape yet. Build yours — a personal museum of your sound, work and influences — and be one of the first stars in the room.'}
+            title={city !== 'all' || craft !== 'all' || nq ? 'NOTHING HERE YET' : 'THE UNIVERSE IS FORMING'}
+            body={nq
+              ? `No world matches “${nameQ.trim()}” yet — try a different name or their @handle.`
+              : city !== 'all' || craft !== 'all'
+                ? 'No worlds match this filter yet. Clear it, or be the first from here.'
+                : 'No worlds have taken shape yet. Build yours — a personal museum of your sound, work and influences — and be one of the first stars in the room.'}
             cta={user ? 'Build your world' : 'Claim your world'}
             onCta={() => navigate(user ? '/profile' : '/auth?next=/profile')}
           />
@@ -348,7 +370,7 @@ function CraftFilterRow({ value, onChange, options }) {
    `connected` — the viewer already follows this world: a quiet state
    chip, information not decoration (Leyes 7, 14). `crafts` — the real
    taxonomy line (primary lit), the legacy free text only as fallback. */
-function WorldCard({ c, crafts = [], connected, onOpen, wide }) {
+function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -359,13 +381,21 @@ function WorldCard({ c, crafts = [], connected, onOpen, wide }) {
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${c.is_demo && showSeed ? 'rgba(229,200,140,.4)' : HAIR_HI}`, background: CARD, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={c.id || c.username || name} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 30%, #0E0E13 100%)' }} />
         {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><BadgeCheck size={16} style={{ color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} /></span>}
+        {/* guardrail 4 (v9 D3): every seed world is LABELED when SHOW SEED is on —
+            the founder never mistakes a QA fixture for a real member */}
+        {showSeed && c.is_demo && (
+          <span data-testid="seed-card-badge" title="Seed world — QA fixture, invisible to the public"
+            style={{ position: 'absolute', top: '9px', left: '9px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: 'DM Mono', fontSize: '7.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: '#0A0A0D', background: 'rgba(229,200,140,.92)', borderRadius: '100px', padding: '3px 8px', fontWeight: 600 }}>
+            ◇ seed
+          </span>
+        )}
       </div>
       <div style={{ position: 'absolute', left: '12px', top: `${(wide ? 116 : 92) - 22}px`, width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
         {avatar
