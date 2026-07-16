@@ -780,9 +780,9 @@ function Sheet({ label, busy, onClose, children }) {
 
   return createPortal(
     <>
-      <div onClick={() => { if (!busy) onClose() }} aria-hidden
-        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'fadeIn .25s ease' }} />
-      <div role="dialog" aria-modal="true" aria-label={label}
+      <div onClick={() => { if (!busy) onClose() }} aria-hidden className="overlay-backdrop"
+        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
+      <div role="dialog" aria-modal="true" aria-label={label} className="sheet-up-centered"
         style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '460px', zIndex: 10000, background: VOID, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '82dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
       </div>

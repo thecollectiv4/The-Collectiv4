@@ -87,8 +87,8 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
     : { position: 'relative', width: '100%', maxWidth: '430px', maxHeight: '86dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
 
   return createPortal(
-    <div onClick={() => { if (!busyRef.current) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeIn .25s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" style={{ ...shell, outline: 'none' }}>
+    <div onClick={() => { if (!busyRef.current) onClose() }} className="overlay-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center' }}>
+      <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" className={wide ? 'dialog-in' : 'sheet-up'} style={{ ...shell, outline: 'none' }}>
 
         {(stage === 'menu' || stage === 'share' || stage === 'gather' || stage === 'offer') && (
           <CreateDoors wide={wide} stage={stage} setStage={setStage}

@@ -120,6 +120,29 @@ a { color: inherit; text-decoration: none; }
 .pressable:not(:disabled):active { transform: translateY(1px) scale(.99); }
 
 /* ============================================================
+   OVERLAY GRAMMAR — everything arrives from somewhere (Ley 13).
+   Sheets rise from the bottom edge; docked panels arrive from
+   their edge; centered dialogs settle; menus grow from their
+   trigger. Entrances only — overlays unmount on close.
+   NO `forwards` fills (see the page-transition note above) except
+   where opacity:0 start requires it and the element cannot contain
+   fixed descendants (menus).
+   ============================================================ */
+@keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheetUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes sheetUpCentered { from { transform: translateX(-50%) translateY(24px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+@keyframes panelInRight { from { transform: translateX(32px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes dialogIn { from { transform: scale(.97); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes menuIn { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.overlay-backdrop { animation: overlayFade var(--dur-base) var(--ease-exit); }
+.sheet-up { animation: sheetUp 320ms var(--ease-drawer); }
+.sheet-up-centered { animation: sheetUpCentered 320ms var(--ease-drawer); }
+.panel-in-right { animation: panelInRight 300ms var(--ease-exit); }
+.dialog-in { animation: dialogIn var(--dur-base) var(--ease-exit); }
+.menu-in { animation: menuIn 160ms var(--ease-exit); }
+
+/* ============================================================
    TEMPERATURE (Ley 14) — light with meaning, palette locked.
    Live Art breathes warm and slow; Sound flickers cold and
    electric; Gallery holds still. Animation with purpose, one
@@ -269,4 +292,5 @@ a { color: inherit; text-decoration: none; }
   .disc-card, .disc-reveal { transition:none; }
   .disc-card:hover { transform:none; }
   .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation:none; }
+  .sheet-up, .sheet-up-centered, .panel-in-right, .dialog-in, .menu-in { animation: overlayFade .2s ease; }
 }

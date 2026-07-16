@@ -267,7 +267,7 @@ function AssignMenu({ anchor, members, currentId, onPick, onClose }) {
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001 }} />
-      <div data-testid="board-owner-menu" role="menu" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)' }}>
+      <div data-testid="board-owner-menu" role="menu" className="menu-in" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)', transformOrigin: openUp ? 'left bottom' : 'left top' }}>
         {members.map(m => {
           const name = m.full_name || m.username
           const mine = m.id === currentId

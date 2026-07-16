@@ -396,7 +396,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
   return (
     // z 10000: ABOVE Layout's bottom nav (9999) — the nav must never cover
     // the sheet's own footer (Back / Next / Publish)
-    <div role="dialog" aria-label="Build your world" style={shell}>
+    <div role="dialog" aria-label="Build your world" className={wide ? 'panel-in-right' : 'sheet-up-centered'} style={shell}>
       {/* the app-wide grain varnishes the sheet; the solid void behind it is
           the builder's silence — where you write, the galaxy shuts up (D2) */}
 

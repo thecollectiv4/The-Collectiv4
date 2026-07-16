@@ -83,9 +83,9 @@ export function DropButton({ onDrop, desktop = false, context = {} }) {
       </button>
 
       {open && (
-        <div onClick={() => !sending && close()} role="dialog" aria-label="Drop a note for the founders"
+        <div onClick={() => !sending && close()} role="dialog" aria-label="Drop a note for the founders" className="overlay-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', padding: desktop ? '40px' : '0' }}>
-          <div onClick={e => e.stopPropagation()}
+          <div onClick={e => e.stopPropagation()} className="dialog-in"
             style={{ position: 'relative', width: '100%', maxWidth: '460px', background: VOID_2, border: `1px solid ${HAIR_HI}`, borderRadius: desktop ? '16px' : '20px 20px 0 0', padding: '18px 18px calc(16px + env(safe-area-inset-bottom, 0px))' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>⚡ Drop · to the founders</div>
