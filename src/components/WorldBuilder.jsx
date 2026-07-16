@@ -410,7 +410,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
         </div>
         {/* the meter — a hairline, not a game */}
         <div style={{ marginTop: '10px', height: '1px', background: HAIR, position: 'relative' }}>
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${pct}%`, background: SILVER, opacity: .7, transition: 'width .5s ease' }} />
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', transform: `scaleX(${pct / 100})`, transformOrigin: 'left', background: SILVER, opacity: .7, transition: 'transform .5s var(--ease-house)' }} />
         </div>
       </div>
 
@@ -448,7 +448,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                       const on = answers.show.includes(o.key)
                       return (
                         <button key={o.key} aria-pressed={on} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'all .2s' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'background .2s, border-color .2s' }}>
                           <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: on ? BONE : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                           <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID }}>{o.label}</span>
                         </button>
@@ -615,7 +615,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                   </div>
                 )}
                 <button onClick={() => galleryRef.current?.click()} disabled={uploadingN > 0}
-                  style={{ width: '100%', background: dragOver ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px dashed ${dragOver ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '16px 13px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: 'DM Sans', opacity: uploadingN > 0 ? .6 : 1, transition: 'all .2s' }}>
+                  style={{ width: '100%', background: dragOver ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px dashed ${dragOver ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '16px 13px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: 'DM Sans', opacity: uploadingN > 0 ? .6 : 1, transition: 'background .2s, border-color .2s, opacity .2s' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                     {uploadingN > 0 ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <ImagePlus size={14} />}
                     {uploadingN > 0 ? `Uploading ${uploadingN}…` : 'Add your work'}
@@ -661,7 +661,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                     const active = (data.world_theme || 'chrome') === t.key
                     return (
                       <button key={t.key} onClick={() => onDraft({ world_theme: t.key })}
-                        style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'all .2s' }}>
+                        style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
                         <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', lineHeight: 1, ...nameSkin(t.key) }}>Aa</span>
                         <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', textTransform: 'uppercase', color: active ? BONE : BONE_LOW }}>{t.label}</span>
                       </button>

@@ -108,7 +108,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
           return (
             <button key={d.key} className="pressable" data-testid={`taste-domain-${d.key}`} aria-pressed={on}
               onClick={() => setDomain(d.key)}
-              style={{ flex: 1, minHeight: '54px', background: on ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px solid ${on ? 'rgba(199,201,209,.45)' : HAIR_HI}`, borderRadius: '10px', padding: '9px 6px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'all .2s ease' }}>
+              style={{ flex: 1, minHeight: '54px', background: on ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px solid ${on ? 'rgba(199,201,209,.45)' : HAIR_HI}`, borderRadius: '10px', padding: '9px 6px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'background .2s ease, border-color .2s ease, transform .2s ease' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Mark type={d.mark} size={10} color={on ? BONE : BONE_LOW} />
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: on ? BONE : BONE_MID }}>{d.label}{n > 0 ? ` · ${n}` : ''}</span>
@@ -163,7 +163,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
                 return (
                   <button key={it.id} className="pressable" data-testid={`taste-opt-${it.slug}`} aria-pressed={on}
                     onClick={() => toggle(domain, it.label)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', borderRadius: '100px', padding: '8px 14px', background: on ? 'rgba(199,201,209,.1)' : 'transparent', border: `1px solid ${on ? 'rgba(199,201,209,.5)' : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: on ? '0 0 12px rgba(199,201,209,.1)' : 'none' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', borderRadius: '100px', padding: '8px 14px', background: on ? 'rgba(199,201,209,.1)' : 'transparent', border: `1px solid ${on ? 'rgba(199,201,209,.5)' : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease', boxShadow: on ? '0 0 12px rgba(199,201,209,.1)' : 'none' }}>
                     <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: on ? SILVER : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                     {it.label}
                   </button>
@@ -194,7 +194,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
                     const pub = !!t.is_public
                     return (
                       <span key={`${t.domain}:${kb}`} data-testid={`taste-chip-${t.domain}-${kb}`}
-                        style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: '100px', border: `1px solid ${pub ? 'rgba(242,238,230,.45)' : HAIR_HI}`, background: pub ? 'rgba(242,238,230,.07)' : 'rgba(242,238,230,.02)', overflow: 'hidden', transition: 'all .25s ease' }}>
+                        style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: '100px', border: `1px solid ${pub ? 'rgba(242,238,230,.45)' : HAIR_HI}`, background: pub ? 'rgba(242,238,230,.07)' : 'rgba(242,238,230,.02)', overflow: 'hidden', transition: 'background .25s ease, border-color .25s ease' }}>
                         <button className="pressable" onClick={() => remove(t.domain, t.label)} aria-label={`Remove ${t.label}`} title="tap to remove"
                           style={{ display: 'inline-flex', alignItems: 'center', background: 'transparent', border: 'none', padding: '10px 6px 10px 13px', cursor: 'pointer', minHeight: '40px' }}>
                           <span style={{ fontFamily: 'DM Mono', fontSize: '10.5px', letterSpacing: '.06em', color: pub ? BONE : BONE_MID }}>{t.label}</span>

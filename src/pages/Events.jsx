@@ -123,7 +123,7 @@ export default function Events() {
           {/* the house door — the flagship world (D4): what a world IS,
               shown not explained */}
           <button className="pressable" data-testid="house-door" onClick={() => navigate('/c4')}
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color .2s, color .2s, transform .2s', marginBottom: '4px' }}
             onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(242,238,230,.4)'; e.currentTarget.style.color = BONE }}
             onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
             ◇ the house world <ArrowUpRight size={11} />
@@ -206,10 +206,8 @@ export default function Events() {
 
             {/* the archive — where the past editions live */}
             {pastCount > 0 && (
-              <button className="pressable" onClick={() => navigate('/editions')}
-                style={{ marginTop: wide ? '36px' : '26px', width: '100%', display: 'flex', alignItems: 'center', gap: '14px', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderBottom: `1px solid ${HAIR}`, padding: '16px 2px', cursor: 'pointer', textAlign: 'left', transition: 'padding-left .2s ease' }}
-                onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-                onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+              <button className="row-lead" onClick={() => navigate('/editions')}
+                style={{ marginTop: wide ? '36px' : '26px', width: '100%', display: 'flex', alignItems: 'center', gap: '14px', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderBottom: `1px solid ${HAIR}`, padding: '16px 2px', cursor: 'pointer', textAlign: 'left' }}>
                 <Archive size={15} style={{ color: SILVER, flexShrink: 0 }} strokeWidth={1.6} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE, letterSpacing: '.03em', lineHeight: 1 }}>PAST EDITIONS</span>

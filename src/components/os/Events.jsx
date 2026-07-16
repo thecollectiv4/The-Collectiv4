@@ -256,7 +256,7 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
                 <button key={kind} type="button" data-testid={`vibe-${kind}`} aria-pressed={on}
                   className={pulseClass}
                   onClick={() => set('vibeKind', on ? '' : kind)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '8px 15px', background: on ? `rgba(${v.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${v.tint},.55)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '8px 15px', background: on ? `rgba(${v.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${v.tint},.55)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, filter .2s, transform .2s' }}>
                   <span aria-hidden style={{ fontSize: '10px', color: on ? `rgb(${v.tint})` : BONE_LOW }}>{v.mark}</span>
                   {v.label}
                 </button>

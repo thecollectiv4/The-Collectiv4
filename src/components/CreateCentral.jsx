@@ -213,10 +213,8 @@ function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, 
           <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, marginTop: '10px', ...chromeText }}>PUT SOMETHING<br />INTO THE WORLD</div>
           <div style={{ marginTop: '16px' }}>
             {DOORS.map((d, i) => (
-              <button key={d.key} className="pressable" data-testid={`create-door-${d.key}`} onClick={() => setStage(d.key)}
-                style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === DOORS.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '19px 2px' : '17px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-                onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-                onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+              <button key={d.key} className="row-lead" data-testid={`create-door-${d.key}`} onClick={() => setStage(d.key)}
+                style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === DOORS.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '19px 2px' : '17px 2px', cursor: 'pointer' }}>
                 <span aria-hidden style={{ width: '46px', height: '46px', flexShrink: 0, borderRadius: '13px', border: `1px solid rgba(${d.tint},.28)`, background: `rgba(${d.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${d.tint},.08)` }}>
                   <Mark type={d.mark} size={18} color={`rgb(${d.tint})`} />
                 </span>
@@ -244,10 +242,8 @@ function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, 
 function IntentRow({ r, last, wide }) {
   const Icon = r.icon
   return (
-    <button className="pressable" onClick={r.onGo}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+    <button className="row-lead" onClick={r.onGo}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer' }}>
       <span aria-hidden style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid rgba(${r.tint},.28)`, background: `rgba(${r.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${r.tint},.08)` }}>
         {r.mark
           ? <Mark type={r.mark} size={16} color={`rgb(${r.tint})`} />

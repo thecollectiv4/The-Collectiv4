@@ -186,7 +186,7 @@ export default function Community() {
               back to the switch (Ley 9: every click keeps its promise) */}
           {showDemo && (
             <button data-testid="seed-visible-pill" onClick={() => navigate('/os?tab=moderation')}
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}>
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: '4px' }}>
               <Eye size={12} /> seed visible · manage in /os
             </button>
           )}
@@ -330,7 +330,7 @@ function FilterRow({ label, value, onChange, options }) {
         {all.map(opt => {
           const on = value === opt
           return (
-            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {opt === 'all' ? 'All' : opt}
             </button>
           )
@@ -355,7 +355,7 @@ function CraftFilterRow({ value, onChange, options }) {
           return (
             <button key={opt.slug} className="pressable" data-testid={`craft-filter-${opt.slug}`}
               onClick={() => onChange(on && opt.slug !== 'all' ? 'all' : opt.slug)}
-              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${meta.tint},.6)` : HAIR_HI}`, background: on ? `rgba(${meta.tint},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', boxShadow: on ? `0 0 12px rgba(${meta.tint},.12)` : 'none' }}>
+              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${meta.tint},.6)` : HAIR_HI}`, background: on ? `rgba(${meta.tint},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', boxShadow: on ? `0 0 12px rgba(${meta.tint},.12)` : 'none' }}>
               {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${meta.tint})` }}>{meta.mark}</span>}
               {opt.name}
               {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, marginLeft: '2px' }}>×</span>}

@@ -84,14 +84,21 @@ a { color: inherit; text-decoration: none; }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-@keyframes countPulse { 0%,100% { box-shadow:0 0 0 0 rgba(242,238,230,.12); } 50% { box-shadow:0 0 14px 4px rgba(242,238,230,.06); } }
-@keyframes glowPulse { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+@keyframes glowFade { 0%,100% { opacity:0; } 50% { opacity:1; } }
 
 .fade-up   { animation: fadeUp 0.55s var(--ease-house) forwards; }
 .fade-up-1 { animation: fadeUp 0.55s var(--ease-house) 0.1s forwards; opacity:0; }
 .fade-up-2 { animation: fadeUp 0.55s var(--ease-house) 0.2s forwards; opacity:0; }
 .fade-up-3 { animation: fadeUp 0.55s var(--ease-house) 0.3s forwards; opacity:0; }
 .fade-up-4 { animation: fadeUp 0.55s var(--ease-house) 0.45s forwards; opacity:0; }
+
+/* the event hero's pulses. The countdown glow is a pseudo-element whose
+   OPACITY animates — the shadow rasterizes once instead of every frame
+   (an infinite box-shadow keyframe repaints for as long as the page is
+   open). The live dots become a class so reduced motion can silence them. */
+.glow-pulse { position: relative; }
+.glow-pulse::after { content:''; position:absolute; inset:-2px; border-radius:inherit; box-shadow:0 0 14px 4px rgba(242,238,230,.10); opacity:0; animation: glowFade 3s ease-in-out infinite; pointer-events:none; }
+.pulse-dot { animation: pulse 2s infinite; }
 
 /* Page transitions */
 @keyframes pageIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -118,6 +125,17 @@ a { color: inherit; text-decoration: none; }
    ============================================================ */
 .pressable { transition: transform var(--dur-press) ease, opacity var(--dur-press) ease; }
 .pressable:not(:disabled):active { transform: translateY(1px) scale(.99); }
+
+/* catalog rows lead with the whole row on hover — transform, never padding
+   (padding reflows the row's text mid-hover); gated so touch taps don't
+   stick a fake hover. Includes the press settle, so it REPLACES .pressable
+   at these sites (never stack both — the transforms would collide). */
+.row-lead { transition: transform var(--dur-fast) var(--ease-house), border-color var(--dur-fast) var(--ease-house); }
+@media (hover: hover) and (pointer: fine) {
+  .row-lead:hover { transform: translateX(8px); }
+  .row-lead:hover:active { transform: translateX(8px) translateY(1px) scale(.99); }
+}
+.row-lead:not(:disabled):active { transform: translateY(1px) scale(.99); }
 
 /* ============================================================
    OVERLAY GRAMMAR — everything arrives from somewhere (Ley 13).
@@ -296,8 +314,11 @@ a { color: inherit; text-decoration: none; }
 }
 /* the banner breathes — slow, alive, never busy */
 @keyframes discBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
-.disc-banner img, .disc-banner svg { transform-origin: 50% 50%; }
-.disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation: discBreathe 6s ease-in-out infinite; }
+/* the animation is always ATTACHED and paused — un-hover freezes the scale
+   mid-cycle instead of snapping back (applying the keyframe only on :hover
+   yanks the transform off the element the moment the pointer leaves). */
+.disc-banner img, .disc-banner svg { transform-origin: 50% 50%; animation: discBreathe 6s ease-in-out infinite; animation-play-state: paused; }
+.disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation-play-state: running; }
 /* the name brightens — chrome belongs to the title alone (Ley 8) */
 .disc-name { color: #F2EEE6; transition: text-shadow .3s ease; }
 .disc-card:hover .disc-name { text-shadow: 0 0 18px rgba(242,238,230,.25); }
@@ -311,6 +332,7 @@ a { color: inherit; text-decoration: none; }
 @media (hover: none) {
   .disc-reveal { opacity: 1; transform: none; }
   .disc-card:hover { transform: none; }
+  .salon-piece:hover img { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -322,9 +344,16 @@ a { color: inherit; text-decoration: none; }
   .world-ticker { animation:none; }
   .os-root button:not(:disabled):active { transform:none; }
   .pressable:not(:disabled):active { transform:none; }
+  .glow-pulse::after, .pulse-dot { animation:none; }
+  /* the selectors MIRROR the base rules above — a bare `.row-lead:active`
+     would lose to `.row-lead:not(:disabled):active` (:not's argument counts
+     toward specificity), same reason `.pressable` spells it out in full. */
+  .row-lead, .row-lead:hover, .row-lead:hover:active, .row-lead:not(:disabled):active { transform:none; }
   .disc-card, .disc-reveal { transition:none; }
   .disc-card:hover { transform:none; }
+  .disc-banner img, .disc-banner svg,
   .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation:none; }
+  .salon-piece img { transition:none; }
   .sheet-up, .sheet-up-centered, .panel-in-right, .dialog-in, .menu-in { animation: overlayFade .2s ease; }
   .page-transition, .page-slide-right, .page-slide-left, .page-scale { animation: fadeIn .2s ease; }
   /* !important: several ceremony rows carry an INLINE animation-delay, and

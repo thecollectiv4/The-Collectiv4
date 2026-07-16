@@ -648,10 +648,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         <Marker mark={MARKS.sets} n={num.sets} label="SETS" kicker="where it plays next" wide={wide} />
         <div style={{ marginTop: '4px', maxWidth: wide ? '780px' : undefined }}>
           {upcomingSets.map((ev) => (
-            <button key={ev.id} className="pressable" onClick={() => ev.slug && navigate(`/e/${ev.slug}`)}
-              style={{ display: 'flex', alignItems: 'baseline', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '15px 6px', cursor: 'pointer', transition: 'all .25s ease' }}
-              onMouseOver={e => { e.currentTarget.style.paddingLeft = '14px'; e.currentTarget.style.borderColor = HAIR_HI }}
-              onMouseOut={e => { e.currentTarget.style.paddingLeft = '6px'; e.currentTarget.style.borderColor = HAIR }}>
+            <button key={ev.id} className="row-lead" onClick={() => ev.slug && navigate(`/e/${ev.slug}`)}
+              style={{ display: 'flex', alignItems: 'baseline', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '15px 6px', cursor: 'pointer' }}
+              onMouseOver={e => { e.currentTarget.style.borderColor = HAIR_HI }}
+              onMouseOut={e => { e.currentTarget.style.borderColor = HAIR }}>
               <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.1em', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '52px' }}>{fmtSetDate(ev.event_date)}</span>
               <span style={{ flex: 1, minWidth: 0, fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.03em', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
               {(ev.venue || ev.city) && (
@@ -824,7 +824,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: wide ? '6px' : '16px' }}>
             <button className="pressable" onClick={onFollowToggle} aria-pressed={social.iFollow}
               data-testid="follow-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', borderRadius: '100px', padding: '9px 20px', color: social.iFollow ? BONE : VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', borderRadius: '100px', padding: '9px 20px', color: social.iFollow ? BONE : VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
               {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
             </button>
@@ -835,22 +835,22 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
                   onClick={() => { if (window.confirm('¿deshacer amistad?')) friendship.onRemove?.() }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
                   amigos <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: '1px solid transparent', borderRadius: '100px', padding: '9px 18px', color: VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: '1px solid transparent', borderRadius: '100px', padding: '9px 18px', color: VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
                   accept amigo?
                 </button>
               ) : friendship.state === 'out' ? (
                 <button className="pressable" data-testid="friend-btn" aria-disabled
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_LOW, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'default', transition: 'all .2s' }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_LOW, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'default', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
                   pending
                 </button>
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}
                   onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
                   onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
                   + amigo
@@ -858,7 +858,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               )
             )}
             <button className="pressable" onClick={onMessage} data-testid="message-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'all .2s' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
               onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
               onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
@@ -894,7 +894,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: wide ? '2px' : '16px' }}>
             {links.map((l, i) => (
               <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer" className="pressable"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'all .2s' }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'border-color .2s, color .2s, transform .2s' }}
                 onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'; e.currentTarget.style.color = BONE }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
                 {l.label || hostOf(l.url)}
@@ -957,12 +957,12 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.1em' }}>{completeness.pct}%</span>
                 </div>
                 <div style={{ height: '1px', background: HAIR, position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${completeness.pct}%`, background: SILVER, opacity: .7, transition: 'width .5s ease' }} />
+                  <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', transform: `scaleX(${completeness.pct / 100})`, transformOrigin: 'left', background: SILVER, opacity: .7, transition: 'transform .5s var(--ease-house)' }} />
                 </div>
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'all .2s' }}
+              <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'background .2s, border-color .2s, transform .2s' }}
                 onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.11)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
                 onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
                 <Edit3 size={12} /> {completeness.pct < 100 ? 'Build your world →' : 'Curate your world'}
@@ -1005,7 +1005,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   const active = theme === t.key
                   return (
                     <button key={t.key} onClick={() => setTheme(t.key)}
-                      style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'all .2s' }}>
+                      style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
                       <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', lineHeight: 1, ...nameSkin(t.key) }}>Aa</span>
                       <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', textTransform: 'uppercase', color: active ? BONE : BONE_LOW }}>{t.label}</span>
                     </button>
@@ -1095,7 +1095,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   </div>
                   <button className="pressable" data-testid={`room-toggle-${r.key}`} onClick={() => toggleRoom(r.key)} aria-pressed={r.on} aria-disabled={lastOn}
                     title={lastOn ? 'a world needs at least one open room' : undefined}
-                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(199,201,209,.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(199,201,209,.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: lastOn ? 'default' : 'pointer', flexShrink: 0, transition: 'all .2s' }}>
+                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(199,201,209,.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(199,201,209,.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: lastOn ? 'default' : 'pointer', flexShrink: 0, transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
                     {r.on ? 'ON' : 'OFF'}
                   </button>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
@@ -1123,7 +1123,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               mid-upload would drop the image and orphan its storage object */}
           <div style={{ display: 'flex', gap: '10px' }}>
             <button onClick={cancelEdit} disabled={galUploading > 0} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: galUploading > 0 ? 'default' : 'pointer', fontFamily: 'DM Sans', opacity: galUploading > 0 ? .5 : 1 }}>Cancel</button>
-            <button onClick={save} disabled={saving || galUploading > 0} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: (saving || galUploading > 0) ? .6 : 1, transition: 'all .2s' }}>{saving ? 'Saving…' : galUploading > 0 ? 'Uploading…' : 'Save your world'}</button>
+            <button onClick={save} disabled={saving || galUploading > 0} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: (saving || galUploading > 0) ? .6 : 1, transition: 'opacity .2s' }}>{saving ? 'Saving…' : galUploading > 0 ? 'Uploading…' : 'Save your world'}</button>
           </div>
         </div>
       ) : (
@@ -1439,9 +1439,9 @@ function Track({ index, value }) {
   const link = p && p.kind === 'link' ? p : null
   const text = link ? (link.host || value) : value
   const inner = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '15px 6px', borderBottom: `1px solid ${HAIR}`, color: BONE, transition: 'all .25s ease' }}
-      onMouseOver={e => { e.currentTarget.style.paddingLeft = '14px'; e.currentTarget.style.borderColor = HAIR_HI }}
-      onMouseOut={e => { e.currentTarget.style.paddingLeft = '6px'; e.currentTarget.style.borderColor = HAIR }}>
+    <div className="row-lead" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '15px 6px', borderBottom: `1px solid ${HAIR}`, color: BONE }}
+      onMouseOver={e => { e.currentTarget.style.borderColor = HAIR_HI }}
+      onMouseOut={e => { e.currentTarget.style.borderColor = HAIR }}>
       <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: SILVER, opacity: .7, minWidth: '20px' }}>{String(index).padStart(2, '0')}</span>
       <span style={{ flex: 1, fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.03em', color: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
       {link && <ArrowUpRight size={15} style={{ color: SILVER, flexShrink: 0 }} />}
@@ -1602,7 +1602,7 @@ function MediaCard({ item, full, featured }) {
 
   // link
   return (
-    <a href={p.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 18px', borderRadius: '14px', border: `1px solid ${HAIR_HI}`, background: CARD, textDecoration: 'none', transition: 'all .2s' }}
+    <a href={p.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 18px', borderRadius: '14px', border: `1px solid ${HAIR_HI}`, background: CARD, textDecoration: 'none', transition: 'border-color .2s, transform .2s' }}
       onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'; e.currentTarget.style.transform = 'translateX(3px)' }}
       onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.transform = 'translateX(0)' }}>
       <div style={{ flex: 1, minWidth: 0 }}>

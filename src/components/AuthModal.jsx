@@ -70,7 +70,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
         {/* Toggle */}
         <div style={{display:'flex',gap:'4px',marginBottom:'20px',background:'var(--bg-raised)',borderRadius:'10px',padding:'3px'}}>
           {['signin','signup'].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} style={{flex:1,background:mode===m?'rgba(242,238,230,.08)':'transparent',border:'none',borderRadius:'8px',padding:'8px',color:mode===m?'var(--cream)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'all .2s'}}>
+            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} style={{flex:1,background:mode===m?'rgba(242,238,230,.08)':'transparent',border:'none',borderRadius:'8px',padding:'8px',color:mode===m?'var(--cream)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'background .2s, color .2s'}}>
               {m==='signin'?'Sign In':'Create Account'}
             </button>
           ))}
@@ -100,7 +100,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
         {error && <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'#E5A0A0',marginTop:'10px',textAlign:'center'}}>{error}</div>}
         {notice && <div style={{fontSize:'11px',color:'var(--cream-mid)',marginTop:'10px',textAlign:'center',lineHeight:1.5}}>{notice}</div>}
 
-        <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px',color:'var(--bg)',fontWeight:600,fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans',marginTop:'16px',opacity:loading?.6:1,transition:'all .2s'}}
+        <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px',color:'var(--bg)',fontWeight:600,fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans',marginTop:'16px',opacity:loading?.6:1,transition:'transform .2s, opacity .2s'}}
           onMouseOver={e=>{if(!loading){e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(242,238,230,.15)'}}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           {loading?'...':mode==='signin'?'Sign In':'Create Account'}

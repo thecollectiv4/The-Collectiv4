@@ -586,10 +586,8 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
 /* the door rows — START A CREW / MAKE A PLAN, in the inbox row grammar */
 function CreateRow({ testid, title, kicker, onGo }) {
   return (
-    <button className="pressable" data-testid={testid} onClick={onGo}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', minHeight: '44px', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, marginTop: '10px', padding: '14px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+    <button className="row-lead" data-testid={testid} onClick={onGo}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', minHeight: '44px', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, marginTop: '10px', padding: '14px 2px', cursor: 'pointer' }}>
       <span style={{ width: '42px', height: '42px', borderRadius: '50%', border: `1px dashed ${HAIR_HI}`, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Mark type="plus" size={14} color={SILVER} />
       </span>
@@ -612,10 +610,8 @@ function InboxRow({ t, me, last, onOpen }) {
   const avatar = safeImg(face?.avatar_url)
   const kicker = t.kind === 'event' ? 'room' : t.kind === 'group' ? 'crew' : t.kind === 'plan' ? 'plan' : null
   return (
-    <button className="pressable" onClick={onOpen}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: '14px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+    <button className="row-lead" onClick={onOpen}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: '14px 2px', cursor: 'pointer' }}>
       {/* the face — or the room's mark: calendar for events, square for
           crews, star for plan rooms (Ley 6 / Ley 14) */}
       <span style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${t.unread ? SILVER : HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -759,7 +755,7 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
 function RsvpBtn({ testid, on, label, mark, onClick }) {
   return (
     <button className="pressable" data-testid={testid} onClick={onClick} aria-pressed={on}
-      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
+      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
       <Mark type={mark} size={10} color={on ? BONE : BONE_LOW} />
       {label}
     </button>
@@ -910,7 +906,7 @@ function VisibilityPicker({ value, onChange, disabled, compact }) {
           return (
             <button key={t} type="button" className="pressable" data-testid={`plan-vis-${t}`} disabled={disabled}
               onClick={() => onChange(t)} aria-pressed={on}
-              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'all .2s' }}>
+              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s, transform .2s' }}>
               <Icon size={compact ? 11 : 14} strokeWidth={1.6} fill={t === 'close' && on ? STAR : 'none'} color={on ? (t === 'close' ? STAR : BONE) : BONE_LOW} />
               <span style={{ fontFamily: 'DM Mono', fontSize: compact ? '8px' : '8.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{VIS_LABEL[t]}</span>
             </button>
