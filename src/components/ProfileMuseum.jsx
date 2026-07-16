@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
@@ -14,6 +14,7 @@ import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness, MODULES, normModules, defaultModulesFor, craftKindOf } from '@/lib/world'
 import { craftLine, saveProfileCrafts, categoryMeta, kindOfCrafts } from '@/lib/crafts'
 import { TASTE_DOMAINS } from '@/lib/tastes'
+import { EASE_HOUSE_ARR } from '@/lib/cosmos'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
 const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2)}`)
@@ -98,11 +99,16 @@ const normMedia = (m) => (Array.isArray(m) ? m.filter(x => x && safeUrl(x.url)) 
 // --- film grain: a real texture layer, cheap + no asset ---
 
 // --- scroll-reveal preset (framer-motion) ---
-const reveal = {
-  initial: { opacity: 0, y: 26 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: '-60px' },
-  transition: { duration: 0.7, ease: [0.22, 0.61, 0.36, 1] },
+// full transform strings: GPU-composited (y/scale shorthands run on the main
+// thread); reduced-motion collapses to opacity-only. House curve.
+const useReveal = () => {
+  const reduced = useReducedMotion()
+  return {
+    initial: { opacity: 0, transform: reduced ? 'none' : 'translateY(26px)' },
+    whileInView: { opacity: 1, transform: 'translateY(0px)' },
+    viewport: { once: true, margin: '-60px' },
+    transition: { duration: 0.7, ease: EASE_HOUSE_ARR },
+  }
 }
 
 const inp = { width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '13px 15px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none', transition: 'border-color .2s' }
@@ -130,6 +136,8 @@ const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-
 export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const navigate = useNavigate()                       // SETS rows walk into their event rooms
+  const reveal = useReveal()                           // scroll-reveal preset (reduced-motion aware)
+  const reducedMotion = useReducedMotion()             // the cover holds still when motion is reduced
   // v8 (D2): this world claims the app's shared sky — its own deterministic
   // stars, tinted by the primary craft's temperature (Ley 14). Must run
   // before any early return (hooks law); falls back to instrument silver.
@@ -673,7 +681,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
       <div style={{ position: 'relative', height: wide ? 'clamp(420px, 60vh, 600px)' : 'clamp(340px, 56vh, 440px)', overflow: 'hidden', background: cover ? VOID : 'transparent' }}>
         {cover
-          ? <motion.img src={cover} alt="" initial={{ scale: 1.12 }} animate={{ scale: 1 }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : (
             /* no cover → the open sky (the page's constellation) + monogram
                (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
