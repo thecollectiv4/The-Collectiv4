@@ -40,8 +40,6 @@ const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const WARN = '#E5A0A0'
 
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
 const inp = { width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }
 const monoLabel = { fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }
@@ -399,7 +397,8 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
     // z 10000: ABOVE Layout's bottom nav (9999) — the nav must never cover
     // the sheet's own footer (Back / Next / Publish)
     <div role="dialog" aria-label="Build your world" style={shell}>
-      <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
+      {/* the app-wide grain varnishes the sheet; the solid void behind it is
+          the builder's silence — where you write, the galaxy shuts up (D2) */}
 
       {/* header: progress + meter + close */}
       <div style={{ padding: wide ? '20px 24px 0' : '14px 18px 0', position: 'relative' }}>

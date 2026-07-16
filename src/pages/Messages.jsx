@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom'
 import { useNavigate, useParams, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { useWide } from '@/lib/useIsDesktop'
-import Constellation from '@/components/Constellation'
 import AuthResolving from '@/components/AuthResolving'
 import Mark from '@/components/Mark'
 import {
@@ -42,10 +41,8 @@ const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const WARN = '#E5A0A0'
-const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 
@@ -576,7 +573,6 @@ function Sheet({ label, busy, onClose, children }) {
         style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'fadeIn .25s ease' }} />
       <div role="dialog" aria-modal="true" aria-label={label}
         style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '460px', zIndex: 10000, background: VOID, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '82dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div aria-hidden style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
         {children}
       </div>
     </>,
@@ -854,7 +850,8 @@ function Thread({ threadId, me, wide }) {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', display: 'flex', flexDirection: 'column' }}>
-      <Constellation seed={`thread-${threadId}`} quiet tint="232,233,237" />
+      {/* the sky is the app's shared atmosphere (v8 D2) — QUIET register:
+          where people read each other, the galaxy shuts up */}
 
       {/* header — who this room is (tap the name: their world / the event) */}
       <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(10,10,13,.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: `1px solid ${HAIR}` }}>
@@ -952,7 +949,6 @@ function Thread({ threadId, me, wide }) {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 5 }} />
     </div>
   )
 }
@@ -961,11 +957,10 @@ function Thread({ threadId, me, wide }) {
 function Shell({ children, wide }) {
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
-      <Constellation seed="the-conversations" quiet tint="232,233,237" />
+      {/* quiet register of the shared atmosphere — grain and a far star */}
       <div style={{ position: 'relative', zIndex: 2, padding: wide ? '34px clamp(40px, 5vw, 76px) 70px' : '22px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
         {children}
       </div>
-      <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 20 }} />
     </div>
   )
 }

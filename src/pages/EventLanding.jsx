@@ -7,6 +7,7 @@ import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight, Loader2, MessagesSquare } from 'lucide-react'
 import { socialReady, joinEventChat, setAttendanceVisibility, VIS_TIERS, VIS_LABEL } from '@/lib/social'
 import { resolveLineupWorlds, normVibe, vibeMeta, experienceTemp } from '@/lib/match'
+import { useCosmosOverride } from '@/components/Atmosphere'
 
 /* The root landing: THE house event, from the single source of truth
    (useLiveEvent). The composition itself lives in EventShow — /e/:slug
@@ -89,6 +90,15 @@ export function EventShow({ live }) {
   const experiences = event?.experiences || []
   const vibe = normVibe(event?.vibe)               // the declared character (0021)
   const vMeta = vibe?.kind ? vibeMeta(vibe.kind) : null
+
+  // v8 (D2): the event hero claims the shared sky — DENSE register (this is
+  // the stage), tinted by the night's declared vibe (Ley 14). No declared
+  // vibe → warm bone, the temperature of nights.
+  useCosmosOverride(
+    event ? `event-${event.slug || event.id}` : undefined,
+    event ? (vMeta?.tint || '242,238,230') : undefined,
+    event ? 'dense' : undefined,
+  )
 
   // resolve the lineup against real worlds — the names become doors (D2)
   useEffect(() => {
@@ -185,7 +195,9 @@ export function EventShow({ live }) {
   }
 
   return (
-    <div style={{background:'radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.05) 0%, rgba(242,238,230,0) 55%), #0A0A0D',minHeight:'100vh'}}>
+    /* transparent over the shared atmosphere (v8 D1): the room's sky is the
+       dense register with the vibe's temperature — no solid void on top */
+    <div style={{position:'relative',zIndex:1,background:'radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.05) 0%, rgba(242,238,230,0) 55%)',minHeight:'100vh'}}>
 
       {/* HEADER — phone only; on wide the Layout header carries the brand */}
       {!wide && <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,10,13,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,238,230,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>

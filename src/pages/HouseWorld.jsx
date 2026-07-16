@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useWide } from '@/lib/useIsDesktop'
-import Constellation from '@/components/Constellation'
 import Mark from '@/components/Mark'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { normListings, priceLabel, KINDS } from '@/lib/listings'
@@ -31,10 +30,8 @@ const STAR = '#E8E9ED'
 const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase() : 'DATE TBA'
@@ -110,7 +107,8 @@ export default function HouseWorld() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
-      <Constellation seed="the-collectiv4-house" quiet tint="242,238,230" />
+      {/* the sky is the app's shared atmosphere (v8 D1) — /c4 is the stage:
+          DENSE register, links alive. The flagship wears the full galaxy. */}
 
       {/* the house marquee — the welcome, once (Ley 8) */}
       <div style={{ position: 'relative', zIndex: 3, borderBottom: `1px solid ${HAIR}`, background: VOID }}>
@@ -202,7 +200,9 @@ export default function HouseWorld() {
                             <span className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
                             <BadgeCheck size={13} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 5px rgba(232,233,237,.5))' }} />
                           </div>
-                          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: lead ? `rgb(${meta.tint})` : BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {/* the craft is identity — it clamps to two lines,
+                              never dies mid-word (panel catch, Ley 5) */}
+                          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: lead ? `rgb(${meta.tint})` : BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>
                             {lead ? `${lead.name}${crafts.length > 1 ? ` +${crafts.length - 1}` : ''}` : (p.discipline || 'in the network')}
                           </div>
                         </div>
@@ -282,7 +282,7 @@ export default function HouseWorld() {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 20 }} />
+      {/* grain lives in the app-wide varnish now (v8: one grain, 5%, over all) */}
     </div>
   )
 }

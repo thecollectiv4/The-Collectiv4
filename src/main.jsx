@@ -18,8 +18,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 }
 
 /* A crash anywhere in the tree shows a calm cosmos fallback instead of a
-   white screen (the v2 Constellation crash that took the whole app down is
-   exactly this class of failure). When the DSN is set, it's also reported.
+   white screen (the v2 sky-canvas crash that took the whole app down is
+   exactly this class of failure — decoration, now Atmosphere.jsx, must
+   never take the page with it). When the DSN is set, it's also reported.
    Inline styles + system tokens so the fallback can't itself depend on
    anything that might be the thing that broke. */
 function CrashFallback() {

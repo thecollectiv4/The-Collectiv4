@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
-import Constellation from '@/components/Constellation'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
 import { normVibe, vibeMeta } from '@/lib/match'
 
@@ -30,10 +29,8 @@ const STAR = '#E8E9ED'
 const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(176deg,#EEF0F4 0%,#BFC2CB 20%,#83868F 40%,#F7F9FD 52%,#7E818A 63%,#CED1DA 82%,#9497A0 100%)'
+const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
-const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='150' height='150'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
-const GRAIN = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 function hash(s = '') { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h }
@@ -106,8 +103,8 @@ export default function Events() {
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
-      {/* the sky — warm bone temperature: this is where nights happen (Ley 14) */}
-      <Constellation seed="the-rooms" quiet tint="242,238,230" />
+      {/* the sky is the app's shared atmosphere (v8 D1) — warm bone here,
+          medium register: this is where nights happen (Ley 14) */}
       <div style={{ position: 'relative', zIndex: 2, padding: wide ? '34px clamp(40px, 5vw, 76px) 70px' : '22px 22px 40px', maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined }}>
 
         {/* header — the title answers with the count beside it (Leyes 2, 7).
@@ -184,7 +181,9 @@ export default function Events() {
                 <div style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                   <MiniStars seed="no-rooms" k={wide ? 0.3 : 0.6} />
                   <div style={{ position: 'relative' }}>
-                    <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '84px' : '54px', lineHeight: .85, ...chromeText }}>00</div>
+                    {/* bone, not chrome — the page title owns this screen's
+                        one chrome moment (Ley 8, v8 D3) */}
+                    <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '84px' : '54px', lineHeight: .85, color: BONE, opacity: .92 }}>00</div>
                     <h2 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '36px' : '28px', letterSpacing: '.03em', lineHeight: .95, margin: '10px 0 0', color: BONE }}>NO ROOMS OPEN TONIGHT</h2>
                     <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '12px 0 0', maxWidth: '340px' }}>
                       The next one is being built. Stay close — the room always comes back.
@@ -219,12 +218,22 @@ export default function Events() {
                 <ArrowUpRight size={15} style={{ color: SILVER, flexShrink: 0 }} />
               </button>
             )}
+
+            {/* the close — the page ends on purpose, not by running out
+                (panel catch, Ley 4): the house signature anchors the void */}
+            <div style={{ marginTop: wide ? '54px' : '38px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+              <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
+              <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                Pato Durán & Diego Villaseñor · Founders
+              </span>
+              <span style={{ fontFamily: 'Bebas Neue', fontSize: '15px', color: SILVER }}>4</span>
+              <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />
+            </div>
           </>
         )}
       </div>
 
-      {/* page-wide film grain */}
-      <div style={{ position: 'absolute', inset: 0, background: GRAIN, backgroundSize: '150px 150px', opacity: 0.04, mixBlendMode: 'overlay', pointerEvents: 'none', zIndex: 20 }} />
+      {/* grain lives in the app-wide varnish now (v8: one grain, 5%, over all) */}
     </div>
   )
 }

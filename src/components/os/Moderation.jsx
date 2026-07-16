@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Loader2, Search, ShieldCheck, ShieldAlert, BadgeCheck, Shield, Trash2, RotateCcw } from 'lucide-react'
+import { Loader2, Search, ShieldCheck, ShieldAlert, BadgeCheck, Shield, Trash2, RotateCcw, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, CARD, HAIR, HAIR_HI, WARN, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, safeImg, relTime } from '@/lib/cosmos'
 
@@ -49,6 +49,12 @@ export default function Moderation() {
   const [pending, setPending] = useState(null)
   const [confirmPurge, setConfirmPurge] = useState(null)   // id awaiting a second tap
   const [reload, setReload] = useState(0)
+  // SHOW SEED (v8 adición C) — the founders' deliberate door back into the
+  // 112 demo personas. Default OFF: since 0033 the seed is invisible to
+  // every consumer surface (RLS floor); this preference only re-opens the
+  // Community preview for THIS founder's browser. Nothing is deleted.
+  const [seedVisible, setSeedVisible] = useState(() => { try { return localStorage.getItem('c4_seed_visible') === '1' } catch { return false } })
+  const toggleSeed = () => setSeedVisible(v => { const n = !v; try { localStorage.setItem('c4_seed_visible', n ? '1' : '0') } catch { /* private mode */ } return n })
 
   useEffect(() => {
     let alive = true
@@ -123,9 +129,16 @@ export default function Moderation() {
   return (
     <div style={{ maxWidth: '820px' }}>
       {/* count line — honest totals, seed kept apart */}
-      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '2px 0 12px', display: 'flex', alignItems: 'center', gap: '9px' }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '2px 0 12px', display: 'flex', alignItems: 'center', gap: '9px', flexWrap: 'wrap' }}>
         <span>{String(real).padStart(2, '0')} real · {String(purged).padStart(2, '0')} purged · {String(accounts.length).padStart(2, '0')} registered</span>
         <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
+        {/* the seed's one door (v8 C): default OFF — founders see the real
+            platform like everyone else; this reopens the preview on purpose */}
+        <button data-testid="show-seed-toggle" onClick={toggleSeed}
+          title="Show the demo seed in Community's preview (this browser only)"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: seedVisible ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${seedVisible ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '5px 12px', color: seedVisible ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
+          {seedVisible ? <Eye size={11} /> : <EyeOff size={11} />} show seed · {seedVisible ? 'on' : 'off'}
+        </button>
       </div>
 
       {/* filter chips */}
