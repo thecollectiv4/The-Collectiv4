@@ -428,32 +428,36 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                   {meetIdx > 1 && answers.feel.trim() && <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>— it should feel · <span style={{ color: BONE_MID }}>{answers.feel.trim()}</span></div>}
                 </div>
               )}
-              <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>{q.kicker}</div>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '24px', letterSpacing: '.03em', lineHeight: 1.02, marginTop: '6px', ...chromeDisplayText }}>{q.title}</div>
-              <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{q.why}</p>
+              {/* the beat — keyed on the question so each one surfaces on its
+                  own; the transcript above stays put and never re-animates */}
+              <div key={meetIdx} className="beat-in">
+                <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>{q.kicker}</div>
+                <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '24px', letterSpacing: '.03em', lineHeight: 1.02, marginTop: '6px', ...chromeDisplayText }}>{q.title}</div>
+                <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{q.why}</p>
 
-              {q.key === 'craft' ? (
-                <CraftPicker value={picked} primaryId={primaryId} autoFocus={wide}
-                  onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
-              ) : q.key !== 'show' ? (
-                <input autoFocus={wide} style={inp} value={answers[q.key]} placeholder={q.placeholder} maxLength={120}
-                  onChange={(e) => setAnswers(a => ({ ...a, [q.key]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && canNext) meetNext() }} />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {SHOW_OPTIONS.map((o) => {
-                    const on = answers.show.includes(o.key)
-                    return (
-                      <button key={o.key} aria-pressed={on} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
-                        style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'all .2s' }}>
-                        <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: on ? BONE : BONE_LOW }}>{on ? '◆' : '◇'}</span>
-                        <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID }}>{o.label}</span>
-                      </button>
-                    )
-                  })}
-                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '2px' }}>pick what's real today — or nothing, and the world waits with you.</div>
-                </div>
-              )}
+                {q.key === 'craft' ? (
+                  <CraftPicker value={picked} primaryId={primaryId} autoFocus={wide}
+                    onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
+                ) : q.key !== 'show' ? (
+                  <input autoFocus={wide} style={inp} value={answers[q.key]} placeholder={q.placeholder} maxLength={120}
+                    onChange={(e) => setAnswers(a => ({ ...a, [q.key]: e.target.value }))}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && canNext) meetNext() }} />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {SHOW_OPTIONS.map((o) => {
+                      const on = answers.show.includes(o.key)
+                      return (
+                        <button key={o.key} aria-pressed={on} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'all .2s' }}>
+                          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: on ? BONE : BONE_LOW }}>{on ? '◆' : '◇'}</span>
+                          <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID }}>{o.label}</span>
+                        </button>
+                      )
+                    })}
+                    <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '2px' }}>pick what's real today — or nothing, and the world waits with you.</div>
+                  </div>
+                )}
+              </div>
               {err && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '12px' }}>⚠ {err}</div>}
             </div>
             <div style={{ position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
@@ -484,9 +488,13 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
 
       {/* ======================= THE COMPOSITION BEAT ======================= */}
       {stage === 'compose' && (
-        <div style={{ padding: wide ? '40px 24px' : '32px 18px', position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', minHeight: '200px' }}>
-          <Loader2 size={18} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.24em', textTransform: 'uppercase' }}>composing your world…</div>
+        <div style={{ padding: wide ? '40px 24px' : '32px 18px', position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
+          {/* the wait is a beat too — it surfaces instead of cutting in, and
+              the plan that follows surfaces the same way (mounts once) */}
+          <div className="beat-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
+            <Loader2 size={18} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
+            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.24em', textTransform: 'uppercase' }}>composing your world…</div>
+          </div>
         </div>
       )}
 
@@ -494,27 +502,35 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
       {stage === 'plan' && plan && (
         <>
           <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>composed for you</div>
-            <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', letterSpacing: '.03em', lineHeight: 1, marginTop: '6px', ...chromeDisplayText }}>
+            <div className="rise" style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>composed for you</div>
+            <div className="rise rise-1" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', letterSpacing: '.03em', lineHeight: 1, marginTop: '6px', ...chromeDisplayText }}>
               {plan.kind === 'sound' ? 'A SOUND WORLD' : plan.kind === 'word' ? 'A WRITTEN WORLD' : plan.kind === 'visual' ? 'A VISUAL WORLD' : 'YOUR WORLD'}
             </div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 14px' }}>
+            <p className="rise rise-2" style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 14px' }}>
               {plan.kind === 'sound' ? 'Your sound leads — the links that play you come first, visuals behind them.'
                 : plan.kind === 'word' ? 'Your words lead — one piece opens the world, the wall hangs behind it.'
                 : plan.kind === 'visual' ? 'Your eye leads — the wall of work opens the world.'
                 : 'Your work opens the world — everything else composes around it.'}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              <PlanRow label="the order" value={plan.steps.map((s) => (STEP_COPY[s]?.title || s).toLowerCase()).join(' → ')} />
-              <PlanRow label="suggested skin" value={plan.skin} />
-              {plan.marquee && <PlanRow label="suggested welcome" value={`“${plan.marquee}”`} />}
-              {plan.line && <PlanRow label="suggested line" value={`“${plan.line}”`} />}
+              {/* the rows assemble after the title settles — the world composing
+                  itself, one line at a time. Built as a list so the stagger stays
+                  contiguous when the optional rows aren't there. */}
+              {[
+                { label: 'the order', value: plan.steps.map((s) => (STEP_COPY[s]?.title || s).toLowerCase()).join(' → ') },
+                { label: 'suggested skin', value: plan.skin },
+                ...(plan.marquee ? [{ label: 'suggested welcome', value: `“${plan.marquee}”` }] : []),
+                ...(plan.line ? [{ label: 'suggested line', value: `“${plan.line}”` }] : []),
+              ].map((r, i) => <PlanRow key={r.label} label={r.label} value={r.value} i={i} />)}
             </div>
             <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', lineHeight: 1.6, marginTop: '14px' }}>
               suggestions, not decisions — every one passes through your hands before it ships. look up: the skin is already on your name.
             </div>
           </div>
-          <div style={{ position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
+          {/* the footer closes the procession — `rise` rides the CONTAINER,
+              never the button: a filled animation would outrank the button's
+              own press transform and kill it for good */}
+          <div className="rise" style={{ animationDelay: '520ms', position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
             <button onClick={() => setStage('steps')}
               style={{ width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '13px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
               START BUILDING →
@@ -693,9 +709,11 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
   )
 }
 
-function PlanRow({ label, value }) {
+/* `i` places the row in the composition's procession — it assembles after
+   the title settles, 60ms behind the row above it. */
+function PlanRow({ label, value, i = 0 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '7px' }}>
+    <div className="rise" style={{ animationDelay: `${280 + i * 60}ms`, display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '7px' }}>
       <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', flexShrink: 0, width: '110px' }}>{label}</span>
       <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.03em', lineHeight: 1.5 }}>{value}</span>
     </div>
