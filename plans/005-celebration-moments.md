@@ -63,6 +63,8 @@ Reduced-motion block addition: `.rise { animation: fadeIn .3s ease forwards; } .
 
 NOTE on `forwards`: `.rise` needs the fill because of the delayed `opacity:0` start — same accepted pattern as `.os-reveal` (index.css:143). These ceremony containers must not hold `position:fixed` descendants (they don't — verified static content).
 
+**CORRECTION (found during execution):** a filled animation outranks inline styles AND class rules, so `.rise` on an *interactive* element permanently suppresses its own `:active`/hover transform (the ClaimWorld CTA's `hoverIn` lift, `.pressable`'s press settle). **Never put `.rise` on a button.** Wrap it: `<div className="rise rise-N" style={{ marginTop: <the button's margin>, display: 'flex' }}>` around the button, with the button's own `marginTop: 0`. The `display: flex` avoids both margin-collapse and the inline-block descender gap.
+
 **A. ClaimWorld confirmed state** — replace the check circle with an SVG ring that draws itself, then stagger the procession:
 
 ```jsx

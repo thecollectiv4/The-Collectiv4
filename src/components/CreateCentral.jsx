@@ -133,14 +133,18 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
 function Done({ kicker, title, line, cta, onCta, onClose }) {
   return (
     <div style={{ position: 'relative', padding: '44px 28px 40px', textAlign: 'center' }}>
-      <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ {kicker}</div>
-      <div style={{ fontFamily: 'Bebas Neue', fontSize: '40px', lineHeight: .95, marginTop: '14px', ...chromeText }}>{title}</div>
-      <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '12px' }}>{line}</p>
-      <button className="pressable" onClick={onCta}
-        style={{ marginTop: '24px', width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
-        {cta}
-      </button>
-      <button onClick={onClose} style={{ marginTop: '12px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+      <div className="rise" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ {kicker}</div>
+      <div className="rise rise-1" style={{ fontFamily: 'Bebas Neue', fontSize: '40px', lineHeight: .95, marginTop: '14px', ...chromeText }}>{title}</div>
+      <p className="rise rise-2" style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '12px' }}>{line}</p>
+      {/* the rise animates the WRAPPER: a filled animation outranks .pressable's
+          :active transform, so a .rise on the button would kill its press. */}
+      <div className="rise rise-3" style={{ marginTop: '24px', display: 'flex' }}>
+        <button className="pressable" onClick={onCta}
+          style={{ width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+          {cta}
+        </button>
+      </div>
+      <button className="rise rise-4" onClick={onClose} style={{ marginTop: '12px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
         done
       </button>
     </div>

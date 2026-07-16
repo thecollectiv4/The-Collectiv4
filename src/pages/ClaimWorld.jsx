@@ -142,14 +142,19 @@ export default function ClaimWorld() {
   return shell(
     <div style={{ maxWidth: '440px', margin: '0 auto', width: '100%' }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ width: '52px', height: '52px', margin: '0 auto', borderRadius: '50%', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 26px rgba(199,201,209,.22)' }}>
-          <Check size={22} style={{ color: STAR }} />
+        {/* the mark: the ring draws itself clockwise, the check surfaces as it closes */}
+        <div style={{ position: 'relative', width: '52px', height: '52px', margin: '0 auto' }}>
+          <svg width="52" height="52" viewBox="0 0 52 52" style={{ display: 'block', margin: '0 auto' }} aria-hidden>
+            <circle className="ring-draw" cx="26" cy="26" r="25.5" fill="none" stroke={SILVER} strokeWidth="1"
+              transform="rotate(-90 26 26)" style={{ filter: 'drop-shadow(0 0 10px rgba(199,201,209,.25))' }} />
+          </svg>
+          <Check size={22} className="rise" style={{ color: STAR, position: 'absolute', inset: 0, margin: 'auto', animationDelay: '450ms' }} />
         </div>
-        <div style={{ marginTop: '18px' }}><Kicker>{live?.name || 'Ran By Artists'}{live?.editionNumber ? ` · ${live.editionNumber}` : ''}</Kicker></div>
-        <h1 style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(40px,13vw,56px)', lineHeight: .88, margin: '12px 0 0', ...chromeText }}>
+        <div className="rise rise-1" style={{ marginTop: '18px' }}><Kicker>{live?.name || 'Ran By Artists'}{live?.editionNumber ? ` · ${live.editionNumber}` : ''}</Kicker></div>
+        <h1 className="rise rise-2" style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(40px,13vw,56px)', lineHeight: .88, margin: '12px 0 0', ...chromeText }}>
           {firstName ? `YOU'RE IN, ${firstName.toUpperCase()}` : "YOU'RE IN"}
         </h1>
-        <p style={{ fontFamily: 'DM Sans', fontSize: '15px', color: BONE_MID, lineHeight: 1.65, margin: '18px auto 0', maxWidth: '360px' }}>
+        <p className="rise rise-3" style={{ fontFamily: 'DM Sans', fontSize: '15px', color: BONE_MID, lineHeight: 1.65, margin: '18px auto 0', maxWidth: '360px' }}>
           {hasWorld
             ? 'Your ticket is confirmed and tied to your world. Add to it before the night — the room will see it.'
             : 'Your ticket is confirmed. Now build your world — a personal museum of your sound, your work, your influences. It’s how the room finds you.'}
@@ -157,7 +162,7 @@ export default function ClaimWorld() {
       </div>
 
       {/* ticket chip — always present in this state (phase=confirmed ⇒ ticket exists) */}
-      <div style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(199,201,209,.04)' }}>
+      <div className="rise rise-4" style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(199,201,209,.04)' }}>
         <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(232,233,237,.7)', flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em' }}>CONFIRMED</div>
@@ -169,18 +174,22 @@ export default function ClaimWorld() {
       </div>
 
       {/* the hook — build/open your world */}
-      <button onClick={() => navigate('/profile')} style={{ ...ctaStyle, marginTop: '22px', width: '100%' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
-        {hasWorld ? 'Open your world' : 'Build your world'} <ArrowRight size={18} />
-      </button>
+      {/* the rise animates the WRAPPER: a filled animation outranks inline styles,
+          so a .rise on the button itself would kill its hover lift for good. */}
+      <div className="rise rise-5" style={{ marginTop: '22px', display: 'flex' }}>
+        <button onClick={() => navigate('/profile')} style={{ ...ctaStyle, marginTop: 0, width: '100%' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
+          {hasWorld ? 'Open your world' : 'Build your world'} <ArrowRight size={18} />
+        </button>
+      </div>
 
       {!hasWorld && (
-        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '9px', justifyContent: 'center' }}>
+        <div className="rise rise-5" style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '9px', justifyContent: 'center' }}>
           <Sparkles size={13} style={{ color: SILVER }} />
           <span style={{ fontFamily: 'DM Mono', fontSize: '9.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase' }}>Takes two minutes · paste a link, it comes alive</span>
         </div>
       )}
 
-      <button onClick={() => navigate('/')} style={{ display: 'block', margin: '22px auto 0', background: 'none', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>
+      <button className="rise rise-5" onClick={() => navigate('/')} style={{ display: 'block', margin: '22px auto 0', background: 'none', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>
         Later — take me home
       </button>
     </div>

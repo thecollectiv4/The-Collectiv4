@@ -143,6 +143,21 @@ a { color: inherit; text-decoration: none; }
 .menu-in { animation: menuIn 160ms var(--ease-exit); }
 
 /* ============================================================
+   CEREMONY — the rare moments (ticket confirmed, work published)
+   arrive as an editorial procession: the mark draws itself, then
+   each line settles in turn. House curve, no bounce (anti-corny).
+   `forwards` is required here — the delayed opacity:0 start needs
+   the fill (same accepted pattern as .os-reveal above). These
+   containers hold no position:fixed descendants (verified).
+   ============================================================ */
+@keyframes riseIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+.rise { opacity:0; animation: riseIn var(--dur-slow) var(--ease-house) forwards; }
+.rise-1 { animation-delay: 120ms; } .rise-2 { animation-delay: 200ms; }
+.rise-3 { animation-delay: 280ms; } .rise-4 { animation-delay: 360ms; } .rise-5 { animation-delay: 440ms; }
+@keyframes ringDraw { from { stroke-dashoffset: 164; } to { stroke-dashoffset: 0; } }
+.ring-draw { stroke-dasharray: 164; animation: ringDraw 600ms var(--ease-house) forwards; }
+
+/* ============================================================
    TEMPERATURE (Ley 14) — light with meaning, palette locked.
    Live Art breathes warm and slow; Sound flickers cold and
    electric; Gallery holds still. Animation with purpose, one
@@ -305,4 +320,7 @@ a { color: inherit; text-decoration: none; }
   .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation:none; }
   .sheet-up, .sheet-up-centered, .panel-in-right, .dialog-in, .menu-in { animation: overlayFade .2s ease; }
   .page-transition, .page-slide-right, .page-slide-left, .page-scale { animation: fadeIn .2s ease; }
+  .rise { animation: fadeIn .3s ease forwards; }
+  .rise-1, .rise-2, .rise-3, .rise-4, .rise-5 { animation-delay: 0ms; }
+  .ring-draw { animation: none; stroke-dashoffset: 0; }
 }
