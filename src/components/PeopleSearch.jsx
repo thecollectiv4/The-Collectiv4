@@ -49,7 +49,9 @@ export default function PeopleSearch({ me, circle, onCircleChange, onOpenWorld }
   // overwrite a fresher one: the reqRef seq guards it)
   useEffect(() => {
     const clean = q.trim()
-    if (clean.length < 2) { setResults(null); setSearching(false); return }
+    // leaving the searchable range must INVALIDATE any in-flight search, or a
+    // slow response can repaint stale rows under a cleared box (review catch)
+    if (clean.length < 2) { reqRef.current++; setResults(null); setSearching(false); return }
     setSearching(true)
     const seq = ++reqRef.current
     const t = setTimeout(async () => {

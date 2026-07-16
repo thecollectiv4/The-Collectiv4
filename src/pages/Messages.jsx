@@ -239,11 +239,16 @@ function Inbox({ me, wide }) {
 
   // the creator changes who sees it (v9 D2) — optimistic, honest rollback
   const doVisibility = async (planId, tier) => {
-    const prev = plans
+    // roll back ONLY this plan's tier on failure — snapshotting the whole
+    // list would silently revert a concurrent RSVP/cancel (review catch)
+    const prevTier = plans.find((p) => p.id === planId)?.visibility
     setSegErr('')
     setPlans((cur) => cur.map((p) => (p.id === planId ? { ...p, visibility: tier } : p)))
     try { await setPlanVisibility(planId, tier) }
-    catch (e) { setPlans(prev); setSegErr(e?.message || "couldn't change who sees it — try again") }
+    catch (e) {
+      setPlans((cur) => cur.map((p) => (p.id === planId ? { ...p, visibility: prevTier } : p)))
+      setSegErr(e?.message || "couldn't change who sees it — try again")
+    }
   }
 
   // plan rooms live under PLANS (behind each card's door) — SIGNALS and
@@ -849,9 +854,14 @@ function PlanSheet({ friends, onClose, onCreated }) {
     try {
       const startsAt = when && !isNaN(new Date(when)) ? new Date(when).toISOString() : null
       const { plan_id } = await createPlan({ title, spot, detail, startsAt, inviteeIds: [...sel] })
-      // create_plan stores the default 'friends'; open it only when the
-      // creator chose otherwise — one extra door, skipped for the default
-      if (vis !== 'friends' && plan_id) await setPlanVisibility(plan_id, vis)
+      // the plan (and its room) now EXIST at the default 'friends'. Setting a
+      // non-default tier is a best-effort SECOND step — a blip there must NOT
+      // report "couldn't make the plan" (it was made) nor strand the sheet open
+      // and invite a duplicating retry (review catch). The creator adjusts the
+      // tier on the plan card if this misses.
+      if (vis !== 'friends' && plan_id) {
+        try { await setPlanVisibility(plan_id, vis) } catch { /* non-fatal — plan lives at 'friends' */ }
+      }
       onCreated()
     } catch (e) { setErr(e?.message || "couldn't make the plan — try again"); setBusy(false) }
   }
