@@ -1,6 +1,6 @@
 # 001 — Introduce motion tokens (the house curve becomes law)
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: HIGH
 - **Category**: Cohesion & tokens

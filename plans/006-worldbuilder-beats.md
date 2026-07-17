@@ -1,6 +1,6 @@
 # 006 — The WorldBuilder's conversation breathes (beats crossfade, the plan assembles)
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: HIGH
 - **Category**: Missed opportunities

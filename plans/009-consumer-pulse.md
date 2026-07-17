@@ -1,6 +1,6 @@
 # 009 — The consumer surfaces breathe: messages arrive, segments connect, the sky of worlds surfaces
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: MEDIUM
 - **Category**: Missed opportunities + Cohesion

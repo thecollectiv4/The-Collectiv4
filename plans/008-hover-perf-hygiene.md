@@ -1,6 +1,6 @@
 # 008 — Hover & paint hygiene: kill `transition: all`, layout-property hovers, and perpetual box-shadow paints
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: MEDIUM
 - **Category**: Performance + Accessibility + Interruptibility

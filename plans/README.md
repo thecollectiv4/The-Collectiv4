@@ -8,16 +8,16 @@ Each plan is self-contained: an executor needs zero context beyond the plan file
 
 | # | Plan | Severity | Category | Status |
 | --- | --- | --- | --- | --- |
-| 001 | [Motion tokens](001-motion-tokens.md) | HIGH | Cohesion | TODO |
-| 002 | [Overlay entrance grammar](002-overlay-entrance-grammar.md) | HIGH | Physicality + Opportunity | TODO |
-| 003 | [Route transitions](003-route-transitions.md) | HIGH | Frequency + Easing + A11y | TODO |
-| 004 | [OS replay choreography](004-os-replay-choreography.md) | HIGH | Frequency + Interruptibility | TODO |
-| 005 | [Celebration moments](005-celebration-moments.md) | HIGH | Opportunity | TODO |
-| 006 | [WorldBuilder beats](006-worldbuilder-beats.md) | HIGH | Opportunity | TODO |
-| 007 | [Museum framer hygiene](007-museum-framer-hygiene.md) | MEDIUM | Perf + A11y | TODO |
-| 008 | [Hover & paint hygiene](008-hover-perf-hygiene.md) | MEDIUM | Perf + A11y + Interrupt | TODO |
-| 009 | [Consumer pulse](009-consumer-pulse.md) | MEDIUM | Opportunity + Cohesion | TODO |
-| 010 | [Press feedback](010-press-feedback.md) | LOW | Physicality | TODO |
+| 001 | [Motion tokens](001-motion-tokens.md) | HIGH | Cohesion | DONE |
+| 002 | [Overlay entrance grammar](002-overlay-entrance-grammar.md) | HIGH | Physicality + Opportunity | DONE |
+| 003 | [Route transitions](003-route-transitions.md) | HIGH | Frequency + Easing + A11y | DONE |
+| 004 | [OS replay choreography](004-os-replay-choreography.md) | HIGH | Frequency + Interruptibility | DONE |
+| 005 | [Celebration moments](005-celebration-moments.md) | HIGH | Opportunity | DONE |
+| 006 | [WorldBuilder beats](006-worldbuilder-beats.md) | HIGH | Opportunity | DONE |
+| 007 | [Museum framer hygiene](007-museum-framer-hygiene.md) | MEDIUM | Perf + A11y | DONE |
+| 008 | [Hover & paint hygiene](008-hover-perf-hygiene.md) | MEDIUM | Perf + A11y + Interrupt | DONE |
+| 009 | [Consumer pulse](009-consumer-pulse.md) | MEDIUM | Opportunity + Cohesion | DONE |
+| 010 | [Press feedback](010-press-feedback.md) | LOW | Physicality | DONE |
 
 ## Execution order & dependencies
 

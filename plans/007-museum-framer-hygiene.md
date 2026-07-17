@@ -1,6 +1,6 @@
 # 007 — Museum framer-motion: hardware-accelerated transforms, reduced-motion, house curve
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: MEDIUM
 - **Category**: Performance + Accessibility + Cohesion

@@ -1,6 +1,6 @@
 # 004 — Stop replaying the OS entrance choreography on every action
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: HIGH
 - **Category**: Purpose & frequency + Interruptibility

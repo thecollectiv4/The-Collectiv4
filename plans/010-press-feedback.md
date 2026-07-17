@@ -1,6 +1,6 @@
 # 010 — Press feedback: asymmetric timing, settle on release, coverage gaps
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: LOW
 - **Category**: Physicality & origin + Interruptibility

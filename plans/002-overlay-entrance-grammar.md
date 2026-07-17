@@ -1,6 +1,6 @@
 # 002 — One entrance grammar for every overlay (sheets rise, panels dock, dialogs settle, menus grow from their trigger)
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: HIGH
 - **Category**: Physicality & origin + Missed opportunities

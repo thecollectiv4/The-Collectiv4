@@ -1,6 +1,6 @@
 # 005 — The celebration moments earn their delight budget (YOU'RE IN · IT LIVES IN YOUR WORLD)
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: HIGH
 - **Category**: Missed opportunities

@@ -1,6 +1,6 @@
 # 003 — Route transitions: fast, house-curved, silent on sub-navigation, reduced-motion aware
 
-- **Status**: TODO
+- **Status**: DONE
 - **Commit**: 2e47930
 - **Severity**: HIGH
 - **Category**: Purpose & frequency + Easing & duration + Accessibility
