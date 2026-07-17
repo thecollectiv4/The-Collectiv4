@@ -79,8 +79,11 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
 
   // the rhythm: ~3 people, then a room, repeat — events run out first, fine.
   // A room without a slug has no door and doesn't render (Ley 9).
+  // Seed rows (owner-only in the payload, 0040) honor the /os toggle the
+  // way Community does: SHOW SEED off = seed hidden, never unlabeled
+  // (review catch — the founder must never mistake a fixture for a member).
   const feed = useMemo(() => {
-    const people = data?.people || []
+    const people = (data?.people || []).filter((p) => !p.is_demo || showSeed)
     const events = (data?.events || []).filter((ev) => ev?.slug)
     const out = []
     let e = 0
@@ -90,7 +93,7 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
     })
     while (e < events.length) out.push({ kind: 'event', ev: events[e++] })
     return out
-  }, [data])
+  }, [data, showSeed])
 
   const isFollowing = (p) => followOverride[p.id] ?? !!p.i_follow
   // optimistic + honest rollback WITH a voice (the UserProfile doctrine);
@@ -186,10 +189,12 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
   const cover = safeImg(p.cover_url)
   const avatar = safeImg(p.avatar_url)
   const name = p.name || p.username || 'Unnamed'
-  // guardrail 4 (v10): a seed world in the founder's feed is always marked —
-  // same pill Community wears (seed-card-badge), never on a member's feed
-  // (their payload carries is_demo: false by construction, 0040)
-  const isSeed = showSeed && p.is_demo
+  // guardrail 4 (v10): a seed world in the feed is ALWAYS marked — the pill
+  // rides the payload truth (is_demo), never the toggle (review catch: a
+  // founder with SHOW SEED off must see no seed, not unlabeled seed — the
+  // feed filter above handles hiding; this handles honesty). A member's
+  // payload carries is_demo: false by construction (0040).
+  const isSeed = !!p.is_demo
   const seedBadge = isSeed ? (
     <span data-testid="seed-card-badge" title="Seed world — QA fixture, invisible to the public"
       style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: 'DM Mono', fontSize: '7.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: '#0A0A0D', background: 'rgba(229,200,140,.92)', borderRadius: '100px', padding: '3px 8px', fontWeight: 600 }}>

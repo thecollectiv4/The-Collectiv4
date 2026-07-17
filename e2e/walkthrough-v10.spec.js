@@ -159,6 +159,21 @@ test('A · las campanas — every wire rings and the message bell coalesces', as
   expect(marked?.ok).toBeTruthy()
   count = await rpc(request, 'signals_unread_count', {}, B.token)
   expect(count.count, 'READ_MEANS_ZERO').toBe(0)
+
+  // reading the room IS reading the bell (0043): A rings once more, B
+  // "opens the thread" — the thread-scoped door clears it
+  const res2 = await rest(request, '/rest/v1/thread_messages', {
+    method: 'POST', token: A.token,
+    data: { thread_id: plan.thread_id, sender_id: A.uid, body: 'tercero — para el puente' },
+  })
+  expect(res2.status()).toBe(201)
+  count = await rpc(request, 'signals_unread_count', {}, B.token)
+  expect(count.count, 'NEW_MESSAGE_RINGS_AGAIN').toBe(1)
+  const bridged = await rpc(request, 'mark_thread_signals_read', { p_thread: plan.thread_id }, B.token)
+  expect(bridged?.ok).toBeTruthy()
+  expect(bridged.marked, 'BRIDGE_MARKS_THE_THREAD_BELL').toBe(1)
+  count = await rpc(request, 'signals_unread_count', {}, B.token)
+  expect(count.count, 'THREAD_READ_MEANS_ZERO').toBe(0)
 })
 
 /* ---------------- B · the bell has a face ---------------- */
@@ -213,6 +228,11 @@ test('D · anon + authed non-owner read zero seed; anon bells refuse politely', 
   expect(anonBells?.error).toBe('not_authenticated')
   const anonCount = await rpc(request, 'signals_unread_count', {})
   expect(anonCount?.ok).toBe(false)
+  // the emitter is triggers-only (0043 ACL fix): a client call must be
+  // REFUSED — never a forged bell
+  const forged = await rpc(request, 'notify_emit',
+    { p_recipient: A.uid, p_actor: null, p_kind: 'friend_request', p_subject: {} }, A.token)
+  expect(forged?.message || forged?.error || '', 'EMITTER_MUST_REFUSE_CLIENTS').toMatch(/permission denied|not.*find|404/i)
 })
 
 /* ---------------- E · retire the QA accounts ---------------- */

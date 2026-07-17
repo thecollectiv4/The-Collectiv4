@@ -42,13 +42,26 @@ export async function fetchSignals(limit = 24) {
 }
 
 /* mark read — ids for one bell, null for the whole inbox. Announces the
-   change so the Layout badge corrects itself without a round trip. */
+   change so the Layout badge corrects itself without a round trip.
+   Returns null on failure (not 0) so callers can roll their optimistic
+   flip back to server truth — the honest-rollback doctrine (Ley 11). */
 export async function markSignalsRead(ids = null) {
   try {
     const d = await door('mark_signals_read', { p_ids: ids })
     announceSignalsChange()
-    return d?.marked || 0
-  } catch { return 0 }
+    return d?.marked ?? 0
+  } catch { return null }
+}
+
+/* reading the room IS reading the bell (0043) — called beside
+   markThreadRead so the badge tells the truth after the normal flow.
+   Fire-and-forget: a miss here self-heals on the next inbox fetch. */
+export async function markThreadSignalsRead(threadId) {
+  if (!threadId) return
+  try {
+    const d = await door('mark_thread_signals_read', { p_thread: threadId })
+    if (d?.marked > 0) announceSignalsChange()
+  } catch { /* pre-migration or offline — the stream simply stays as-is */ }
 }
 
 /* one shared wire: any surface that changes the stream announces it,

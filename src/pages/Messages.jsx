@@ -12,7 +12,7 @@ import {
   setPlanVisibility, VIS_TIERS, VIS_LABEL,
 } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
-import { fetchSignals, markSignalsRead, signalLine, signalTo } from '@/lib/signals'
+import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signalTo } from '@/lib/signals'
 import PeopleSearch from '@/components/PeopleSearch'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
 
@@ -281,13 +281,15 @@ function Inbox({ me, wide }) {
             <TheBell bells={bells}
               onOpen={(s) => {
                 if (!s.read_at) {
-                  markSignalsRead([s.id])
+                  // optimistic, with the honest rollback: a null return means
+                  // the door refused — refetch server truth (Ley 11)
+                  markSignalsRead([s.id]).then((n) => { if (n === null) fetchSignals(24).then(setBells) })
                   setBells((b) => ({ unread: Math.max(0, b.unread - 1), signals: b.signals.map((x) => x.id === s.id ? { ...x, read_at: new Date().toISOString() } : x) }))
                 }
                 navigate(signalTo(s))
               }}
               onMarkAll={() => {
-                markSignalsRead(null)
+                markSignalsRead(null).then((n) => { if (n === null) fetchSignals(24).then(setBells) })
                 setBells((b) => ({ unread: 0, signals: b.signals.map((x) => ({ ...x, read_at: x.read_at || new Date().toISOString() })) }))
               }} />
           )}
@@ -1029,6 +1031,7 @@ function Thread({ threadId, me, wide }) {
     setMsgs(t.messages)
     setLoading(false)
     markThreadRead(threadId, me.id)
+    markThreadSignalsRead(threadId)   // reading the room IS reading the bell (0043)
   }, [threadId, me.id])
 
   useEffect(() => { load() }, [load])
@@ -1039,7 +1042,7 @@ function Thread({ threadId, me, wide }) {
   useEffect(() => {
     const off = subscribeThread(threadId, (m) => {
       setMsgs((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m]))
-      if (m.sender_id !== me.id) markThreadRead(threadId, me.id)
+      if (m.sender_id !== me.id) { markThreadRead(threadId, me.id); markThreadSignalsRead(threadId) }
     })
     return off
   }, [threadId, me.id])
