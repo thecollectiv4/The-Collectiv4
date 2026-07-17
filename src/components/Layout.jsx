@@ -111,7 +111,7 @@ export default function Layout() {
     } else if (currentIdx < prevIdx.current) {
       setTransClass('page-slide-left')
     } else {
-      setTransClass('page-transition')
+      setTransClass('')            // same tab (e.g. /messages → /messages/:id): no page animation
     }
     if (!isSubPage) prevIdx.current = currentIdx
   }, [location.pathname])

@@ -20,8 +20,8 @@ export function Modal({ title, onClose, onEnter, children, footer }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose, onEnter])
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', padding: desktop ? '40px' : 0 }}>
-      <div onClick={e => e.stopPropagation()} role="dialog" aria-label={title}
+    <div onClick={onClose} className="overlay-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', padding: desktop ? '40px' : 0 }}>
+      <div onClick={e => e.stopPropagation()} role="dialog" aria-label={title} className={desktop ? 'dialog-in' : 'sheet-up'}
         style={{ width: '100%', maxWidth: '520px', background: VOID_2, border: `1px solid ${HAIR_HI}`,
           borderBottom: desktop ? `1px solid ${HAIR_HI}` : 'none',
           borderRadius: desktop ? '16px' : '20px 20px 0 0',
@@ -95,7 +95,7 @@ export function Btn({ children, onClick, variant = 'ghost', disabled, style }) {
     danger: { background: 'transparent', color: BONE, border: `1px solid ${HAIR_HI}` },
   }[variant]
   return (
-    <button onClick={onClick} disabled={disabled} style={{ flex: style?.flex, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', borderRadius: '100px', padding: '10px 16px', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', transition: 'all .15s', ...v, ...style }}>
+    <button onClick={onClick} disabled={disabled} style={{ flex: style?.flex, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', borderRadius: '100px', padding: '10px 16px', cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.5 : 1, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', transition: 'color .15s, background .15s, border-color .15s, opacity .15s, filter .15s, transform .16s var(--ease-exit)', ...v, ...style }}>
       {children}
     </button>
   )

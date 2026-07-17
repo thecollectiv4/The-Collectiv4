@@ -93,7 +93,7 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
 
           {!isOwner && live && onDMSeller && (
             <button className="pressable" onClick={() => onDMSeller(l)}
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(242,238,230,.07)', border: `1px solid rgba(242,238,230,.24)`, borderRadius: '100px', padding: '8px 15px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(242,238,230,.07)', border: `1px solid rgba(242,238,230,.24)`, borderRadius: '100px', padding: '8px 15px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
               onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(242,238,230,.13)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.45)' }}
               onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(242,238,230,.07)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.24)' }}>
               <MessageCircle size={11} /> {kind.cta}

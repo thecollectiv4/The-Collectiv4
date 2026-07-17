@@ -56,7 +56,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
       {/* Modal */}
       <div onClick={e=>e.stopPropagation()} style={{position:'relative',width:'100%',maxWidth:'360px',background:'var(--bg-card)',border:'1px solid var(--border-hi)',borderRadius:'20px',padding:'32px 28px',animation:'fadeUp .3s ease'}}>
         {/* Close button */}
-        <button onClick={onClose} aria-label="Close" style={{position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',padding:'4px'}}>
+        <button onClick={onClose} aria-label="Close" className="pressable" style={{position:'absolute',top:'16px',right:'16px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',padding:'4px'}}>
           <X size={18} />
         </button>
 
@@ -70,7 +70,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
         {/* Toggle */}
         <div style={{display:'flex',gap:'4px',marginBottom:'20px',background:'var(--bg-raised)',borderRadius:'10px',padding:'3px'}}>
           {['signin','signup'].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} style={{flex:1,background:mode===m?'rgba(242,238,230,.08)':'transparent',border:'none',borderRadius:'8px',padding:'8px',color:mode===m?'var(--cream)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'all .2s'}}>
+            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} className="pressable" style={{flex:1,background:mode===m?'rgba(242,238,230,.08)':'transparent',border:'none',borderRadius:'8px',padding:'8px',color:mode===m?'var(--cream)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'background .2s, color .2s'}}>
               {m==='signin'?'Sign In':'Create Account'}
             </button>
           ))}
@@ -96,11 +96,11 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
             onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.1)'} />
         </div>
 
-        {mode==='signin' && <button onClick={forgot} disabled={loading} style={{background:'none',border:'none',color:'var(--cream-low)',fontSize:'11px',fontFamily:'DM Sans',cursor:'pointer',marginTop:'10px',width:'100%',textAlign:'center',textDecoration:'underline',opacity:loading?.6:1}}>Forgot password?</button>}
+        {mode==='signin' && <button onClick={forgot} disabled={loading} className="pressable" style={{background:'none',border:'none',color:'var(--cream-low)',fontSize:'11px',fontFamily:'DM Sans',cursor:'pointer',marginTop:'10px',width:'100%',textAlign:'center',textDecoration:'underline',opacity:loading?.6:1}}>Forgot password?</button>}
         {error && <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'#E5A0A0',marginTop:'10px',textAlign:'center'}}>{error}</div>}
         {notice && <div style={{fontSize:'11px',color:'var(--cream-mid)',marginTop:'10px',textAlign:'center',lineHeight:1.5}}>{notice}</div>}
 
-        <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px',color:'var(--bg)',fontWeight:600,fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans',marginTop:'16px',opacity:loading?.6:1,transition:'all .2s'}}
+        <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'14px',color:'var(--bg)',fontWeight:600,fontSize:'13px',cursor:'pointer',fontFamily:'DM Sans',marginTop:'16px',opacity:loading?.6:1,transition:'transform .2s, opacity .2s'}}
           onMouseOver={e=>{if(!loading){e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(242,238,230,.15)'}}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           {loading?'...':mode==='signin'?'Sign In':'Create Account'}

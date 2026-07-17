@@ -19,6 +19,7 @@
 */
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 let failures = 0
 const check = (name, cond, detail = '') => {
@@ -26,7 +27,9 @@ const check = (name, cond, detail = '') => {
   else { failures++; console.error(`  FAIL — ${name}${detail ? `\n         ${detail}` : ''}`) }
 }
 
-const SRC = new URL('../src', import.meta.url).pathname
+// fileURLToPath, not .pathname: a repo path with spaces/apostrophes arrives
+// percent-encoded through .pathname and fs can't scandir it (ENOENT)
+const SRC = fileURLToPath(new URL('../src', import.meta.url))
 const files = []
 const walk = (dir) => {
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

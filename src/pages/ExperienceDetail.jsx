@@ -71,7 +71,7 @@ export default function ExperienceDetail() {
       <div style={{position:'absolute',top:'0',left:'0',width:'100%',height:'800px',background:`radial-gradient(ellipse at 30% 15%, ${exp.accent}0C 0%, transparent 50%)`,pointerEvents:'none'}} />
       <div style={{position:'relative',paddingTop:'60px',paddingBottom:'40px',padding:'60px 28px 40px'}}>
         <div style={{position:'absolute',top:'40px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}10 0%,transparent 70%)`,filter:'blur(60px)'}} />
-        <button onClick={()=>navigate('/')} style={{position:'relative',zIndex:5,background:'rgba(10,10,13,.5)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',marginBottom:'40px',width:'fit-content',transition:'all .2s'}}
+        <button onClick={()=>navigate('/')} style={{position:'relative',zIndex:5,background:'rgba(10,10,13,.5)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',marginBottom:'40px',width:'fit-content',transition:'border-color .2s, color .2s'}}
           onMouseOver={e=>{e.currentTarget.style.borderColor='var(--cream-low)';e.currentTarget.style.color='var(--cream)'}}
           onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.color='var(--cream-mid)'}}>
           <ArrowLeft size={13}/> Back
@@ -128,7 +128,7 @@ export default function ExperienceDetail() {
           <p style={{fontSize:'13px',color:'var(--cream-mid)',lineHeight:1.65,fontStyle:'italic'}}>{exp.artistNote}</p>
         </div>
 
-        <button onClick={()=>navigate('/')} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'12px',padding:'16px',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',cursor:'pointer',transition:'all .2s'}}
+        <button onClick={()=>navigate('/')} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'12px',padding:'16px',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',cursor:'pointer',transition:'transform .2s'}}
           onMouseOver={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(242,238,230,.15)'}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           <Ticket size={16} style={{color:'var(--bg)'}}/>

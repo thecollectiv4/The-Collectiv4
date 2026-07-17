@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
@@ -48,6 +48,19 @@ export default function Events() {
   const [events, setEvents] = useState([])
   const [attendees, setAttendees] = useState([])
   const [count, setCount] = useState(0)
+
+  // the room directory cascades ONCE per mount — first load only; there is no
+  // refilter UI here, so no crossfade (plan 009). STATE on a timer, not a ref:
+  // attendees/count land right after the events and re-render mid-cascade — a
+  // ref flip stripped .card-in at that instant and cut the cascade short.
+  // 950ms = last delay (8×50+100) + --dur-slow (500) + margin; by then the
+  // animation is done and removing the class changes nothing visually.
+  const [entered, setEntered] = useState(false)
+  useEffect(() => {
+    if (loading || entered) return
+    const t = setTimeout(() => setEntered(true), 950)
+    return () => clearTimeout(t)
+  }, [loading, entered])
 
   // Stripe returns cancellations here (cancel_url /?ticket=cancelled) —
   // answer honestly, then get out of the way. (success goes to /claim.)
@@ -123,7 +136,7 @@ export default function Events() {
           {/* the house door — the flagship world (D4): what a world IS,
               shown not explained */}
           <button className="pressable" data-testid="house-door" onClick={() => navigate('/c4')}
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color .2s, color .2s, transform .2s', marginBottom: '4px' }}
             onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(242,238,230,.4)'; e.currentTarget.style.color = BONE }}
             onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
             ◇ the house world <ArrowUpRight size={11} />
@@ -150,14 +163,17 @@ export default function Events() {
           <>
             {/* THE FEATURED ROOM — the house's next night, as a spread */}
             {featured && (
-              <FeaturedRoom
-                e={featured}
-                live={live}
-                attendees={attendees}
-                count={count}
-                wide={wide}
-                onEnter={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')}
-              />
+              <div className={entered.current ? undefined : 'card-in'}
+                style={entered.current ? undefined : { animationDelay: '0ms' }}>
+                <FeaturedRoom
+                  e={featured}
+                  live={live}
+                  attendees={attendees}
+                  count={count}
+                  wide={wide}
+                  onEnter={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')}
+                />
+              </div>
             )}
 
             {/* MORE ROOMS — every other published event, honest and dated */}
@@ -165,8 +181,13 @@ export default function Events() {
               <div style={{ marginTop: featured ? (wide ? '44px' : '32px') : '22px' }}>
                 <RowMarker label="MORE ROOMS" kicker="on the platform" />
                 <div style={{ display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' } : { flexDirection: 'column' }), gap: wide ? '18px' : '14px' }}>
-                  {upcoming.map((e) => (
-                    <RoomCard key={e.id} e={e} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
+                  {upcoming.map((e, i) => (
+                    /* display:grid so the RoomCard child stretches to the row's
+                       height in the wide grid (the wrapper is now the grid item) */
+                    <div key={e.id} className={entered.current ? undefined : 'card-in'}
+                      style={entered.current ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50 + 100}ms` }}>
+                      <RoomCard e={e} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
+                    </div>
                   ))}
                 </div>
               </div>
@@ -206,10 +227,8 @@ export default function Events() {
 
             {/* the archive — where the past editions live */}
             {pastCount > 0 && (
-              <button className="pressable" onClick={() => navigate('/editions')}
-                style={{ marginTop: wide ? '36px' : '26px', width: '100%', display: 'flex', alignItems: 'center', gap: '14px', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderBottom: `1px solid ${HAIR}`, padding: '16px 2px', cursor: 'pointer', textAlign: 'left', transition: 'padding-left .2s ease' }}
-                onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-                onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+              <button className="row-lead" onClick={() => navigate('/editions')}
+                style={{ marginTop: wide ? '36px' : '26px', width: '100%', display: 'flex', alignItems: 'center', gap: '14px', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, borderBottom: `1px solid ${HAIR}`, padding: '16px 2px', cursor: 'pointer', textAlign: 'left' }}>
                 <Archive size={15} style={{ color: SILVER, flexShrink: 0 }} strokeWidth={1.6} />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE, letterSpacing: '.03em', lineHeight: 1 }}>PAST EDITIONS</span>

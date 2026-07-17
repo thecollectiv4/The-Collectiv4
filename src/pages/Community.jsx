@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
@@ -97,6 +97,20 @@ export default function Community() {
   // (<200 total, all loaded); it upgrades to a server search when it grows.
   const [nameQ, setNameQ] = useState('')
 
+  // discovery cascades ONCE — the first data landing staggers; every refilter
+  // after that crossfades as one grid, never a per-card re-dance (plan 009).
+  // `entered` is STATE on a timer, not a ref flipped on first render: crafts/
+  // follows land right after the profiles and re-render mid-cascade — a ref
+  // flip stripped .card-in at that instant and cut the cascade to nothing.
+  // 950ms = last delay (8×50) + --dur-slow (500) + margin; by then the
+  // animation is done and removing the class changes nothing visually.
+  const [entered, setEntered] = useState(false)
+  useEffect(() => {
+    if (loading || entered) return
+    const t = setTimeout(() => setEntered(true), 950)
+    return () => clearTimeout(t)
+  }, [loading, entered])
+
   useEffect(() => {
     let alive = true
     let seedPref = import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true'
@@ -160,6 +174,14 @@ export default function Community() {
     (city === 'all' || c.city === city) &&
     (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)) &&
     (!nq || (c.full_name || '').toLowerCase().includes(nq) || (c.username || '').toLowerCase().includes(nq)))
+  // the grid re-keys on any filter change — the real filter state is city +
+  // craft (URL param) + nameQ (the people search), not the plan's placeholder q.
+  // firstKey pins the combo the page landed on: the refilter crossfade fires
+  // only on a KEY change (a real refilter), never when the `entered` timer
+  // flips on the same node (adding an animation class to an existing element
+  // plays it — that would flash the grid ~1s after load for no reason).
+  const filterKey = `${city}|${craft}|${nameQ}`
+  const firstKey = useRef(filterKey)
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
@@ -186,7 +208,7 @@ export default function Community() {
               back to the switch (Ley 9: every click keeps its promise) */}
           {showDemo && (
             <button data-testid="seed-visible-pill" onClick={() => navigate('/os?tab=moderation')}
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s', marginBottom: '4px' }}>
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: '4px' }}>
               <Eye size={12} /> seed visible · manage in /os
             </button>
           )}
@@ -264,9 +286,16 @@ export default function Community() {
             <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
           </div>
         ) : shown.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
-            {shown.map(c => (
-              <WorldCard key={c.id} c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
+          <div key={filterKey} className={filterKey !== firstKey.current ? 'refilter-in' : undefined}
+            style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
+            {shown.map((c, i) => (
+              /* display:grid so the single WorldCard child stretches to the
+                 row's height — the wrapper is now the grid item, and the card
+                 relies on that stretch for its flex:1 body (equal-height rows) */
+              <div key={c.id} className={entered ? undefined : 'card-in'}
+                style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
+                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
+              </div>
             ))}
             {/* a filtered list CLOSES — the void under the last card gets a
                 composed, pressable seam back to everyone (panel catch, Ley 4) */}
@@ -330,7 +359,7 @@ function FilterRow({ label, value, onChange, options }) {
         {all.map(opt => {
           const on = value === opt
           return (
-            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {opt === 'all' ? 'All' : opt}
             </button>
           )
@@ -355,7 +384,7 @@ function CraftFilterRow({ value, onChange, options }) {
           return (
             <button key={opt.slug} className="pressable" data-testid={`craft-filter-${opt.slug}`}
               onClick={() => onChange(on && opt.slug !== 'all' ? 'all' : opt.slug)}
-              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${meta.tint},.6)` : HAIR_HI}`, background: on ? `rgba(${meta.tint},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s', boxShadow: on ? `0 0 12px rgba(${meta.tint},.12)` : 'none' }}>
+              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${meta.tint},.6)` : HAIR_HI}`, background: on ? `rgba(${meta.tint},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', boxShadow: on ? `0 0 12px rgba(${meta.tint},.12)` : 'none' }}>
               {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${meta.tint})` }}>{meta.mark}</span>}
               {opt.name}
               {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, marginLeft: '2px' }}>×</span>}

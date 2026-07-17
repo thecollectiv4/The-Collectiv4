@@ -311,8 +311,17 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
     nextEvent: eventUpcoming ? { title: `${live.name}${live.editionNumber ? ' ' + live.editionNumber : ''}`, date: live.dateLong } : null,
   }
 
+  // the staged entrance is a WELCOME, not a response: it plays once per tab per
+  // session. Re-entries get the pane slide only — the panes remount on every
+  // tab switch (key={tab}), and a member switches tabs a hundred times a day.
+  // Session-only, by design: no storage, a fresh load earns the cinema again.
+  // (Declared above brainEl: the dock calls brainEl(true) eagerly, below.)
+  const visitedTabs = useRef(new Set())
+  const firstVisit = !visitedTabs.current.has(tab)
+  useEffect(() => { visitedTabs.current.add(tab) }, [tab])
+
   const brainEl = (embedded) => (
-    <Brain embedded={embedded} context={brainContext} onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />
+    <Brain embedded={embedded} entrance={!embedded && firstVisit} context={brainContext} onSaveContent={createContent} onActed={refreshAll} messages={brainMsgs} setMessages={setBrainMsgs} />
   )
 
   const dock = dockOpen && tab !== 'brain' && (
@@ -355,15 +364,15 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
     <>
       {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>△ {notice}</div>}
       <div key={tab} className={slideClass}>
-        {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
-        {tab === 'content' && <ContentEngine content={content} owners={owners} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
+        {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} entrance={firstVisit} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
+        {tab === 'content' && <ContentEngine content={content} owners={owners} entrance={firstVisit} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}
         {tab === 'brain' && brainEl(false)}
         {tab === 'events' && <EventsAdmin isOwner={isOwner} startNew={newEventOnce.current} onConsumedNew={() => { newEventOnce.current = false }} />}
         {tab === 'network' && isOwner && <Network />}
         {tab === 'moderation' && isOwner && <Moderation />}
         {tab === 'cohorts' && isOwner && <Cohorts />}
       </div>
-      {tab !== 'brain' && <Signal activity={activity} owners={owners} />}
+      {tab !== 'brain' && <Signal activity={activity} owners={owners} firstVisit={firstVisit} />}
       {tab !== 'brain' && isOwner && <DropsFeed drops={drops} owners={owners} />}
     </>
   )
@@ -654,14 +663,17 @@ function Pill({ label, value, accent }) {
   )
 }
 
-/* Signal — the latest moves. Honest when quiet. */
-export function Signal({ activity, owners }) {
+/* Signal — the latest moves. Honest when quiet.
+   firstVisit — the feed rides along with the pane: it reveals on a tab's first
+   visit and stays put on every re-entry (defaults off — never animate by
+   accident). */
+export function Signal({ activity, owners, firstVisit = false }) {
   return (
     <div style={{ marginTop: '22px', paddingTop: '14px', borderTop: `1px solid ${HAIR}`, maxWidth: '760px' }}>
       <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase', marginBottom: '11px' }}>△ Signal · recent</div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {activity.slice(0, 10).map((a, i) => (
-          <div key={a.id} className="os-reveal-fast" style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontFamily: FONT_MONO, fontSize: '10px', lineHeight: 1.4, padding: '6px 0', borderBottom: i === Math.min(activity.length, 10) - 1 ? 'none' : `1px solid ${HAIR}`, animationDelay: `${i * 25}ms` }}>
+          <div key={a.id} className={firstVisit ? 'os-reveal-fast' : ''} style={{ display: 'flex', alignItems: 'baseline', gap: '8px', fontFamily: FONT_MONO, fontSize: '10px', lineHeight: 1.4, padding: '6px 0', borderBottom: i === Math.min(activity.length, 10) - 1 ? 'none' : `1px solid ${HAIR}`, animationDelay: firstVisit ? `${i * 25}ms` : undefined }}>
             <span style={{ color: STAR, flexShrink: 0 }}>{owners[a.profile_id]?.full_name || owners[a.profile_id]?.username || 'Someone'}</span>
             <span style={{ color: BONE_MID, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.action}</span>
             <span style={{ color: FAINT, flexShrink: 0 }}>{relTime(a.created_at)}</span>

@@ -27,7 +27,10 @@ const EMPTY_LINE = {
 }
 const LANE_MIN = 300   // px — below this, text breaks one word per line (the bug)
 
-export default function Board({ tasks, profileId, owners, onCreate, onUpdate, onMoveTo, onDelete }) {
+/* entrance — the staged reveal is a first-visit welcome (OS.jsx owns the
+   per-session bookkeeping). Off = lanes and rows are simply THERE, and a card
+   that moves settles instead of entering. */
+export default function Board({ tasks, profileId, owners, entrance, onCreate, onUpdate, onMoveTo, onDelete }) {
   const desktop = useIsDesktop()   // >=768 — instrument shell
   const grid = useBoardGrid()      // >=1100 — lanes may fit side by side
   const [mineOnly, setMineOnly] = useState(false)
@@ -103,11 +106,11 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
         {BOARD_COLUMNS.map((col, ci) => {
           const items = byCol(col.key)
           return (
-            <section key={col.key} data-testid={`board-lane-${col.key}`} className={`os-reveal${dragOver === col.key ? ' os-lane-over' : ''}`}
+            <section key={col.key} data-testid={`board-lane-${col.key}`} className={`${entrance ? 'os-reveal' : ''}${dragOver === col.key ? ' os-lane-over' : ''}`}
               onDragOver={(e) => { e.preventDefault(); if (dragOver !== col.key) setDragOver(col.key) }}
               onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null) }}
               onDrop={(e) => { e.preventDefault(); dropOn(col.key) }}
-              style={{ ...(grid && cols > 1 ? { minWidth: 0 } : desktop ? { flex: `0 0 ${LANE_MIN}px`, minWidth: `${LANE_MIN - 20}px` } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: `${ci * 70}ms`, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
+              style={{ ...(grid && cols > 1 ? { minWidth: 0 } : desktop ? { flex: `0 0 ${LANE_MIN}px`, minWidth: `${LANE_MIN - 20}px` } : { flex: '0 0 84%', maxWidth: '320px', minWidth: '240px' }), animationDelay: entrance ? `${ci * 70}ms` : undefined, background: PANEL, border: `1px solid ${HAIR}`, borderRadius: '12px', padding: '14px 14px 8px', transition: 'background .18s, border-color .18s' }}>
               {/* lane kicker — deck eyebrow with catalog number */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '11px', borderBottom: `1px solid ${HAIR_HI}` }}>
                 <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, padding: '2px 7px', borderRadius: '3px', letterSpacing: '.16em' }}>{String(ci + 1).padStart(2, '0')}</span>
@@ -127,7 +130,8 @@ export default function Board({ tasks, profileId, owners, onCreate, onUpdate, on
               <div>
                 {items.map((t, i) => (
                   <TaskRow key={t.id} task={t} owner={owners[t.owner_profile_id]} colKey={col.key} last={i === items.length - 1}
-                    delay={ci * 70 + i * 35}
+                    entrance={entrance}
+                    delay={entrance ? ci * 70 + i * 35 : undefined}
                     members={members}
                     assignOpen={assignFor === t.id}
                     onAssignToggle={() => setAssignFor(cur => cur === t.id ? null : t.id)}
@@ -189,7 +193,11 @@ function Face({ p, size = 18 }) {
   )
 }
 
-function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssignToggle, onAssign, onDragStart, onDragEnd, onEdit, onShip, onReopen, onArrow, onDelete }) {
+/* entrance — first visit: the row enters on the lane's stagger (`delay`).
+   Otherwise it SETTLES: the keyframe fires when the node mounts, which is
+   exactly the move/create case — the card the member just acted on is there
+   instantly, with a scale + border pulse instead of a fade from nowhere. */
+function TaskRow({ task, owner, colKey, last, entrance, delay, members, assignOpen, onAssignToggle, onAssign, onDragStart, onDragEnd, onEdit, onShip, onReopen, onArrow, onDelete }) {
   const [dragging, setDragging] = useState(false)
   const chipRef = useRef(null)
   const idx = BOARD_COLUMNS.findIndex(c => c.key === colKey)
@@ -201,11 +209,11 @@ function TaskRow({ task, owner, colKey, last, delay, members, assignOpen, onAssi
   const ownerFull = owner?.full_name || owner?.username || ''
   const ownerName = ownerFull.split(' ')[0]
   return (
-    <div className={`os-card os-reveal-fast${dragging ? ' os-dragging' : ''}`} tabIndex={0}
+    <div className={`os-card ${entrance ? 'os-reveal-fast' : 'os-settle'}${dragging ? ' os-dragging' : ''}`} tabIndex={0}
       draggable
       onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; onDragStart(); setDragging(true) }}
       onDragEnd={() => { setDragging(false); onDragEnd() }}
-      style={{ position: 'relative', padding: '11px 4px 10px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: `${delay}ms`, cursor: 'grab', borderRadius: '6px' }}>
+      style={{ position: 'relative', padding: '11px 4px 10px', borderBottom: last ? 'none' : `1px solid ${HAIR}`, animationDelay: entrance ? `${delay}ms` : undefined, cursor: 'grab', borderRadius: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
         {/* SHIP / REOPEN — the one-tap gesture that makes the board a tool:
             a card closes (or comes back) without opening anything */}
@@ -267,7 +275,7 @@ function AssignMenu({ anchor, members, currentId, onPick, onClose }) {
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001 }} />
-      <div data-testid="board-owner-menu" role="menu" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)' }}>
+      <div data-testid="board-owner-menu" role="menu" className="menu-in" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)', transformOrigin: openUp ? 'left bottom' : 'left top' }}>
         {members.map(m => {
           const name = m.full_name || m.username
           const mine = m.id === currentId

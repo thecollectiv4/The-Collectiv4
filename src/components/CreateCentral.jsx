@@ -87,8 +87,8 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
     : { position: 'relative', width: '100%', maxWidth: '430px', maxHeight: '86dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
 
   return createPortal(
-    <div onClick={() => { if (!busyRef.current) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center', animation: 'fadeIn .25s ease' }}>
-      <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" style={{ ...shell, outline: 'none' }}>
+    <div onClick={() => { if (!busyRef.current) onClose() }} className="overlay-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center' }}>
+      <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" className={wide ? 'dialog-in' : 'sheet-up'} style={{ ...shell, outline: 'none' }}>
 
         {(stage === 'menu' || stage === 'share' || stage === 'gather' || stage === 'offer') && (
           <CreateDoors wide={wide} stage={stage} setStage={setStage}
@@ -133,14 +133,18 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
 function Done({ kicker, title, line, cta, onCta, onClose }) {
   return (
     <div style={{ position: 'relative', padding: '44px 28px 40px', textAlign: 'center' }}>
-      <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ {kicker}</div>
-      <div style={{ fontFamily: 'Bebas Neue', fontSize: '40px', lineHeight: .95, marginTop: '14px', ...chromeText }}>{title}</div>
-      <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '12px' }}>{line}</p>
-      <button className="pressable" onClick={onCta}
-        style={{ marginTop: '24px', width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
-        {cta}
-      </button>
-      <button onClick={onClose} style={{ marginTop: '12px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+      <div className="rise" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ {kicker}</div>
+      <div className="rise rise-1" style={{ fontFamily: 'Bebas Neue', fontSize: '40px', lineHeight: .95, marginTop: '14px', ...chromeText }}>{title}</div>
+      <p className="rise rise-2" style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, marginTop: '12px' }}>{line}</p>
+      {/* the rise animates the WRAPPER: a filled animation outranks .pressable's
+          :active transform, so a .rise on the button would kill its press. */}
+      <div className="rise rise-3" style={{ marginTop: '24px', display: 'flex' }}>
+        <button className="pressable" onClick={onCta}
+          style={{ width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+          {cta}
+        </button>
+      </div>
+      <button className="rise rise-4" onClick={onClose} style={{ marginTop: '12px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
         done
       </button>
     </div>
@@ -209,10 +213,8 @@ function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, 
           <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, marginTop: '10px', ...chromeText }}>PUT SOMETHING<br />INTO THE WORLD</div>
           <div style={{ marginTop: '16px' }}>
             {DOORS.map((d, i) => (
-              <button key={d.key} className="pressable" data-testid={`create-door-${d.key}`} onClick={() => setStage(d.key)}
-                style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === DOORS.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '19px 2px' : '17px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-                onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-                onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+              <button key={d.key} className="row-lead" data-testid={`create-door-${d.key}`} onClick={() => setStage(d.key)}
+                style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === DOORS.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '19px 2px' : '17px 2px', cursor: 'pointer' }}>
                 <span aria-hidden style={{ width: '46px', height: '46px', flexShrink: 0, borderRadius: '13px', border: `1px solid rgba(${d.tint},.28)`, background: `rgba(${d.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${d.tint},.08)` }}>
                   <Mark type={d.mark} size={18} color={`rgb(${d.tint})`} />
                 </span>
@@ -240,10 +242,8 @@ function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, 
 function IntentRow({ r, last, wide }) {
   const Icon = r.icon
   return (
-    <button className="pressable" onClick={r.onGo}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+    <button className="row-lead" onClick={r.onGo}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer' }}>
       <span aria-hidden style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid rgba(${r.tint},.28)`, background: `rgba(${r.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${r.tint},.08)` }}>
         {r.mark
           ? <Mark type={r.mark} size={16} color={`rgb(${r.tint})`} />

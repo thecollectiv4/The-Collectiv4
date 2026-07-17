@@ -35,8 +35,10 @@ function deriveTitle(text) {
 
 /* embedded — dock sizing: fill the host panel's height, no maxWidth, smaller
    empty-state type. Same state, same session — the dock and the tab are one
-   continuous conversation (messages live lifted in OS.jsx). */
-export default function Brain({ onSaveContent, onActed, messages, setMessages, embedded, context }) {
+   continuous conversation (messages live lifted in OS.jsx).
+   entrance — YOUR TODAY's staged reveal, on the brain tab's first visit only.
+   The dock opens on a keystroke (B), a hundred times a day: it never replays. */
+export default function Brain({ onSaveContent, onActed, messages, setMessages, embedded, context, entrance = false }) {
   const desktop = useIsDesktop()
   const [status, setStatus] = useState('checking')   // checking | online | coming_online | error
   const [input, setInput] = useState('')
@@ -47,6 +49,12 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages, e
   const scrollRef = useRef(null)
   const recRef = useRef(null)
   const inputRef = useRef(null)
+  // the transcript is HISTORY, not news: only a message that arrived after this
+  // mount animates. Initialized to the CURRENT length — the messages live in
+  // OS.jsx and outlive us, so a remount (B, tab switch) re-reads a transcript
+  // that is already old and animates none of it.
+  const prevLen = useRef(messages.length)
+  useEffect(() => { prevLen.current = messages.length }, [messages.length])
 
   const speechSupported = typeof window !== 'undefined' && !!(window.SpeechRecognition || window.webkitSpeechRecognition)
 
@@ -158,7 +166,7 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages, e
           /* YOUR TODAY — the Brain lands on the real state of the room (Ley 16):
              days to Fall 001, what's actually on the board, the next real date.
              The screen's one chrome moment is the days number. */
-          <div className="os-reveal" style={{ padding: embedded ? '14px 2px 8px' : '26px 2px 10px' }}>
+          <div className={entrance ? 'os-reveal' : ''} style={{ padding: embedded ? '14px 2px 8px' : '26px 2px 10px' }}>
             <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.28em', textTransform: 'uppercase' }}>
               ◇ your today · {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
             </div>
@@ -189,7 +197,7 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages, e
           </div>
         )}
         {messages.map((m, i) => (
-          <div key={i} className="os-reveal-fast" style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
+          <div key={i} className={i >= prevLen.current ? 'msg-in' : ''} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
             <div style={{ fontFamily: FONT_SANS, fontSize: '13px', lineHeight: 1.55, color: m.error ? BONE_MID : BONE, background: m.role === 'user' ? 'rgba(199,201,209,.10)' : PANEL, border: `1px solid ${m.role === 'user' ? HAIR_HI : HAIR}`, borderRadius: '14px', padding: '11px 14px', whiteSpace: 'pre-wrap' }}>
               {m.content}
             </div>

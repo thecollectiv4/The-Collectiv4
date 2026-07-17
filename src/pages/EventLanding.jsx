@@ -238,7 +238,7 @@ export function EventShow({ live }) {
       {!wide && <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,10,13,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,238,230,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'#F2EEE6',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div style={{width:'6px',height:'6px',borderRadius:'50%',background:'#C7C9D1',animation:'pulse 2s infinite',boxShadow:'0 0 10px rgba(199,201,209,.5)'}}/>
+          <div className="pulse-dot" style={{width:'6px',height:'6px',borderRadius:'50%',background:'#C7C9D1',boxShadow:'0 0 10px rgba(199,201,209,.5)'}}/>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
         </div>
       </div>}
@@ -262,7 +262,7 @@ export function EventShow({ live }) {
             <div className="pressable" onClick={()=>navigate('/editions')} style={{
               border:'1px solid rgba(242,238,230,.35)',borderRadius:'100px',padding:'6px 16px',
               fontFamily:'DM Mono',fontSize:'10px',color:'#F2EEE6',letterSpacing:'.1em',
-              cursor:'pointer',transition:'all .2s',
+              cursor:'pointer',transition:'border-color .2s, transform .2s',
               background:'linear-gradient(135deg,rgba(242,238,230,.08),rgba(242,238,230,.03))',
               boxShadow:'0 0 12px rgba(242,238,230,.1)',
             }}
@@ -273,9 +273,9 @@ export function EventShow({ live }) {
             {/* Countdown — honest states only: TONIGHT on the day, a real
                 count when it's coming, silence when it's past (Ley 11) */}
             {(isToday || isFuture) && (
-              <div style={{border:'1px solid rgba(199,201,209,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:isFuture?'pointer':'default',position:'relative',background:'rgba(199,201,209,.04)',animation:'countPulse 3s infinite'}}
+              <div className="glow-pulse" style={{border:'1px solid rgba(199,201,209,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:isFuture?'pointer':'default',position:'relative',background:'rgba(199,201,209,.04)'}}
                 onMouseOver={()=>isFuture&&setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
-                <div style={{width:'5px',height:'5px',borderRadius:'50%',background:'#C7C9D1',animation:'pulse 2s infinite',boxShadow:'0 0 8px rgba(199,201,209,.5)'}} />
+                <div className="pulse-dot" style={{width:'5px',height:'5px',borderRadius:'50%',background:'#C7C9D1',boxShadow:'0 0 8px rgba(199,201,209,.5)'}} />
                 <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#C7C9D1',letterSpacing:'.06em'}}>
                   {isToday ? 'TONIGHT' : showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
                 </span>
@@ -364,7 +364,7 @@ export function EventShow({ live }) {
           </>
         ) : availableTiers.length > 0 ? (
           <button className="pressable" onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
-            style={{width:'100%',background:checkingOut?'var(--cream-low)':'#F2EEE6',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'all .25s',boxShadow:'0 4px 20px rgba(242,238,230,.12)'}}
+            style={{width:'100%',background:checkingOut?'var(--cream-low)':'#F2EEE6',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'background .25s, transform .25s',boxShadow:'0 4px 20px rgba(242,238,230,.12)'}}
             onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(242,238,230,.2)'}}}
             onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(242,238,230,.12)'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
@@ -455,11 +455,9 @@ export function EventShow({ live }) {
                 {attendees.map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
                   return (
-                    <div key={a.id || i} className="pressable" onClick={()=>a.id&&navigate('/user/'+a.id)} role={a.id?'button':undefined} tabIndex={a.id?0:undefined}
+                    <div key={a.id || i} className={a.id ? 'row-lead' : 'pressable'} onClick={()=>a.id&&navigate('/user/'+a.id)} role={a.id?'button':undefined} tabIndex={a.id?0:undefined}
                       onKeyDown={(ev)=>{ if (a.id && (ev.key==='Enter'||ev.key===' ')) { ev.preventDefault(); navigate('/user/'+a.id) } }}
-                      style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 0',borderBottom:i<attendees.length-1?'1px solid rgba(242,238,230,.06)':'none',cursor:a.id?'pointer':'default',transition:'padding-left .2s'}}
-                      onMouseOver={e=>{if(a.id)e.currentTarget.style.paddingLeft='8px'}}
-                      onMouseOut={e=>{e.currentTarget.style.paddingLeft='0'}}>
+                      style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 0',borderBottom:i<attendees.length-1?'1px solid rgba(242,238,230,.06)':'none',cursor:a.id?'pointer':'default'}}>
                       <div style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.35)',background:'var(--bg-card)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                         {src
                           ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
@@ -520,7 +518,7 @@ export function EventShow({ live }) {
             )}
             {tiers.map((t,i)=>(
               <div key={i} className={t.status==='available' ? 'pressable' : undefined} onClick={()=>{ if(t.status!=='available') return; if(!agreed){ setAgreeError(true); return } handleCheckout(t.id) }}
-                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(242,238,230,.06)':'rgba(242,238,230,.02)',border:'1px solid '+(t.status==='available'?'rgba(242,238,230,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'all .2s'}}
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(242,238,230,.06)':'rgba(242,238,230,.02)',border:'1px solid '+(t.status==='available'?'rgba(242,238,230,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
                 onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.5)';e.currentTarget.style.background='rgba(242,238,230,.12)'}}}
                 onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.06)'}}}>
                 <div>
@@ -554,7 +552,7 @@ export function EventShow({ live }) {
             const avatar = world && (/^https?:\/\//i.test((world.avatar_url||'').trim()) || (world.avatar_url||'').startsWith('data:image/')) ? world.avatar_url : ''
             return (
             <div key={i} className={world ? 'pressable' : undefined} data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={world ? ()=>navigate('/user/'+world.id) : undefined}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:world?'pointer':'default',transition:'all .2s'}}
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:world?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
               onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.22)';e.currentTarget.style.background='rgba(242,238,230,.04)'}):undefined}>
               <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(242,238,230,.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(242,238,230,.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
                 {avatar ? <img src={avatar} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : a.name[0]}
@@ -596,9 +594,9 @@ export function EventShow({ live }) {
             const temp = experienceTemp(exp)
             const pulseClass = temp.pulse==='warm' ? 'temp-warm' : temp.pulse==='electric' ? 'temp-electric' : undefined
             return (
-            <div key={i} className="pressable" data-testid="event-experience" onClick={()=>navigate('/experience/'+exp.slug)}
-              style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer',transition:'padding-left .2s, border-color .2s'}}
-              onMouseOver={e=>{e.currentTarget.style.paddingLeft='10px';e.currentTarget.style.borderColor=`rgba(${temp.tint},.3)`}} onMouseOut={e=>{e.currentTarget.style.paddingLeft='2px';e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
+            <div key={i} className="row-lead" data-testid="event-experience" onClick={()=>navigate('/experience/'+exp.slug)}
+              style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=`rgba(${temp.tint},.3)`}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
               <span style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgba(${temp.tint},.75)`,letterSpacing:'.1em',flexShrink:0}}>{String(i+1).padStart(2,'0')}</span>
               <span aria-hidden className={pulseClass} style={{width:'34px',height:'34px',flexShrink:0,borderRadius:'10px',border:`1px solid rgba(${temp.tint},.32)`,background:`rgba(${temp.tint},.06)`,display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:'DM Mono',fontSize:'13px',color:`rgb(${temp.tint})`,boxShadow:`0 0 14px rgba(${temp.tint},.1)`}}>
                 {temp.mark}

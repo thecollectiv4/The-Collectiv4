@@ -11,8 +11,9 @@ import path from 'path'
 
    O · every founder RPC (D2 moderation, D4 retention) refuses anon → not_owner;
        retention_activity is deny-all (never public).
-   P · auth errors are HUMAN, not codes (D3): a bad sign-in shows Spanish, not
-       "Invalid login credentials".
+   P · auth errors are HUMAN, not codes (D3): a bad sign-in shows a plain-English
+       sentence, not the raw "Invalid login credentials" code. (PR #28 moved the
+       auth copy ES→English; this assertion tracks that intended product change.)
    Q · sign-up takes first + last name and lands a real session (D3).
    R · visibility tiers (D5): anon clears only 'public'; close-friend curation
        needs a session.
@@ -63,7 +64,7 @@ test('P · auth errors are human, not codes', async ({ page }) => {
   await page.getByPlaceholder('Email').fill(`nope-${Date.now()}@example.com`)
   await page.getByPlaceholder('Password').fill('definitely-wrong')
   await page.getByPlaceholder('Password').press('Enter')
-  await expect(page.getByText('Correo o contraseña incorrectos.')).toBeVisible({ timeout: 15000 })
+  await expect(page.getByText('Wrong email or password.')).toBeVisible({ timeout: 15000 })
   await expect(page.getByText(/Invalid login credentials/i)).toHaveCount(0)
 })
 

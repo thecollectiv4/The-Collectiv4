@@ -35,6 +35,17 @@
   --silver:     #C7C9D1;   /* SILVER */
   --star:       #E8E9ED;   /* STAR */
   --success:    #C7C9D1;
+
+  /* Motion — the deck's curve is the house signature; strong ease-out for
+     overlay entrances (per-surface). Durations are a scale, not a free-for-all. */
+  --ease-house:  cubic-bezier(.2, .7, .2, 1);      /* reveals, slides, hovers — the deck */
+  --ease-exit:   cubic-bezier(0.23, 1, 0.32, 1);   /* strong ease-out — overlay/dialog entrances */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);   /* sheets rising from the bottom edge */
+  --dur-press:   160ms;
+  --dur-fast:    200ms;
+  --dur-base:    250ms;
+  --dur-slow:    500ms;
+  --dur-cinematic: 950ms;                          /* the deck's .95s reveal — rare, deliberate */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -73,20 +84,27 @@ a { color: inherit; text-decoration: none; }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 @keyframes spin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
-@keyframes countPulse { 0%,100% { box-shadow:0 0 0 0 rgba(242,238,230,.12); } 50% { box-shadow:0 0 14px 4px rgba(242,238,230,.06); } }
-@keyframes glowPulse { 0%,100% { opacity:.6; } 50% { opacity:1; } }
+@keyframes glowFade { 0%,100% { opacity:0; } 50% { opacity:1; } }
 
-.fade-up   { animation: fadeUp 0.55s ease forwards; }
-.fade-up-1 { animation: fadeUp 0.55s ease 0.1s forwards; opacity:0; }
-.fade-up-2 { animation: fadeUp 0.55s ease 0.2s forwards; opacity:0; }
-.fade-up-3 { animation: fadeUp 0.55s ease 0.3s forwards; opacity:0; }
-.fade-up-4 { animation: fadeUp 0.55s ease 0.45s forwards; opacity:0; }
+.fade-up   { animation: fadeUp 0.55s var(--ease-house) forwards; }
+.fade-up-1 { animation: fadeUp 0.55s var(--ease-house) 0.1s forwards; opacity:0; }
+.fade-up-2 { animation: fadeUp 0.55s var(--ease-house) 0.2s forwards; opacity:0; }
+.fade-up-3 { animation: fadeUp 0.55s var(--ease-house) 0.3s forwards; opacity:0; }
+.fade-up-4 { animation: fadeUp 0.55s var(--ease-house) 0.45s forwards; opacity:0; }
+
+/* the event hero's pulses. The countdown glow is a pseudo-element whose
+   OPACITY animates — the shadow rasterizes once instead of every frame
+   (an infinite box-shadow keyframe repaints for as long as the page is
+   open). The live dots become a class so reduced motion can silence them. */
+.glow-pulse { position: relative; }
+.glow-pulse::after { content:''; position:absolute; inset:-2px; border-radius:inherit; box-shadow:0 0 14px 4px rgba(242,238,230,.10); opacity:0; animation: glowFade 3s ease-in-out infinite; pointer-events:none; }
+.pulse-dot { animation: pulse 2s infinite; }
 
 /* Page transitions */
-@keyframes pageIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+@keyframes pageIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
 @keyframes pageOut { from { opacity:1; } to { opacity:0; } }
-@keyframes slideInRight { from { opacity:0; transform:translateX(30px); } to { opacity:1; transform:translateX(0); } }
-@keyframes slideInLeft { from { opacity:0; transform:translateX(-30px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInRight { from { opacity:0; transform:translateX(12px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInLeft { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
 @keyframes scaleIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
 
 /* NO `forwards` here — a filled transform (even translateY(0)) stays applied
@@ -95,9 +113,9 @@ a { color: inherit; text-decoration: none; }
    the QA walkthrough — the build sheet rendered at document-bottom). The
    animations end at their natural values, so dropping the fill is visually
    identical. */
-.page-transition { animation: pageIn 0.35s ease; }
-.page-slide-right { animation: slideInRight 0.3s ease; }
-.page-slide-left { animation: slideInLeft 0.3s ease; }
+.page-transition { animation: pageIn var(--dur-fast) var(--ease-house); }
+.page-slide-right { animation: slideInRight var(--dur-fast) var(--ease-house); }
+.page-slide-left { animation: slideInLeft var(--dur-fast) var(--ease-house); }
 .page-scale { animation: scaleIn 0.3s ease; }
 
 /* ============================================================
@@ -105,8 +123,70 @@ a { color: inherit; text-decoration: none; }
    an editorial settle on :active, never a toy bounce. Opt-in
    class so transforms never collide with inline hover lifts.
    ============================================================ */
-.pressable { transition: transform .16s ease, opacity .16s ease; }
-.pressable:not(:disabled):active { transform: translateY(1px) scale(.99); }
+/* asymmetric timing: the :active rule's transition governs entering the
+   pressed state (deliberate, 160ms); the base rule governs release (snaps,
+   80ms) — the system's response answers faster than the hand asks. */
+.pressable { transition: transform 80ms var(--ease-exit), opacity 80ms var(--ease-exit); }
+.pressable:not(:disabled):active {
+  transform: translateY(1px) scale(.99);
+  transition: transform var(--dur-press) var(--ease-exit), opacity var(--dur-press) var(--ease-exit);
+}
+
+/* catalog rows lead with the whole row on hover — transform, never padding
+   (padding reflows the row's text mid-hover); gated so touch taps don't
+   stick a fake hover. Includes the press settle, so it REPLACES .pressable
+   at these sites (never stack both — the transforms would collide). */
+.row-lead { transition: transform var(--dur-fast) var(--ease-house), border-color var(--dur-fast) var(--ease-house); }
+@media (hover: hover) and (pointer: fine) {
+  .row-lead:hover { transform: translateX(8px); }
+  .row-lead:hover:active { transform: translateX(8px) translateY(1px) scale(.99); }
+}
+.row-lead:not(:disabled):active { transform: translateY(1px) scale(.99); }
+
+/* ============================================================
+   OVERLAY GRAMMAR — everything arrives from somewhere (Ley 13).
+   Sheets rise from the bottom edge; docked panels arrive from
+   their edge; centered dialogs settle; menus grow from their
+   trigger. Entrances only — overlays unmount on close.
+   NO `forwards` fills (see the page-transition note above) except
+   where opacity:0 start requires it and the element cannot contain
+   fixed descendants (menus).
+   ============================================================ */
+@keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheetUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes sheetUpCentered { from { transform: translateX(-50%) translateY(24px); opacity: 0; } to { transform: translateX(-50%) translateY(0); opacity: 1; } }
+@keyframes panelInRight { from { transform: translateX(32px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes dialogIn { from { transform: scale(.97); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes menuIn { from { transform: scale(.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.overlay-backdrop { animation: overlayFade var(--dur-base) var(--ease-exit); }
+.sheet-up { animation: sheetUp 320ms var(--ease-drawer); }
+.sheet-up-centered { animation: sheetUpCentered 320ms var(--ease-drawer); }
+.panel-in-right { animation: panelInRight 300ms var(--ease-exit); }
+.dialog-in { animation: dialogIn var(--dur-base) var(--ease-exit); }
+.menu-in { animation: menuIn 160ms var(--ease-exit); }
+
+/* ============================================================
+   CEREMONY — the rare moments (ticket confirmed, work published)
+   arrive as an editorial procession: the mark draws itself, then
+   each line settles in turn. House curve, no bounce (anti-corny).
+   `forwards` is required here — the delayed opacity:0 start needs
+   the fill (same accepted pattern as .os-reveal above). These
+   containers hold no position:fixed descendants (verified).
+   ============================================================ */
+@keyframes riseIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+.rise { opacity:0; animation: riseIn var(--dur-slow) var(--ease-house) forwards; }
+.rise-1 { animation-delay: 120ms; } .rise-2 { animation-delay: 200ms; }
+.rise-3 { animation-delay: 280ms; } .rise-4 { animation-delay: 360ms; } .rise-5 { animation-delay: 440ms; }
+@keyframes ringDraw { from { stroke-dashoffset: 164; } to { stroke-dashoffset: 0; } }
+.ring-draw { stroke-dasharray: 164; animation: ringDraw 600ms var(--ease-house) forwards; }
+
+/* builder beats — each question surfaces like a thought, not a slide
+   deck. The 2px blur masks the two-state swap (the catalog's masking
+   value). No `forwards` here: the filter must leave the element when
+   the beat lands, so nothing downstream inherits a containing block. */
+@keyframes beatIn { from { opacity:0; transform:translateY(8px); filter:blur(2px); } to { opacity:1; transform:translateY(0); filter:blur(0); } }
+.beat-in { animation: beatIn 300ms var(--ease-house); }
 
 /* ============================================================
    TEMPERATURE (Ley 14) — light with meaning, palette locked.
@@ -140,17 +220,17 @@ a { color: inherit; text-decoration: none; }
 
 /* reveal — the deck's curve exactly: .95s cubic-bezier(.2,.7,.2,1), 20px rise */
 @keyframes osReveal { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-.os-reveal { opacity:0; animation: osReveal .95s cubic-bezier(.2,.7,.2,1) forwards; }
-.os-reveal-fast { opacity:0; animation: osReveal .5s cubic-bezier(.2,.7,.2,1) forwards; }
+.os-reveal { opacity:0; animation: osReveal var(--dur-cinematic) var(--ease-house) forwards; }
+.os-reveal-fast { opacity:0; animation: osReveal var(--dur-slow) var(--ease-house) forwards; }
 
 /* section-to-section slide (Ley 13): the pane arrives from the side its tab
    lives on — connected, never a dry cut. NO `forwards` fill (a lingering
    transform would become the containing block for fixed overlays — see the
    page-transition note above). */
-@keyframes osSlideInRight { from { opacity:0; transform:translateX(18px); } to { opacity:1; transform:translateX(0); } }
-@keyframes osSlideInLeft { from { opacity:0; transform:translateX(-18px); } to { opacity:1; transform:translateX(0); } }
-.os-slide-in-right { animation: osSlideInRight .4s cubic-bezier(.2,.7,.2,1); }
-.os-slide-in-left { animation: osSlideInLeft .4s cubic-bezier(.2,.7,.2,1); }
+@keyframes osSlideInRight { from { opacity:0; transform:translateX(10px); } to { opacity:1; transform:translateX(0); } }
+@keyframes osSlideInLeft { from { opacity:0; transform:translateX(-10px); } to { opacity:1; transform:translateX(0); } }
+.os-slide-in-right { animation: osSlideInRight var(--dur-fast) var(--ease-house); }
+.os-slide-in-left { animation: osSlideInLeft var(--dur-fast) var(--ease-house); }
 
 /* "now" marker on the roadmap strip */
 @keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(232,233,237,.35); } 50% { box-shadow:0 0 0 5px rgba(232,233,237,0); } }
@@ -167,11 +247,21 @@ a { color: inherit; text-decoration: none; }
 .os-card.os-dragging { opacity:.35; }
 .os-lane-over { background: rgba(242,238,230,.035) !important; border-color: rgba(242,238,230,.28) !important; }
 
+/* a moved/created card SETTLES — feedback, not an entrance (no delay, no rise).
+   The entrance is for a first visit; an action's own answer must never hide
+   the thing the member just acted on. */
+@keyframes osSettle { from { transform: scale(.98); border-color: rgba(242,238,230,.28); } to { transform: scale(1); } }
+.os-settle { animation: osSettle var(--dur-fast) var(--ease-house); }
+
+/* the one message that just arrived — the transcript behind it stays still */
+@keyframes msgIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+.msg-in { animation: msgIn var(--dur-fast) var(--ease-house); }
+
 /* interactive affordances everywhere — filter isn't set inline anywhere, so
    a brightness lift lands on every button regardless of inline colors */
-.os-root button { transition: color .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease, filter .15s ease; }
+.os-root button { transition: color .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease, filter .15s ease, transform 80ms var(--ease-exit); }
 .os-root button:not(:disabled):hover, .os-root a:hover { filter: brightness(1.25); }
-.os-root button:not(:disabled):active { transform: translateY(1px); }
+.os-root button:not(:disabled):active { transform: translateY(1px); transition: transform var(--dur-press) var(--ease-exit); }
 
 /* consistent focus states across the instrument */
 .os-root button:focus-visible,
@@ -223,15 +313,18 @@ a { color: inherit; text-decoration: none; }
    brighten. Hover styles live HERE (not inline) so :hover
    composes with the breathe animation.
    ============================================================ */
-.disc-card { transition: transform .5s cubic-bezier(.2,.7,.2,1), border-color .5s ease; }
+.disc-card { transition: transform var(--dur-slow) var(--ease-house), border-color var(--dur-slow) ease; }
 .disc-card:hover {
   transform: translateY(-5px);
   border-color: rgba(242,238,230,.34) !important;
 }
 /* the banner breathes — slow, alive, never busy */
 @keyframes discBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
-.disc-banner img, .disc-banner svg { transform-origin: 50% 50%; }
-.disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation: discBreathe 6s ease-in-out infinite; }
+/* the animation is always ATTACHED and paused — un-hover freezes the scale
+   mid-cycle instead of snapping back (applying the keyframe only on :hover
+   yanks the transform off the element the moment the pointer leaves). */
+.disc-banner img, .disc-banner svg { transform-origin: 50% 50%; animation: discBreathe 6s ease-in-out infinite; animation-play-state: paused; }
+.disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation-play-state: running; }
 /* the name brightens — chrome belongs to the title alone (Ley 8) */
 .disc-name { color: #F2EEE6; transition: text-shadow .3s ease; }
 .disc-card:hover .disc-name { text-shadow: 0 0 18px rgba(242,238,230,.25); }
@@ -239,23 +332,50 @@ a { color: inherit; text-decoration: none; }
 .disc-reveal { opacity: 0; transform: translateY(3px); transition: opacity .35s ease .06s, transform .35s ease .06s; }
 .disc-card:hover .disc-reveal { opacity: 1; transform: translateY(0); }
 /* museum salon pieces — a slow lean-in on hover, nothing more */
-.salon-piece img { transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.salon-piece img { transition: transform .8s var(--ease-house); }
 .salon-piece:hover img { transform: scale(1.035); }
 /* touch devices: no hover — reveals are simply visible, nothing breathes */
 @media (hover: none) {
   .disc-reveal { opacity: 1; transform: none; }
   .disc-card:hover { transform: none; }
+  .salon-piece:hover img { transform: none; }
 }
+
+/* discovery cards surface ONCE — first load only, a capped stagger (plan 009).
+   A refilter never re-dances per card (too frequent); the whole grid crossfades
+   as one under a 2px blur mask that hides the double-exposure. */
+.card-in { opacity:0; animation: fadeUp var(--dur-slow) var(--ease-house) forwards; }
+@keyframes refilterIn { from { opacity:.4; filter:blur(2px); } to { opacity:1; filter:blur(0); } }
+.refilter-in { animation: refilterIn var(--dur-fast) var(--ease-house); }
 
 @media (prefers-reduced-motion: reduce) {
   .temp-warm, .temp-electric { animation:none; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
   .os-slide-in-right, .os-slide-in-left { animation:none; }
+  .os-settle, .msg-in { animation: none; }
   .os-now-dot, .os-mic-live { animation:none; }
   .world-ticker { animation:none; }
   .os-root button:not(:disabled):active { transform:none; }
   .pressable:not(:disabled):active { transform:none; }
+  .glow-pulse::after, .pulse-dot { animation:none; }
+  /* the selectors MIRROR the base rules above — a bare `.row-lead:active`
+     would lose to `.row-lead:not(:disabled):active` (:not's argument counts
+     toward specificity), same reason `.pressable` spells it out in full. */
+  .row-lead, .row-lead:hover, .row-lead:hover:active, .row-lead:not(:disabled):active { transform:none; }
   .disc-card, .disc-reveal { transition:none; }
   .disc-card:hover { transform:none; }
+  .disc-banner img, .disc-banner svg,
   .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation:none; }
+  .salon-piece img { transition:none; }
+  /* discovery: fades only, no rise/stagger/blur (plan 009) */
+  .card-in { animation: fadeIn .3s ease forwards; }
+  .refilter-in { animation: none; }
+  .sheet-up, .sheet-up-centered, .panel-in-right, .dialog-in, .menu-in { animation: overlayFade .2s ease; }
+  .page-transition, .page-slide-right, .page-slide-left, .page-scale { animation: fadeIn .2s ease; }
+  /* !important: several ceremony rows carry an INLINE animation-delay, and
+     inline wins over a class rule — without it the procession would still
+     stagger (as fades) for someone who asked for no motion. */
+  .rise { animation: fadeIn .3s ease forwards; animation-delay: 0ms !important; }
+  .ring-draw { animation: none; stroke-dashoffset: 0; }
+  .beat-in { animation: fadeIn .2s ease; }
 }

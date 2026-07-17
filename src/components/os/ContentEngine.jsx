@@ -7,7 +7,9 @@ import { Modal, Field, Input, Textarea, Select, Btn, OwnerChip, Chip } from './u
 /* Content Engine — §E density. Desktop lays cards in a 2-up grid so the width
    works; status is stated in mono (posted = solid bone, everything else = ash). */
 
-export default function ContentEngine({ content, owners, onCreate, onUpdate, onDelete }) {
+/* entrance — the staged reveal is a first-visit welcome (OS.jsx owns the
+   per-session bookkeeping); a re-entry finds the pipeline already there. */
+export default function ContentEngine({ content, owners, entrance, onCreate, onUpdate, onDelete }) {
   const desktop = useIsDesktop()
   const [editing, setEditing] = useState(null)
 
@@ -21,7 +23,7 @@ export default function ContentEngine({ content, owners, onCreate, onUpdate, onD
         ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '14px', alignItems: 'start' }
         : { display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {content.map((c, i) => (
-          <div key={c.id} className="os-card os-reveal" tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: PANEL, borderRadius: '12px', padding: '13px 14px', animationDelay: `${i * 45}ms`, minWidth: 0 }}>
+          <div key={c.id} className={`os-card${entrance ? ' os-reveal' : ''}`} tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: PANEL, borderRadius: '12px', padding: '13px 14px', animationDelay: entrance ? `${i * 45}ms` : undefined, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: FONT_SANS, fontSize: '14px', color: BONE, lineHeight: 1.3 }}>{c.title}</div>

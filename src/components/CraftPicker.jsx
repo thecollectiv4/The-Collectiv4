@@ -82,7 +82,7 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
             const meta = categoryMeta(c.category)
             return (
               <span key={c.id} data-testid={`craft-chip-${c.slug}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 6px 6px 12px', background: isP ? `rgba(${meta.tint},.12)` : 'rgba(242,238,230,.04)', border: `1px solid ${isP ? `rgba(${meta.tint},.55)` : HAIR_HI}`, transition: 'all .25s ease', boxShadow: isP ? `0 0 16px rgba(${meta.tint},.12)` : 'none' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 6px 6px 12px', background: isP ? `rgba(${meta.tint},.12)` : 'rgba(242,238,230,.04)', border: `1px solid ${isP ? `rgba(${meta.tint},.55)` : HAIR_HI}`, transition: 'background .25s ease, border-color .25s ease', boxShadow: isP ? `0 0 16px rgba(${meta.tint},.12)` : 'none' }}>
                 <button onClick={() => lead(c)} title={isP ? 'your primary craft' : 'make this your lead'} aria-pressed={isP}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
                   <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '10px', color: isP ? `rgb(${meta.tint})` : BONE_LOW }}>{isP ? '◆' : '◇'}</span>
@@ -158,7 +158,7 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
                       return (
                         <button key={c.id} className="pressable" data-testid={`craft-opt-${c.slug}`} aria-pressed={on}
                           onClick={() => toggle({ ...c, category: g.category })}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', background: on ? `rgba(${meta.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${meta.tint},.5)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'all .2s ease', boxShadow: on ? `0 0 12px rgba(${meta.tint},.1)` : 'none' }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', background: on ? `rgba(${meta.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${meta.tint},.5)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease', boxShadow: on ? `0 0 12px rgba(${meta.tint},.1)` : 'none' }}>
                           <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: on ? `rgb(${meta.tint})` : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                           {c.name}
                         </button>

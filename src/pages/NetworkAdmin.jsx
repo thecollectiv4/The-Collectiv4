@@ -153,7 +153,7 @@ export default function NetworkAdmin() {
               const name = r.full_name || 'Unnamed'
               const busy = pending === r.id
               return (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${r.verified ? 'rgba(199,201,209,.28)' : HAIR}`, background: r.verified ? 'rgba(199,201,209,.05)' : CARD, transition: 'all .2s' }}>
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${r.verified ? 'rgba(199,201,209,.28)' : HAIR}`, background: r.verified ? 'rgba(199,201,209,.05)' : CARD, transition: 'background .2s, border-color .2s' }}>
                   {/* avatar */}
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -172,7 +172,7 @@ export default function NetworkAdmin() {
                   </div>
                   {/* toggle */}
                   <button onClick={() => toggle(r)} disabled={busy}
-                    style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, transition: 'all .2s',
+                    style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s',
                       border: `1px solid ${r.verified ? SILVER : HAIR_HI}`, background: r.verified ? 'rgba(199,201,209,.12)' : 'transparent',
                       color: r.verified ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>
                     {busy ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <BadgeCheck size={11} />}

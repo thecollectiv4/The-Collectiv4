@@ -226,7 +226,7 @@ export default function Profile() {
       {/* ghost silver, same register as the Cover pill — the palette admits
           no salmon, not even as "danger" (panel catch, Ley 14) */}
       <button onClick={async () => { await signOut(); navigate('/') }}
-        style={{ background: 'rgba(10,10,13,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(199,201,209,.22)', borderRadius: '100px', padding: '6px 14px', color: '#C7C9D1', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'all .2s' }}
+        style={{ background: 'rgba(10,10,13,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(199,201,209,.22)', borderRadius: '100px', padding: '6px 14px', color: '#C7C9D1', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'border-color .2s' }}
         onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.45)'} onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.22)'}>
         <LogOut size={11} /> Sign Out
       </button>
@@ -280,7 +280,7 @@ export default function Profile() {
             </div>
           </div>
         ) : (
-          <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'all .3s' }}
+          <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .3s' }}
             onClick={() => navigate('/')}
             onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,238,230,.2)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
             <div style={{ padding: '24px', background: 'var(--bg-card)' }}>

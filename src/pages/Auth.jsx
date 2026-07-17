@@ -60,7 +60,7 @@ export default function Auth() {
       <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
         <div style={{display:'flex',background:'var(--bg-card)',borderRadius:'10px',padding:'3px',marginBottom:'8px'}}>
           {['signup','signin'].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} style={{flex:1,background:mode===m?'var(--cream)':'transparent',border:'none',borderRadius:'8px',padding:'10px',color:mode===m?'var(--bg)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'all .2s'}}>
+            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} style={{flex:1,background:mode===m?'var(--cream)':'transparent',border:'none',borderRadius:'8px',padding:'10px',color:mode===m?'var(--bg)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'background .2s, color .2s'}}>
               {m==='signin'?'Sign In':'Sign Up'}
             </button>
           ))}
@@ -74,7 +74,7 @@ export default function Auth() {
         {mode==='signin'&&<button onClick={forgot} disabled={loading} style={{background:'none',border:'none',color:'var(--cream-low)',fontSize:'12px',fontFamily:'DM Sans',cursor:'pointer',textAlign:'right',padding:'2px',textDecoration:'underline',opacity:loading?.6:1}}>Forgot password?</button>}
         {error&&<div style={{fontSize:'12px',color:'var(--rust)',padding:'10px 14px',background:'var(--rust-dim)',borderRadius:'8px'}}>{error}</div>}
         {notice&&<div style={{fontSize:'12px',color:'var(--cream-mid)',padding:'10px 14px',background:'rgba(242,238,230,.06)',border:'1px solid rgba(242,238,230,.12)',borderRadius:'8px',lineHeight:1.5}}>{notice}</div>}
-        <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'16px',color:'var(--bg)',fontWeight:600,fontSize:'14px',cursor:'pointer',fontFamily:'DM Sans',opacity:loading?.6:1,marginTop:'4px',transition:'all .25s'}}
+        <button onClick={handle} disabled={loading} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'10px',padding:'16px',color:'var(--bg)',fontWeight:600,fontSize:'14px',cursor:'pointer',fontFamily:'DM Sans',opacity:loading?.6:1,marginTop:'4px',transition:'transform .25s, opacity .25s'}}
           onMouseOver={e=>{if(!loading){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(242,238,230,.15)'}}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           {loading?'...':mode==='signin'?'Sign In':'Create Account'}

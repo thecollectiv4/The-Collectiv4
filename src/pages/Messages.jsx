@@ -141,6 +141,12 @@ function Inbox({ me, wide }) {
   const rawSeg = searchParams.get('seg')
   const seg = circle === true && SEGS.includes(rawSeg) ? rawSeg : 'signals'
   const setSeg = (s) => { setSegErr(''); setSearchParams(s === 'signals' ? {} : { seg: s }, { replace: true }) }
+  // directional segment grammar at consumer register (plan 009 / Ley 13): the
+  // pane arrives from the side its tab lives on. SEGS already holds the order;
+  // the initial mount carries '' and does not animate.
+  const prevSeg = useRef(seg)
+  const segDir = SEGS.indexOf(seg) > SEGS.indexOf(prevSeg.current) ? 'os-slide-in-right' : SEGS.indexOf(seg) < SEGS.indexOf(prevSeg.current) ? 'os-slide-in-left' : ''
+  useEffect(() => { prevSeg.current = seg }, [seg])
 
   useEffect(() => {
     let alive = true
@@ -277,6 +283,10 @@ function Inbox({ me, wide }) {
         <div style={{ maxWidth: wide ? '720px' : undefined }}>
           {segErr && <div role="alert" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '12px' }}>⚠ {segErr}</div>}
 
+          {/* the three segments share ONE keyed, direction-classed wrapper: a
+              swap slides in from the side its tab lives on (plan 009). The
+              initial mount carries '' and stays still. */}
+          <div key={seg} className={segDir}>
           {/* ---------------- SIGNALS — the original inbox ---------------- */}
           {seg === 'signals' && (
             <TheBell bells={bells}
@@ -379,6 +389,7 @@ function Inbox({ me, wide }) {
               </>
             )
           )}
+          </div>
         </div>
       )}
 
@@ -586,10 +597,8 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
 /* the door rows — START A CREW / MAKE A PLAN, in the inbox row grammar */
 function CreateRow({ testid, title, kicker, onGo }) {
   return (
-    <button className="pressable" data-testid={testid} onClick={onGo}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', minHeight: '44px', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, marginTop: '10px', padding: '14px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+    <button className="row-lead" data-testid={testid} onClick={onGo}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', minHeight: '44px', textAlign: 'left', background: 'transparent', border: 'none', borderTop: `1px solid ${HAIR}`, marginTop: '10px', padding: '14px 2px', cursor: 'pointer' }}>
       <span style={{ width: '42px', height: '42px', borderRadius: '50%', border: `1px dashed ${HAIR_HI}`, background: 'transparent', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Mark type="plus" size={14} color={SILVER} />
       </span>
@@ -612,10 +621,8 @@ function InboxRow({ t, me, last, onOpen }) {
   const avatar = safeImg(face?.avatar_url)
   const kicker = t.kind === 'event' ? 'room' : t.kind === 'group' ? 'crew' : t.kind === 'plan' ? 'plan' : null
   return (
-    <button className="pressable" onClick={onOpen}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: '14px 2px', cursor: 'pointer', transition: 'padding-left .2s ease' }}
-      onMouseOver={(e) => { e.currentTarget.style.paddingLeft = '10px' }}
-      onMouseOut={(e) => { e.currentTarget.style.paddingLeft = '2px' }}>
+    <button className="row-lead" onClick={onOpen}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: '14px 2px', cursor: 'pointer' }}>
       {/* the face — or the room's mark: calendar for events, square for
           crews, star for plan rooms (Ley 6 / Ley 14) */}
       <span style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${t.unread ? SILVER : HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -759,7 +766,7 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
 function RsvpBtn({ testid, on, label, mark, onClick }) {
   return (
     <button className="pressable" data-testid={testid} onClick={onClick} aria-pressed={on}
-      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'all .2s' }}>
+      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
       <Mark type={mark} size={10} color={on ? BONE : BONE_LOW} />
       {label}
     </button>
@@ -780,9 +787,9 @@ function Sheet({ label, busy, onClose, children }) {
 
   return createPortal(
     <>
-      <div onClick={() => { if (!busy) onClose() }} aria-hidden
-        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', animation: 'fadeIn .25s ease' }} />
-      <div role="dialog" aria-modal="true" aria-label={label}
+      <div onClick={() => { if (!busy) onClose() }} aria-hidden className="overlay-backdrop"
+        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
+      <div role="dialog" aria-modal="true" aria-label={label} className="sheet-up-centered"
         style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '460px', zIndex: 10000, background: VOID, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '82dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
       </div>
@@ -910,7 +917,7 @@ function VisibilityPicker({ value, onChange, disabled, compact }) {
           return (
             <button key={t} type="button" className="pressable" data-testid={`plan-vis-${t}`} disabled={disabled}
               onClick={() => onChange(t)} aria-pressed={on}
-              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'all .2s' }}>
+              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s, transform .2s' }}>
               <Icon size={compact ? 11 : 14} strokeWidth={1.6} fill={t === 'close' && on ? STAR : 'none'} color={on ? (t === 'close' ? STAR : BONE) : BONE_LOW} />
               <span style={{ fontFamily: 'DM Mono', fontSize: compact ? '8px' : '8.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{VIS_LABEL[t]}</span>
             </button>
@@ -1030,6 +1037,13 @@ function Thread({ threadId, me, wide }) {
   const [err, setErr] = useState('')
   const bottomRef = useRef(null)
   const profilesRef = useRef({})
+  // this transcript is HISTORY, not news: only a message that arrives AFTER the
+  // thread's history has loaded animates. prevLen tracks what's already on
+  // screen; it's advanced to the loaded length in load() (below), so opening a
+  // thread — or switching threads — animates nothing. Same "history is not
+  // news" pattern as plan 004's Brain dock, adapted for async-loaded state.
+  const prevLen = useRef(msgs.length)
+  useEffect(() => { prevLen.current = msgs.length }, [msgs.length])
 
   const load = useCallback(async () => {
     const t = await fetchThread(threadId, me.id)
@@ -1037,6 +1051,7 @@ function Thread({ threadId, me, wide }) {
     profilesRef.current = Object.fromEntries((t.members || []).map((p) => [p.id, p]))
     setThread(t)
     setMsgs(t.messages)
+    prevLen.current = t.messages.length   // history just landed — it is old, never animate it
     setLoading(false)
     markThreadRead(threadId, me.id)
     markThreadSignalsRead(threadId)   // reading the room IS reading the bell (0043)
@@ -1168,11 +1183,11 @@ function Thread({ threadId, me, wide }) {
           </div>
         ) : (
           <div role="log" aria-live="polite" aria-label="Messages" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {msgs.map((m) => {
+            {msgs.map((m, idx) => {
               const mine = m.sender_id === me.id
               const sender = profilesRef.current[m.sender_id]
               return (
-                <div key={m.id} style={{ display: 'flex', gap: '10px', flexDirection: mine ? 'row-reverse' : 'row' }}>
+                <div key={m.id} className={idx >= prevLen.current ? 'msg-in' : ''} style={{ display: 'flex', gap: '10px', flexDirection: mine ? 'row-reverse' : 'row' }}>
                   {!mine && (
                     <span style={{ width: '26px', height: '26px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
                       {safeImg(sender?.avatar_url)
