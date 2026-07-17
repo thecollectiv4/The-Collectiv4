@@ -23,7 +23,7 @@ export default function Auth() {
   const inp = { width:'100%', background:'var(--bg-card)', border:'1px solid var(--border-hi)', borderRadius:'10px', padding:'14px 16px', color:'var(--cream)', fontFamily:'DM Sans', fontSize:'14px', outline:'none' }
 
   const handle = async () => {
-    if (mode==='signup' && (!firstName.trim() || !lastName.trim())) { setError('Escribe tu nombre y apellido'); return }
+    if (mode==='signup' && (!firstName.trim() || !lastName.trim())) { setError('Enter your first and last name'); return }
     setLoading(true); setError(''); setNotice('')
     try {
       // Everyone — members included — lands on the public app after signing in.
@@ -40,11 +40,11 @@ export default function Auth() {
   // D3: forgot password — send the reset link. Anti-enumeration: the same
   // confirmation shows whether or not an account exists at that email.
   const forgot = async () => {
-    if (!email.trim()) { setError('Escribe tu correo para mandarte el enlace'); return }
+    if (!email.trim()) { setError('Enter your email to get the reset link'); return }
     setLoading(true); setError(''); setNotice('')
     try {
       await resetPassword(email.trim())
-      setNotice('Si hay una cuenta con ese correo, te mandamos un enlace para restablecer tu contraseña.')
+      setNotice('If an account exists for that email, we sent a link to reset your password.')
     } catch(e){ setError(humanizeAuthError(e)) } finally{ setLoading(false) }
   }
 

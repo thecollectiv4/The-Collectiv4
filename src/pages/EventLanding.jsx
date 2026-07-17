@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
@@ -21,8 +21,9 @@ export default function EventLanding() {
 export function EventShow({ live }) {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const wide = useWide()                  // >=1024px: editorial spread, not a stretched phone
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const event = live.raw
   const loadingEvent = live.loading
   const [attendeeCount, setAttendeeCount] = useState(0)
@@ -124,7 +125,19 @@ export function EventShow({ live }) {
     // Session still rehydrating (hard load + instant click) — ignore the click
     // rather than bounce a signed-in buyer to /auth. The window is milliseconds.
     if (authLoading) return
-    if (!user) { navigate('/auth'); return }
+    if (!user) {
+      // Preserve the FULL intent — this event AND this tier — through signup, so
+      // the buyer lands back IN checkout, not on the home page having lost both.
+      // ?next carries the current room (its slug) with a ?buy=<tier> the resume
+      // effect below reads. Consent was already given (the tier button gates on
+      // `agreed`), so returning straight to Stripe honors it.
+      const params = new URLSearchParams(searchParams)
+      params.set('buy', tierId)
+      const q = params.toString()
+      const next = `${location.pathname}${q ? `?${q}` : ''}`
+      navigate(`/auth?next=${encodeURIComponent(next)}`)
+      return
+    }
     if (!event) return
     setCheckingOut(true)
     try {
@@ -153,6 +166,28 @@ export function EventShow({ live }) {
   // agreement, no redirect. Refund reality (all sales final) is stated here too.
   const [agreed, setAgreed] = useState(false)
   const [agreeError, setAgreeError] = useState(false)
+
+  // Resume after signup: a signed-out buyer who tapped a tier is sent to /auth
+  // with ?next=<room>?buy=<tier>. On return we land them straight in Stripe
+  // checkout for that exact tier — never the home page, never re-finding the
+  // event. Fires exactly once.
+  const resumeFired = useRef(false)
+  useEffect(() => {
+    if (resumeFired.current) return
+    const buyTier = searchParams.get('buy')
+    if (!buyTier) return
+    if (authLoading || !user || !event) return           // wait for session + event
+    const target = tiers.find((t) => t.id === buyTier && t.status === 'available')
+    // Clear the param first so a stale/invalid buy can't linger or re-fire on refresh.
+    const p = new URLSearchParams(searchParams)
+    p.delete('buy')
+    setSearchParams(p, { replace: true })
+    if (!target) return                                  // tier gone/sold out → land on the room, honestly
+    resumeFired.current = true
+    setTicketOpen(true)                                  // open the sheet if the redirect lags
+    setAgreed(true)                                      // consent was given before signup
+    handleCheckout(buyTier)
+  }, [authLoading, user, event, tiers, searchParams])
 
   // Door check-in moved to /door — network-only, server-gated (migration 0013).
   // Nothing scanner-shaped (and no client secret) ships on the public landing.
