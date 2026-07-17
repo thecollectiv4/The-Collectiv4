@@ -5,16 +5,18 @@ este trabajo (agente o humano), empieza aquí.
 
 ## La rama
 
-- **Rama: `feat/motion-diego`.** Local y privada. **NO es la versión live.**
-- Salió de **`main` = v9 (`2e47930`)**.
-- **NO incluye v10** — esa rama (`feat/el-mundo-v10`) está pausada y vive en otra
-  máquina. No la toques, no la mergees, no asumas que su trabajo está aquí.
+- **Rama: `feat/motion-diego`.** Respaldada en origin (push autorizado por
+  Diego, 2026-07-17). **NO es la versión live.**
+- Nació de v9 (`2e47930`) y fue **rebaseada sobre `main` = v10 (`ad051c3`)**
+  el 2026-07-17. El rebase pasó sin conflictos; gate v10 (5/5) + regresión
+  v6–v9 (33/33) + build + guardrail4 en verde sobre el resultado.
 - **`main` no se toca.**
 
 ## Reglas duras de esta rama
 
-- **Nunca**: `push`, PR, merge, Supabase, migraciones.
-- **Todo local.** El trabajo se ve en el dev server (`npm run dev` →
+- **Nunca**: PR, merge, Supabase, migraciones. Push solo como respaldo de esta
+  rama (ya autorizado); jamás a `main`.
+- El trabajo se ve en el dev server (`npm run dev` →
   http://localhost:5173), no en un preview de Vercel ni en producción.
 - Cualquier merge a `main` está gated por aprobación explícita del founder
   (regla de CLAUDE.md). Esta rama todavía no llegó a esa conversación.
