@@ -181,7 +181,9 @@ export async function fetchInbox(meId) {
     const eventIds = [...new Set(threads.map((t) => t.event_id).filter(Boolean))]
     const [profRes, evRes, lastMsgs] = await Promise.all([
       otherIds.length
-        ? supabase.from('profiles').select('id,full_name,username,avatar_url').in('id', otherIds)
+        // is_demo travels with the identity (guardrail 4) — every payload
+        // that transports a profile transports the flag, no exception
+        ? supabase.from('profiles').select('id,full_name,username,avatar_url,is_demo').in('id', otherIds)
         : Promise.resolve({ data: [] }),
       eventIds.length
         ? supabase.from('events').select('id,title,edition,event_date').in('id', eventIds)
@@ -256,7 +258,8 @@ export async function fetchThread(threadId, meId) {
   const msgs = (msgsDesc || []).slice().reverse()
   const ids = [...new Set((members || []).map((m) => m.profile_id))]
   const [profRes, evRes] = await Promise.all([
-    ids.length ? supabase.from('profiles').select('id,full_name,username,avatar_url').in('id', ids) : Promise.resolve({ data: [] }),
+    // is_demo travels with the identity (guardrail 4)
+    ids.length ? supabase.from('profiles').select('id,full_name,username,avatar_url,is_demo').in('id', ids) : Promise.resolve({ data: [] }),
     t.event_id ? supabase.from('events').select('id,title,edition,event_date,slug').eq('id', t.event_id).maybeSingle() : Promise.resolve({ data: null }),
   ])
   const profiles = Object.fromEntries((profRes.data || []).map((p) => [p.id, p]))

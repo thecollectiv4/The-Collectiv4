@@ -12,6 +12,8 @@ import {
   setPlanVisibility, VIS_TIERS, VIS_LABEL,
 } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
+import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signalTo } from '@/lib/signals'
+import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
 
@@ -132,6 +134,7 @@ function Inbox({ me, wide }) {
   const [closeSet, setCloseSet] = useState(() => new Set())   // curated close friends (0029)
   const [craftsByFriend, setCraftsByFriend] = useState(new Map())
   const [closeBusy, setCloseBusy] = useState(null)   // profile id mid-toggle
+  const [bells, setBells] = useState({ unread: 0, signals: [] })   // LAS CAMPANAS (v10 D2)
 
   // the segment lives in the URL (?seg=) so CREWS/PLANS are deep-linkable;
   // pre-0023 everything honestly collapses to SIGNALS (no dead segments)
@@ -142,6 +145,8 @@ function Inbox({ me, wide }) {
   useEffect(() => {
     let alive = true
     fetchInbox(me.id).then((rows) => { if (alive) { setThreads(rows); setLoading(false) } })
+    // the bell inbox (0042) — empty shape pre-migration, so nothing dead renders
+    fetchSignals(24).then((b) => { if (alive) setBells(b) })
     circleReady().then((r) => {
       if (!alive) return
       setCircle(r)
@@ -274,6 +279,22 @@ function Inbox({ me, wide }) {
 
           {/* ---------------- SIGNALS — the original inbox ---------------- */}
           {seg === 'signals' && (
+            <TheBell bells={bells}
+              onOpen={(s) => {
+                if (!s.read_at) {
+                  // optimistic, with the honest rollback: a null return means
+                  // the door refused — refetch server truth (Ley 11)
+                  markSignalsRead([s.id]).then((n) => { if (n === null) fetchSignals(24).then(setBells) })
+                  setBells((b) => ({ unread: Math.max(0, b.unread - 1), signals: b.signals.map((x) => x.id === s.id ? { ...x, read_at: new Date().toISOString() } : x) }))
+                }
+                navigate(signalTo(s))
+              }}
+              onMarkAll={() => {
+                markSignalsRead(null).then((n) => { if (n === null) fetchSignals(24).then(setBells) })
+                setBells((b) => ({ unread: 0, signals: b.signals.map((x) => ({ ...x, read_at: x.read_at || new Date().toISOString() })) }))
+              }} />
+          )}
+          {seg === 'signals' && (
             signals.length === 0 ? (
               <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(232,233,237,.05), rgba(232,233,237,.01))', textAlign: 'center' }}>
                 <MessagesSquare size={22} strokeWidth={1.3} style={{ color: SILVER, marginBottom: '14px' }} />
@@ -374,6 +395,67 @@ function Inbox({ me, wide }) {
   )
 }
 
+/* THE BELL (v10 D2 · Las Campanas) — the notification inbox, quiet by law:
+   one block above SIGNALS, unread first, each row keeps its promise (the
+   tap opens the surface it names and marks itself read). Renders nothing
+   when the stream is empty or the migration isn't live — no dead chrome.
+   The ◇ pill marks a seed actor — only a founder can ever receive one
+   (the RPC floors demo actors for everyone else). */
+function TheBell({ bells, onOpen, onMarkAll }) {
+  const rows = (bells.signals || []).slice(0, 8)
+  if (!rows.length) return null
+  return (
+    <div data-testid="bell-block" style={{ marginTop: '16px' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
+        <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: SILVER }}>◇</span>
+        <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>
+          The bell{bells.unread > 0 ? ` · ${bells.unread} new` : ''}
+        </span>
+        {bells.unread > 0 && (
+          <button className="pressable" data-testid="bell-mark-all" onClick={onMarkAll}
+            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', padding: '4px 2px' }}>
+            mark all read
+          </button>
+        )}
+      </div>
+      <div style={{ marginTop: '8px', borderRadius: '14px', border: `1px solid ${HAIR}`, overflow: 'hidden' }}>
+        {rows.map((s, i) => {
+          const unread = !s.read_at
+          const name = s.actor?.name || s.actor?.username || (s.kind === 'ticket_sale' ? 'someone' : 'the room')
+          const avatar = safeImg(s.actor?.avatar_url)
+          const initial = (name[0] || '◇').toUpperCase()
+          return (
+            <div key={s.id} data-testid={`bell-row-${s.kind}`} className="pressable" role="button" tabIndex={0}
+              onClick={() => onOpen(s)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(s) } }}
+              style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 14px', cursor: 'pointer',
+                borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: unread ? 'rgba(232,233,237,.03)' : 'transparent' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${unread ? SILVER : HAIR_HI}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {avatar
+                  ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <span style={{ fontFamily: 'Bebas Neue', fontSize: '15px', color: unread ? BONE : BONE_MID }}>{initial}</span>}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '7px', minWidth: 0 }}>
+                  <span style={{ fontFamily: 'DM Sans', fontSize: '13px', fontWeight: unread ? 700 : 500, color: unread ? BONE : BONE_MID, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                  <SeedPill is_demo={s.actor?.is_demo} size={7} />
+                </div>
+                <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: unread ? BONE_MID : BONE_LOW, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: '2px' }}>
+                  {signalLine(s)}
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>{msgTime(s.created_at)}</span>
+                {unread && <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(232,233,237,.6)' }} />}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 /* the mono segmented row — SIGNALS · CREWS · PLANS */
 function SegRow({ seg, onSeg }) {
   const items = [
@@ -425,7 +507,10 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
                     : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                    <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
+                    <SeedPill is_demo={p.is_demo} />
+                  </span>
                   <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '3px' }}>wants in your circle</span>
                 </span>
                 <button className="pressable" data-testid={`circle-accept-${p.id}`} disabled={busy} onClick={() => onAnswer(p, true)}
@@ -478,7 +563,10 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+            <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
+            <SeedPill is_demo={f.is_demo} />
+          </span>
           {craft
             ? <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tint})`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{craft.name}</span>
             : (f.city && <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '4px' }}>{f.city}</span>)}
@@ -544,6 +632,7 @@ function InboxRow({ t, me, last, onOpen }) {
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px' }}>
           <span style={{ fontFamily: 'Bebas Neue', fontSize: '19px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{title}</span>
+          <SeedPill is_demo={face?.is_demo} />
           {kicker && <span style={{ fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase', flexShrink: 0 }}>{kicker}</span>}
         </span>
         <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: '12px', color: t.unread ? BONE_MID : BONE_LOW, lineHeight: 1.4, marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{preview}</span>
@@ -615,8 +704,9 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
       {p.detail && <div style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID, lineHeight: 1.55, marginTop: '8px' }}>{p.detail}</div>}
 
       {/* real counts only — who's in, who's maybe. no vanity. */}
-      <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', marginTop: '10px' }}>
-        {p.in_count || 0} in · {p.maybe_count || 0} maybe{!mine && creatorName ? ` · by ${creatorName}` : ''}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', marginTop: '10px' }}>
+        <span>{p.in_count || 0} in · {p.maybe_count || 0} maybe{!mine && creatorName ? ` · by ${creatorName}` : ''}</span>
+        {!mine && <SeedPill is_demo={p.creator?.is_demo} size={7} />}
       </div>
 
       {/* who can see it (v9 D2) — the creator edits the tier; a member just
@@ -733,6 +823,7 @@ function FriendPick({ friends, sel, onToggle, testPrefix, busy }) {
             </span>
             <span style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'baseline', gap: '8px' }}>
               <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+              <SeedPill is_demo={f.is_demo} size={7} />
               {f.username && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', flexShrink: 0 }}>@{f.username}</span>}
             </span>
             <Mark type="square" size={14} color={on ? BONE : BONE_LOW} filled={on} style={{ flexShrink: 0 }} />
@@ -948,6 +1039,7 @@ function Thread({ threadId, me, wide }) {
     setMsgs(t.messages)
     setLoading(false)
     markThreadRead(threadId, me.id)
+    markThreadSignalsRead(threadId)   // reading the room IS reading the bell (0043)
   }, [threadId, me.id])
 
   useEffect(() => { load() }, [load])
@@ -958,7 +1050,7 @@ function Thread({ threadId, me, wide }) {
   useEffect(() => {
     const off = subscribeThread(threadId, (m) => {
       setMsgs((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m]))
-      if (m.sender_id !== me.id) markThreadRead(threadId, me.id)
+      if (m.sender_id !== me.id) { markThreadRead(threadId, me.id); markThreadSignalsRead(threadId) }
     })
     return off
   }, [threadId, me.id])
@@ -1046,7 +1138,10 @@ function Thread({ threadId, me, wide }) {
                       : <span style={{ fontFamily: 'Bebas Neue', fontSize: '14px', color: BONE }}>{(title || '?')[0].toUpperCase()}</span>}
             </span>
             <span style={{ minWidth: 0 }}>
-              <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '17px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                <span style={{ fontFamily: 'Bebas Neue', fontSize: '17px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{title}</span>
+                {thread.kind === 'dm' && <SeedPill is_demo={other?.is_demo} size={7} />}
+              </span>
               <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '3px' }}>
                 {thread.kind === 'event' ? `the room · ${thread.members.length} in`
                   : thread.kind === 'group' ? `the crew · ${thread.members.length} inside`
@@ -1087,7 +1182,10 @@ function Thread({ threadId, me, wide }) {
                   )}
                   <div style={{ maxWidth: '78%', background: mine ? 'rgba(242,238,230,.07)' : CARD, border: `1px solid ${mine ? 'rgba(242,238,230,.14)' : HAIR}`, borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px' }}>
                     {!mine && isRoomKind(thread.kind) && (
-                      <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: SILVER, letterSpacing: '.08em', marginBottom: '4px' }}>{sender?.full_name || sender?.username || 'Member'}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: SILVER, letterSpacing: '.08em', marginBottom: '4px' }}>
+                        <span>{sender?.full_name || sender?.username || 'Member'}</span>
+                        <SeedPill is_demo={sender?.is_demo} size={7} />
+                      </div>
                     )}
                     <div style={{ fontSize: '13.5px', color: BONE, lineHeight: 1.55, fontFamily: 'DM Sans', overflowWrap: 'anywhere' }}>{m.body}</div>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, marginTop: '5px', textAlign: mine ? 'right' : 'left', letterSpacing: '.06em' }}>{msgTime(m.created_at)}</div>

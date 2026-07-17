@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
+import { signalsUnread, SIGNALS_EVENT } from '@/lib/signals'
 import { supabase } from '@/api/supabase'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
@@ -82,6 +83,20 @@ export default function Layout() {
     if (authLoading || !user) return
     supabase.rpc('log_return', { p_surface: location.pathname.slice(0, 40) }).then(() => {}, () => {})
   }, [authLoading, user]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // LAS CAMPANAS (v10 D2): the bell count on the Messages mark — the ONE
+  // living thing the stream puts on this screen. Refreshes on navigation
+  // and whenever a surface announces a change; 0 on any failure (a badge
+  // never invents). Anon carries no bell.
+  const [bellCount, setBellCount] = useState(0)
+  useEffect(() => {
+    if (authLoading || !user) { setBellCount(0); return undefined }
+    let alive = true
+    const refresh = () => signalsUnread().then((n) => { if (alive) setBellCount(n) })
+    refresh()
+    window.addEventListener(SIGNALS_EVENT, refresh)
+    return () => { alive = false; window.removeEventListener(SIGNALS_EVENT, refresh) }
+  }, [authLoading, user, location.pathname])
 
   // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
   const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs
@@ -174,9 +189,19 @@ export default function Layout() {
                   onMouseOver={e => { if (!active) e.currentTarget.style.color = '#C7C4BC' }}
                   onMouseOut={e => { if (!active) e.currentTarget.style.color = '#83838F' }}>
                   {/* the house mark — lit when this room is where you stand */}
-                  <Mark type={tab.mark} size={10} filled={active}
-                    color={active ? '#E8E9ED' : '#5B5952'}
-                    style={{ flexShrink:0, filter: active ? 'drop-shadow(0 0 5px rgba(232,233,237,.7))' : 'none', transition:'filter .2s' }} />
+                  <span style={{ position:'relative', display:'inline-flex', flexShrink:0 }}>
+                    <Mark type={tab.mark} size={10} filled={active}
+                      color={active ? '#E8E9ED' : '#5B5952'}
+                      style={{ flexShrink:0, filter: active ? 'drop-shadow(0 0 5px rgba(232,233,237,.7))' : 'none', transition:'filter .2s' }} />
+                    {tab.to === '/messages' && bellCount > 0 && (
+                      <span data-testid="bell-badge" aria-label={`${bellCount} unread signals`}
+                        style={{ position:'absolute', top:'-7px', right:'-11px', minWidth:'13px', height:'13px',
+                          borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
+                          fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>
+                        {bellCount > 9 ? '9+' : bellCount}
+                      </span>
+                    )}
+                  </span>
                   {tab.label}
                 </button>
               )
@@ -232,9 +257,19 @@ export default function Layout() {
                 transition:'color 0.2s',
               }}>
                 {/* the house mark, lit where you stand (D3, Ley 14) */}
-                <Mark type={tab.mark} size={19} filled={active}
-                  color={active ? '#F2EEE6' : '#83838F'}
-                  style={{ filter: active ? 'drop-shadow(0 0 7px rgba(242,238,230,.55))' : 'none', transition:'filter .2s' }} />
+                <span style={{ position:'relative', display:'inline-flex' }}>
+                  <Mark type={tab.mark} size={19} filled={active}
+                    color={active ? '#F2EEE6' : '#83838F'}
+                    style={{ filter: active ? 'drop-shadow(0 0 7px rgba(242,238,230,.55))' : 'none', transition:'filter .2s' }} />
+                  {tab.to === '/messages' && bellCount > 0 && (
+                    <span data-testid="bell-badge" aria-label={`${bellCount} unread signals`}
+                      style={{ position:'absolute', top:'-5px', right:'-9px', minWidth:'14px', height:'14px',
+                        borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
+                        fontSize:'8.5px', fontWeight:700, lineHeight:'14px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>
+                      {bellCount > 9 ? '9+' : bellCount}
+                    </span>
+                  )}
+                </span>
                 {/* nowrap+ellipsis: five tabs (OS members) on a narrow phone
                     must squeeze, never collide (review catch) */}
                 <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tab.label}</span>

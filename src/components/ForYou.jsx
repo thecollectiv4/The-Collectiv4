@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useWide, useVeryWide } from '@/lib/useIsDesktop'
 import { fetchForYou, reasonsFor, eventReasonsFor } from '@/lib/forYou'
 import { socialReady, follow, unfollow } from '@/lib/social'
+import { isOwnerFounder } from '@/lib/osAccess'
+import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import { categoryMeta } from '@/lib/crafts'
 import { vibeMeta } from '@/lib/match'
 import { BadgeCheck, Plus, UserCheck } from 'lucide-react'
@@ -48,12 +50,26 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
   const [socialOn, setSocialOn] = useState(false)
   const [followOverride, setFollowOverride] = useState({})   // id → optimistic truth
   const [followErr, setFollowErr] = useState({})             // id → honest rollback voice
+  // guardrail 4 in the for-you (v10 · N1): 0036 made the seed RANK here for
+  // founders — 0040 makes it LABELED. Same derivation Community uses: the
+  // /os SHOW SEED switch (localStorage) + the owner check. Display-gating
+  // only — a non-owner's payload never carries a seed row to begin with.
+  const [showSeed, setShowSeed] = useState(false)
 
   useEffect(() => {
     let alive = true
     socialReady().then((ok) => { if (alive) setSocialOn(ok) })
     return () => { alive = false }
   }, [])
+
+  useEffect(() => {
+    let alive = true
+    let seedPref = import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true'
+    try { seedPref = seedPref || localStorage.getItem('c4_seed_visible') === '1' } catch { /* private mode */ }
+    if (!user || !seedPref) { setShowSeed(false); return undefined }
+    isOwnerFounder().then((ok) => { if (alive) setShowSeed(!!ok) })
+    return () => { alive = false }
+  }, [user])
 
   useEffect(() => {
     let alive = true
@@ -64,8 +80,11 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
 
   // the rhythm: ~3 people, then a room, repeat — events run out first, fine.
   // A room without a slug has no door and doesn't render (Ley 9).
+  // Seed rows (owner-only in the payload, 0040) honor the /os toggle the
+  // way Community does: SHOW SEED off = seed hidden, never unlabeled
+  // (review catch — the founder must never mistake a fixture for a member).
   const feed = useMemo(() => {
-    const people = data?.people || []
+    const people = (data?.people || []).filter((p) => !p.is_demo || showSeed)
     const events = (data?.events || []).filter((ev) => ev?.slug)
     const out = []
     let e = 0
@@ -75,7 +94,7 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
     })
     while (e < events.length) out.push({ kind: 'event', ev: events[e++] })
     return out
-  }, [data])
+  }, [data, showSeed])
 
   const isFollowing = (p) => followOverride[p.id] ?? !!p.i_follow
   // optimistic + honest rollback WITH a voice (the UserProfile doctrine);
@@ -145,7 +164,7 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
           {feed.map((item) => {
             const key = item.kind === 'person' ? item.p.id : item.ev.slug
             const card = item.kind === 'person' ? (
-              <PersonCard key={key} p={item.p} flip={item.flip}
+              <PersonCard key={key} p={item.p} flip={item.flip} showSeed={showSeed}
                 following={isFollowing(item.p)} canFollow={socialOn} err={followErr[item.p.id]}
                 onOpen={() => navigate('/user/' + item.p.id)} onFollow={() => toggleFollow(item.p)} />
             ) : (
@@ -167,10 +186,18 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
    Two compositions alternate so the scroll breathes: avatar-over-cover
    (the museum face) and avatar-left (the ledger line). Same anatomy in
    both: identity → speakable reasons → one quiet action. */
-function PersonCard({ p, flip, following, canFollow, err, onOpen, onFollow }) {
+function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFollow }) {
   const cover = safeImg(p.cover_url)
   const avatar = safeImg(p.avatar_url)
   const name = p.name || p.username || 'Unnamed'
+  // guardrail 4 (v10): a seed world in the feed is ALWAYS marked — the pill
+  // rides the payload truth (is_demo), never the toggle (review catch: a
+  // founder with SHOW SEED off must see no seed, not unlabeled seed — the
+  // feed filter above handles hiding; this handles honesty). A member's
+  // payload carries is_demo: false by construction (0040). ONE source:
+  // the shared SeedMark pill.
+  const isSeed = !!p.is_demo
+  const seedBadge = isSeed ? <SeedPill is_demo={p.is_demo} /> : null
   const initial = (name[0] || '?').toUpperCase()
   const crafts = Array.isArray(p.crafts) ? p.crafts : []
   const primary = crafts.find((c) => c.is_primary) || crafts[0]
@@ -214,13 +241,14 @@ function PersonCard({ p, flip, following, canFollow, err, onOpen, onFollow }) {
     return (
       <div data-testid={`foryou-person-${p.id}`} className="pressable" role="button" tabIndex={0}
         aria-label={`Open ${name}'s world`} onClick={onOpen} onKeyDown={keyOpen}
-        style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+        style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${isSeed ? SEED_BORDER : HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
         <div style={{ position: 'relative', height: '132px', overflow: 'hidden', background: VOID }}>
           {backdrop
             ? <img src={backdrop} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '110px', lineHeight: 1, color: 'rgba(242,238,230,.06)' }}>{initial}</span>}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 25%, #0E0E13 100%)' }} />
           {p.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><BadgeCheck size={16} style={{ color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} /></span>}
+          {seedBadge && <span style={{ position: 'absolute', top: '9px', left: '9px', display: 'inline-flex' }}>{seedBadge}</span>}
         </div>
         <div style={{ position: 'absolute', left: '14px', top: '108px', width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
           {avatar
@@ -240,7 +268,7 @@ function PersonCard({ p, flip, following, canFollow, err, onOpen, onFollow }) {
   return (
     <div data-testid={`foryou-person-${p.id}`} className="pressable" role="button" tabIndex={0}
       aria-label={`Open ${name}'s world`} onClick={onOpen} onKeyDown={keyOpen}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${isSeed ? SEED_BORDER : HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
       {cover && (
         <>
           <img src={cover} alt="" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: .2 }} />
@@ -257,6 +285,7 @@ function PersonCard({ p, flip, following, canFollow, err, onOpen, onFollow }) {
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.02em', lineHeight: 1, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
             {p.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} aria-label="Verified — in The Collectiv4 network" />}
+            {seedBadge && <span style={{ display: 'inline-flex', flexShrink: 0 }}>{seedBadge}</span>}
           </div>
           {body}
         </div>

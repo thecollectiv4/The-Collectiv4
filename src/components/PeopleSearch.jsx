@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { searchPeople, requestFriend, respondFriend } from '@/lib/social'
+import { isOwnerFounder } from '@/lib/osAccess'
+import SeedPill from '@/components/SeedMark'
 import { Search, Loader2, UserPlus, Check, Clock } from 'lucide-react'
 
 /* =========================================================================
@@ -44,6 +46,19 @@ export default function PeopleSearch({ me, circle, onCircleChange, onOpenWorld }
   const [busyId, setBusyId] = useState(null)
   const [err, setErr] = useState('')
   const reqRef = useRef(0)
+  // guardrail 4: this search reaches the seed for founders (RLS 0033 admits
+  // it unconditionally) — so it honors the /os SHOW SEED toggle like every
+  // discovery surface (sweep catch: it ignored the toggle entirely)
+  const [showSeed, setShowSeed] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    let seedPref = import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true'
+    try { seedPref = seedPref || localStorage.getItem('c4_seed_visible') === '1' } catch { /* private mode */ }
+    if (!me?.id || !seedPref) { setShowSeed(false); return undefined }
+    isOwnerFounder().then((ok) => { if (alive) setShowSeed(!!ok) })
+    return () => { alive = false }
+  }, [me?.id])
 
   // debounced search — the newest query wins (a slow earlier response can't
   // overwrite a fresher one: the reqRef seq guards it)
@@ -57,18 +72,19 @@ export default function PeopleSearch({ me, circle, onCircleChange, onOpenWorld }
     const t = setTimeout(async () => {
       const rows = await searchPeople(clean, me.id)
       if (seq !== reqRef.current) return   // a newer keystroke already fired
-      setResults(rows)
+      // seed rows render only under the toggle — and always labeled (Ley 11)
+      setResults(rows.filter((p) => !p.is_demo || showSeed))
       setSearching(false)
     }, 240)
     return () => clearTimeout(t)
-  }, [q, me.id])
+  }, [q, me.id, showSeed])
 
   // send a request — two reaches can meet (requestFriend answers 'accepted'
   // when theirs was already waiting), so honor whichever landed
   const send = async (person) => {
     if (busyId) return
     setBusyId(person.id); setErr('')
-    const row = { id: person.id, name: nameOf(person), username: person.username, avatar_url: person.avatar_url, verified: person.verified, city: person.city }
+    const row = { id: person.id, name: nameOf(person), username: person.username, avatar_url: person.avatar_url, verified: person.verified, city: person.city, is_demo: person.is_demo }
     try {
       const status = await requestFriend(person.id)
       onCircleChange((c) => status === 'accepted'
@@ -82,7 +98,7 @@ export default function PeopleSearch({ me, circle, onCircleChange, onOpenWorld }
   const accept = async (person) => {
     if (busyId) return
     setBusyId(person.id); setErr('')
-    const row = { id: person.id, name: nameOf(person), username: person.username, avatar_url: person.avatar_url, verified: person.verified, city: person.city }
+    const row = { id: person.id, name: nameOf(person), username: person.username, avatar_url: person.avatar_url, verified: person.verified, city: person.city, is_demo: person.is_demo }
     try {
       await respondFriend(person.id, true)
       onCircleChange((c) => ({ ...c, friends: [...c.friends, row], pending_in: c.pending_in.filter((p) => p.id !== person.id) }))
@@ -142,7 +158,10 @@ function ResultRow({ person, bond, busy, onSend, onAccept, onOpen }) {
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
         </span>
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+            <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
+            <SeedPill is_demo={person.is_demo} />
+          </span>
           {sub && <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sub}</span>}
         </span>
       </button>
