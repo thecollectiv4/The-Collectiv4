@@ -6,6 +6,7 @@ import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loa
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
+import SeedPill from '@/components/SeedMark'
 import { useCosmosOverride } from '@/components/Atmosphere'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
@@ -755,6 +756,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '14px' : '10px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 88px)' : 'clamp(38px, 11vw, 52px)', letterSpacing: '.01em', lineHeight: 0.88, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.6)', ...displaySkin }}>{displayName}</h1>
                   {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: wide ? '10px' : '5px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={wide ? 24 : 19} /></span>}
+                  {/* guardrail 4: the museum itself — the destination of every
+                      labeled card tap — carries the truth on its own hero */}
+                  <span style={{ display: 'inline-flex', marginBottom: wide ? '12px' : '7px' }}><SeedPill is_demo={data.is_demo} size={8.5} /></span>
                 </div>
                 {(data.username || data.city || ticket) && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 10px rgba(0,0,0,.7)' }}>
@@ -1148,7 +1152,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                layout's axis, never a lone cell beside two-thirds of raw
                void (panel catch, Ley 4) */
             <div style={{ marginTop: '44px', padding: wide ? '46px 40px' : '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', maxWidth: wide ? '680px' : undefined, marginLeft: wide ? 'auto' : undefined, marginRight: wide ? 'auto' : undefined }}>
-              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ world forming</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ world forming</span>
+                <SeedPill is_demo={data.is_demo} size={7} />
+              </div>
               <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: BONE, letterSpacing: '.03em', lineHeight: .95, marginTop: '10px' }}>NOTHING ON THE WALLS YET</div>
               <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px auto 0', maxWidth: '320px' }}>
                 {displayName} just claimed this world — the work, the sound and the taste are on their way.
@@ -1162,6 +1169,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
               <Mark type="diamond" size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />
               <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.24em', color: BONE_LOW, textTransform: 'uppercase' }}>a world by {data.username ? `@${data.username}` : displayName}</span>
+              <SeedPill is_demo={data.is_demo} size={7} />
               <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: SILVER }}>4</span>
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />
             </div>

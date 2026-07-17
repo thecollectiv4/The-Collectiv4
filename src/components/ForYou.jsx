@@ -4,6 +4,7 @@ import { useWide, useVeryWide } from '@/lib/useIsDesktop'
 import { fetchForYou, reasonsFor, eventReasonsFor } from '@/lib/forYou'
 import { socialReady, follow, unfollow } from '@/lib/social'
 import { isOwnerFounder } from '@/lib/osAccess'
+import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import { categoryMeta } from '@/lib/crafts'
 import { vibeMeta } from '@/lib/match'
 import { BadgeCheck, Plus, UserCheck } from 'lucide-react'
@@ -193,14 +194,10 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
   // rides the payload truth (is_demo), never the toggle (review catch: a
   // founder with SHOW SEED off must see no seed, not unlabeled seed — the
   // feed filter above handles hiding; this handles honesty). A member's
-  // payload carries is_demo: false by construction (0040).
+  // payload carries is_demo: false by construction (0040). ONE source:
+  // the shared SeedMark pill.
   const isSeed = !!p.is_demo
-  const seedBadge = isSeed ? (
-    <span data-testid="seed-card-badge" title="Seed world — QA fixture, invisible to the public"
-      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: 'DM Mono', fontSize: '7.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: '#0A0A0D', background: 'rgba(229,200,140,.92)', borderRadius: '100px', padding: '3px 8px', fontWeight: 600 }}>
-      ◇ seed
-    </span>
-  ) : null
+  const seedBadge = isSeed ? <SeedPill is_demo={p.is_demo} /> : null
   const initial = (name[0] || '?').toUpperCase()
   const crafts = Array.isArray(p.crafts) ? p.crafts : []
   const primary = crafts.find((c) => c.is_primary) || crafts[0]
@@ -244,7 +241,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
     return (
       <div data-testid={`foryou-person-${p.id}`} className="pressable" role="button" tabIndex={0}
         aria-label={`Open ${name}'s world`} onClick={onOpen} onKeyDown={keyOpen}
-        style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${isSeed ? 'rgba(229,200,140,.4)' : HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+        style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${isSeed ? SEED_BORDER : HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
         <div style={{ position: 'relative', height: '132px', overflow: 'hidden', background: VOID }}>
           {backdrop
             ? <img src={backdrop} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -271,7 +268,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
   return (
     <div data-testid={`foryou-person-${p.id}`} className="pressable" role="button" tabIndex={0}
       aria-label={`Open ${name}'s world`} onClick={onOpen} onKeyDown={keyOpen}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${isSeed ? 'rgba(229,200,140,.4)' : HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${isSeed ? SEED_BORDER : HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
       {cover && (
         <>
           <img src={cover} alt="" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: .2 }} />

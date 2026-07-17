@@ -55,7 +55,8 @@ export default function ClaimWorld() {
     setPhase('loading')
 
     // profile drives build-vs-open copy; load it once, non-blocking.
-    supabase.from('profiles').select('id, full_name, username, bio, taste, media')
+    // is_demo travels with the identity (guardrail 4) — even the self-row
+    supabase.from('profiles').select('id, full_name, username, bio, taste, media, is_demo')
       .eq('id', user.id).maybeSingle()
       .then(({ data }) => { if (alive) setProfile(data || null) })
 

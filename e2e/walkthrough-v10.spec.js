@@ -124,6 +124,13 @@ test('A · las campanas — every wire rings and the message bell coalesces', as
   expect(aInbox?.ok).toBeTruthy()
   expect(aInbox.signals.map(s => s.kind), 'A_HEARS_ACCEPT').toContain('friend_accept')
 
+  // guardrail 4 payload law (0044): is_demo travels with the identity —
+  // the circle payload carries the flag on every person it transports
+  const circle = await rpc(request, 'my_circle', {}, B.token)
+  const friendRow = (circle?.friends || []).find(f => f.id === A.uid)
+  expect(friendRow, 'A_IN_B_CIRCLE').toBeTruthy()
+  expect(friendRow.is_demo, 'CIRCLE_PAYLOAD_CARRIES_IS_DEMO').toBe(false)
+
   // B makes a plan with A invited — A hears the invite, with the title
   const plan = await rpc(request, 'create_plan', { p: { title: 'fucho v10 gate', spot: 'Mason Park', invitee_ids: [A.uid] } }, B.token)
   expect(plan?.ok, 'CREATE_PLAN_FAILED').toBeTruthy()
@@ -136,6 +143,14 @@ test('A · las campanas — every wire rings and the message bell coalesces', as
   // A answers IN — B (the creator) hears the RSVP
   const rsvp = await rpc(request, 'rsvp_plan', { p_plan: plan.plan_id, p_status: 'in' }, A.token)
   expect(rsvp?.status).toBe('in')
+
+  // guardrail 4 payload law (0044): my_plans transports is_demo on the
+  // creator and on every roster row
+  const myPlans = await rpc(request, 'my_plans', {}, A.token)
+  const pl = (myPlans?.plans || []).find((x) => x.id === plan.plan_id)
+  expect(pl, 'A_SEES_THE_PLAN').toBeTruthy()
+  expect('is_demo' in (pl.creator || {}), 'PLAN_CREATOR_CARRIES_IS_DEMO').toBeTruthy()
+  expect((pl.roster || []).length > 0 && pl.roster.every((r) => 'is_demo' in r), 'ROSTER_CARRIES_IS_DEMO').toBeTruthy()
   inbox = await rpc(request, 'my_signals', {}, B.token)
   const heard = inbox.signals.find(s => s.kind === 'plan_rsvp')
   expect(heard, 'B_HEARS_RSVP').toBeTruthy()
