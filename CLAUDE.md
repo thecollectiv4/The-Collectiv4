@@ -56,3 +56,18 @@ Live platform state (what's shipped, in-flight, and next) lives in Pato's vault:
 `~/Documents/TheCollectiv4/02 — Startup & Product/Platform — Build Roadmap (El Mapa de Código).md`
 
 Send-offs carry the context a task needs — but they can lag reality. When a send-off's assumptions don't match what you find, **recon wins, and you surface the gap.**
+
+---
+
+## 6. Two founders, one repo
+
+Both founders drive this repo from the same company account. Claude Code greets whoever is at the keyboard as "Pato," and Recents mixes both sessions — the account cannot tell the founders apart, so the protocol has to.
+
+1. **Push from the first commit. Always.** A local branch is invisible to the other founder and to every Claude surface — total loss if the machine dies, and it collides blind. Push is backup and visibility, not publishing. Live only changes with merge + deploy.
+2. **The remote is the board.** Not pushed = doesn't exist for the other founder.
+3. **Declare the driver at session start.** The shared company account says "Pato" regardless of who is operating. Default Pato unless stated.
+4. **Check the base at session start.** What is `main` right now?
+5. **Merge order is readiness, not seniority.** Whoever is PR'd and gated goes first; the other rebases on top. Never merge two branches touching the same file without one rebasing.
+6. **The repo is the truth about the repo — never a briefing's memory of it.** Verify file/line claims against the code before acting on them.
+
+_17 jul 2026 — two branches over the same files in parallel, invisible to each other; one lived a full day with no backup._
