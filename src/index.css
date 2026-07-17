@@ -123,8 +123,14 @@ a { color: inherit; text-decoration: none; }
    an editorial settle on :active, never a toy bounce. Opt-in
    class so transforms never collide with inline hover lifts.
    ============================================================ */
-.pressable { transition: transform var(--dur-press) ease, opacity var(--dur-press) ease; }
-.pressable:not(:disabled):active { transform: translateY(1px) scale(.99); }
+/* asymmetric timing: the :active rule's transition governs entering the
+   pressed state (deliberate, 160ms); the base rule governs release (snaps,
+   80ms) — the system's response answers faster than the hand asks. */
+.pressable { transition: transform 80ms var(--ease-exit), opacity 80ms var(--ease-exit); }
+.pressable:not(:disabled):active {
+  transform: translateY(1px) scale(.99);
+  transition: transform var(--dur-press) var(--ease-exit), opacity var(--dur-press) var(--ease-exit);
+}
 
 /* catalog rows lead with the whole row on hover — transform, never padding
    (padding reflows the row's text mid-hover); gated so touch taps don't
@@ -253,9 +259,9 @@ a { color: inherit; text-decoration: none; }
 
 /* interactive affordances everywhere — filter isn't set inline anywhere, so
    a brightness lift lands on every button regardless of inline colors */
-.os-root button { transition: color .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease, filter .15s ease; }
+.os-root button { transition: color .15s ease, background .15s ease, border-color .15s ease, opacity .15s ease, filter .15s ease, transform 80ms var(--ease-exit); }
 .os-root button:not(:disabled):hover, .os-root a:hover { filter: brightness(1.25); }
-.os-root button:not(:disabled):active { transform: translateY(1px); }
+.os-root button:not(:disabled):active { transform: translateY(1px); transition: transform var(--dur-press) var(--ease-exit); }
 
 /* consistent focus states across the instrument */
 .os-root button:focus-visible,

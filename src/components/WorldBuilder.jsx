@@ -463,12 +463,12 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
             <div style={{ position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
                 {meetIdx > 0 && (
-                  <button onClick={() => setMeetIdx(i => i - 1)} disabled={busy} aria-label="Back"
+                  <button onClick={() => setMeetIdx(i => i - 1)} disabled={busy} aria-label="Back" className="pressable"
                     style={{ background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                     <ArrowLeft size={12} /> Back
                   </button>
                 )}
-                <button onClick={meetNext} disabled={!canNext}
+                <button onClick={meetNext} disabled={!canNext} className="pressable"
                   style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '13px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: canNext ? 'pointer' : 'default', fontFamily: 'DM Sans', opacity: canNext ? 1 : .5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   {busy ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
                     : meetIdx === MEET.length - 1 ? 'COMPOSE MY WORLD'
@@ -476,7 +476,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                 </button>
               </div>
               {!q.required && (
-                <button onClick={meetSkip} disabled={busy}
+                <button onClick={meetSkip} disabled={busy} className="pressable"
                   style={{ display: 'block', margin: '10px auto 0', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', padding: '2px 8px' }}>
                   skip this one →
                 </button>
@@ -660,7 +660,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                   {THEMES.map(t => {
                     const active = (data.world_theme || 'chrome') === t.key
                     return (
-                      <button key={t.key} onClick={() => onDraft({ world_theme: t.key })}
+                      <button key={t.key} onClick={() => onDraft({ world_theme: t.key })} className="pressable"
                         style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
                         <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', lineHeight: 1, ...nameSkin(t.key) }}>Aa</span>
                         <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', textTransform: 'uppercase', color: active ? BONE : BONE_LOW }}>{t.label}</span>
@@ -683,12 +683,12 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
           <div style={{ position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
             <div style={{ display: 'flex', gap: '10px' }}>
               {safeStep > 0 && (
-                <button onClick={() => setStep(s => s - 1)} disabled={busy} aria-label="Back"
+                <button onClick={() => setStep(s => s - 1)} disabled={busy} aria-label="Back" className="pressable"
                   style={{ background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                   <ArrowLeft size={12} /> Back
                 </button>
               )}
-              <button onClick={next} disabled={nextDisabled}
+              <button onClick={next} disabled={nextDisabled} className="pressable"
                 style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '13px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: nextDisabled ? 'default' : 'pointer', fontFamily: 'DM Sans', opacity: nextDisabled ? .5 : 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 {busy ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
                   : key === 'skin' ? 'PUBLISH YOUR WORLD'
@@ -697,7 +697,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
             </div>
             {/* the guilt-free door — every step is optional except the publish */}
             {key !== 'skin' && (
-              <button onClick={skip} disabled={busy || uploadingN > 0}
+              <button onClick={skip} disabled={busy || uploadingN > 0} className="pressable"
                 style={{ display: 'block', margin: '10px auto 0', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', padding: '2px 8px' }}>
                 skip this step →
               </button>
