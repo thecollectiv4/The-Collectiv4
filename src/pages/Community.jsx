@@ -98,9 +98,18 @@ export default function Community() {
   const [nameQ, setNameQ] = useState('')
 
   // discovery cascades ONCE — the first data landing staggers; every refilter
-  // after that crossfades as one grid, never a per-card re-dance (plan 009)
-  const entered = useRef(false)
-  useEffect(() => { if (!loading) entered.current = true }, [loading])
+  // after that crossfades as one grid, never a per-card re-dance (plan 009).
+  // `entered` is STATE on a timer, not a ref flipped on first render: crafts/
+  // follows land right after the profiles and re-render mid-cascade — a ref
+  // flip stripped .card-in at that instant and cut the cascade to nothing.
+  // 950ms = last delay (8×50) + --dur-slow (500) + margin; by then the
+  // animation is done and removing the class changes nothing visually.
+  const [entered, setEntered] = useState(false)
+  useEffect(() => {
+    if (loading || entered) return
+    const t = setTimeout(() => setEntered(true), 950)
+    return () => clearTimeout(t)
+  }, [loading, entered])
 
   useEffect(() => {
     let alive = true
@@ -166,8 +175,13 @@ export default function Community() {
     (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)) &&
     (!nq || (c.full_name || '').toLowerCase().includes(nq) || (c.username || '').toLowerCase().includes(nq)))
   // the grid re-keys on any filter change — the real filter state is city +
-  // craft (URL param) + nameQ (the people search), not the plan's placeholder q
+  // craft (URL param) + nameQ (the people search), not the plan's placeholder q.
+  // firstKey pins the combo the page landed on: the refilter crossfade fires
+  // only on a KEY change (a real refilter), never when the `entered` timer
+  // flips on the same node (adding an animation class to an existing element
+  // plays it — that would flash the grid ~1s after load for no reason).
   const filterKey = `${city}|${craft}|${nameQ}`
+  const firstKey = useRef(filterKey)
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
@@ -272,14 +286,14 @@ export default function Community() {
             <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
           </div>
         ) : shown.length > 0 ? (
-          <div key={entered.current ? filterKey : 'first'} className={entered.current ? 'refilter-in' : undefined}
+          <div key={filterKey} className={filterKey !== firstKey.current ? 'refilter-in' : undefined}
             style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
             {shown.map((c, i) => (
               /* display:grid so the single WorldCard child stretches to the
                  row's height — the wrapper is now the grid item, and the card
                  relies on that stretch for its flex:1 body (equal-height rows) */
-              <div key={c.id} className={entered.current ? undefined : 'card-in'}
-                style={entered.current ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
+              <div key={c.id} className={entered ? undefined : 'card-in'}
+                style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
                 <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
               </div>
             ))}

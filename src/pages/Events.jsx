@@ -50,9 +50,17 @@ export default function Events() {
   const [count, setCount] = useState(0)
 
   // the room directory cascades ONCE per mount — first load only; there is no
-  // refilter UI here, so no crossfade (plan 009)
-  const entered = useRef(false)
-  useEffect(() => { if (!loading) entered.current = true }, [loading])
+  // refilter UI here, so no crossfade (plan 009). STATE on a timer, not a ref:
+  // attendees/count land right after the events and re-render mid-cascade — a
+  // ref flip stripped .card-in at that instant and cut the cascade short.
+  // 950ms = last delay (8×50+100) + --dur-slow (500) + margin; by then the
+  // animation is done and removing the class changes nothing visually.
+  const [entered, setEntered] = useState(false)
+  useEffect(() => {
+    if (loading || entered) return
+    const t = setTimeout(() => setEntered(true), 950)
+    return () => clearTimeout(t)
+  }, [loading, entered])
 
   // Stripe returns cancellations here (cancel_url /?ticket=cancelled) —
   // answer honestly, then get out of the way. (success goes to /claim.)
