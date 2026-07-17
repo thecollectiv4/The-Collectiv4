@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
@@ -97,6 +97,11 @@ export default function Community() {
   // (<200 total, all loaded); it upgrades to a server search when it grows.
   const [nameQ, setNameQ] = useState('')
 
+  // discovery cascades ONCE — the first data landing staggers; every refilter
+  // after that crossfades as one grid, never a per-card re-dance (plan 009)
+  const entered = useRef(false)
+  useEffect(() => { if (!loading) entered.current = true }, [loading])
+
   useEffect(() => {
     let alive = true
     let seedPref = import.meta.env?.VITE_DISCOVERY_PREVIEW === 'true'
@@ -160,6 +165,9 @@ export default function Community() {
     (city === 'all' || c.city === city) &&
     (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)) &&
     (!nq || (c.full_name || '').toLowerCase().includes(nq) || (c.username || '').toLowerCase().includes(nq)))
+  // the grid re-keys on any filter change — the real filter state is city +
+  // craft (URL param) + nameQ (the people search), not the plan's placeholder q
+  const filterKey = `${city}|${craft}|${nameQ}`
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
@@ -264,9 +272,16 @@ export default function Community() {
             <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
           </div>
         ) : shown.length > 0 ? (
-          <div style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
-            {shown.map(c => (
-              <WorldCard key={c.id} c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
+          <div key={entered.current ? filterKey : 'first'} className={entered.current ? 'refilter-in' : undefined}
+            style={{ display: 'grid', gridTemplateColumns: wide ? 'repeat(auto-fill, minmax(235px, 1fr))' : 'repeat(2, 1fr)', gap: wide ? '16px' : '12px' }}>
+            {shown.map((c, i) => (
+              /* display:grid so the single WorldCard child stretches to the
+                 row's height — the wrapper is now the grid item, and the card
+                 relies on that stretch for its flex:1 body (equal-height rows) */
+              <div key={c.id} className={entered.current ? undefined : 'card-in'}
+                style={entered.current ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
+                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
+              </div>
             ))}
             {/* a filtered list CLOSES — the void under the last card gets a
                 composed, pressable seam back to everyone (panel catch, Ley 4) */}

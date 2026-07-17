@@ -141,6 +141,12 @@ function Inbox({ me, wide }) {
   const rawSeg = searchParams.get('seg')
   const seg = circle === true && SEGS.includes(rawSeg) ? rawSeg : 'signals'
   const setSeg = (s) => { setSegErr(''); setSearchParams(s === 'signals' ? {} : { seg: s }, { replace: true }) }
+  // directional segment grammar at consumer register (plan 009 / Ley 13): the
+  // pane arrives from the side its tab lives on. SEGS already holds the order;
+  // the initial mount carries '' and does not animate.
+  const prevSeg = useRef(seg)
+  const segDir = SEGS.indexOf(seg) > SEGS.indexOf(prevSeg.current) ? 'os-slide-in-right' : SEGS.indexOf(seg) < SEGS.indexOf(prevSeg.current) ? 'os-slide-in-left' : ''
+  useEffect(() => { prevSeg.current = seg }, [seg])
 
   useEffect(() => {
     let alive = true
@@ -277,6 +283,10 @@ function Inbox({ me, wide }) {
         <div style={{ maxWidth: wide ? '720px' : undefined }}>
           {segErr && <div role="alert" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '12px' }}>⚠ {segErr}</div>}
 
+          {/* the three segments share ONE keyed, direction-classed wrapper: a
+              swap slides in from the side its tab lives on (plan 009). The
+              initial mount carries '' and stays still. */}
+          <div key={seg} className={segDir}>
           {/* ---------------- SIGNALS — the original inbox ---------------- */}
           {seg === 'signals' && (
             <TheBell bells={bells}
@@ -379,6 +389,7 @@ function Inbox({ me, wide }) {
               </>
             )
           )}
+          </div>
         </div>
       )}
 
@@ -1026,6 +1037,13 @@ function Thread({ threadId, me, wide }) {
   const [err, setErr] = useState('')
   const bottomRef = useRef(null)
   const profilesRef = useRef({})
+  // this transcript is HISTORY, not news: only a message that arrives AFTER the
+  // thread's history has loaded animates. prevLen tracks what's already on
+  // screen; it's advanced to the loaded length in load() (below), so opening a
+  // thread — or switching threads — animates nothing. Same "history is not
+  // news" pattern as plan 004's Brain dock, adapted for async-loaded state.
+  const prevLen = useRef(msgs.length)
+  useEffect(() => { prevLen.current = msgs.length }, [msgs.length])
 
   const load = useCallback(async () => {
     const t = await fetchThread(threadId, me.id)
@@ -1033,6 +1051,7 @@ function Thread({ threadId, me, wide }) {
     profilesRef.current = Object.fromEntries((t.members || []).map((p) => [p.id, p]))
     setThread(t)
     setMsgs(t.messages)
+    prevLen.current = t.messages.length   // history just landed — it is old, never animate it
     setLoading(false)
     markThreadRead(threadId, me.id)
     markThreadSignalsRead(threadId)   // reading the room IS reading the bell (0043)
@@ -1164,11 +1183,11 @@ function Thread({ threadId, me, wide }) {
           </div>
         ) : (
           <div role="log" aria-live="polite" aria-label="Messages" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {msgs.map((m) => {
+            {msgs.map((m, idx) => {
               const mine = m.sender_id === me.id
               const sender = profilesRef.current[m.sender_id]
               return (
-                <div key={m.id} style={{ display: 'flex', gap: '10px', flexDirection: mine ? 'row-reverse' : 'row' }}>
+                <div key={m.id} className={idx >= prevLen.current ? 'msg-in' : ''} style={{ display: 'flex', gap: '10px', flexDirection: mine ? 'row-reverse' : 'row' }}>
                   {!mine && (
                     <span style={{ width: '26px', height: '26px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: '2px' }}>
                       {safeImg(sender?.avatar_url)

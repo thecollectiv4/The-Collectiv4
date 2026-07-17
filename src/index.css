@@ -335,6 +335,13 @@ a { color: inherit; text-decoration: none; }
   .salon-piece:hover img { transform: none; }
 }
 
+/* discovery cards surface ONCE — first load only, a capped stagger (plan 009).
+   A refilter never re-dances per card (too frequent); the whole grid crossfades
+   as one under a 2px blur mask that hides the double-exposure. */
+.card-in { opacity:0; animation: fadeUp var(--dur-slow) var(--ease-house) forwards; }
+@keyframes refilterIn { from { opacity:.4; filter:blur(2px); } to { opacity:1; filter:blur(0); } }
+.refilter-in { animation: refilterIn var(--dur-fast) var(--ease-house); }
+
 @media (prefers-reduced-motion: reduce) {
   .temp-warm, .temp-electric { animation:none; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
@@ -354,6 +361,9 @@ a { color: inherit; text-decoration: none; }
   .disc-banner img, .disc-banner svg,
   .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation:none; }
   .salon-piece img { transition:none; }
+  /* discovery: fades only, no rise/stagger/blur (plan 009) */
+  .card-in { animation: fadeIn .3s ease forwards; }
+  .refilter-in { animation: none; }
   .sheet-up, .sheet-up-centered, .panel-in-right, .dialog-in, .menu-in { animation: overlayFade .2s ease; }
   .page-transition, .page-slide-right, .page-slide-left, .page-scale { animation: fadeIn .2s ease; }
   /* !important: several ceremony rows carry an INLINE animation-delay, and

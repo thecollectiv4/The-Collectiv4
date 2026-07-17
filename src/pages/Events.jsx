@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
@@ -48,6 +48,11 @@ export default function Events() {
   const [events, setEvents] = useState([])
   const [attendees, setAttendees] = useState([])
   const [count, setCount] = useState(0)
+
+  // the room directory cascades ONCE per mount — first load only; there is no
+  // refilter UI here, so no crossfade (plan 009)
+  const entered = useRef(false)
+  useEffect(() => { if (!loading) entered.current = true }, [loading])
 
   // Stripe returns cancellations here (cancel_url /?ticket=cancelled) —
   // answer honestly, then get out of the way. (success goes to /claim.)
@@ -150,14 +155,17 @@ export default function Events() {
           <>
             {/* THE FEATURED ROOM — the house's next night, as a spread */}
             {featured && (
-              <FeaturedRoom
-                e={featured}
-                live={live}
-                attendees={attendees}
-                count={count}
-                wide={wide}
-                onEnter={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')}
-              />
+              <div className={entered.current ? undefined : 'card-in'}
+                style={entered.current ? undefined : { animationDelay: '0ms' }}>
+                <FeaturedRoom
+                  e={featured}
+                  live={live}
+                  attendees={attendees}
+                  count={count}
+                  wide={wide}
+                  onEnter={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')}
+                />
+              </div>
             )}
 
             {/* MORE ROOMS — every other published event, honest and dated */}
@@ -165,8 +173,13 @@ export default function Events() {
               <div style={{ marginTop: featured ? (wide ? '44px' : '32px') : '22px' }}>
                 <RowMarker label="MORE ROOMS" kicker="on the platform" />
                 <div style={{ display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' } : { flexDirection: 'column' }), gap: wide ? '18px' : '14px' }}>
-                  {upcoming.map((e) => (
-                    <RoomCard key={e.id} e={e} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
+                  {upcoming.map((e, i) => (
+                    /* display:grid so the RoomCard child stretches to the row's
+                       height in the wide grid (the wrapper is now the grid item) */
+                    <div key={e.id} className={entered.current ? undefined : 'card-in'}
+                      style={entered.current ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50 + 100}ms` }}>
+                      <RoomCard e={e} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
+                    </div>
                   ))}
                 </div>
               </div>
