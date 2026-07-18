@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Loader2, Search, ShieldCheck, ShieldAlert, BadgeCheck, Shield, Trash2, RotateCcw, Eye, EyeOff } from 'lucide-react'
 import { supabase } from '@/api/supabase'
 import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, CARD, HAIR, HAIR_HI, WARN, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, safeImg, relTime } from '@/lib/cosmos'
@@ -46,6 +46,7 @@ export default function Moderation() {
   const [err, setErr] = useState('')
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('review')
+  const firstFilter = useRef(filter)   // landing paint stays still; only filter changes crossfade (A-13)
   const [pending, setPending] = useState(null)
   const [confirmPurge, setConfirmPurge] = useState(null)   // id awaiting a second tap
   const [purgingSeed, setPurgingSeed] = useState(false)    // v9 D3: bulk seed purge in flight
@@ -192,7 +193,7 @@ export default function Moderation() {
       {err && <div style={{ marginTop: '12px', fontFamily: FONT_MONO, fontSize: '10px', color: WARN, letterSpacing: '.06em' }}>⚠ {err}</div>}
 
       {/* list — raw evidence, no verdict */}
-      <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div key={filter} className={filter !== firstFilter.current ? 'refilter-in' : undefined} style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {shown.map(a => {
           const b = bucketOf(a)
           const avatar = safeImg(a.avatar_url)

@@ -23,7 +23,7 @@ export default function ContentEngine({ content, owners, entrance, onCreate, onU
         ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '14px', alignItems: 'start' }
         : { display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {content.map((c, i) => (
-          <div key={c.id} className={`os-card${entrance ? ' os-reveal' : ''}`} tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: PANEL, borderRadius: '12px', padding: '13px 14px', animationDelay: entrance ? `${i * 45}ms` : undefined, minWidth: 0 }}>
+          <div key={c.id} className={`os-card ${entrance ? 'os-reveal' : 'os-settle'}`} tabIndex={0} style={{ border: `1px solid ${HAIR}`, background: PANEL, borderRadius: '12px', padding: '13px 14px', animationDelay: entrance ? `${i * 45}ms` : undefined, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontFamily: FONT_SANS, fontSize: '14px', color: BONE, lineHeight: 1.3 }}>{c.title}</div>
@@ -77,7 +77,7 @@ function Brief({ brief }) {
         {open ? '◇ hide brief' : '◇ view brief'}
       </button>
       {open && (
-        <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, lineHeight: 1.6, marginTop: '8px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: '260px', overflowY: 'auto' }}>
+        <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_LOW, lineHeight: 1.6, marginTop: '8px', paddingLeft: '10px', borderLeft: `1px solid ${HAIR_HI}`, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', maxHeight: '260px', overflowY: 'auto', animation: 'fadeUp 0.3s var(--ease-house)' }}>
           {brief}
         </div>
       )}

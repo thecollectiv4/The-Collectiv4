@@ -65,10 +65,15 @@ export default function Auth() {
             </button>
           ))}
         </div>
-        {mode==='signup'&&<div style={{display:'flex',gap:'8px'}}>
-          <input type="text" placeholder="First name" value={firstName} onChange={e=>setFirstName(e.target.value)} style={inp}/>
-          <input type="text" placeholder="Last name" value={lastName} onChange={e=>setLastName(e.target.value)} style={inp}/>
-        </div>}
+        {/* name row collapses via grid-template-rows (A-06) — same recipe as AuthModal */}
+        <div className="row-collapse" aria-hidden={mode!=='signup'} style={{display:'grid',gridTemplateRows:mode==='signup'?'1fr':'0fr',opacity:mode==='signup'?1:0}}>
+          <div style={{overflow:'hidden',minHeight:0}}>
+            <div style={{display:'flex',gap:'8px'}}>
+              <input type="text" placeholder="First name" value={firstName} onChange={e=>setFirstName(e.target.value)} style={inp} tabIndex={mode==='signup'?0:-1}/>
+              <input type="text" placeholder="Last name" value={lastName} onChange={e=>setLastName(e.target.value)} style={inp} tabIndex={mode==='signup'?0:-1}/>
+            </div>
+          </div>
+        </div>
         <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={inp}/>
         <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handle()} style={inp}/>
         {mode==='signin'&&<button onClick={forgot} disabled={loading} style={{background:'none',border:'none',color:'var(--cream-low)',fontSize:'12px',fontFamily:'DM Sans',cursor:'pointer',textAlign:'right',padding:'2px',textDecoration:'underline',opacity:loading?.6:1}}>Forgot password?</button>}

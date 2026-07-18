@@ -131,6 +131,7 @@ function Inbox({ me, wide }) {
   const [planSheet, setPlanSheet] = useState(false)
   const [reqBusy, setReqBusy] = useState(null)   // profile id mid-answer
   const [segErr, setSegErr] = useState('')
+  const [newPlanId, setNewPlanId] = useState(null)   // the just-created plan card rises in (A-05)
   const [closeSet, setCloseSet] = useState(() => new Set())   // curated close friends (0029)
   const [craftsByFriend, setCraftsByFriend] = useState(new Map())
   const [closeBusy, setCloseBusy] = useState(null)   // profile id mid-toggle
@@ -379,9 +380,11 @@ function Inbox({ me, wide }) {
                 {plans.length > 0 && (
                   <div style={{ marginTop: '16px' }}>
                     {plans.map((p) => (
-                      <PlanCard key={p.id} p={p} meId={me.id}
-                        onRsvp={doRsvp} onCancel={doCancel} onLeave={doLeave} onVisibility={doVisibility}
-                        onRoom={() => p.thread_id && navigate('/messages/' + p.thread_id)} />
+                      <div key={p.id} className={p.id === newPlanId ? 'msg-in' : undefined}>
+                        <PlanCard p={p} meId={me.id}
+                          onRsvp={doRsvp} onCancel={doCancel} onLeave={doLeave} onVisibility={doVisibility}
+                          onRoom={() => p.thread_id && navigate('/messages/' + p.thread_id)} />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -400,7 +403,7 @@ function Inbox({ me, wide }) {
       )}
       {planSheet && (
         <PlanSheet friends={circleData.friends} onClose={() => setPlanSheet(false)}
-          onCreated={() => { setPlanSheet(false); refreshPlans(); refreshInbox(); setSeg('plans') }} />
+          onCreated={(plan_id) => { setPlanSheet(false); refreshPlans(); refreshInbox(); setSeg('plans'); setNewPlanId(plan_id) }} />
       )}
     </Shell>
   )
@@ -440,8 +443,9 @@ function TheBell({ bells, onOpen, onMarkAll }) {
               onClick={() => onOpen(s)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(s) } }}
               style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 14px', cursor: 'pointer',
-                borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: unread ? 'rgba(232,233,237,.03)' : 'transparent' }}>
-              <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${unread ? SILVER : HAIR_HI}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: unread ? 'rgba(232,233,237,.03)' : 'transparent',
+                transition: 'background-color var(--dur-base) var(--ease-house)' }}>
+              <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${unread ? SILVER : HAIR_HI}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color var(--dur-base) var(--ease-house)' }}>
                 {avatar
                   ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <span style={{ fontFamily: 'Bebas Neue', fontSize: '15px', color: unread ? BONE : BONE_MID }}>{initial}</span>}
@@ -457,7 +461,8 @@ function TheBell({ bells, onOpen, onMarkAll }) {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>{msgTime(s.created_at)}</span>
-                {unread && <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(232,233,237,.6)' }} />}
+                {/* always mounted so mark-all-read fades the dot out, never teleports it (A-16) */}
+                <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(232,233,237,.6)', opacity: unread ? 1 : 0, transition: 'opacity var(--dur-base) var(--ease-house)' }} />
               </div>
             </div>
           )
@@ -587,8 +592,10 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
         aria-pressed={isClose} aria-label={isClose ? `Remove ${name} from close friends` : `Add ${name} to close friends`}
         title={isClose ? 'In close friends' : 'Add to close friends'}
         style={{ background: 'transparent', border: 'none', minHeight: '40px', minWidth: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0, padding: '6px' }}>
-        <Star size={17} strokeWidth={1.6} fill={isClose ? STAR : 'none'} color={isClose ? STAR : BONE_LOW}
-          style={isClose ? { filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' } : undefined} />
+        {/* fill stays STAR; state rides interpolable props so the star lights
+            up like a star, not a checkbox — interruptible on optimistic rollback (A-17) */}
+        <Star size={17} strokeWidth={1.6} fill={STAR}
+          style={{ fillOpacity: isClose ? 1 : 0, color: isClose ? STAR : BONE_LOW, filter: isClose ? 'drop-shadow(0 0 6px rgba(232,233,237,.5))' : 'drop-shadow(0 0 0 rgba(232,233,237,0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }} />
       </button>
     </div>
   )
@@ -960,7 +967,7 @@ function PlanSheet({ friends, onClose, onCreated }) {
       if (vis !== 'friends' && plan_id) {
         try { await setPlanVisibility(plan_id, vis) } catch { /* non-fatal — plan lives at 'friends' */ }
       }
-      onCreated()
+      onCreated(plan_id)
     } catch (e) { setErr(e?.message || "couldn't make the plan — try again"); setBusy(false) }
   }
 

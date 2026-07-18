@@ -64,7 +64,7 @@ export default function Cohorts() {
 
   return (
     <div style={{ maxWidth: '820px' }}>
-      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '2px 0 14px', display: 'flex', alignItems: 'center', gap: '9px' }}>
+      <div className="os-reveal-fast" style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', margin: '2px 0 14px', display: 'flex', alignItems: 'center', gap: '9px' }}>
         <span>{String(totalBuyers).padStart(2, '0')} real buyers · {String(totalReturned).padStart(2, '0')} came back (30d)</span>
         <div style={{ flex: 1, height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
       </div>
@@ -77,8 +77,8 @@ export default function Cohorts() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {cohorts.map(c => (
-            <div key={c.event_id} style={{ border: `1px solid ${HAIR}`, borderRadius: '14px', background: CARD, padding: '16px 18px' }}>
+          {cohorts.map((c, i) => (
+            <div key={c.event_id} className="os-reveal-fast" style={{ border: `1px solid ${HAIR}`, borderRadius: '14px', background: CARD, padding: '16px 18px', animationDelay: `${i * 45}ms` }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px', marginBottom: '14px' }}>
                 <div>
                   <div style={{ fontFamily: FONT_DISPLAY, fontSize: '20px', ...chromeText, letterSpacing: '.02em' }}>{c.title || c.slug}</div>

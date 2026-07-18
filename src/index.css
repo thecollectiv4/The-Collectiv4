@@ -348,6 +348,34 @@ a { color: inherit; text-decoration: none; }
 @keyframes refilterIn { from { opacity:.4; filter:blur(2px); } to { opacity:1; filter:blur(0); } }
 .refilter-in { animation: refilterIn var(--dur-fast) var(--ease-house); }
 
+/* ============================================================
+   ADITIVAS (rama feat/motion-aditivas) — las pocas clases que
+   faltaban para puentear estados que hoy teleportan. Todas sobre
+   la curva de la casa; sin springs, sin bounce, sin confetti.
+   Reusan keyframes existentes (menuIn, fadeIn, msgIn) donde se
+   puede — sólo badgeIn y osOrbitDraw son nuevos.
+   ============================================================ */
+/* un chip recién elegido aterriza en tu set (CraftPicker, TasteBrainstorm) */
+.chip-in { animation: menuIn 160ms var(--ease-exit); }
+/* el feed For You surface como uno solo — opacity, sin stagger por columnas */
+.feed-in { animation: fadeIn var(--dur-fast) var(--ease-house); }
+/* el chip de vínculo (amigo/solicitado) que cambia tras una acción */
+.bond-in { animation: msgIn var(--dur-fast) var(--ease-house); }
+/* fila de nombres del auth: colapsa entre sign-in / create (interrumpible) */
+.row-collapse { transition: grid-template-rows var(--dur-base) var(--ease-house), opacity var(--dur-base) var(--ease-house); }
+/* el badge de la campana llega, no aparece de golpe (NO forwards — fin natural) */
+@keyframes badgeIn { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:scale(1); } }
+.badge-in { animation: badgeIn var(--dur-fast) var(--ease-house); }
+/* el hairline del roadmap se dibuja una vez, del origen a 'now' (beat cinematográfico) */
+@keyframes osOrbitDraw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.os-orbit-draw { transform-origin: left center; animation: osOrbitDraw var(--dur-cinematic) var(--ease-house); }
+/* la sala destacada respira en hover — sin lift (demasiado grande para levantar) */
+.feat-room { transition: border-color var(--dur-slow) ease; }
+@media (hover: hover) and (pointer: fine) {
+  .feat-room:hover { border-color: rgba(242,238,230,.34); }
+  .feat-room:hover .disc-banner img, .feat-room:hover .disc-banner svg { animation-play-state: running; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .temp-warm, .temp-electric { animation:none; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
@@ -378,4 +406,12 @@ a { color: inherit; text-decoration: none; }
   .rise { animation: fadeIn .3s ease forwards; animation-delay: 0ms !important; }
   .ring-draw { animation: none; stroke-dashoffset: 0; }
   .beat-in { animation: fadeIn .2s ease; }
+  /* aditivas (feat/motion-aditivas): fades/none, cero movimiento */
+  .chip-in, .feed-in, .bond-in, .os-orbit-draw { animation: none; }
+  .badge-in { animation: fadeIn .2s ease; }
+  .row-collapse { transition: opacity 150ms ease; }
+  .feat-room { transition: none; }
+  .feat-room:hover .disc-banner img, .feat-room:hover .disc-banner svg { animation: none; }
+  /* .fade-up* faltaban del bloque (deuda pre-existente): hero de /c4 (A-15) */
+  .fade-up, .fade-up-1, .fade-up-2, .fade-up-3, .fade-up-4 { animation: fadeIn .3s ease forwards; animation-delay: 0ms !important; }
 }

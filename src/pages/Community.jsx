@@ -182,6 +182,7 @@ export default function Community() {
   // plays it — that would flash the grid ~1s after load for no reason).
   const filterKey = `${city}|${craft}|${nameQ}`
   const firstKey = useRef(filterKey)
+  const firstView = useRef(view)   // FOR YOU⇄EVERYONE crossfades on toggle, not on landing (A-29)
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', overflowX: 'hidden' }}>
@@ -237,7 +238,9 @@ export default function Community() {
           <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
             <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
           </div>
-        ) : view === 'foryou' ? (
+        ) : (
+        <div key={view} className={view !== firstView.current ? 'refilter-in' : undefined}>
+        {view === 'foryou' ? (
           user ? (
             <ForYou user={user} onBrainstorm={() => navigate('/profile')} onEveryone={() => setView('everyone')} />
           ) : (
@@ -335,6 +338,8 @@ export default function Community() {
           />
         )}
         </>
+        )}
+        </div>
         )}
       </div>
 

@@ -29,6 +29,13 @@ import { Terms, Privacy, Refunds } from '@/pages/Legal'
 // route and the chunk are excluded from the production bundle.
 const OSHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__OSHarness')) : null
 
+// PREVIEW-ONLY motion harness (/__motion): the 31 aditivas of the Fase 3 audit
+// playing on demand, so the ones that only fire behind real data/state (an
+// empty events night, an incoming bell, a first publish) can be judged without
+// writing anything to the live DB. Gated on a BUILD env flag — statically false
+// in every build that doesn't set it, so route + chunk are excluded from prod.
+const MotionHarness = import.meta.env.VITE_MOTION_HARNESS === '1' ? lazy(() => import('@/pages/__MotionHarness')) : null
+
 // Route changes start at the top — without this, opening a world (or any
 // page) inherits the previous page's scroll position mid-museum.
 function ScrollToTop() {
@@ -56,6 +63,9 @@ export default function App() {
           <Route path="/refunds" element={<Refunds />} />
           {import.meta.env.DEV && OSHarness && (
             <Route path="/__os-harness" element={<Suspense fallback={null}><OSHarness /></Suspense>} />
+          )}
+          {MotionHarness && (
+            <Route path="/__motion" element={<Suspense fallback={null}><MotionHarness /></Suspense>} />
           )}
           <Route path="/" element={<Layout />}>
             <Route index element={<Events />} />{/* EVENT tab — every room on the platform */}

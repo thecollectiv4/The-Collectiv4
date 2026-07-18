@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useWide } from '@/lib/useIsDesktop'
@@ -53,6 +53,9 @@ export default function HouseWorld() {
   const [network, setNetwork] = useState([])
   const [craftsBy, setCraftsBy] = useState(new Map())
   const [offer, setOffer] = useState([])
+  // first load stages the chapters (A-04); a later refetch renders plain
+  const entered = useRef(false)
+  useEffect(() => { if (!loading) entered.current = true }, [loading])
 
   useEffect(() => {
     let alive = true
@@ -123,13 +126,13 @@ export default function HouseWorld() {
 
         {/* ============ HERO — the house identity ============ */}
         <div style={{ maxWidth: wide ? '760px' : undefined }}>
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '10px' }}>◇ the house world · Houston</div>
-          <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(72px, 8vw, 110px)' : '56px', letterSpacing: '.01em', lineHeight: .88, margin: 0, ...chromeText }}>THE COLLECTIV4</h1>
-          <p style={{ fontFamily: 'DM Sans', fontSize: wide ? '17px' : '14.5px', color: BONE_MID, lineHeight: 1.7, margin: '18px 0 0', maxWidth: '560px' }}>
+          <div className="fade-up" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: wide ? '.34em' : '.28em', textTransform: 'uppercase', marginBottom: '10px' }}>◇ the house world · Houston</div>
+          <h1 className="fade-up-1" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(72px, 8vw, 110px)' : '56px', letterSpacing: '.01em', lineHeight: .88, margin: 0, ...chromeText }}>THE COLLECTIV4</h1>
+          <p className="fade-up-2" style={{ fontFamily: 'DM Sans', fontSize: wide ? '17px' : '14.5px', color: BONE_MID, lineHeight: 1.7, margin: '18px 0 0', maxWidth: '560px' }}>
             A creative movement at the intersection of music, art and human connection.
             Every artist here has a world — a museum of what they make. The rooms are where those worlds meet.
           </p>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '20px' }}>
+          <div className="fade-up-3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '20px' }}>
             <button className="pressable" onClick={() => navigate('/community')}
               style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: BONE, border: 'none', borderRadius: '11px', padding: '12px 22px', color: VOID, fontFamily: 'Bebas Neue', fontSize: '15px', letterSpacing: '.06em', cursor: 'pointer', boxShadow: '0 4px 20px rgba(242,238,230,.14)' }}>
               MEET THE COMMUNITY <ArrowRight size={13} />
@@ -148,7 +151,7 @@ export default function HouseWorld() {
         ) : (
           <>
             {/* ============ 01 · THE ROOMS — the events engine ============ */}
-            <Chapter n="01" mark="dot" label="THE ROOMS" kicker={wide ? 'Ran By Artists · the engine' : 'Ran By Artists'} wide={wide}>
+            <Chapter n="01" mark="dot" label="THE ROOMS" kicker={wide ? 'Ran By Artists · the engine' : 'Ran By Artists'} wide={wide} className={entered.current ? undefined : 'card-in'} delay="0ms">
               {featured ? (
                 <HouseRoom e={featured} wide={wide} featured onOpen={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')} />
               ) : lastRoom ? (
@@ -175,7 +178,7 @@ export default function HouseWorld() {
 
             {/* ============ 02 · THE NETWORK — worlds, spotlit ============ */}
             {network.length > 0 && (
-              <Chapter n="02" mark="ring" label="THE NETWORK" kicker="verified · in the room" wide={wide}>
+              <Chapter n="02" mark="ring" label="THE NETWORK" kicker="verified · in the room" wide={wide} className={entered.current ? undefined : 'card-in'} delay="70ms">
                 <div className="no-scrollbar" style={wide
                   ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: '14px' }
                   : { display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '6px', WebkitOverflowScrolling: 'touch' }}>
@@ -214,7 +217,7 @@ export default function HouseWorld() {
             )}
 
             {/* ============ 03 · THE CULTURE — the 4-language ============ */}
-            <Chapter n={network.length ? '03' : '02'} mark="diamond" label="THE CULTURE" kicker="the 4-language" wide={wide}>
+            <Chapter n={network.length ? '03' : '02'} mark="diamond" label="THE CULTURE" kicker="the 4-language" wide={wide} className={entered.current ? undefined : 'card-in'} delay="140ms">
               <div style={wide ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '14px' } : { display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {CULTURE.map((c) => (
                   <div key={c.title} style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', border: `1px solid ${HAIR}`, borderRadius: '15px', background: 'rgba(242,238,230,.02)', padding: wide ? '20px 22px' : '16px 18px' }}>
@@ -229,7 +232,7 @@ export default function HouseWorld() {
             </Chapter>
 
             {/* ============ 04 · THE OFFER — real pieces, real prices ============ */}
-            <Chapter n={network.length ? '04' : '03'} mark="square" label="THE OFFER" kicker="by the network · real prices" wide={wide}>
+            <Chapter n={network.length ? '04' : '03'} mark="square" label="THE OFFER" kicker="by the network · real prices" wide={wide} className={entered.current ? undefined : 'card-in'} delay="210ms">
               {offer.length > 0 ? (
                 <div className="no-scrollbar" style={wide
                   ? { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '14px' }
@@ -288,9 +291,9 @@ export default function HouseWorld() {
 }
 
 /* ---- a chapter of the house world — same editorial spine as the museums ---- */
-function Chapter({ n, mark, label, kicker, wide, children }) {
+function Chapter({ n, mark, label, kicker, wide, children, className, delay }) {
   return (
-    <div style={{ marginTop: wide ? '74px' : '50px', position: 'relative' }}>
+    <div className={className} style={{ marginTop: wide ? '74px' : '50px', position: 'relative', animationDelay: delay }}>
       <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '24px' : '18px' }}>
         <span aria-hidden style={{ position: 'absolute', left: wide ? '-10px' : '-6px', bottom: '-8px', fontFamily: 'Bebas Neue', fontSize: wide ? '96px' : '62px', lineHeight: 1, color: BONE, opacity: .05, pointerEvents: 'none', userSelect: 'none' }}>{n}</span>
         <Mark type={mark} size={wide ? 16 : 14} color={SILVER} style={{ flexShrink: 0, opacity: .9, position: 'relative' }} />
