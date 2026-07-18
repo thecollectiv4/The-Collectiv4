@@ -147,6 +147,11 @@ function ResultRow({ person, bond, busy, onSend, onAccept, onOpen }) {
   const name = nameOf(person)
   const avatar = safeImg(person.avatar_url)
   const sub = person.username ? '@' + person.username : (person.city || person.discipline || '')
+  // the incoming bond state rises in ONLY after an action changes it —
+  // never on the initial results render (A-09)
+  const prevBond = useRef(bond)
+  const changed = prevBond.current !== bond
+  useEffect(() => { prevBond.current = bond }, [bond])
   return (
     <div data-testid={`people-result-${person.id}`} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 2px', borderBottom: `1px solid ${HAIR}` }}>
       {/* the face + name tap to the world (Ley 6) */}
@@ -166,30 +171,31 @@ function ResultRow({ person, bond, busy, onSend, onAccept, onOpen }) {
         </span>
       </button>
       {/* the action — the true state, never a dead promise (Ley 9) */}
-      <BondButton bond={bond} busy={busy} onSend={onSend} onAccept={onAccept} personId={person.id} />
+      <BondButton bond={bond} busy={busy} onSend={onSend} onAccept={onAccept} personId={person.id} changed={changed} />
     </div>
   )
 }
 
-function BondButton({ bond, busy, onSend, onAccept, personId }) {
+function BondButton({ bond, busy, onSend, onAccept, personId, changed }) {
+  const inCls = changed ? ' bond-in' : ''
   if (bond === 'friends') return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: SILVER, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', flexShrink: 0, padding: '10px 6px' }}>
+    <span className={changed ? 'bond-in' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: SILVER, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', flexShrink: 0, padding: '10px 6px' }}>
       <Check size={12} /> amigos
     </span>
   )
   if (bond === 'out') return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', flexShrink: 0, padding: '10px 6px' }}>
+    <span className={changed ? 'bond-in' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', flexShrink: 0, padding: '10px 6px' }}>
       <Clock size={11} /> requested
     </span>
   )
   if (bond === 'in') return (
-    <button className="pressable" data-testid={`people-accept-${personId}`} disabled={busy} onClick={onAccept}
+    <button className={`pressable${inCls}`} data-testid={`people-accept-${personId}`} disabled={busy} onClick={onAccept}
       style={{ background: BONE, border: 'none', borderRadius: '100px', minHeight: '40px', padding: '10px 18px', color: VOID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 500, cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0 }}>
       {busy ? '…' : 'accept'}
     </button>
   )
   return (
-    <button className="pressable" data-testid={`people-add-${personId}`} disabled={busy} onClick={onSend}
+    <button className={`pressable${inCls}`} data-testid={`people-add-${personId}`} disabled={busy} onClick={onSend}
       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', minHeight: '40px', padding: '10px 16px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0 }}>
       {busy ? '…' : <><UserPlus size={12} /> amigo</>}
     </button>

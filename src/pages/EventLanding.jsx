@@ -486,7 +486,7 @@ export function EventShow({ live }) {
                 const on = (myVis || 'friends') === t
                 return (
                   <button key={t} disabled={visBusy} onClick={async()=>{ setVisBusy(true); try { const v = await setAttendanceVisibility(event.id, t); setMyVis(v || t) } catch(_) {} finally { setVisBusy(false) } }}
-                    style={{flex:1,borderRadius:'100px',padding:'8px 8px',cursor:visBusy?'default':'pointer',opacity:visBusy?0.6:1,border:`1px solid ${on?'rgba(199,201,209,.5)':'rgba(242,238,230,.14)'}`,background:on?'rgba(199,201,209,.1)':'transparent',color:on?'var(--cream)':'var(--cream-low)',fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.06em',textTransform:'uppercase'}}>
+                    style={{flex:1,borderRadius:'100px',padding:'8px 8px',cursor:visBusy?'default':'pointer',opacity:visBusy?0.6:1,border:`1px solid ${on?'rgba(199,201,209,.5)':'rgba(242,238,230,.14)'}`,background:on?'rgba(199,201,209,.1)':'transparent',color:on?'var(--cream)':'var(--cream-low)',fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.06em',textTransform:'uppercase',transition:'border-color var(--dur-fast) var(--ease-house), background var(--dur-fast) var(--ease-house), color var(--dur-fast) var(--ease-house), opacity var(--dur-fast) var(--ease-house)'}}>
                     {VIS_LABEL[t]}
                   </button>
                 )

@@ -193,7 +193,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
                     const kb = kebab(t.label)
                     const pub = !!t.is_public
                     return (
-                      <span key={`${t.domain}:${kb}`} data-testid={`taste-chip-${t.domain}-${kb}`}
+                      <span key={`${t.domain}:${kb}`} data-testid={`taste-chip-${t.domain}-${kb}`} className="chip-in"
                         style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: '100px', border: `1px solid ${pub ? 'rgba(242,238,230,.45)' : HAIR_HI}`, background: pub ? 'rgba(242,238,230,.07)' : 'rgba(242,238,230,.02)', overflow: 'hidden', transition: 'background .25s ease, border-color .25s ease' }}>
                         <button className="pressable" onClick={() => remove(t.domain, t.label)} aria-label={`Remove ${t.label}`} title="tap to remove"
                           style={{ display: 'inline-flex', alignItems: 'center', background: 'transparent', border: 'none', padding: '10px 6px 10px 13px', cursor: 'pointer', minHeight: '40px' }}>

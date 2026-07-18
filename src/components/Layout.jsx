@@ -194,7 +194,7 @@ export default function Layout() {
                       color={active ? '#E8E9ED' : '#5B5952'}
                       style={{ flexShrink:0, filter: active ? 'drop-shadow(0 0 5px rgba(232,233,237,.7))' : 'none', transition:'filter .2s' }} />
                     {tab.to === '/messages' && bellCount > 0 && (
-                      <span data-testid="bell-badge" aria-label={`${bellCount} unread signals`}
+                      <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
                         style={{ position:'absolute', top:'-7px', right:'-11px', minWidth:'13px', height:'13px',
                           borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
                           fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>
@@ -262,7 +262,7 @@ export default function Layout() {
                     color={active ? '#F2EEE6' : '#83838F'}
                     style={{ filter: active ? 'drop-shadow(0 0 7px rgba(242,238,230,.55))' : 'none', transition:'filter .2s' }} />
                   {tab.to === '/messages' && bellCount > 0 && (
-                    <span data-testid="bell-badge" aria-label={`${bellCount} unread signals`}
+                    <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
                       style={{ position:'absolute', top:'-5px', right:'-9px', minWidth:'14px', height:'14px',
                         borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
                         fontSize:'8.5px', fontWeight:700, lineHeight:'14px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>

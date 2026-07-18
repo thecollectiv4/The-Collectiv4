@@ -199,7 +199,7 @@ export default function Events() {
                 promise (Ley 9: the copy's invitation gets a real door). */}
             {!featured && upcoming.length === 0 && (
               <div style={{ marginTop: '22px', display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: '22px', alignItems: 'start' } : { flexDirection: 'column', gap: '14px' }) }}>
-                <div style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <div className={entered ? undefined : 'card-in'} style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', animationDelay: '0ms' }}>
                   <MiniStars seed="no-rooms" k={wide ? 0.3 : 0.6} />
                   <div style={{ position: 'relative' }}>
                     {/* bone, not chrome — the page title owns this screen's
@@ -217,7 +217,7 @@ export default function Events() {
                 </div>
                 {/* the last room — the archive keeps a face on the door */}
                 {lastRoom && (
-                  <div>
+                  <div className={entered ? undefined : 'card-in'} style={{ animationDelay: '100ms' }}>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase', marginBottom: '9px' }}>the last room</div>
                     <RoomCard e={lastRoom} pastRoom onOpen={() => navigate(lastRoom.slug ? `/e/${lastRoom.slug}` : '/editions')} />
                   </div>
@@ -272,7 +272,7 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
   ].filter(Boolean)
 
   return (
-    <div className="pressable" onClick={onEnter} role="button" tabIndex={0} aria-label={`Enter ${e.title}`}
+    <div className="pressable feat-room" onClick={onEnter} role="button" tabIndex={0} aria-label={`Enter ${e.title}`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEnter() } }}
       style={{ marginTop: '18px', position: 'relative', borderRadius: '20px', overflow: 'hidden', border: `1px solid rgba(242,238,230,.16)`, background: CARD, cursor: 'pointer', boxShadow: '0 18px 60px rgba(0,0,0,.45)' }}>
       {/* the banner — cover or the room's own sky */}

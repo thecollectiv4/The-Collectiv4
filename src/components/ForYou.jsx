@@ -141,24 +141,30 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
       ) : empty ? (
         /* the honest empty — a quiet moment, two doors (Ley 11) */
         <div data-testid="foryou-empty" style={{ minHeight: '52vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '14px', textAlign: 'center', padding: '40px 24px' }}>
-          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW }}>◇</span>
-          <div style={{ fontFamily: 'DM Sans', fontSize: '14.5px', color: BONE_MID, lineHeight: 1.6, maxWidth: '280px' }}>
+          <span className="rise" aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW, animationDelay: '0ms' }}>◇</span>
+          <div className="rise" style={{ fontFamily: 'DM Sans', fontSize: '14.5px', color: BONE_MID, lineHeight: 1.6, maxWidth: '280px', animationDelay: '70ms' }}>
             the universe hasn't heard your taste yet.
           </div>
-          <button className="pressable" onClick={onBrainstorm}
-            style={{ marginTop: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-            brainstorm your taste →
-          </button>
-          <button className="pressable" onClick={onEveryone}
-            style={{ background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em' }}>
-            or wander everyone ↓
-          </button>
+          {/* buttons WRAPPED in .rise (never on the button itself — a filled
+              rise animation outranks :active; plan 005's settled correction) */}
+          <div className="rise" style={{ animationDelay: '140ms', display: 'flex' }}>
+            <button className="pressable" onClick={onBrainstorm}
+              style={{ marginTop: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+              brainstorm your taste →
+            </button>
+          </div>
+          <div className="rise" style={{ animationDelay: '210ms', display: 'flex' }}>
+            <button className="pressable" onClick={onEveryone}
+              style={{ background: 'transparent', border: 'none', padding: '6px 10px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em' }}>
+              or wander everyone ↓
+            </button>
+          </div>
         </div>
       ) : (
         /* wide: a real editorial spread — a CSS masonry (2 cols, 3 at >=1440)
            the person + event cards flow through, filling the composed width.
            Mobile: the single vertical column, byte-for-byte as before. */
-        <div data-testid="foryou-feed" style={wide
+        <div data-testid="foryou-feed" className="feed-in" style={wide
           ? { columnCount: veryWide ? 3 : 2, columnGap: '16px', marginTop: '14px' }
           : { display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '14px' }}>
           {feed.map((item) => {

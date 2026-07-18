@@ -128,6 +128,9 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
   const [notice, setNotice] = useState('')          // rendered only after a confirmed server ok
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [busyRow, setBusyRow] = useState('')
+  const [settledId, setSettledId] = useState(null)   // the row that just went live settles (A-26)
+  const viewedOnce = useRef(false)                    // list⇄edit slide only after the first paint (A-12)
+  useEffect(() => { viewedOnce.current = true }, [])
 
   const load = useCallback(async () => {
     setLoadErr('')
@@ -149,8 +152,8 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
   const addTier = () => setForm(f => ({ ...f, tiers: [...f.tiers, { id: '', name: '', dollars: '', status: 'coming_soon', note: '' }] }))
   const delTier = (i) => setForm(f => ({ ...f, tiers: f.tiers.filter((_, j) => j !== i) }))
 
-  const openNew = () => { setForm(emptyForm()); setFormErr(''); setView('edit') }
-  const openEdit = (e) => { setForm(eventToForm(e)); setFormErr(''); setView('edit') }
+  const openNew = () => { setSettledId(null); setForm(emptyForm()); setFormErr(''); setView('edit') }
+  const openEdit = (e) => { setSettledId(null); setForm(eventToForm(e)); setFormErr(''); setView('edit') }
 
   const save = async () => {
     setFormErr('')
@@ -184,6 +187,7 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
     if (error || !data?.ok) { say(`couldn't change status — ${error?.message || data?.error}`); return }
     await load()
     say(`“${e.title}” → ${EVENT_STATUS_LABEL[status]}`)
+    setSettledId(e.id)                 // the row that just changed status settles (A-26)
   }
 
   const doDelete = async (e) => {
@@ -216,7 +220,7 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
     const isNew = !form.id
     const cols = desktop ? '1fr 1fr' : '1fr'
     return (
-      <div style={{ maxWidth: '860px' }}>
+      <div key={view} className={viewedOnce.current ? 'os-slide-in-right' : undefined} style={{ maxWidth: '860px' }}>
         <button onClick={() => setView('list')} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', padding: 0, marginBottom: '16px' }}>
           <ArrowLeft size={13} /> All events
         </button>
@@ -353,8 +357,13 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
   const mineRows = events.filter(canEdit)
   const otherRows = events.filter(e => !canEdit(e))
   return (
-    <div style={{ maxWidth: '860px' }}>
-      {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '0 0 14px' }}>△ {notice}</div>}
+    <div key={view} className={viewedOnce.current ? 'os-slide-in-left' : undefined} style={{ maxWidth: '860px' }}>
+      {/* notice mounted + grid-collapsed so it never reflows the list (A-18 recipe) */}
+      <div style={{ display: 'grid', gridTemplateRows: notice ? '1fr' : '0fr', opacity: notice ? 1 : 0, transition: 'grid-template-rows var(--dur-base) var(--ease-house), opacity var(--dur-fast) var(--ease-house)' }}>
+        <div style={{ minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '0 0 14px' }}>△ {notice}</div>
+        </div>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
         <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase' }}>
           {isOwner
@@ -376,7 +385,7 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
           const onSale = tiers.filter(t => t.status === 'available')
           const busy = busyRow === e.id
           return (
-            <div key={e.id} style={{ padding: '14px 2px', borderBottom: i === mineRows.length - 1 ? 'none' : `1px solid ${HAIR}` }}>
+            <div key={e.id} className={settledId === e.id ? 'os-settle' : undefined} style={{ padding: '14px 2px', borderBottom: i === mineRows.length - 1 ? 'none' : `1px solid ${HAIR}` }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: FONT_SANS, fontSize: '14px', fontWeight: 600, color: BONE }}>{e.title}</span>
                 {e.edition && <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>{e.edition}</span>}

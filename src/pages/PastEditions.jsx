@@ -22,7 +22,9 @@ export default function PastEditions() {
     <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh'}}>
       {/* Header matching Event page */}
       <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
-        <button onClick={()=>navigate('/')} style={{background:'none',border:'none',color:'var(--cream)',cursor:'pointer',display:'flex',alignItems:'center'}}>
+        <button className="pressable" onClick={()=>navigate('/')} style={{background:'none',border:'none',color:'var(--cream-mid)',cursor:'pointer',display:'flex',alignItems:'center',transition:'color var(--dur-fast) var(--ease-house)'}}
+          onMouseOver={e=>{e.currentTarget.style.color='var(--cream)'}}
+          onMouseOut={e=>{e.currentTarget.style.color='var(--cream-mid)'}}>
           <ArrowLeft size={18}/>
         </button>
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PAST EDITIONS</div>

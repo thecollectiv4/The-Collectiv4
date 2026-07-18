@@ -103,7 +103,7 @@ export default function RoadmapStrip({ tasks = [], content = [] }) {
       <div style={{ position: 'relative', height: '10px' }}>
         {/* the orbit: full hairline + elapsed filled in bone */}
         <div style={{ position: 'absolute', top: '4px', left: 0, right: 0, height: '1px', background: HAIR_HI }} />
-        <div style={{ position: 'absolute', top: '4px', left: 0, width: `${nowPct}%`, height: '1px', background: 'rgba(242,238,230,.55)' }} />
+        <div className="os-orbit-draw" style={{ position: 'absolute', top: '4px', left: 0, width: `${nowPct}%`, height: '1px', background: 'rgba(242,238,230,.55)' }} />
 
         {/* origin tick — endpoint label, never hidden */}
         <Node pct={0} past label={START_LABEL} kind="tick" edge="start" />

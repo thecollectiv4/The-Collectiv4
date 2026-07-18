@@ -77,16 +77,20 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
         </div>
 
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
-          {mode==='signup' && (
-            <div style={{display:'flex',gap:'8px'}}>
-              <input type="text" placeholder="First name" value={firstName} onChange={e=>setFirstName(e.target.value)} style={inp}
-                onFocus={e=>e.currentTarget.style.borderColor='rgba(242,238,230,.3)'}
-                onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.1)'} />
-              <input type="text" placeholder="Last name" value={lastName} onChange={e=>setLastName(e.target.value)} style={inp}
-                onFocus={e=>e.currentTarget.style.borderColor='rgba(242,238,230,.3)'}
-                onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.1)'} />
+          {/* name row stays mounted and collapses via grid-template-rows so the
+              email/password inputs glide instead of teleporting on mode toggle (A-06) */}
+          <div className="row-collapse" aria-hidden={mode!=='signup'} style={{display:'grid',gridTemplateRows:mode==='signup'?'1fr':'0fr',opacity:mode==='signup'?1:0}}>
+            <div style={{overflow:'hidden',minHeight:0}}>
+              <div style={{display:'flex',gap:'8px'}}>
+                <input type="text" placeholder="First name" value={firstName} onChange={e=>setFirstName(e.target.value)} style={inp} tabIndex={mode==='signup'?0:-1}
+                  onFocus={e=>e.currentTarget.style.borderColor='rgba(242,238,230,.3)'}
+                  onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.1)'} />
+                <input type="text" placeholder="Last name" value={lastName} onChange={e=>setLastName(e.target.value)} style={inp} tabIndex={mode==='signup'?0:-1}
+                  onFocus={e=>e.currentTarget.style.borderColor='rgba(242,238,230,.3)'}
+                  onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.1)'} />
+              </div>
             </div>
-          )}
+          </div>
           <input type="email" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={inp}
             onFocus={e=>e.currentTarget.style.borderColor='rgba(242,238,230,.3)'}
             onBlur={e=>e.currentTarget.style.borderColor='rgba(255,255,255,.1)'} />

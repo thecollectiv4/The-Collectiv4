@@ -56,7 +56,7 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
   }
 
   return (
-    <div style={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid ${live ? HAIR_HI : HAIR}`, background: CARD, opacity: live ? 1 : .62, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid ${live ? HAIR_HI : HAIR}`, background: CARD, opacity: live ? 1 : .62, display: 'flex', flexDirection: 'column', transition: 'opacity var(--dur-base) var(--ease-house), border-color var(--dur-base) var(--ease-house)' }}>
       {/* the piece — image when it has one; a typographic object when not */}
       {img ? (
         <div style={{ position: 'relative', height: wide ? '210px' : '190px', overflow: 'hidden', background: '#08080D' }}>

@@ -1221,20 +1221,27 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
           {/* void + type only — the app-wide grain varnishes this moment too;
               the person's starfield belongs to their hero, not fullscreen blobs */}
+          {/* the ceremony stages in — the house .rise procession, exactly as
+              ClaimWorld/CreateCentral/WorldBuilder already do it (A-02). Buttons
+              are WRAPPED in .rise, never carry it (a filled rise outranks :active). */}
           <div style={{ position: 'relative', textAlign: 'center', padding: '0 30px', maxWidth: '380px' }}>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ published</div>
-            <div style={{ fontFamily: 'Bebas Neue', fontSize: '52px', lineHeight: .95, marginTop: '16px', ...chromeText }}>YOUR WORLD<br />IS LIVE</div>
-            <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, marginTop: '16px' }}>
+            <div className="rise" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ published</div>
+            <div className="rise rise-1" style={{ fontFamily: 'Bebas Neue', fontSize: '52px', lineHeight: .95, marginTop: '16px', ...chromeText }}>YOUR WORLD<br />IS LIVE</div>
+            <p className="rise rise-2" style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, marginTop: '16px' }}>
               Your card in Discover. Your museum. Yours.
             </p>
-            <button onClick={() => { setCelebrating(false); onViewPublic?.() }}
-              style={{ marginTop: '26px', width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
-              SEE IT AS THE WORLD SEES IT
-            </button>
-            <button onClick={() => setCelebrating(false)}
-              style={{ marginTop: '14px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
-              keep curating
-            </button>
+            <div className="rise rise-3" style={{ marginTop: '26px', display: 'flex', justifyContent: 'center' }}>
+              <button className="pressable" onClick={() => { setCelebrating(false); onViewPublic?.() }}
+                style={{ marginTop: 0, width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
+                SEE IT AS THE WORLD SEES IT
+              </button>
+            </div>
+            <div className="rise rise-4" style={{ marginTop: '14px', display: 'flex', justifyContent: 'center' }}>
+              <button className="pressable" onClick={() => setCelebrating(false)}
+                style={{ marginTop: 0, background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                keep curating
+              </button>
+            </div>
           </div>
         </div>,
         document.body

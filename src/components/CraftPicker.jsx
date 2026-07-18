@@ -81,15 +81,15 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
             const isP = c.id === (primary?.id || null)
             const meta = categoryMeta(c.category)
             return (
-              <span key={c.id} data-testid={`craft-chip-${c.slug}`}
+              <span key={c.id} data-testid={`craft-chip-${c.slug}`} className="chip-in"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 6px 6px 12px', background: isP ? `rgba(${meta.tint},.12)` : 'rgba(242,238,230,.04)', border: `1px solid ${isP ? `rgba(${meta.tint},.55)` : HAIR_HI}`, transition: 'background .25s ease, border-color .25s ease', boxShadow: isP ? `0 0 16px rgba(${meta.tint},.12)` : 'none' }}>
-                <button onClick={() => lead(c)} title={isP ? 'your primary craft' : 'make this your lead'} aria-pressed={isP}
+                <button className="pressable" onClick={() => lead(c)} title={isP ? 'your primary craft' : 'make this your lead'} aria-pressed={isP}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
                   <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '10px', color: isP ? `rgb(${meta.tint})` : BONE_LOW }}>{isP ? '◆' : '◇'}</span>
                   <span style={{ fontFamily: 'DM Mono', fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: isP ? BONE : BONE_MID }}>{c.name}</span>
                   {isP && <span style={{ fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.2em', color: `rgba(${meta.tint},.85)`, textTransform: 'uppercase' }}>lead</span>}
                 </button>
-                <button onClick={() => remove(c)} aria-label={`Remove ${c.name}`}
+                <button className="pressable" onClick={() => remove(c)} aria-label={`Remove ${c.name}`}
                   style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '17px', height: '17px', borderRadius: '50%', background: 'rgba(242,238,230,.05)', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: 0 }}>
                   <X size={9} />
                 </button>

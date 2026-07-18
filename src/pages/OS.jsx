@@ -362,7 +362,13 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
 
   const panel = (
     <>
-      {notice && <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>△ {notice}</div>}
+      {/* the notice stays MOUNTED and collapses via grid-template-rows so its
+          arrival/expiry never reflows the pane under the member's aim (A-18) */}
+      <div style={{ display: 'grid', gridTemplateRows: notice ? '1fr' : '0fr', opacity: notice ? 1 : 0, transition: 'grid-template-rows var(--dur-base) var(--ease-house), opacity var(--dur-fast) var(--ease-house)' }}>
+        <div style={{ minHeight: 0, overflow: 'hidden' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', padding: '8px 0 14px' }}>△ {notice}</div>
+        </div>
+      </div>
       <div key={tab} className={slideClass}>
         {tab === 'board' && <Board tasks={tasks} owners={owners} profileId={profile?.id} entrance={firstVisit} onCreate={createTask} onUpdate={updateTask} onMoveTo={moveTaskTo} onDelete={deleteTask} />}
         {tab === 'content' && <ContentEngine content={content} owners={owners} entrance={firstVisit} onCreate={createContent} onUpdate={updateContent} onDelete={deleteContent} />}

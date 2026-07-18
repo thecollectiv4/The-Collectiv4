@@ -84,7 +84,7 @@ export default function RelatedWorlds({ profileId, crafts = [] }) {
     : { padding: '0 24px 110px' }
 
   return (
-    <div data-testid="related-worlds" style={{ position: 'relative', zIndex: 3, background: 'transparent', marginTop: '-60px' }}>
+    <div data-testid="related-worlds" className="card-in" style={{ position: 'relative', zIndex: 3, background: 'transparent', marginTop: '-60px' }}>
       <div style={frame}>
         {/* the header — same catalog language as the museum's movements */}
         <div style={{ display: 'flex', alignItems: 'center', gap: wide ? '16px' : '12px', marginBottom: wide ? '22px' : '16px' }}>
