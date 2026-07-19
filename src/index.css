@@ -489,6 +489,11 @@ input, textarea, select,
   /* v11: el chip no se desliza — aparece donde toca. La opacidad se
      queda (es comprensión, no movimiento vestibular). */
   .glass-nav-chip { transition: opacity 200ms ease !important; }
+  /* La barra no se repliega al hacer scroll: un elemento grande que entra y
+     sale solo es justo el tipo de movimiento que marea. El hook ya se apaga
+     solo con esta preferencia; esto es el cinturón por si el estado quedara
+     encendido de antes. */
+  .glass-nav-dock { transition: none !important; transform: none !important; opacity: 1 !important; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
   .os-slide-in-right, .os-slide-in-left { animation:none; }
   .os-settle, .msg-in { animation: none; }

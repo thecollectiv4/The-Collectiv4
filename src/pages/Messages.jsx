@@ -1233,7 +1233,7 @@ function Thread({ threadId, me, wide }) {
           the bar's runway begins and the messages scroll through the gap.
           112px tracks Layout's runway — if GlassNav's DOCK_BOTTOM moves, both
           move with it. */}
-      <div style={{ position: 'fixed', bottom: 'calc(112px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(10,10,13,.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
+      <div style={{ position: 'fixed', bottom: 'calc(120px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(10,10,13,.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
         <div style={{ maxWidth: wide ? '720px' : '430px', margin: '0 auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text" value={text} placeholder="Say something…" maxLength={2000}

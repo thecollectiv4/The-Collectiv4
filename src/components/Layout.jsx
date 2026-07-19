@@ -18,15 +18,16 @@ import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
    the first two. Each tab carries its icon AND its word (Leyes 5, 13).
    v5 (D3): the icons are the house's OWN star-chart marks — ✕ the night,
    ○ the circle of people, ◇ the signal, ● the self, △ the instrument —
-   an icon system that is brand, not stock pictograms (Ley 14). */
-const baseTabs = [
+   an icon system that is brand, not stock pictograms (Ley 14).
+   v11: the bar is FIVE fixed slots and cannot reflow — OS left the tab row
+   and now lives as a founder-only door on the Profile screen. /os is still a
+   route; it just stopped being a public-facing tab. */
+const tabs = [
   { to: '/',          mark: 'cross',   label: 'Event',     requiresAuth: false },
   { to: '/community', mark: 'ring',    label: 'Community', requiresAuth: false },
   { to: '/messages',  mark: 'diamond', label: 'Messages',  requiresAuth: true },
   { to: '/profile',   mark: 'dot',     label: 'Profile',   requiresAuth: true },
 ]
-// Network members (verified/owner) get the internal OS as an extra tab.
-const osTab = { to: '/os', mark: 'triangle', label: 'OS', requiresAuth: true }
 
 // Public routes never force the sign-in modal (Event + Community are
 // top-of-funnel — and a shared world link must open the world, not a wall:
@@ -99,8 +100,8 @@ export default function Layout() {
     return () => { alive = false; window.removeEventListener(SIGNALS_EVENT, refresh) }
   }, [authLoading, user, location.pathname])
 
-  // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
-  const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs
+  // The tab row is the same four for everyone now (v11) — nothing about who
+  // you are can change its shape, so it can never reflow under your thumb.
   const currentIdx = tabs.findIndex(t => t.to === '/' ? location.pathname === '/' : location.pathname.startsWith(t.to))
   const isSubPage = currentIdx === -1
 
@@ -227,7 +228,7 @@ export default function Layout() {
           the 28px gap AND the home indicator. Derived from GlassNav's
           DOCK_BOTTOM; if that moves, this moves with it. */}
       <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0,
-        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(112px + env(safe-area-inset-bottom, 0px))' }}>
+        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
         {/* position+zIndex are load-bearing: the shared Atmosphere sits at
             zIndex 0 — the page lifts itself one layer above the sky, and
             the sky shows through wherever the page leaves void. */}

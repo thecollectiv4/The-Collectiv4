@@ -14,6 +14,7 @@ import { socialReady, fetchFollowState } from '@/lib/social'
 import { fetchProfileCrafts } from '@/lib/crafts'
 import { fetchMyTastes } from '@/lib/tastes'
 import { fetchUpcomingSets } from '@/lib/world'
+import { isOwnerFounder } from '@/lib/osAccess'
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth()
@@ -30,6 +31,12 @@ export default function Profile() {
   const [tastes, setTastes] = useState(null)
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
+  // v11: OS left the tab bar and became a quiet door here. FOUNDERS ONLY —
+  // isOwnerFounder() reads data.owner from my_os_identity(), which is the
+  // is_owner() email allowlist checked server-side; `granted` is NOT this
+  // (that means any verified member). Defaults false = fail-closed, and the
+  // door is display-gating only: /os re-checks on every read regardless.
+  const [isFounder, setIsFounder] = useState(false)
   // upcoming rooms this member hosts — the SETS movement's rows (v6)
   const [upcomingSets, setUpcomingSets] = useState([])
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
@@ -47,6 +54,9 @@ export default function Profile() {
     if (authLoading) return
     if (!user) { navigate('/auth'); return }
     load()
+    // fire-and-forget, same idiom as ForYou/PeopleSearch/Community: any
+    // failure leaves isFounder false and the OS door simply doesn't appear.
+    isOwnerFounder().then(setIsFounder, () => setIsFounder(false))
   }, [user, authLoading])
 
   // CREATE central posts/listings from anywhere in the app — when it lands
@@ -320,6 +330,40 @@ export default function Profile() {
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#C7C9D1', letterSpacing: '.08em' }}>✕</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* THE INSTRUMENT — /os. It used to be a fifth tab in the bottom bar,
+          which meant a founder-only tool was shaping a public-facing row and
+          the bar changed size depending on who you were. It lives here now:
+          founders only, last, quiet.
+
+          Two independent gates stack. This whole `ownerExtras` fragment is
+          only ever passed by Profile.jsx (your OWN profile) — UserProfile.jsx
+          renders other people and never passes it — and `isFounder` is the
+          server's is_owner() verdict on top. Display-gating only: /os is
+          RLS-gated server-side no matter what renders here. */}
+      {isFounder && (
+        <div style={{ marginTop: '40px' }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>THE INSTRUMENT</div>
+          <div onClick={() => navigate('/os')}
+            style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .3s' }}
+            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,238,230,.2)'}
+            onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
+            <div style={{ padding: '22px 24px', background: 'var(--bg-card)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: '#C7C9D1', letterSpacing: '.08em' }}>△</span>
+                <span style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', letterSpacing: '.02em', lineHeight: 1 }}>OS</span>
+              </div>
+              <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--cream-low)', marginTop: '8px', lineHeight: 1.5 }}>
+                The board, the network, the drops — the room behind the room.
+              </div>
+            </div>
+            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)' }}>ENTER</span>
+              <ChevronRight size={14} style={{ color: 'var(--cream-low)' }} />
+            </div>
           </div>
         </div>
       )}
