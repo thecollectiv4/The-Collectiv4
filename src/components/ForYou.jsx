@@ -7,7 +7,8 @@ import { isOwnerFounder } from '@/lib/osAccess'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import { categoryMeta } from '@/lib/crafts'
 import { vibeMeta } from '@/lib/match'
-import { BadgeCheck, Plus, UserCheck } from 'lucide-react'
+import { Plus, UserCheck } from 'lucide-react'
+import VerifiedMark from './VerifiedMark'
 
 /* =========================================================================
    FOR YOU — the discovery feed (D2 · 0022): local talent, worlds and
@@ -253,7 +254,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
             ? <img src={backdrop} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '110px', lineHeight: 1, color: 'rgba(242,238,230,.06)' }}>{initial}</span>}
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 25%, #0E0E13 100%)' }} />
-          {p.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><BadgeCheck size={16} style={{ color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} /></span>}
+          {p.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={16} /></span>}
           {seedBadge && <span style={{ position: 'absolute', top: '9px', left: '9px', display: 'inline-flex' }}>{seedBadge}</span>}
         </div>
         <div style={{ position: 'absolute', left: '14px', top: '108px', width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
@@ -290,7 +291,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.02em', lineHeight: 1, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
-            {p.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} aria-label="Verified — in The Collectiv4 network" />}
+            {p.verified && <VerifiedMark size={14} style={{ flexShrink: 0 }} />}
             {seedBadge && <span style={{ display: 'inline-flex', flexShrink: 0 }}>{seedBadge}</span>}
           </div>
           {body}

@@ -11,6 +11,7 @@ import CreateCentral from './CreateCentral'
 import GlassNav from './GlassNav'
 import Mark from './Mark'
 import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
+import { BUBBLE, WELL, BONE_GLOW } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
@@ -182,24 +183,37 @@ export default function Layout() {
             {tabs.map((tab) => {
               const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
               return (
+                /* v11: desktop used to be the flat cousin — a bare 10px mark
+                   on a transparent button, while the phone got a lit glass
+                   bubble. Same recipe on both now (src/lib/glass.js), so the
+                   two can't drift again: the mark rides in a real 30px box,
+                   BUBBLE when you're standing in that room, WELL when you're
+                   not. */
                 <button key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
                   background:'transparent', border:'none', cursor:'pointer',
-                  padding:'8px 14px', display:'inline-flex', alignItems:'center', gap:'8px',
+                  padding:'6px 12px', display:'inline-flex', alignItems:'center', gap:'9px',
                   fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em', textTransform:'uppercase',
                   color: active ? '#F2EEE6' : '#83838F', transition:'color .2s',
                 }}
                   onMouseOver={e => { if (!active) e.currentTarget.style.color = '#C7C4BC' }}
                   onMouseOut={e => { if (!active) e.currentTarget.style.color = '#83838F' }}>
                   {/* the house mark — lit when this room is where you stand */}
-                  <span style={{ position:'relative', display:'inline-flex', flexShrink:0 }}>
-                    <Mark type={tab.mark} size={10} filled={active}
-                      color={active ? '#E8E9ED' : '#5B5952'}
-                      style={{ flexShrink:0, filter: active ? 'drop-shadow(0 0 5px rgba(232,233,237,.7))' : 'none', transition:'filter .2s' }} />
+                  <span style={{
+                    position:'relative', display:'inline-flex', flexShrink:0,
+                    alignItems:'center', justifyContent:'center',
+                    width:'30px', height:'30px', borderRadius:'11px',
+                    transition:'background .25s var(--ease-house), border-color .25s var(--ease-house), box-shadow .25s var(--ease-house)',
+                    ...(active ? BUBBLE : WELL),
+                  }}>
+                    <Mark type={tab.mark} size={15} filled={active}
+                      color={active ? '#F2EEE6' : '#83838F'}
+                      style={{ flexShrink:0, filter: active ? BONE_GLOW : 'none', transition:'filter .2s' }} />
                     {tab.to === '/messages' && bellCount > 0 && (
                       <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
-                        style={{ position:'absolute', top:'-7px', right:'-11px', minWidth:'13px', height:'13px',
+                        style={{ position:'absolute', top:'-4px', right:'-5px', minWidth:'13px', height:'13px',
                           borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
-                          fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>
+                          fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0,
+                          boxShadow:'0 0 0 2px rgba(12,12,17,.65)' }}>
                         {bellCount > 9 ? '9+' : bellCount}
                       </span>
                     )}
@@ -210,13 +224,16 @@ export default function Layout() {
             })}
             {/* CREATE — present in the instrument, one clear door (Ley 13) */}
             <button className="pressable" onClick={openCreate} aria-label="Create"
-              style={{ marginLeft:'12px', display:'inline-flex', alignItems:'center', gap:'7px',
-                background:'rgba(242,238,230,.06)', border:'1px solid rgba(242,238,230,.22)', borderRadius:'100px',
-                padding:'7px 15px', color:'#F2EEE6', fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em',
-                textTransform:'uppercase', cursor:'pointer', transition:'background .2s, border-color .2s' }}
-              onMouseOver={e => { e.currentTarget.style.background='rgba(242,238,230,.12)'; e.currentTarget.style.borderColor='rgba(242,238,230,.4)' }}
-              onMouseOut={e => { e.currentTarget.style.background='rgba(242,238,230,.06)'; e.currentTarget.style.borderColor='rgba(242,238,230,.22)' }}>
-              <Plus size={12} strokeWidth={2.2} /> Create
+              style={{ marginLeft:'12px', display:'inline-flex', alignItems:'center', gap:'8px',
+                borderRadius:'100px', padding:'8px 17px', color:'#F2EEE6',
+                fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em',
+                textTransform:'uppercase', cursor:'pointer',
+                transition:'box-shadow .25s var(--ease-house), border-color .25s var(--ease-house)',
+                ...BUBBLE,
+              }}
+              onMouseOver={e => { e.currentTarget.style.boxShadow = `${BUBBLE.boxShadow}, 0 0 18px rgba(242,238,230,.14)`; e.currentTarget.style.borderColor='rgba(242,238,230,.78)' }}
+              onMouseOut={e => { e.currentTarget.style.boxShadow = BUBBLE.boxShadow; e.currentTarget.style.borderColor='rgba(242,238,230,.58)' }}>
+              <Plus size={13} strokeWidth={2} /> Create
             </button>
           </nav>
         </header>

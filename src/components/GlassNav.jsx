@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import Mark from './Mark'
+import { GLASS_FILTER, CHIP, BUBBLE } from '@/lib/glass'
 
 /* =========================================================================
    GlassNav (v11) — the bottom tab bar as an Apple-style liquid-glass slab.
@@ -25,8 +26,10 @@ import Mark from './Mark'
    which reads as "it didn't respond". 380ms lands inside Apple's 0.3-0.4s
    response band and the two now finish together.
 
-   NO SWIPE-TO-SWITCH. See the note above the pointer handlers — it was
-   evaluated and deliberately not shipped.
+   SWIPE OVER THE BAR — it works now, and it works in WebKit. The two earlier
+   attempts failed for one reason: the listener was passive, so the
+   preventDefault that claims a horizontal drag was a silent no-op and Safari
+   kept the gesture as a scroll. See useBarSwipe below.
 
    FIVE SLOTS, ALWAYS. OS moved to the Profile screen, so the row is a fixed
    EVENT · COMMUNITY · CREATE · MESSAGES · PROFILE. Equal flex, identical
@@ -46,7 +49,7 @@ const RETRACT_MS = 420
 
 /* Literal values only — WebKit silently drops backdrop-filter when any part
    of the chain comes from a CSS custom property (bug 289800). */
-const GLASS = 'saturate(180%) contrast(0.92) brightness(1.08) blur(28px)'
+const GLASS = GLASS_FILTER
 
 /* Clearance over iOS Safari's collapsed-toolbar band. env() reports 0 in that
    state, so this constant IS the whole clearance. Layout's runway, the
@@ -105,6 +108,84 @@ function useRetractOnScroll(enabled) {
   return retracted
 }
 
+/* ── swipe over the bar ──────────────────────────────────────────────────
+   Third attempt, and this time with the two things the first two lacked.
+
+   1. THE LISTENER MUST BE NON-PASSIVE. React attaches touchmove passively at
+      the root, so an onTouchMove prop can never preventDefault — the call is
+      a silent no-op and WebKit keeps the gesture. It has to be bound by hand
+      with { passive: false }.
+   2. THE GESTURE MUST BE CLAIMED THE FRAME IT IS CLASSIFIED. WebKit decides
+      early whether a drag belongs to the page; once it has decided, nothing
+      gives it back. So the first move past the slop is classified x or y,
+      and if it is x we preventDefault immediately and keep it.
+
+   A y-classified drag is left completely alone, so nothing about page
+   scrolling changes. And because the trailing synthesized click cannot be
+   cancelled from any touch or pointer event, it is swallowed by a
+   capture-phase click guard on a short window — the only thing that works. */
+function useBarSwipe(ref, onSwipe, enabled) {
+  const cb = useRef(onSwipe)
+  cb.current = onSwipe                      // keeps the listener identity stable
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !enabled) return undefined
+
+    const SLOP = 12      // px before a direction is believed
+    const COMMIT = 44    // px of horizontal travel that counts as a swipe
+    const GUARD_MS = 500 // window in which the trailing click is swallowed
+
+    let x0 = 0, y0 = 0, eje = null, vivo = false, guard = 0
+
+    const start = (e) => {
+      if (e.touches.length !== 1) { vivo = false; return }
+      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY
+      eje = null; vivo = true
+    }
+    const move = (e) => {
+      if (!vivo || e.touches.length !== 1) return
+      const dx = e.touches[0].clientX - x0
+      const dy = e.touches[0].clientY - y0
+      if (eje === null) {
+        if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return
+        eje = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
+      }
+      // claim it the moment it is ours — this is the whole fix
+      if (eje === 'x' && e.cancelable) e.preventDefault()
+    }
+    const end = (e) => {
+      if (!vivo) return
+      vivo = false
+      if (eje !== 'x') return
+      const dx = (e.changedTouches?.[0]?.clientX ?? x0) - x0
+      if (Math.abs(dx) < COMMIT) return
+      guard = performance.now() + GUARD_MS
+      cb.current(dx < 0 ? 1 : -1)          // drag left → next tab
+    }
+    // iOS reports a taken-over gesture as touchcancel, and it often means
+    // "completed" rather than "aborted" — settle it the same way.
+    const clickGuard = (e) => {
+      if (performance.now() < guard) {
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation()
+      }
+    }
+
+    el.addEventListener('touchstart', start, { passive: true })
+    el.addEventListener('touchmove', move, { passive: false })   // load-bearing
+    el.addEventListener('touchend', end, { passive: true })
+    el.addEventListener('touchcancel', end, { passive: true })
+    el.addEventListener('click', clickGuard, true)                // capture phase
+    return () => {
+      el.removeEventListener('touchstart', start)
+      el.removeEventListener('touchmove', move)
+      el.removeEventListener('touchend', end)
+      el.removeEventListener('touchcancel', end)
+      el.removeEventListener('click', clickGuard, true)
+    }
+  }, [ref, enabled])
+}
+
 export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate }) {
   /* CREATE keeps the geometric center: the same `mid` split Layout used. With
      OS gone this is always 4 tabs → 5 slots, but the split still computes so
@@ -127,10 +208,16 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
 
   const retracted = useRetractOnScroll(armed)
 
-  /* Any tap wakes the bar: if a finger reaches a folded bar mid-scroll, it
-     should come back rather than swallow the touch. Belt-and-braces — the
-     dock also drops pointer-events while folded. */
-  const wake = useRef(null)
+  /* Swipe left/right over the bar steps through the TABS, skipping CREATE —
+     it routes through the very same onTab the tap uses, so auth gating and
+     destinations are byte-identical to tapping. Disabled while folded away. */
+  const navRef = useRef(null)
+  useBarSwipe(navRef, (delta) => {
+    if (currentIdx < 0) return
+    const next = currentIdx + delta
+    if (next < 0 || next >= tabs.length) return
+    onTab(tabs[next])
+  }, armed && !retracted)
 
   return (
     /* THE DOCK — spans the viewport so the bar centers on SCREEN, not inside
@@ -141,7 +228,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
        (AuthModal, WorldBuilder, the OS sheet) or above, and AuthModal is NOT
        portaled — it renders earlier in Layout's tree, so at an equal z-index
        the bar would paint OVER the sign-in modal. */
-    <div className="glass-nav-dock" ref={wake} style={{
+    <div className="glass-nav-dock" style={{
       position:'fixed', left:0, right:0, zIndex:9999,
       bottom: DOCK_BOTTOM,
       display:'flex', justifyContent:'center', padding:'0 16px',
@@ -154,7 +241,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
         : 'none',
       willChange:'transform',
     }}>
-      <nav className="glass-nav" aria-hidden={retracted || undefined} style={{
+      <nav className="glass-nav" ref={navRef} aria-hidden={retracted || undefined} style={{
         /* a folded bar must not catch a thumb it can't show */
         pointerEvents: retracted ? 'none' : 'auto',
         position:'relative', width:'100%', maxWidth:'344px',
@@ -205,9 +292,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
             width:`${100 / n}%`, borderRadius:'20px', pointerEvents:'none',
             transform:`translateZ(0) translateX(${(activeSlot ?? 0) * 100}%)`,
             opacity: activeSlot === null ? 0 : 1,
-            background:'linear-gradient(180deg, rgba(242,238,230,0.24), rgba(242,238,230,0.09), rgba(10,10,13,0.12))',
-            border:'1px solid rgba(242,238,230,0.26)',
-            boxShadow:'inset 0 1.5px 1px rgba(255,255,255,0.50), inset 0 -6px 10px -4px rgba(0,0,0,0.5), 0 6px 16px rgba(0,0,0,0.38)',
+            ...CHIP,
             transition: armed
               ? `transform ${CHIP_MS}ms ${CHIP_EASE}, opacity ${CHIP_MS}ms ${CHIP_EASE}`
               : 'none',
@@ -228,9 +313,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                   <span aria-hidden="true" style={{
                     width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`, borderRadius:'13px',
                     display:'flex', alignItems:'center', justifyContent:'center',
-                    background:'linear-gradient(180deg, rgba(242,238,230,0.22), rgba(242,238,230,0.07))',
-                    border:'1px solid rgba(242,238,230,0.58)',
-                    boxShadow:'inset 0 1px 0.5px rgba(255,255,255,0.45), 0 4px 12px rgba(0,0,0,0.35)',
+                    ...BUBBLE,
                   }}>
                     <Plus size={ICON} strokeWidth={1.9} />
                   </span>
@@ -244,16 +327,11 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
               /* A REAL <button>: iOS only gives native activation to
                  interactive elements, and a div's tap dies on finger drift.
 
-                 NO onPointerDown/onTouchStart routing here on purpose. A
-                 swipe-over-the-bar gesture was evaluated and rejected: on
-                 WebKit the synthesized click cannot be cancelled from any
-                 pointer event (per spec, `click` is not a compatibility mouse
-                 event), so a gesture recognizer would need a capture-phase
-                 click trap on a timing window — and with the bar now
-                 translating during retract, the synthesized click can hit-test
-                 to a DIFFERENT tab than the finger started on. Competing with
-                 tap is exactly the wrong trade when unreliable tap is the bug
-                 being fixed. */
+                 The swipe recognizer lives on the NAV, not here. It swallows
+                 its own trailing click in the capture phase — per spec that
+                 click cannot be cancelled from any touch or pointer event, so
+                 a guard is the only way — which is why a swipe can never also
+                 fire the tab it happened to pass over. */
               <button key={slot.to} type="button" className="pressable glass-nav-slot" onClick={() => onTab(slot)}
                 aria-current={active ? 'page' : undefined}
                 style={{ flex:1, minWidth:0, cursor:'pointer', display:'flex', flexDirection:'column',

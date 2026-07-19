@@ -9,7 +9,8 @@ import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
-import { Loader2, MapPin, BadgeCheck, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
+import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
+import VerifiedMark from '@/components/VerifiedMark'
 
 /* =========================================================================
    COMMUNITY — solo personas (D1, decisión de Pato): descubrir creativos,
@@ -422,7 +423,7 @@ function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed }) {
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={c.id || c.username || name} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 30%, #0E0E13 100%)' }} />
-        {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><BadgeCheck size={16} style={{ color: STAR, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} /></span>}
+        {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={16} /></span>}
         {/* guardrail 4: the label rides is_demo itself (the ONE shared pill) —
             the query already hides seed when SHOW SEED is off, so a rendered
             seed row is always a labeled seed row */}

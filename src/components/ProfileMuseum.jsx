@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
+import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
+import VerifiedMark from './VerifiedMark'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
@@ -44,6 +45,24 @@ const CARD_HI = '#14141A'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
+
+/* THE COVER DISSOLVE (v11). Two ramps that have to stay in register — they
+   run over the same bleeding box, so a percentage means the same pixel in
+   both.
+
+   COVER_FADE masks the photograph itself: solid through the top half, then a
+   long release to true transparency. Because it ends at alpha 0 rather than
+   at a colour, the tail of the cover reveals the app's live atmosphere
+   instead of a painted black slab — that is the whole difference between a
+   cut and a dissolve.
+
+   COVER_SCRIM is the legibility band (Ley 3): it peaks around 70%, which is
+   where the identity block lands, and then releases to nothing. Ending it
+   opaque is exactly what drew the hard edge before. Both are near-void
+   #07080E/#0A0A0D rather than #08080D so the tail matches the page it
+   dissolves into — three different blacks used to meet at that seam. */
+const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 46%, rgba(0,0,0,.80) 58%, rgba(0,0,0,.44) 70%, rgba(0,0,0,.20) 82%, rgba(0,0,0,.07) 92%, rgba(0,0,0,0) 100%)'
+const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.14) 0%, rgba(7,8,14,0) 24%, rgba(7,8,14,.28) 46%, rgba(7,8,14,.62) 60%, rgba(8,8,13,.88) 71%, rgba(8,8,13,.86) 79%, rgba(9,9,14,.52) 89%, rgba(10,10,13,.16) 96%, rgba(10,10,13,0) 100%)'
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
@@ -679,23 +698,52 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 60vh, 600px)' : 'clamp(340px, 56vh, 440px)', overflow: 'hidden', background: cover ? VOID : 'transparent' }}>
-        {cover
-          ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : (
-            /* no cover → the open sky (the page's constellation) + monogram
-               (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
-              <StarField seed={seed} wide={wide} />
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '480px' : '300px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.055, color: BONE }}>{initial}</span>
+      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 60vh, 600px)' : 'clamp(340px, 56vh, 440px)', background: 'transparent' }}>
+        {/* THE ART LAYER (v11). It used to be flush with the hero and buried
+            under a scrim that went fully opaque at the bottom — a hard cut
+            painted over the photo. Now it BLEEDS past the hero and DISSOLVES:
+            a mask carries the image to real transparency, so what shows
+            through underneath is the app's own atmosphere, not a black slab.
+
+            Three things this layer has to keep doing:
+            · overflow:hidden stays HERE (not on the hero) — the 2s
+              scale(1.12)→scale(1) intro needs something to clip against,
+              and the no-cover monogram is 300-480px tall.
+            · zIndex 0 keeps it behind the identity block (3) and behind every
+              section below (all transparent at 3), so the dissolve passes
+              BEHIND the tagline instead of colliding with it.
+            · pointerEvents none — it now overlaps content that must stay
+              clickable. */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          bottom: cover ? (wide ? '-240px' : '-170px') : 0,
+          overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
+          ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
+        }}>
+          {cover
+            ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : (
+              /* no cover → the open sky (the page's constellation) + monogram
+                 (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
+              <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
+                <StarField seed={seed} wide={wide} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '480px' : '300px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.055, color: BONE }}>{initial}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+        </div>
 
         {/* scrim — GUARANTEED identity legibility over any art (Ley 3): the
-            lower band always lands the name on near-void, busy cover or not */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)' }} />
+            band peaks exactly where the name sits and then releases to fully
+            transparent. It bleeds with the art so the two ramps stay in
+            register; ending it opaque is what used to draw the seam. */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          bottom: cover ? (wide ? '-240px' : '-170px') : 0,
+          zIndex: 1, pointerEvents: 'none',
+          background: cover ? COVER_SCRIM : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
+        }} />
 
         {/* top bar (back / sign-out) floats over the cover */}
         {topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>{topBar}</div>}
@@ -763,7 +811,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 )}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '14px' : '10px', flexWrap: 'wrap' }}>
                   <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 88px)' : 'clamp(38px, 11vw, 52px)', letterSpacing: '.01em', lineHeight: 0.88, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.6)', ...displaySkin }}>{displayName}</h1>
-                  {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: wide ? '10px' : '5px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={wide ? 24 : 19} /></span>}
+                  {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: wide ? '10px' : '5px' }}><VerifiedMark size={wide ? 24 : 19} /></span>}
                   {/* guardrail 4: the museum itself — the destination of every
                       labeled card tap — carries the truth on its own hero */}
                   <span style={{ display: 'inline-flex', marginBottom: wide ? '12px' : '7px' }}><SeedPill is_demo={data.is_demo} size={8.5} /></span>
@@ -1575,7 +1623,12 @@ function MediaCard({ item, full, featured }) {
                 ? <img src={p.thumb} alt="" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: .9 }} />
                 : <div style={{ width: '100%', height: '100%', background: `linear-gradient(150deg, rgba(199,201,209,.14), #08080D)` }} />}
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7,8,14,.2)' }}>
-                <div style={{ width: featured ? '62px' : '52px', height: featured ? '62px' : '52px', borderRadius: '50%', background: 'rgba(7,8,14,.5)', backdropFilter: 'blur(4px)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 26px rgba(199,201,209,.3)' }}>
+                {/* WebkitBackdropFilter was missing: Safari 17.6 and older
+                    know only the prefixed property, so this circle lost its
+                    blur entirely on exactly the phones the app is built for.
+                    The inset highlight is the v11 edge treatment — the blur
+                    is real here (its backdrop is the video's own thumbnail). */}
+                <div style={{ width: featured ? '62px' : '52px', height: featured ? '62px' : '52px', borderRadius: '50%', background: 'rgba(7,8,14,.5)', WebkitBackdropFilter: 'saturate(150%) blur(6px)', backdropFilter: 'saturate(150%) blur(6px)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,.4), 0 0 26px rgba(199,201,209,.3)' }}>
                   <Play size={featured ? 24 : 20} style={{ color: BONE, marginLeft: '3px' }} fill={BONE} />
                 </div>
               </div>

@@ -163,8 +163,8 @@ export default function Events() {
           <>
             {/* THE FEATURED ROOM — the house's next night, as a spread */}
             {featured && (
-              <div className={entered.current ? undefined : 'card-in'}
-                style={entered.current ? undefined : { animationDelay: '0ms' }}>
+              <div className={entered ? undefined : 'card-in'}
+                style={entered ? undefined : { animationDelay: '0ms' }}>
                 <FeaturedRoom
                   e={featured}
                   live={live}
@@ -184,8 +184,8 @@ export default function Events() {
                   {upcoming.map((e, i) => (
                     /* display:grid so the RoomCard child stretches to the row's
                        height in the wide grid (the wrapper is now the grid item) */
-                    <div key={e.id} className={entered.current ? undefined : 'card-in'}
-                      style={entered.current ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50 + 100}ms` }}>
+                    <div key={e.id} className={entered ? undefined : 'card-in'}
+                      style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50 + 100}ms` }}>
                       <RoomCard e={e} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
                     </div>
                   ))}
