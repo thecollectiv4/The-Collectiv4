@@ -59,14 +59,54 @@ export const BUBBLE = {
   boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.45), 0 4px 12px rgba(0,0,0,0.35)',
 }
 
-/* WELL — the quiet version for an INACTIVE icon box. Barely there: enough
-   inner light to stop it reading as a hole, never enough to compete with the
-   lit one. Museum, not circus. */
+/* WELL — the resting version of a BUBBLE, not a flat box. The first pass
+   made this so faint (0.05 fill, 0.10 border, one weak inset) that it read as
+   a drawn rectangle instead of a piece of glass, which is exactly the note
+   that came back from the phone.
+
+   The fix is not more opacity — it is keeping all THREE depth cues BUBBLE
+   has and only lowering their level: a specular top edge, a dark inner floor
+   under it, and a cast shadow beneath. Drop any one of them and the volume
+   collapses no matter how bright the fill is. */
 export const WELL = {
-  background: 'linear-gradient(180deg, rgba(242,238,230,0.05), rgba(242,238,230,0.015))',
-  border: '1px solid rgba(242,238,230,0.10)',
-  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.10)',
+  background: 'linear-gradient(180deg, rgba(242,238,230,0.14), rgba(242,238,230,0.035) 55%, rgba(10,10,13,0.10))',
+  border: '1px solid rgba(242,238,230,0.24)',
+  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.30), inset 0 -5px 9px -5px rgba(0,0,0,0.50), 0 3px 10px rgba(0,0,0,0.32)',
 }
 
 /* The bone glow, one value, so every lit mark in the app agrees. */
 export const BONE_GLOW = 'drop-shadow(0 0 7px rgba(242,238,230,.55))'
+
+/* ── CARDS ───────────────────────────────────────────────────────────────
+   Cards used to be a flat opaque #0E0E13, which meant any "glass" chip drawn
+   on one was glass over a wall — the blur had nothing live to sample. They
+   are translucent now, so the app's own atmosphere (the star field, whatever
+   scrolls past) genuinely reads through them.
+
+   TWO DELIBERATE LIMITS:
+
+   · The blur is 14px, not the bar's 28. A view shows ONE bar but a DOZEN
+     cards, and backdrop-filter re-rasterizes per element per frame — the
+     kernel runs in device pixels, so 28px on a 3x phone is an 84px kernel,
+     twelve times over, every scroll frame. And the backdrop here is a dark,
+     nearly featureless sky: past ~14px the extra radius buys almost no
+     visible difference and a lot of GPU. Translucency is what sells this
+     effect, not blur radius.
+   · The fill still carries real weight (0.72-0.80 alpha). Text legibility on
+     a card is not negotiable, and a card you can read the stars through is a
+     card you cannot read the name on.
+
+   CARD_TINT is the plain translucent fill for surfaces that should show the
+   sky but do not warrant their own compositor layer (nested rows, inner
+   panels). Reach for cardGlass only on the outer card. */
+export const CARD_TINT = 'rgba(14,14,19,0.76)'
+
+const CARD_FILTER = 'saturate(150%) brightness(1.06) blur(14px)'
+
+export const cardGlass = (extra = {}) => ({
+  background: 'linear-gradient(180deg, rgba(20,20,26,0.74) 0%, rgba(12,12,17,0.82) 100%)',
+  WebkitBackdropFilter: CARD_FILTER,
+  backdropFilter: CARD_FILTER,
+  boxShadow: 'inset 0 1px 0 rgba(242,238,230,0.10), inset 0 -1px 0 rgba(7,8,14,0.55), 0 10px 30px rgba(0,0,0,0.42)',
+  ...extra,
+})

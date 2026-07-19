@@ -9,67 +9,70 @@ import { GLASS_FILTER, CHIP, BUBBLE } from '@/lib/glass'
    VISUAL ONLY. The tab list, the routes, the auth gating, the CREATE door
    and the bell count all live in Layout and arrive here as props.
 
-   ─── the Instagram round ──────────────────────────────────────────────
+   ─── THE SCRUB GESTURE ────────────────────────────────────────────────
 
-   RETRACT ON SCROLL. Scrolling down folds the bar away; scrolling up — or
-   simply stopping — brings it back. The transform rides on the DOCK, never
-   on the slab: `transform` is NOT one of the things that creates a backdrop
-   root (that list is filter, opacity<1, mask, clip-path, mix-blend-mode and
-   the root element), so moving the wrapper leaves the glass sampling the
-   page exactly as before. Transforming the backdrop-filtered element itself
-   is the variant with open WebKit bugs — so we don't.
+   Press and hold a slot: it MAGNIFIES under the finger. Keep holding and
+   slide sideways: the magnification hands off slot to slot, the glass chip
+   travels with it, and the labels lift as they take focus. Release: you go
+   wherever the finger ended.
 
-   THE CHIP GLIDE IS 380ms, NOT 620ms. Measured on the running app: React
-   writes the chip's new position 27ms after the finger lands, and the node
-   is reused (no remount) — the machinery was never broken. But the page
-   swaps instantly while a 620ms chip was still crawling toward its slot,
-   which reads as "it didn't respond". 380ms lands inside Apple's 0.3-0.4s
-   response band and the two now finish together.
+   This replaces the earlier "flick sideways = next tab" reading, which was
+   the wrong gesture — it moved one tab per flick and never told you where
+   you were going. A scrub is a preview you can change your mind inside of,
+   which is what makes it feel like iOS rather than like a carousel.
 
-   SWIPE OVER THE BAR — it works now, and it works in WebKit. The two earlier
-   attempts failed for one reason: the listener was passive, so the
-   preventDefault that claims a horizontal drag was a silent no-op and Safari
-   kept the gesture as a scroll. See useBarSwipe below.
+   Why it can be this simple: the bar already declares `touch-action: none`,
+   so WebKit hands us the whole gesture at touchstart. There is no axis to
+   classify, no directional lock to defeat, no fight with page scroll — the
+   two earlier failures were both about reclaiming a gesture Safari had
+   already taken. We never let it take one.
 
-   FIVE SLOTS, ALWAYS. OS moved to the Profile screen, so the row is a fixed
-   EVENT · COMMUNITY · CREATE · MESSAGES · PROFILE. Equal flex, identical
-   icon boxes, identical gaps — the bar can no longer reflow under the user.
+   A tap is just a scrub with no travel, so tap and drag are ONE code path
+   and cannot disagree. The trailing synthesized click is swallowed by a
+   capture-phase guard, because per spec `click` is not a compatibility mouse
+   event and cannot be cancelled from any touch handler.
+
+   ─── the rest ─────────────────────────────────────────────────────────
+
+   RETRACT ON SCROLL rides on the DOCK, never on the slab: `transform` is not
+   a backdrop-root trigger (that list is filter, opacity<1, mask, clip-path,
+   mix-blend-mode and the root element), so moving the wrapper leaves the
+   glass sampling the page. Transforming the backdrop-filtered element itself
+   is the variant with open WebKit bugs.
+
+   THE CHIP GLIDE IS 380ms. Measured: React writes the new position 27ms
+   after the finger lands and the node is reused. The old 620ms was still
+   crawling long after the page had swapped, which read as "it didn't
+   respond". 380ms is inside Apple's 0.3-0.4s response band.
+
+   FIVE SLOTS, ALWAYS — OS lives on the Profile screen now, so the row can
+   never reflow under a thumb.
    ========================================================================= */
 
 const BONE = '#F2EEE6'
 
-/* Apple's response band for a control the hand is waiting on (0.3-0.4s),
-   with the house curve. No overshoot — a tab bar is not a toy. */
 const CHIP_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const CHIP_MS = 380
-
-/* The retract uses the house curve Diego asked for. */
 const HOUSE_EASE = 'cubic-bezier(.2, .7, .2, 1)'
 const RETRACT_MS = 420
 
-/* Literal values only — WebKit silently drops backdrop-filter when any part
-   of the chain comes from a CSS custom property (bug 289800). */
+/* While a finger is down the chip must not lag behind it — a preview that
+   arrives late reads as broken. Short and house-curved. */
+const SCRUB_MS = 190
+
 const GLASS = GLASS_FILTER
 
 /* Clearance over iOS Safari's collapsed-toolbar band. env() reports 0 in that
    state, so this constant IS the whole clearance. Layout's runway, the
    Messages composer and the Drops button all derive from it. */
-const DOCK_BOTTOM = 'calc(36px + env(safe-area-inset-bottom, 0px))'
+const DOCK_BOTTOM = 'calc(52px + env(safe-area-inset-bottom, 0px))'
 
-const ICON = 22        // every mark, and the +, at one size (symmetry)
-const SLOT_BOX = 36    // every icon box identical, so gaps are identical
+const ICON = 22
+const SLOT_BOX = 36
 
 const CREATE_SLOT = { create: true }
 
-/* ── retract-on-scroll ───────────────────────────────────────────────────
-   Down folds it away, up brings it back, and going quiet brings it back too.
-
-   Two things this has to survive on iOS: rubber-band overscroll, where
-   scrollY runs negative at the top and past the maximum at the bottom (raw
-   deltas there flip sign and would strobe the bar), and scroll events
-   arriving faster than frames. So: clamp to the real scrollable range, batch
-   in rAF, and require a real threshold of travel before believing a
-   direction. */
+/* ── retract-on-scroll ─────────────────────────────────────────────────── */
 function useRetractOnScroll(enabled) {
   const [retracted, setRetracted] = useState(false)
 
@@ -91,9 +94,11 @@ function useRetractOnScroll(enabled) {
       requestAnimationFrame(() => {
         ticking = false
         const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
-        const y = Math.min(Math.max(window.scrollY, 0), max)   // kill the bounce
+        // iOS rubber-band runs scrollY negative at the top and past the max at
+        // the bottom; raw deltas there flip sign and would strobe the bar.
+        const y = Math.min(Math.max(window.scrollY, 0), max)
         const dy = y - last
-        if (Math.abs(dy) < THRESHOLD) return                   // accumulate, don't strobe
+        if (Math.abs(dy) < THRESHOLD) return
         last = y
         setRetracted(dy > 0 && y > FLOOR)
         clearTimeout(idle)
@@ -108,63 +113,70 @@ function useRetractOnScroll(enabled) {
   return retracted
 }
 
-/* ── swipe over the bar ──────────────────────────────────────────────────
-   Third attempt, and this time with the two things the first two lacked.
+/* ── the scrub ───────────────────────────────────────────────────────────
+   press → magnify · drag → hand off · release → go.
 
-   1. THE LISTENER MUST BE NON-PASSIVE. React attaches touchmove passively at
-      the root, so an onTouchMove prop can never preventDefault — the call is
-      a silent no-op and WebKit keeps the gesture. It has to be bound by hand
-      with { passive: false }.
-   2. THE GESTURE MUST BE CLAIMED THE FRAME IT IS CLASSIFIED. WebKit decides
-      early whether a drag belongs to the page; once it has decided, nothing
-      gives it back. So the first move past the slop is classified x or y,
-      and if it is x we preventDefault immediately and keep it.
-
-   A y-classified drag is left completely alone, so nothing about page
-   scrolling changes. And because the trailing synthesized click cannot be
-   cancelled from any touch or pointer event, it is swallowed by a
-   capture-phase click guard on a short window — the only thing that works. */
-function useBarSwipe(ref, onSwipe, enabled) {
-  const cb = useRef(onSwipe)
-  cb.current = onSwipe                      // keeps the listener identity stable
+   The listener is bound by hand rather than through React props because
+   React attaches touchmove PASSIVELY at the root: an onTouchMove prop can
+   never preventDefault, so the call is a silent no-op. That single fact is
+   why the first two gesture attempts died. */
+function useBarScrub(navRef, rowRef, n, { onPreview, onCommit, enabled }) {
+  const cb = useRef({ onPreview, onCommit })
+  cb.current = { onPreview, onCommit }
 
   useEffect(() => {
-    const el = ref.current
-    if (!el || !enabled) return undefined
+    const el = navRef.current
+    if (!el || !enabled || n <= 0) return undefined
 
-    const SLOP = 12      // px before a direction is believed
-    const COMMIT = 44    // px of horizontal travel that counts as a swipe
-    const GUARD_MS = 500 // window in which the trailing click is swallowed
+    const GUARD_MS = 600
+    let vivo = false, guard = 0, actual = -1
 
-    let x0 = 0, y0 = 0, eje = null, vivo = false, guard = 0
+    /* Which slot the finger is over. Derived from the ROW's live box, so it
+       stays correct through the retract scale and any viewport change — a
+       cached slot width would drift the moment the bar transformed. */
+    const slotEn = (clientX) => {
+      const row = rowRef.current
+      if (!row) return -1
+      const r = row.getBoundingClientRect()
+      if (r.width <= 0) return -1
+      const i = Math.floor(((clientX - r.left) / r.width) * n)
+      return Math.max(0, Math.min(n - 1, i))
+    }
 
+    /* Read the point from `touches`, strictly. A "tolerant" version that fell
+       back to `changedTouches` and loosened the single-finger check was tried
+       and REGRESSED WebKit from passing to dead — verified, then reverted.
+       This is the shape that works on the engine the audience actually uses;
+       do not soften it to make a non-target engine's synthetic events happy. */
     const start = (e) => {
       if (e.touches.length !== 1) { vivo = false; return }
-      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY
-      eje = null; vivo = true
+      vivo = true
+      actual = slotEn(e.touches[0].clientX)
+      cb.current.onPreview(actual)
     }
     const move = (e) => {
       if (!vivo || e.touches.length !== 1) return
-      const dx = e.touches[0].clientX - x0
-      const dy = e.touches[0].clientY - y0
-      if (eje === null) {
-        if (Math.abs(dx) < SLOP && Math.abs(dy) < SLOP) return
-        eje = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'
-      }
-      // claim it the moment it is ours — this is the whole fix
-      if (eje === 'x' && e.cancelable) e.preventDefault()
+      // the bar is not a scroll surface; keep the gesture and the rubber-band
+      // out of it for the whole drag
+      if (e.cancelable) e.preventDefault()
+      const i = slotEn(e.touches[0].clientX)
+      if (i !== actual) { actual = i; cb.current.onPreview(i) }
     }
     const end = (e) => {
       if (!vivo) return
       vivo = false
-      if (eje !== 'x') return
-      const dx = (e.changedTouches?.[0]?.clientX ?? x0) - x0
-      if (Math.abs(dx) < COMMIT) return
+      const x = e.changedTouches?.[0]?.clientX
+      const i = x == null ? actual : slotEn(x)
+      cb.current.onPreview(null)
+      if (i < 0) return
+      // the click that iOS synthesizes next would re-fire this same slot
       guard = performance.now() + GUARD_MS
-      cb.current(dx < 0 ? 1 : -1)          // drag left → next tab
+      cb.current.onCommit(i)
     }
-    // iOS reports a taken-over gesture as touchcancel, and it often means
-    // "completed" rather than "aborted" — settle it the same way.
+    /* iOS reports a gesture the system took over as touchcancel, and on that
+       path it means "over", not "undo" — but committing a navigation the user
+       may not have meant is the worse error, so cancel abandons quietly. */
+    const cancel = () => { vivo = false; cb.current.onPreview(null) }
     const clickGuard = (e) => {
       if (performance.now() < guard) {
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation()
@@ -174,22 +186,19 @@ function useBarSwipe(ref, onSwipe, enabled) {
     el.addEventListener('touchstart', start, { passive: true })
     el.addEventListener('touchmove', move, { passive: false })   // load-bearing
     el.addEventListener('touchend', end, { passive: true })
-    el.addEventListener('touchcancel', end, { passive: true })
-    el.addEventListener('click', clickGuard, true)                // capture phase
+    el.addEventListener('touchcancel', cancel, { passive: true })
+    el.addEventListener('click', clickGuard, true)               // capture phase
     return () => {
       el.removeEventListener('touchstart', start)
       el.removeEventListener('touchmove', move)
       el.removeEventListener('touchend', end)
-      el.removeEventListener('touchcancel', end)
+      el.removeEventListener('touchcancel', cancel)
       el.removeEventListener('click', clickGuard, true)
     }
-  }, [ref, enabled])
+  }, [navRef, rowRef, n, enabled])
 }
 
 export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate }) {
-  /* CREATE keeps the geometric center: the same `mid` split Layout used. With
-     OS gone this is always 4 tabs → 5 slots, but the split still computes so
-     the bar stays correct if a tab is ever added back. */
   const mid = Math.ceil(tabs.length / 2)
   const slots = [...tabs.slice(0, mid), CREATE_SLOT, ...tabs.slice(mid)]
   const n = slots.length
@@ -198,8 +207,6 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
      rather than lying about which room you're in. */
   const activeSlot = currentIdx < 0 ? null : (currentIdx < mid ? currentIdx : currentIdx + 1)
 
-  /* The chip must not glide in from slot 0 on first paint — it belongs under
-     the current tab immediately, and only ANIMATES on taps after that. */
   const [armed, setArmed] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setArmed(true))
@@ -208,26 +215,30 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
 
   const retracted = useRetractOnScroll(armed)
 
-  /* Swipe left/right over the bar steps through the TABS, skipping CREATE —
-     it routes through the very same onTab the tap uses, so auth gating and
-     destinations are byte-identical to tapping. Disabled while folded away. */
+  /* The slot under the finger right now. While it is set it OVERRIDES the
+     route for everything visual — that is what makes the drag a preview
+     instead of a commit. */
+  const [scrub, setScrub] = useState(null)
+
   const navRef = useRef(null)
-  useBarSwipe(navRef, (delta) => {
-    if (currentIdx < 0) return
-    const next = currentIdx + delta
-    if (next < 0 || next >= tabs.length) return
-    onTab(tabs[next])
-  }, armed && !retracted)
+  const rowRef = useRef(null)
+  useBarScrub(navRef, rowRef, n, {
+    enabled: armed && !retracted,
+    onPreview: setScrub,
+    onCommit: (i) => {
+      const slot = slots[i]
+      if (!slot) return
+      // routes through the SAME handlers the tap uses — auth gating and
+      // destinations are byte-identical whichever way you got here
+      if (slot.create) onCreate()
+      else onTab(slot)
+    },
+  })
+
+  /* Where the chip sits: the finger wins while it is down. */
+  const chipSlot = scrub ?? activeSlot
 
   return (
-    /* THE DOCK — spans the viewport so the bar centers on SCREEN, not inside
-       the 430px body frame, and carries the retract transform (no
-       backdrop-filter here, so nothing about the glass is disturbed).
-
-       zIndex STAYS 9999. Every overlay that must cover the bar sits at 10000
-       (AuthModal, WorldBuilder, the OS sheet) or above, and AuthModal is NOT
-       portaled — it renders earlier in Layout's tree, so at an equal z-index
-       the bar would paint OVER the sign-in modal. */
     <div className="glass-nav-dock" style={{
       position:'fixed', left:0, right:0, zIndex:9999,
       bottom: DOCK_BOTTOM,
@@ -241,8 +252,11 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
         : 'none',
       willChange:'transform',
     }}>
+      {/* zIndex STAYS 9999: every overlay that must cover the bar sits at
+          10000 (AuthModal, WorldBuilder, the OS sheet) or above, and
+          AuthModal is NOT portaled — it renders earlier in Layout's tree, so
+          at an equal z-index the bar would paint OVER the sign-in modal. */}
       <nav className="glass-nav" ref={navRef} aria-hidden={retracted || undefined} style={{
-        /* a folded bar must not catch a thumb it can't show */
         pointerEvents: retracted ? 'none' : 'auto',
         position:'relative', width:'100%', maxWidth:'344px',
         borderRadius:'34px', padding:'10px 8px 12px', overflow:'visible',
@@ -250,7 +264,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
         WebkitBackdropFilter: GLASS,
         backdropFilter: GLASS,
         /* the lit top facet over a dark inner floor — this pair, not the
-           blur, is what the eye reads as thickness */
+           blur radius, is what the eye reads as thickness */
         border:'1px solid rgba(242,238,230,0.12)',
         boxShadow:[
           '0 26px 54px rgba(0,0,0,0.60)',
@@ -260,28 +274,21 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
           'inset 0 26px 36px -26px rgba(242,238,230,0.22)',
         ].join(', '),
       }}>
-        {/* inner top sheen — light pooling just under the lid. Pure gradient:
-            a backdrop-filter here would make it a backdrop root over its own
-            parent and sever the blur beneath it. */}
+        {/* inner top sheen — pure gradient. A backdrop-filter here would make
+            it a backdrop root over its own parent and sever the blur. */}
         <div aria-hidden="true" style={{
           position:'absolute', inset:'1px 1px auto 1px', height:'52%',
           borderRadius:'33px 33px 40px 40px', pointerEvents:'none',
           background:'linear-gradient(180deg, rgba(242,238,230,0.13) 0%, rgba(242,238,230,0.04) 40%, transparent 100%)',
         }} />
-        {/* top edge glow — the lit rim, fading out before the corners */}
         <div aria-hidden="true" style={{
           position:'absolute', top:0, left:'12%', right:'12%', height:'1px', pointerEvents:'none',
           background:'linear-gradient(90deg, transparent, rgba(242,238,230,0.78), transparent)',
         }} />
 
-        <div style={{ position:'relative', display:'flex', alignItems:'stretch' }}>
-          {/* THE CHIP — a pane of brighter glass, not a second blur (glass
-              inside glass re-blurs the slab's own output, not the page).
-              translateZ(0) keeps it on its own compositor layer.
-
-              `width` is deliberately NOT in the transition list any more: the
-              row is a fixed five slots now, so the width never changes and
-              interpolating it was one property of pure overhead per glide. */}
+        <div ref={rowRef} style={{ position:'relative', display:'flex', alignItems:'stretch' }}>
+          {/* THE CHIP — a pane of brighter glass, not a second blur. It tracks
+              the finger during a scrub (fast) and the route otherwise. */}
           <div aria-hidden="true" className="glass-nav-chip" style={{
             position:'absolute', top:0, bottom:0, left:0,
             /* zIndex 0 against the slots' zIndex 1 is LOAD-BEARING: an
@@ -290,16 +297,24 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                washes over the very icon and label it sits behind. */
             zIndex:0,
             width:`${100 / n}%`, borderRadius:'20px', pointerEvents:'none',
-            transform:`translateZ(0) translateX(${(activeSlot ?? 0) * 100}%)`,
-            opacity: activeSlot === null ? 0 : 1,
+            transform:`translateZ(0) translateX(${(chipSlot ?? 0) * 100}%) scale(${scrub !== null ? 1.04 : 1})`,
+            opacity: chipSlot === null ? 0 : 1,
             ...CHIP,
             transition: armed
-              ? `transform ${CHIP_MS}ms ${CHIP_EASE}, opacity ${CHIP_MS}ms ${CHIP_EASE}`
+              ? `transform ${scrub !== null ? SCRUB_MS : CHIP_MS}ms ${scrub !== null ? HOUSE_EASE : CHIP_EASE}, opacity ${CHIP_MS}ms ${CHIP_EASE}`
               : 'none',
             willChange:'transform',
           }} />
 
           {slots.map((slot, i) => {
+            const held = scrub === i
+            /* the magnification: the held slot swells and lifts, everything
+               else settles back. One transform, compositor-friendly. */
+            const lift = {
+              transform: held ? 'translateY(-5px) scale(1.22)' : 'translateY(0) scale(1)',
+              transition: `transform ${SCRUB_MS}ms ${HOUSE_EASE}`,
+            }
+
             if (slot.create) {
               return (
                 <button key="create" type="button" className="pressable glass-nav-slot" onClick={onCreate} aria-label="Create"
@@ -307,13 +322,10 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                     display:'flex', flexDirection:'column', alignItems:'center', gap:'5px', padding:'4px 2px',
                     WebkitTapHighlightColor:'transparent', color: BONE,
                     position:'relative', zIndex:1 }}>
-                  {/* Identical footprint to every other slot — CREATE earns its
-                      distinction from the bone ring and the brighter glass,
-                      never from size. */}
                   <span aria-hidden="true" style={{
                     width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`, borderRadius:'13px',
                     display:'flex', alignItems:'center', justifyContent:'center',
-                    ...BUBBLE,
+                    ...BUBBLE, ...lift,
                   }}>
                     <Plus size={ICON} strokeWidth={1.9} />
                   </span>
@@ -326,25 +338,19 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
             return (
               /* A REAL <button>: iOS only gives native activation to
                  interactive elements, and a div's tap dies on finger drift.
-
-                 The swipe recognizer lives on the NAV, not here. It swallows
-                 its own trailing click in the capture phase — per spec that
-                 click cannot be cancelled from any touch or pointer event, so
-                 a guard is the only way — which is why a swipe can never also
-                 fire the tab it happened to pass over. */
+                 onClick stays for mouse and keyboard; on touch the scrub
+                 commits first and swallows the click that follows. */
               <button key={slot.to} type="button" className="pressable glass-nav-slot" onClick={() => onTab(slot)}
                 aria-current={active ? 'page' : undefined}
                 style={{ flex:1, minWidth:0, cursor:'pointer', display:'flex', flexDirection:'column',
                   alignItems:'center', gap:'5px', padding:'4px 2px',
                   background:'transparent', border:'none', font:'inherit',
                   WebkitTapHighlightColor:'transparent', position:'relative', zIndex:1,
-                  /* opacity is the ONLY active/inactive signal (1 vs .42) —
-                     the timing lives in the .glass-nav-slot rule so it can
-                     share one transition list with the press settle. */
-                  color: BONE, opacity: active ? 1 : 0.42 }}>
+                  /* opacity is the active/inactive signal (1 vs .42); a held
+                     slot reads full even if you are not standing in it yet */
+                  color: BONE, opacity: (active || held) ? 1 : 0.42 }}>
                 <span style={{ position:'relative', display:'flex', alignItems:'center',
-                  justifyContent:'center', width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px` }}>
-                  {/* the house marks stay the house marks (Ley 14) */}
+                  justifyContent:'center', width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`, ...lift }}>
                   <Mark type={slot.mark} size={ICON} filled={active} color={BONE} />
                   {slot.to === '/messages' && bellCount > 0 && (
                     <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}

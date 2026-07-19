@@ -11,6 +11,7 @@ import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
 import VerifiedMark from '@/components/VerifiedMark'
+import { CARD_TINT, cardGlass } from '@/lib/glass'
 
 /* =========================================================================
    COMMUNITY — solo personas (D1, decisión de Pato): descubrir creativos,
@@ -32,7 +33,9 @@ const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
 const SILVER = '#C7C9D1'
 const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
+/* v11: translúcida, no opaca — el vidrio de los chips necesita algo
+   vivo que muestrear, y la atmósfera de la app pasa por detrás. */
+const CARD = CARD_TINT
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
@@ -417,7 +420,13 @@ function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed }) {
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${c.is_demo ? SEED_BORDER : HAIR_HI}`, background: CARD, cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+      /* v11: real glass, not a painted panel. cardGlass carries the
+         translucent fill AND the backdrop blur, so the star field genuinely
+         reads through the card — 14px, not the bar's 28: a view shows one bar
+         but a dozen of these, and the backdrop here is an almost featureless
+         sky where extra radius buys nothing and costs a re-raster per card
+         per frame. */
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${c.is_demo ? SEED_BORDER : HAIR_HI}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', ...cardGlass() }}>
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />

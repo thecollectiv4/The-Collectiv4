@@ -1,58 +1,46 @@
-import { BadgeCheck } from 'lucide-react'
-
 /* =========================================================================
-   VerifiedMark — the "in the network" check, in ONE place.
+   VerifiedMark — the "in the network" check.
 
-   TEMPORARY, FOR THE V11 PREVIEW ROUND: it ships two skins so Diego can
-   compare them on the actual iPhone and pick one. When he picks, the loser
-   and the whole switch below get deleted and this collapses to a constant.
+   Diego picked BLUE, deliberately, and it is now the one and only skin: the
+   preview switch and the bone variant are gone. This is the ONE sanctioned
+   break in the Cosmos monochrome rule — the verified badge is a social
+   primitive people read at a glance, and legibility beat the palette here.
 
-     bone  (default) — Cosmos-native: the check IS the bone/star grey, lit by
-                       its own glow. Monochrome by discipline.
-     blue            — the iconic verified blue, with a matched glow. This
-                       BREAKS the Cosmos rule ("no color accents") on purpose,
-                       to see whether the instant social legibility of the
-                       blue check is worth the exception.
+   It is SOLID, the way Instagram and X draw it: the scalloped seal is a
+   FILLED shape and the check is knocked out of it in white — not an outline
+   with a tick inside. The outline version read as a sticker; the filled one
+   reads as a badge.
 
-   How to compare on the phone — same page, two links:
-     …/community              → bone
-     …/community?vmark=blue   → blue
-
-   The parameter is read ONCE at module load and then held for the session,
-   so tapping around the app keeps whichever skin was opened. It is cosmetic
-   only: it selects a colour and touches nothing about who is verified, which
-   is a server fact (the `verified` column, trigger-protected).
+   It is display only. Who is verified is a server fact (the `verified`
+   column, trigger-protected against self-granting) — nothing here decides it.
    ========================================================================= */
 
-const SKINS = {
-  bone: {
-    color: '#E8E9ED',                                   // STAR
-    glow: 'drop-shadow(0 0 7px rgba(232,233,237,.55))',
-  },
-  blue: {
-    color: '#1D9BF0',
-    glow: 'drop-shadow(0 0 7px rgba(29,155,240,.60))',
-  },
-}
+const BLUE = '#1D9BF0'
+const GLOW = 'drop-shadow(0 0 7px rgba(29,155,240,.55))'
 
-export const VMARK = (() => {
-  if (typeof window === 'undefined') return 'bone'
-  try {
-    const v = new URLSearchParams(window.location.search).get('vmark')
-    return v === 'blue' ? 'blue' : 'bone'
-  } catch { return 'bone' }
-})()
+/* The seal. Twelve lobes, drawn as four overlapping rounded quarters — the
+   same silhouette lucide uses for badge-check, but filled instead of
+   stroked, which is the whole difference between a badge and a sticker. */
+const SEAL = 'M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z'
 
-const SKIN = SKINS[VMARK]
-
-/* One mark, one glow, every surface. `style` merges last so a caller can add
-   layout (flexShrink, margins) without having to restate the skin. */
 export default function VerifiedMark({ size = 16, style }) {
   return (
-    <BadgeCheck
-      size={size}
-      aria-hidden="true"
-      style={{ color: SKIN.color, filter: SKIN.glow, ...style }}
-    />
+    <svg
+      width={size} height={size} viewBox="0 0 24 24"
+      aria-hidden="true" focusable="false"
+      style={{ filter: GLOW, display: 'block', flexShrink: 0, ...style }}
+    >
+      <path d={SEAL} fill={BLUE} />
+      {/* the check, knocked out. strokeWidth scales a touch at small sizes so
+          it never thins into invisibility on a 14px badge. */}
+      <path
+        d="m9 12 2 2 4-4"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth={size <= 15 ? 2.6 : 2.2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }

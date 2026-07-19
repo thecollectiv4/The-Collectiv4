@@ -9,6 +9,7 @@ import { categoryMeta } from '@/lib/crafts'
 import { vibeMeta } from '@/lib/match'
 import { Plus, UserCheck } from 'lucide-react'
 import VerifiedMark from './VerifiedMark'
+import { CARD_TINT, cardGlass } from '@/lib/glass'
 
 /* =========================================================================
    FOR YOU — the discovery feed (D2 · 0022): local talent, worlds and
@@ -32,7 +33,9 @@ const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
 const SILVER = '#C7C9D1'
 const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
+/* v11: translúcida, no opaca — el vidrio de los chips necesita algo
+   vivo que muestrear, y la atmósfera de la app pasa por detrás. */
+const CARD = CARD_TINT
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const WARN = '#E5A0A0'

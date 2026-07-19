@@ -201,11 +201,11 @@ export default function Layout() {
                   <span style={{
                     position:'relative', display:'inline-flex', flexShrink:0,
                     alignItems:'center', justifyContent:'center',
-                    width:'30px', height:'30px', borderRadius:'11px',
+                    width:'34px', height:'34px', borderRadius:'12px',
                     transition:'background .25s var(--ease-house), border-color .25s var(--ease-house), box-shadow .25s var(--ease-house)',
                     ...(active ? BUBBLE : WELL),
                   }}>
-                    <Mark type={tab.mark} size={15} filled={active}
+                    <Mark type={tab.mark} size={17} filled={active}
                       color={active ? '#F2EEE6' : '#83838F'}
                       style={{ flexShrink:0, filter: active ? BONE_GLOW : 'none', transition:'filter .2s' }} />
                     {tab.to === '/messages' && bellCount > 0 && (
@@ -245,7 +245,7 @@ export default function Layout() {
           the 28px gap AND the home indicator. Derived from GlassNav's
           DOCK_BOTTOM; if that moves, this moves with it. */}
       <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0,
-        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
+        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(136px + env(safe-area-inset-bottom, 0px))' }}>
         {/* position+zIndex are load-bearing: the shared Atmosphere sits at
             zIndex 0 — the page lifts itself one layer above the sky, and
             the sky shows through wherever the page leaves void. */}

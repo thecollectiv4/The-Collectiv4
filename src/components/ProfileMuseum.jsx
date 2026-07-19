@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
 import VerifiedMark from './VerifiedMark'
+import { CARD_TINT, cardGlass } from '@/lib/glass'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
@@ -40,7 +41,9 @@ const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
 const SILVER = '#C7C9D1'                                  // solid chrome for lines / marks
 const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
+/* v11: translúcida, no opaca — el vidrio de los chips necesita algo
+   vivo que muestrear, y la atmósfera de la app pasa por detrás. */
+const CARD = CARD_TINT
 const CARD_HI = '#14141A'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
@@ -698,7 +701,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 60vh, 600px)' : 'clamp(340px, 56vh, 440px)', background: 'transparent' }}>
+      <div style={{ position: 'relative', height: wide ? 'clamp(480px, 66vh, 680px)' : 'clamp(400px, 62vh, 500px)', background: 'transparent' }}>
         {/* THE ART LAYER (v11). It used to be flush with the hero and buried
             under a scrim that went fully opaque at the bottom — a hard cut
             painted over the photo. Now it BLEEDS past the hero and DISSOLVES:
@@ -716,7 +719,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               clickable. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-240px' : '-170px') : 0,
+          bottom: cover ? (wide ? '-320px' : '-240px') : 0,
           overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
           ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
         }}>
@@ -740,7 +743,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             register; ending it opaque is what used to draw the seam. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-240px' : '-170px') : 0,
+          bottom: cover ? (wide ? '-320px' : '-240px') : 0,
           zIndex: 1, pointerEvents: 'none',
           background: cover ? COVER_SCRIM : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
         }} />
