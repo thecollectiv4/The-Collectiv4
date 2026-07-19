@@ -80,6 +80,58 @@ input, textarea, button, select { font-family: 'DM Sans', sans-serif; box-sizing
 input::placeholder, textarea::placeholder { color: var(--cream-low); }
 a { color: inherit; text-decoration: none; }
 
+/* =========================================================================
+   APP SHELL FEEL (v11) — que la plataforma deje de sentirse como página
+   web abierta en un navegador y se sienta como app. Cuatro cosas, todas
+   globales, ninguna toca lógica:
+
+     1. mantener presionado ya no saca el resaltado azul ni el menú de
+        copiar (salvo donde SÍ hace falta — ver la excepción abajo)
+     2. el doble-tap ya no hace zoom (y de paso muere el retraso de 300ms
+        que hacía sentir lentos los toques)
+     3. la página ya no rebota contra sus bordes
+     4. tocar un botón ya no destella gris/azul de link web
+   ========================================================================= */
+html, body {
+  /* 3 — mata el rebote elástico del documento. Va en AMBOS: iOS Safari
+     resuelve el overscroll del documento contra el elemento raíz, y
+     declararlo sólo en body no siempre lo atrapa. */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+}
+
+body {
+  /* 1 — sin selección accidental ni menú de callout en la UI */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  /* 4 — cero destello al tocar */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 2 — `manipulation` apaga el doble-tap-para-zoom y el retraso que lo
+   acompaña, PERO deja vivo el pinch de dos dedos: bloquear el pinch por
+   completo le quita el zoom a quien no ve bien, y iOS lo protege a
+   propósito. touch-action no se hereda, así que se declara sobre todo lo
+   que se toca, no sólo sobre el body. */
+html, body, button, a, input, textarea, select, label,
+[role="button"], [role="tab"], [role="link"], .pressable, .row-lead {
+  touch-action: manipulation;
+}
+
+/* EXCEPCIÓN — donde el usuario SÍ necesita seleccionar y copiar.
+   La herencia pierde contra cualquier valor declarado, así que estas
+   reglas le ganan al `none` del body sin pelear especificidad.
+   `.selectable` es el gancho reutilizable: póngaselo a cualquier texto
+   que deba poder copiarse (hoy: el cuerpo de cada mensaje del chat). */
+input, textarea, select,
+[contenteditable], [contenteditable="true"],
+.selectable, .selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
@@ -387,6 +439,13 @@ a { color: inherit; text-decoration: none; }
    declarar sólo la opacidad (inline o en clase suelta) mataba el settle del
    press. El selector :active iguala la especificidad de .pressable y va
    después en el archivo, por eso gana al presionar. */
+/* La barra NO es una superficie de scroll. Con `manipulation` (el valor
+   global) un dedo que se corre 3px mientras toca inicia un paneo de la
+   página e iOS CANCELA el click — el toque se pierde sin aviso. `none` en
+   la barra dice "aquí no se hace scroll", así que el toque siempre cuenta.
+   Nada se pierde: no hay nada que deslizar dentro de la barra. */
+.glass-nav, .glass-nav-slot { touch-action: none; }
+
 .glass-nav-slot { transition: opacity 400ms var(--ease-house), transform 80ms var(--ease-exit); }
 .glass-nav-slot:not(:disabled):active { transition: opacity 400ms var(--ease-house), transform var(--dur-press) var(--ease-exit); }
 

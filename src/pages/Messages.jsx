@@ -1209,7 +1209,11 @@ function Thread({ threadId, me, wide }) {
                         <SeedPill is_demo={sender?.is_demo} size={7} />
                       </div>
                     )}
-                    <div style={{ fontSize: '13.5px', color: BONE, lineHeight: 1.55, fontFamily: 'DM Sans', overflowWrap: 'anywhere' }}>{m.body}</div>
+                    {/* .selectable: el shell global apaga la selección de texto
+                        en toda la app (v11) — el cuerpo de un mensaje es
+                        justamente donde el usuario SÍ necesita mantener
+                        presionado para copiar. */}
+                    <div className="selectable" style={{ fontSize: '13.5px', color: BONE, lineHeight: 1.55, fontFamily: 'DM Sans', overflowWrap: 'anywhere' }}>{m.body}</div>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, marginTop: '5px', textAlign: mine ? 'right' : 'left', letterSpacing: '.06em' }}>{msgTime(m.created_at)}</div>
                   </div>
                 </div>
@@ -1221,8 +1225,15 @@ function Thread({ threadId, me, wide }) {
         {err && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '12px', textAlign: 'center' }}>⚠ {err}</div>}
       </div>
 
-      {/* the composer — fixed above the tab bar */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 9998, background: 'rgba(10,10,13,.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px calc(84px + env(safe-area-inset-bottom, 0px))' }}>
+      {/* the composer — fixed ABOVE the tab bar, not behind it. v11: it used to
+          sit at bottom:0 and reserve the bar's height as padding, which meant
+          its opaque background ran underneath the bar. That was invisible when
+          the bar was opaque; against glass it would back the slab with a dead
+          slab of its own instead of the live conversation. So it now ENDS where
+          the bar's runway begins and the messages scroll through the gap.
+          112px tracks Layout's runway — if GlassNav's DOCK_BOTTOM moves, both
+          move with it. */}
+      <div style={{ position: 'fixed', bottom: 'calc(112px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(10,10,13,.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
         <div style={{ maxWidth: wide ? '720px' : '430px', margin: '0 auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text" value={text} placeholder="Say something…" maxLength={2000}

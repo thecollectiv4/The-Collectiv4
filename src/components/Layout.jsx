@@ -221,12 +221,13 @@ export default function Layout() {
         </header>
       )}
 
-      {/* v11: the bar FLOATS now (offset from the bottom edge + its own safe-area
-          inset), so the runway under the page has to clear the slab AND the
-          home indicator — a flat 100px left the last row half-covered on a
-          notched iPhone. */}
+      {/* v11: the bar FLOATS now, and it sits 28px up so it clears the band
+          iOS Safari reserves for re-expanding its collapsed toolbar. The
+          runway under the page tracks that offset — it has to clear the slab,
+          the 28px gap AND the home indicator. Derived from GlassNav's
+          DOCK_BOTTOM; if that moves, this moves with it. */}
       <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0,
-        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(96px + env(safe-area-inset-bottom, 0px))' }}>
+        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(112px + env(safe-area-inset-bottom, 0px))' }}>
         {/* position+zIndex are load-bearing: the shared Atmosphere sits at
             zIndex 0 — the page lifts itself one layer above the sky, and
             the sky shows through wherever the page leaves void. */}
