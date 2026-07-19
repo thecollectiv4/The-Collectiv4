@@ -25,7 +25,7 @@
 /* The full material — only for surfaces that genuinely have live page behind
    them (the floating bar, chrome over the atmosphere). Both properties must
    be emitted; Safari 17.6 and older only know the prefixed one. */
-export const GLASS_FILTER = 'saturate(180%) contrast(0.92) brightness(1.08) blur(28px)'
+export const GLASS_FILTER = 'saturate(158%) contrast(0.96) brightness(1.05) blur(20px)'
 
 export const glassSurface = (extra = {}) => ({
   WebkitBackdropFilter: GLASS_FILTER,

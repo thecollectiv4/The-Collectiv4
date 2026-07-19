@@ -245,7 +245,7 @@ export default function Layout() {
           the 28px gap AND the home indicator. Derived from GlassNav's
           DOCK_BOTTOM; if that moves, this moves with it. */}
       <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0,
-        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(136px + env(safe-area-inset-bottom, 0px))' }}>
+        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(98px + env(safe-area-inset-bottom, 0px))' }}>
         {/* position+zIndex are load-bearing: the shared Atmosphere sits at
             zIndex 0 — the page lifts itself one layer above the sky, and
             the sky shows through wherever the page leaves void. */}

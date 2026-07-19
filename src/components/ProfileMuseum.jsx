@@ -64,8 +64,8 @@ const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
    opaque is exactly what drew the hard edge before. Both are near-void
    #07080E/#0A0A0D rather than #08080D so the tail matches the page it
    dissolves into — three different blacks used to meet at that seam. */
-const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 46%, rgba(0,0,0,.80) 58%, rgba(0,0,0,.44) 70%, rgba(0,0,0,.20) 82%, rgba(0,0,0,.07) 92%, rgba(0,0,0,0) 100%)'
-const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.14) 0%, rgba(7,8,14,0) 24%, rgba(7,8,14,.28) 46%, rgba(7,8,14,.62) 60%, rgba(8,8,13,.88) 71%, rgba(8,8,13,.86) 79%, rgba(9,9,14,.52) 89%, rgba(10,10,13,.16) 96%, rgba(10,10,13,0) 100%)'
+const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.55) 80%, rgba(0,0,0,.22) 90%, rgba(0,0,0,.06) 96%, rgba(0,0,0,0) 100%)'
+const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.14) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.24) 50%, rgba(7,8,14,.60) 64%, rgba(8,8,13,.90) 74%, rgba(8,8,13,.88) 82%, rgba(9,9,14,.50) 91%, rgba(10,10,13,.14) 97%, rgba(10,10,13,0) 100%)'
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
@@ -719,7 +719,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               clickable. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-320px' : '-240px') : 0,
+          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
           overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
           ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
         }}>
@@ -743,7 +743,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             register; ending it opaque is what used to draw the seam. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-320px' : '-240px') : 0,
+          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
           zIndex: 1, pointerEvents: 'none',
           background: cover ? COVER_SCRIM : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
         }} />

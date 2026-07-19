@@ -444,6 +444,16 @@ input, textarea, select,
    página e iOS CANCELA el click — el toque se pierde sin aviso. `none` en
    la barra dice "aquí no se hace scroll", así que el toque siempre cuenta.
    Nada se pierde: no hay nada que deslizar dentro de la barra. */
+/* Carrusel horizontal que termina en desvanecido, no en guillotina. Ocultamos
+   las barras de scroll a propósito, así que sin esto la última pastilla se
+   corta a media palabra contra el borde y lee como layout roto en vez de
+   "hay más, deslízame". El mask corta el PIXEL, no el contenido: nada se
+   pierde y el scroll sigue intacto. */
+.edge-fade-r {
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(0,0,0,.25) calc(100% - 8px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(0,0,0,.25) calc(100% - 8px), transparent 100%);
+}
+
 .glass-nav, .glass-nav-slot { touch-action: none; }
 
 .glass-nav-slot { transition: opacity 400ms var(--ease-house), transform 80ms var(--ease-exit); }

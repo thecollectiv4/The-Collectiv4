@@ -65,7 +65,7 @@ const GLASS = GLASS_FILTER
 /* Clearance over iOS Safari's collapsed-toolbar band. env() reports 0 in that
    state, so this constant IS the whole clearance. Layout's runway, the
    Messages composer and the Drops button all derive from it. */
-const DOCK_BOTTOM = 'calc(52px + env(safe-area-inset-bottom, 0px))'
+const DOCK_BOTTOM = 'calc(14px + env(safe-area-inset-bottom, 0px))'
 
 const ICON = 22
 const SLOT_BOX = 36
@@ -245,12 +245,21 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
       display:'flex', justifyContent:'center', padding:'0 16px',
       pointerEvents:'none',
       transformOrigin:'bottom center',
-      transform: retracted ? 'translateY(calc(100% + 36px)) scale(0.88)' : 'translateY(0) scale(1)',
+      /* EL VIDRIO QUE SE APAGABA. Esto era `transform: translateY(0) scale(1)`
+         SIEMPRE, más `will-change: transform` — o sea el dock quedaba promovido
+         a su propia capa de compositor de forma PERMANENTE. En iOS eso hace que
+         el backdrop-filter del hijo muestree sólo dentro de esa capa en vez de
+         la página: pinta bien una vez y luego queda plano.
+         En reposo ahora es `none`, así que no hay capa, no hay containing block
+         y el vidrio muestrea la página de verdad. El transform y el will-change
+         sólo existen mientras la barra se está replegando, que es cuando
+         realmente hacen falta y cuando la barra se va de todos modos. */
+      transform: retracted ? 'translateY(calc(100% + 36px)) scale(0.88)' : 'none',
       opacity: retracted ? 0 : 1,
       transition: armed
         ? `transform ${RETRACT_MS}ms ${HOUSE_EASE}, opacity ${Math.round(RETRACT_MS * 0.7)}ms ${HOUSE_EASE}`
         : 'none',
-      willChange:'transform',
+      willChange: retracted ? 'transform' : 'auto',
     }}>
       {/* zIndex STAYS 9999: every overlay that must cover the bar sits at
           10000 (AuthModal, WorldBuilder, the OS sheet) or above, and

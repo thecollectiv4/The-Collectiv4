@@ -364,7 +364,7 @@ function FilterRow({ label, value, onChange, options }) {
   return (
     <div style={{ marginTop: '10px' }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', marginBottom: '9px' }}>{label}</div>
-      <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
+      <div className="no-scrollbar edge-fade-r" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         {all.map(opt => {
           const on = value === opt
           return (
@@ -386,7 +386,7 @@ function CraftFilterRow({ value, onChange, options }) {
   return (
     <div style={{ marginTop: '10px' }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', marginBottom: '9px' }}>CRAFT</div>
-      <div className="no-scrollbar" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
+      <div className="no-scrollbar edge-fade-r" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         {[{ slug: 'all', name: 'All' }, ...options].map(opt => {
           const on = value === opt.slug
           const meta = opt.slug === 'all' ? { tint: '199,201,209', mark: '◇' } : categoryMeta(opt.category)

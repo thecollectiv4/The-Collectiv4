@@ -72,7 +72,7 @@ export function DropButton({ onDrop, desktop = false, context = {} }) {
           /* clears the floating glass tab bar on mobile (v11: the slab rose to
              28px to escape iOS Safari's toolbar band, so 86px now sat behind
              it — and this button is zIndex 9000, under the bar's 9999). */
-          bottom: desktop ? '22px' : 'calc(146px + env(safe-area-inset-bottom, 0px))',
+          bottom: desktop ? '22px' : 'calc(108px + env(safe-area-inset-bottom, 0px))',
           zIndex: 9000, display: 'inline-flex', alignItems: 'center', gap: '8px',
           background: 'rgba(199,201,209,.08)', border: `1px solid rgba(199,201,209,.32)`,
           backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
