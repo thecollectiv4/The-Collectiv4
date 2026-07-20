@@ -12,6 +12,10 @@ import SeedPill from '@/components/SeedMark'
 import { useCosmosOverride } from '@/components/Atmosphere'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
+import PeopleSheet from '@/components/PeopleSheet'
+import CraftsSheet from '@/components/CraftsSheet'
+import { VOCAB, VOCAB_PHRASE } from '@/lib/socialVocab'
+import { fetchFollowers, fetchFollowing } from '@/lib/social'
 import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness, MODULES, normModules, defaultModulesFor, craftKindOf } from '@/lib/world'
 import { craftLine, saveProfileCrafts, categoryMeta, kindOfCrafts } from '@/lib/crafts'
@@ -216,6 +220,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const [uploading, setUploading] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
   const [upErr, setUpErr] = useState(null)
+  // v12 — lo que antes era texto muerto y ahora se abre:
+  //   peopleSheet: 'followers' | 'following' | null
+  //   craftsOpen:  la lista completa detrás del +N
+  const [peopleSheet, setPeopleSheet] = useState(null)
+  const [craftsOpen, setCraftsOpen] = useState(false)
   const fileRef = useRef(null)
   const coverRef = useRef(null)
   const galleryFileRef = useRef(null)
@@ -530,6 +539,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   // disolución para correr. Las dos rampas (máscara y scrim) se anclan a él.
   const bleed = wide ? COVER_BLEED.wide : COVER_BLEED.phone
 
+  /* Un craft es una puerta al RESTO de la gente que lo comparte. Vive aquí y
+     no como prop porque siempre significa exactamente lo mismo — pasarlo
+     desde fuera sólo abriría la puerta a que dos pantallas lo interpretaran
+     distinto. Community ya lee ?craft= del URL (0020/D2): esto se cuelga de
+     la columna de descubrimiento que ya existe, no inventa una paralela. */
+  const openCraft = (slug) => {
+    setCraftsOpen(false)
+    navigate(`/community?craft=${encodeURIComponent(slug)}`)
+  }
+
   // the world's COMPOSITION (v6, 0024): the owner's saved order, or the
   // kind-default — the craft decides what leads. A module missing from the
   // order renders NOTHING, owner included: off is off (honest walls).
@@ -836,17 +855,38 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
                     {/* primary ALWAYS leads — regardless of the order the
                         set arrived in (fresh save vs DB read) */}
+                    {/* v12: cada craft es una PUERTA — lleva a Community
+                        filtrado por él, o sea a las otras personas que lo
+                        comparten. Antes eran etiquetas muertas. */}
                     {[...crafts].sort((a, b) => (b.isPrimary === true) - (a.isPrimary === true)).slice(0, 3).map((c, i) => {
                       const meta = categoryMeta(c.category)
                       const isP = c.isPrimary || (i === 0 && !crafts.some(x => x.isPrimary))
                       return (
                         <span key={c.slug} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '9px' }}>
                           {i > 0 && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '7px', color: BONE_LOW }}>◆</span>}
-                          <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', letterSpacing: '.3em', textTransform: 'uppercase', color: isP ? `rgb(${meta.tint})` : BONE_MID }}>{c.name}</span>
+                          <button className="pressable" data-testid={`hero-craft-${c.slug}`}
+                            onClick={() => openCraft(c.slug)}
+                            aria-label={`See other ${c.name}s`}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                              fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', letterSpacing: '.3em', textTransform: 'uppercase',
+                              color: isP ? `rgb(${meta.tint})` : BONE_MID }}>
+                            {c.name}
+                          </button>
                         </span>
                       )
                     })}
-                    {crafts.length > 3 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em' }}>+{crafts.length - 3}</span>}
+                    {/* el +N deja de ser un dato que no se puede abrir: la app
+                        te decía que había más y no te dejaba verlo */}
+                    {crafts.length > 3 && (
+                      <button className="pressable" data-testid="hero-crafts-more"
+                        onClick={() => setCraftsOpen(true)}
+                        aria-label={`See all ${crafts.length} crafts`}
+                        style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px',
+                          padding: '2px 8px', cursor: 'pointer',
+                          fontFamily: 'DM Mono', fontSize: '8px', color: BONE_MID, letterSpacing: '.14em' }}>
+                        +{crafts.length - 3}
+                      </button>
+                    )}
                   </div>
                 ) : data.discipline && (
                   <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
@@ -918,7 +958,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               data-testid="follow-btn"
               style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', borderRadius: '100px', padding: '9px 20px', color: social.iFollow ? BONE : VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
-              {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
+              {/* v12: decía "CONNECTED" cuando quiere decir "ya lo sigues" —
+                  la MISMA palabra que rotulaba el conteo de seguidores diez
+                  píxeles más allá. Las etiquetas viven en socialVocab.js. */}
+              {social.iFollow ? VOCAB.followingState : VOCAB.followAction}
             </button>
             {/* AMIGO (0023) — the mutual bond's door, in the same chip
                 grammar. No friendship prop = no door (pre-migration or a
@@ -926,26 +969,26 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             {friendship && (
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
-                  onClick={() => { if (window.confirm('¿deshacer amistad?')) friendship.onRemove?.() }}
+                  onClick={() => { if (window.confirm(VOCAB_PHRASE.removeConnection)) friendship.onRemove?.() }}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
-                  amigos <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
+                  {VOCAB.connected} <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: '1px solid transparent', borderRadius: '100px', padding: '9px 18px', color: VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
-                  accept amigo?
+                  {VOCAB.connectIncoming}
                 </button>
               ) : friendship.state === 'out' ? (
                 <button className="pressable" data-testid="friend-btn" aria-disabled
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_LOW, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'default', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
-                  pending
+                  {VOCAB.connectPending}
                 </button>
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}
                   onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
                   onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
-                  + amigo
+                  {VOCAB.connectAction}
                 </button>
               )
             )}
@@ -955,10 +998,24 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
             </button>
+            {/* v12: los conteos se PICAN y abren a la gente. Eran el dato más
+                obviamente vivo de la pantalla y no llevaban a ningún lado.
+                Se puede porque la RLS de follows entrega la arista cuando los
+                dos mundos son públicos (0034) — ver social.js. */}
             {(social.followers > 0 || social.following > 0) && (
-              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
-                {social.followers > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected</span>}
-                {social.following > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> following</span>}
+              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '4px' }}>
+                {social.followers > 0 && (
+                  <button className="pressable" data-testid="followers-count" onClick={() => setPeopleSheet('followers')}
+                    style={countBtn}>
+                    <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> {VOCAB.followers}
+                  </button>
+                )}
+                {social.following > 0 && (
+                  <button className="pressable" data-testid="following-count" onClick={() => setPeopleSheet('following')}
+                    style={countBtn}>
+                    <span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> {VOCAB.following}
+                  </button>
+                )}
               </span>
             )}
             {social.err && (
@@ -974,11 +1031,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             ◇ this is your world — curate it →
           </button>
         )}
-        {/* the owner's own count — one honest line, never a vanity wall */}
+        {/* the owner's own count — one honest line, never a vanity wall.
+            v12: también se pica; tu propia gente es lo primero que quieres
+            poder abrir. */}
         {!editing && social?.ready && isOwner && social.followers > 0 && (
-          <div style={{ marginTop: wide ? '6px' : '14px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
-            <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected to your world
-          </div>
+          <button className="pressable" data-testid="owner-followers-count" onClick={() => setPeopleSheet('followers')}
+            style={{ ...countBtn, marginTop: wide ? '6px' : '14px', padding: '4px 0' }}>
+            <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> {VOCAB_PHRASE.ownFollowers}
+          </button>
         )}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
@@ -1338,6 +1398,33 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         </div>,
         document.body
       )}
+
+      {/* ── lo que antes era texto muerto (v12) ──────────────────────────
+          Van por PORTAL a document.body por la misma razón que la ceremonia
+          de arriba: el museo tiene ancestros con `transform` (la intro de la
+          portada, las revelaciones al hacer scroll), y un transform vivo se
+          vuelve el bloque contenedor de todo `position:fixed` que cuelgue de
+          él — la hoja se anclaría al documento en vez de a la pantalla. Ya
+          pasó una vez con la hoja del builder y quedó anotado arriba. */}
+      {peopleSheet && createPortal(
+        <PeopleSheet
+          wide={wide}
+          title={peopleSheet === 'followers' ? VOCAB.followers : VOCAB.following}
+          kicker={`◇ ${displayName}`}
+          loadKey={`${peopleSheet}:${data.id}`}
+          load={peopleSheet === 'followers'
+            ? () => fetchFollowers(data.id)
+            : () => fetchFollowing(data.id)}
+          onOpenPerson={(id) => { setPeopleSheet(null); navigate(`/user/${id}`) }}
+          onClose={() => setPeopleSheet(null)}
+        />,
+        document.body
+      )}
+      {craftsOpen && createPortal(
+        <CraftsSheet wide={wide} name={displayName} crafts={crafts}
+          onPickCraft={openCraft} onClose={() => setCraftsOpen(false)} />,
+        document.body
+      )}
     </div>
   )
 }
@@ -1345,6 +1432,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 /* ---------- shared bits ---------- */
 const pill = { background: 'rgba(7,8,14,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
 const galBtn = { background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '7px', width: '26px', height: '25px', color: BONE_MID, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
+
+/* los conteos del vínculo: se ven igual que antes (nada de botón pintado —
+   siguen siendo dato, no decoración) pero ahora son botones de verdad. Sin
+   `border:none` explícito el user-agent les mete su propio borde y la línea
+   se ensucia. */
+const countBtn = {
+  background: 'none', border: 'none', padding: '4px 6px', cursor: 'pointer',
+  fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW,
+  letterSpacing: '.12em', textTransform: 'uppercase',
+}
 
 /* WorldMarquee — the world's welcome line. ONE composed instance (Ley 8:
    el marquee aparece UNA vez, jamás fila repetida). A quiet editorial strip

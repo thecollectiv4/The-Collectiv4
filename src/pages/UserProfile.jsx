@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useAuth } from '@/lib/AuthContext'
@@ -85,23 +85,55 @@ export default function UserProfile() {
     return () => { alive = false }
   }, [id, live.id, user?.id])
 
-  // follow / unfollow — optimistic, honest rollback WITH a voice: a failed
-  // write must never revert in silence (review catch — Ley 11).
+  /* follow / unfollow — optimista, con rollback CON VOZ: una escritura que
+     falla nunca revierte en silencio (Ley 11).
+
+     v12 — EL ESTADO FANTASMA AL PICAR RÁPIDO. La versión anterior leía
+     `social` de su clausura y luego hacía `setSocial(was)` al fallar. Con dos
+     toques rápidos eso se rompe de dos formas distintas:
+
+       · Los dos toques capturan el MISMO `social` (el segundo se crea antes
+         de que el primero re-renderice), así que ambos calculan el mismo
+         "siguiente" — picar dos veces podía dejarte siguiendo cuando querías
+         dejar de seguir.
+       · Si el primero falla DESPUÉS de que el segundo ya escribió, su
+         `setSocial(was)` restaura un estado viejo encima de uno más nuevo:
+         la pantalla termina mostrando algo que ya no es cierto en la DB.
+         Ese es exactamente el fantasma.
+
+     Ahora hay un TURNO (`followTurn`). Cada toque toma uno; sólo el ÚLTIMO
+     puede tocar el estado cuando su escritura vuelve. Y el optimista se
+     calcula con la forma funcional de setState, que siempre lee el valor
+     vigente en vez del que se congeló en la clausura — así el segundo toque
+     parte de lo que el primero ya dejó. Rápido o lento, lo que se ve es lo
+     que hay.
+
+     La intención se guarda en un ref (no en el estado) para saber, al
+     volver, qué se pidió realmente: la DB es la que manda, no la pantalla. */
+  const followTurn = useRef(0)
   const onFollowToggle = useCallback(async () => {
     if (!user) { navigate(`/auth?next=/user/${id}`); return }
-    const was = social
-    const next = social.iFollow
-      ? { ...social, iFollow: false, followers: Math.max(0, social.followers - 1) }
-      : { ...social, iFollow: true, followers: social.followers + 1 }
-    setSocial(next); setSocialErr('')
+    const turn = ++followTurn.current
+    let intent = null
+    setSocialErr('')
+    setSocial((s) => {
+      intent = !s.iFollow                       // lo que este toque PIDE
+      return intent
+        ? { ...s, iFollow: true, followers: s.followers + 1 }
+        : { ...s, iFollow: false, followers: Math.max(0, s.followers - 1) }
+    })
     try {
-      if (was.iFollow) await unfollow(user.id, id)
-      else await follow(user.id, id)
+      if (intent) await follow(user.id, id)
+      else await unfollow(user.id, id)
     } catch (e) {
-      setSocial(was)
+      // un toque viejo que llega tarde no puede pisar al que manda ahora
+      if (turn !== followTurn.current) return
+      setSocial((s) => (intent
+        ? { ...s, iFollow: false, followers: Math.max(0, s.followers - 1) }
+        : { ...s, iFollow: true, followers: s.followers + 1 }))
       setSocialErr(e?.message || "that didn't land — try again")
     }
-  }, [user, id, social, navigate])
+  }, [user, id, navigate])
 
   // amigo — the mutual bond's three doors (0023), each optimistic with the
   // follow button's own discipline: rollback WITH a voice, never in silence.

@@ -108,6 +108,52 @@ export async function unfollow(viewerId, profileId) {
   if (error) throw new Error(error.message || "couldn't unfollow")
 }
 
+/* ---- las LISTAS detrás de los conteos (v12) ----
+   El museo mostraba "3 FOLLOWERS · 2 FOLLOWING" como texto muerto. Ahora se
+   pican y abren a la gente.
+
+   POR QUÉ SE PUEDE, Y POR QUÉ SÓLO ESTAS DOS: la RLS de `follows` (0034) le
+   entrega la arista a un tercero cuando AMBOS mundos son públicos y ninguno
+   está purgado, así que estas listas son legítimamente públicas y el piso de
+   honestidad lo pone el SERVIDOR, no este archivo — a un miembro normal el
+   seed sencillamente no le llega. La lista de CONNECTED (friendships) NO
+   tiene equivalente y no lo va a tener: su política no tiene rama pública a
+   propósito ("a friend list is nobody's directory", 0023). Ver socialVocab.js.
+
+   Dos pasos y no un join: pedir `follows` y luego `profiles` es el mismo
+   patrón que fetchInbox, y evita adivinar el nombre de la FK — un embed con
+   el alias equivocado tumba la consulta entera en vez de degradar. is_demo
+   viaja con la identidad (guardrail 4) para que la lista pueda etiquetar
+   seed si un fundador lo está viendo. */
+async function followList(column, matchColumn, profileId, limit = 200) {
+  if (!profileId) return []
+  try {
+    const { data: edges, error } = await supabase
+      .from('follows')
+      .select(column)
+      .eq(matchColumn, profileId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error || !edges?.length) return []
+    const ids = [...new Set(edges.map((e) => e[column]).filter(Boolean))]
+    if (!ids.length) return []
+    const { data: profiles, error: pErr } = await supabase
+      .from('profiles')
+      .select('id,full_name,username,avatar_url,verified,city,discipline,is_demo')
+      .in('id', ids)
+    if (pErr) return []
+    // se respeta el orden de las aristas (más reciente primero); un perfil
+    // que la RLS no entregó simplemente no aparece, sin hueco ni error
+    const byId = Object.fromEntries((profiles || []).map((p) => [p.id, p]))
+    return ids.map((id) => byId[id]).filter(Boolean)
+  } catch { return [] }
+}
+
+/* quién sigue a esta persona */
+export const fetchFollowers = (profileId) => followList('follower_id', 'followee_id', profileId)
+/* a quién sigue esta persona */
+export const fetchFollowing = (profileId) => followList('followee_id', 'follower_id', profileId)
+
 /* Which of these profiles does the viewer follow? → Set of ids (for
    Community cards). Empty set on any failure — never a crash. */
 export async function fetchFollowingSet(viewerId, profileIds = []) {
