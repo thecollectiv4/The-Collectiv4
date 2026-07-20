@@ -682,10 +682,9 @@ input, textarea, select,
 @keyframes osMicPulse { 0%,100% { box-shadow:0 0 0 0 rgba(var(--ink-rgb),.3); } 50% { box-shadow:0 0 0 7px rgba(var(--ink-rgb),0); } }
 .os-mic-live { animation: osMicPulse 1.6s ease-in-out infinite; }
 
-/* world marquee — the museum's welcome ticker. The track holds TWO copies of
-   the phrase run; -50% lands exactly on the seam, so the loop never jumps. */
-@keyframes worldTicker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-.world-ticker { display:inline-flex; white-space:nowrap; animation: worldTicker var(--ticker-dur, 28s) linear infinite; will-change: transform; }
+/* world marquee — RETIRADO (v12.4). El marquee del perfil se eliminó y su
+   componente también; estas reglas eran su único consumidor. Se quitan para
+   que no queden estilos huérfanos que sugieran que algo todavía los usa. */
 
 /* ============================================================
    DISCOVER — the sky of worlds. Cards lift on hover, the banner
@@ -948,7 +947,6 @@ input, textarea, select,
   .os-slide-in-right, .os-slide-in-left { animation:none; }
   .os-settle, .msg-in { animation: none; }
   .os-now-dot, .os-mic-live { animation:none; }
-  .world-ticker { animation:none; }
   .os-root button:not(:disabled):active { transform:none; }
   .pressable:not(:disabled):active { transform:none; }
   .glow-pulse::after, .pulse-dot { animation:none; }

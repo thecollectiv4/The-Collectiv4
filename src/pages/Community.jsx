@@ -12,6 +12,7 @@ import CraftsSheet from '@/components/CraftsSheet'
 import { VOCAB } from '@/lib/socialVocab'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import Mark from '@/components/Mark'
+import { MoreChip, StateChip } from '@/components/Chip'
 import ConnectSheet from '@/components/ConnectSheet'
 import { follow as followProfile, unfollow as unfollowProfile, startDM } from '@/lib/social'
 import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
@@ -536,12 +537,27 @@ function CraftFilterRow({ value, onChange, options, wide }) {
    172px en cuanto una tarjeta tuvo dos líneas de oficio).
    Lo que decide dónde SE DEJA DE VER la foto es la máscara, no la altura: se
    apaga al 88% para que la franja de abajo (taste / work) quede limpia. */
+/* ⚠ POR QUÉ ESTA MÁSCARA LLEGA HASTA EL 100% Y NO SE APAGA ANTES.
+
+   Regresión que reportó Diego (v12.3): "la cover se volvió a subir". La
+   estructura NO revirtió — la capa sigue en `inset:0` y llega al fondo de la
+   tarjeta (medido: 294 de 296px). Lo que se movió fue ESTA máscara: en la
+   ronda del contraste la dejé terminando en `transparent 88%`, lo que hace
+   que la FOTO se desvanezca a la nada ~35px antes del borde y quede una
+   franja lisa abajo. Eso lee, con toda razón, como "la foto está más arriba".
+
+   El corte limpio para la legibilidad NO tiene que hacerlo la máscara — lo
+   hace el SCRIM (el velo de color, que sube al 94% en su banda de texto). La
+   máscara sólo decide hasta dónde EXISTE la foto, y la respuesta correcta es
+   "hasta abajo": así la imagen ocupa toda la tarjeta y el velo, encima,
+   garantiza que el pie se lea. Dos capas, dos trabajos — separarlos fue el
+   error, juntarlos otra vez es el arreglo, y queda escrito para que no se
+   vuelva a mover la máscara buscando contraste que no es su tarea. */
 const CARD_COVER_MASK = `linear-gradient(180deg,
-  #000 0%, #000 40%,
-  rgba(0,0,0,.74) 58%,
-  rgba(0,0,0,.36) 74%,
-  rgba(0,0,0,.12) 82%,
-  transparent 88%)`
+  #000 0%, #000 62%,
+  rgba(0,0,0,.85) 78%,
+  rgba(0,0,0,.6) 90%,
+  rgba(0,0,0,.4) 100%)`
 /* El velo vive en index.css porque sus α NO son simétricas entre registros —
    la razón larga (oscurecer siempre ayuda, aclarar tiene que garantizar) está
    escrita ahí junto a los valores. */
@@ -614,9 +630,7 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
               CONNECTED ya reservado para el vínculo mutuo: la misma palabra
               en dos sentidos, que es justo lo que se vino a matar. */}
           {following && (
-            <span title={`You follow ${name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(var(--silver-rgb),.3)', borderRadius: '100px', padding: '2px 7px' }}>
-              <UserCheck size={8} /> {VOCAB.followingState}
-            </span>
+            <StateChip label={VOCAB.followingState} mark={<UserCheck size={8} />} title={`You follow ${name}`} />
           )}
         </div>
         {/* v12: el craft y el +N se pican POR SEPARADO de la tarjeta. Toda la
@@ -634,12 +648,9 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
                   fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${tintChannel(meta.tint)})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</button>
             ) })()}
             {crafts.length > 1 && (
-              <button className="pressable" data-testid="card-crafts-more"
+              <MoreChip n={crafts.length - 1}
                 onClick={(e) => { e.stopPropagation(); onShowCrafts?.() }}
-                aria-label={`See all ${crafts.length} crafts`}
-                style={{ background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR}`, borderRadius: '100px',
-                  padding: '1px 6px', cursor: 'pointer', flexShrink: 0,
-                  fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.1em' }}>+{crafts.length - 1}</button>
+                label={`See all ${crafts.length} crafts`} />
             )}
           </div>
         ) : c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
@@ -713,10 +724,17 @@ function CardAction({ type, label, active, onClick }) {
         border: `1px solid ${active ? 'rgba(var(--ink-rgb),.24)' : 'transparent'}`,
         transition: 'background 180ms var(--ease-house), border-color 180ms var(--ease-house)',
       }}>
+      {/* v12.4 — la palabra se cortaba ("CONNE…", "MESSA…") en un teléfono
+          angosto: CONNECT es la más larga y a .13em de tracking no cabía en
+          un tercio de tarjeta. Se baja el tracking a .04em y el tamaño a 7px,
+          y se QUITA el ellipsis: preferir una palabra completa un punto más
+          chica que media palabra con puntos suspensivos — el ellipsis en una
+          etiqueta de acción lee como bug, no como diseño. A este tamaño las
+          tres entran enteras (medido). */}
       <Mark type={type} size={15} color={active ? BONE : SILVER} />
       <span style={{
-        fontFamily: 'DM Mono', fontSize: '7.5px', letterSpacing: '.13em', textTransform: 'uppercase',
-        color: active ? BONE : BONE_LOW, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+        fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.04em', textTransform: 'uppercase',
+        color: active ? BONE : BONE_LOW, whiteSpace: 'nowrap', maxWidth: '100%',
       }}>{label}</span>
     </button>
   )

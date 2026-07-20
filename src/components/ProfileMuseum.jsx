@@ -9,6 +9,7 @@ import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
 import SeedPill from '@/components/SeedMark'
+import { MoreChip } from '@/components/Chip'
 import { useCosmosOverride } from '@/components/Atmosphere'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
@@ -153,7 +154,25 @@ const coverScrim = (bleed) => `linear-gradient(180deg,
 /* LA ZONA DE PORTADA. La foto llena de verdad la sección de arriba, y el
    sangrado crece con ella para que la disolución tenga por dónde correr —
    un fade largo necesita distancia, no sólo buenas paradas. */
-const HERO_H = { wide: 'clamp(420px, 52vh, 560px)', phone: 'clamp(460px, 72vh, 620px)' }
+/* v12.4 — LA PORTADA LLENA LA ZONA SUPERIOR EN CUALQUIER ALTO DE PANTALLA.
+
+   Bug de Diego en su iPhone 17: la foto se cortaba arriba y quedaba espacio
+   sin cubrir. La causa era el tope fijo del clamp — `clamp(460px, 72vh,
+   620px)`: en una pantalla más alta 72vh supera los 620px, el clamp lo
+   RECORTA a 620, y arriba de la foto queda una banda muerta. Un tope en px es
+   una apuesta sobre el alto máximo de un teléfono, y el iPhone 17 la perdió.
+
+   Se cambia por `dvh` sin tope. `dvh` (dynamic viewport height) es el alto
+   REAL de la ventana descontando la barra de Safari cuando está, así que la
+   portada sigue el viewport de verdad en cualquier aparato — 393px o el que
+   venga — en vez de adivinar. El piso de 460px se queda como red para una
+   ventana absurdamente corta (un teléfono de lado); el techo se va, porque un
+   techo era justo el problema.
+
+   Escritorio no cambia: ahí la portada NO debe comerse la pantalla (la obra
+   es el sujeto, no la foto — la nota de reconciliación de abajo lo explica),
+   así que conserva su clamp con tope. El bug era sólo de teléfono. */
+const HERO_H = { wide: 'clamp(420px, 52vh, 560px)', phone: 'max(460px, 82dvh)' }
 /* el sangrado de escritorio baja con el hero: 300px de disolución bajo un
    hero de 52vh se comería el arranque del museo, que es justo lo que Pato
    vino a destapar. */
@@ -646,7 +665,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
      El helper se queda vivo — lo usa el EDITOR para proponer el default
      cuando abres a escribir. Lo que cambia es sólo qué se PINTA: tu texto o
      nada. El vacío aquí es void Cosmos, que es justo lo que queremos. */
-  const marqueeText = (data.marquee_text ?? '').trim()
+  /* v12.4 — `marqueeText` se quitó junto con el marquee del render (Diego lo
+     eliminó del perfil). El dato sigue en la fila (data.marquee_text) y en el
+     builder; sólo no se lee aquí. Si vuelve, se recompone en una línea. */
   const completeness = worldCompleteness(data)
   const displayName = data.full_name || 'Unnamed'
   const initial = displayName[0].toUpperCase()
@@ -902,18 +923,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {/* the sky behind this world is the app's shared atmosphere (v8 D1) —
           claimed above with this person's seed + craft temperature */}
 
-      {/* v12.3 — EL MARQUEE SE FUE DE AQUÍ ARRIBA (pedido de Diego).
-          Era una franja de texto ENCIMA de la portada, así que la foto nunca
-          empezaba en el borde: arrancaba debajo de un letrero. La portada
-          ahora sale desde el píxel cero y esa es toda la diferencia entre
-          "una foto en una página" y una portada de revista.
+      {/* v12.4 — EL MARQUEE SE ELIMINÓ (pedido de Diego, segunda pasada).
+          En v12.3 lo MOVÍ de encima de la portada al cuerpo; Diego lo vio ahí
+          y decidió que sobra en cualquier lado. Se va del render por completo.
 
-          NO SE BORRA, SE MUDA. La frase la escribe la persona (marquee_text,
-          80 caracteres, editable en el builder) — es contenido suyo, no
-          decoración nuestra, y tirarlo habría sido resolver el encargo
-          destruyendo lo que el encargo no pidió tocar. Baja al cuerpo, justo
-          debajo de la identidad: la portada es la cara, la frase es la voz,
-          y después viene la obra. Ver la nota en el cuerpo. */}
+          NO se toca el dato: `marquee_text` sigue en la fila y en el builder,
+          por si algún día vuelve a tener un lugar — borrar la columna sería
+          destruir texto que la persona escribió para resolver un pedido de
+          layout, y esas dos cosas no se cruzan. Simplemente nada del perfil lo
+          pinta. Si Diego lo quiere de vuelta, es un componente y una línea. */}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
       {/* RECONCILIACIÓN — cada quien tenía razón EN SU PANTALLA.
@@ -1076,14 +1094,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     {/* el +N deja de ser un dato que no se puede abrir: la app
                         te decía que había más y no te dejaba verlo */}
                     {crafts.length > 3 && (
-                      <button className="pressable" data-testid="hero-crafts-more"
-                        onClick={() => setCraftsOpen(true)}
-                        aria-label={`See all ${crafts.length} crafts`}
-                        style={{ background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px',
-                          padding: '2px 8px', cursor: 'pointer',
-                          fontFamily: 'DM Mono', fontSize: '8px', color: BONE_MID, letterSpacing: '.14em' }}>
-                        +{crafts.length - 3}
-                      </button>
+                      <MoreChip n={crafts.length - 3} onClick={() => setCraftsOpen(true)}
+                        label={`See all ${crafts.length} crafts`} />
                     )}
                   </div>
                 ) : data.discipline && (
@@ -1140,15 +1152,6 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           </div>
         </div>
       </div>
-
-      {/* ============ LA VOZ — el marquee, reubicado (v12.3) ============
-          Bajó de encima de la portada a aquí (ver la nota arriba del héroe).
-          Este sitio es mejor que el que tenía, no sólo distinto: arriba
-          competía con la foto por la primera mirada y encima empujaba toda la
-          composición 40px; aquí llega DESPUÉS de saber quién es la persona,
-          que es cuando su frase significa algo. Sigue apareciendo una sola
-          vez y sólo si alguien la escribió. */}
-      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ BYLINE — the doors + the owner's tools ============
           Identity (face, name, craft, handle) lives in the hero block now;
@@ -1739,23 +1742,12 @@ const countBtn = {
   letterSpacing: '.12em', textTransform: 'uppercase',
 }
 
-/* WorldMarquee — the world's welcome line. ONE composed instance (Ley 8:
-   el marquee aparece UNA vez, jamás fila repetida). A quiet editorial strip
-   that reads once — the line is information, not wallpaper. */
-function WorldMarquee({ text, theme, wide }) {
-  const skin = theme === 'outline'
-    ? { color: 'transparent', WebkitTextStroke: `1px ${BONE_MID}` }
-    : { color: BONE }
-  return (
-    <div role="note" aria-label={text} style={{ position: 'relative', zIndex: 3, borderBottom: `1px solid ${HAIR}`, background: VOID }}>
-      <div style={{ maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined, padding: wide ? '9px clamp(40px, 5vw, 76px) 7px' : '9px 24px 7px', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-        <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: SILVER, opacity: .55, flexShrink: 0 }}>✦</span>
-        <span style={{ fontFamily: 'Bebas Neue', fontSize: '13px', letterSpacing: '.2em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: .65, ...skin }}>{text.toUpperCase()}</span>
-        <span aria-hidden style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR}, transparent)` }} />
-      </div>
-    </div>
-  )
-}
+/* v12.4 — WorldMarquee se eliminó junto con su único call site (Diego quitó
+   el marquee del perfil). Era la ÚNICA función que lo dibujaba, así que
+   dejarla definida sin llamar es código muerto que el próximo lector
+   interpreta como "esto todavía se usa". El dato (marquee_text) vive en la
+   fila; el componente que lo pintaba, no. Su CSS (.world-ticker / worldTicker
+   en index.css) tampoco se toca en otro lado — se quita allá también. */
 
 /* GalleryGrid — the wall. Mobile: first image leads full-bleed, the rest hang
    two-across. Wide: a salon wall — an asymmetric 12-column museum grid, rows
