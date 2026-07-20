@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { humanizeAuthError } from '@/lib/authErrors'
@@ -72,7 +73,18 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
 
   const inp = {width:'100%',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.1)',borderRadius:'10px',padding:'14px 16px',color:'var(--cream)',fontFamily:'DM Sans',fontSize:'14px',outline:'none',transition:'border-color .2s'}
 
-  return (
+  /* v13 — PORTAL A BODY (bug del barrido). AuthModal se renderiza en DOS
+     sitios: como hermano de <main> en Layout (bien, a nivel documento) y
+     DENTRO de Community, que vive en una isla `z-index:1`. En esa isla su
+     z-10000 valía "10000 dentro de un contexto que en el documento es 1", así
+     que la barra (9999 a nivel documento) lo tapaba y seguía clickeable — la
+     modal dejaba de ser modal, justo en la ruta de conversión anónima
+     (picar Follow/Connect sin sesión). Misma causa que el portal de
+     GlassSheet (v12.4) arregló para las hojas; a AuthModal le faltaba.
+     Portalear al body lo saca de cualquier isla; el sitio de Layout que ya
+     estaba bien no se ve afectado (portalear algo que ya está en la raíz es
+     inocuo). */
+  return createPortal(
     <div style={{position:'fixed',inset:0,zIndex:10000,display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}} onClick={onClose}>
       {/* Backdrop blur */}
       <div style={{position:'absolute',inset:0,background:'rgba(var(--void-rgb),.7)',backdropFilter:'blur(12px)',WebkitBackdropFilter:'blur(12px)'}} />
@@ -147,6 +159,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

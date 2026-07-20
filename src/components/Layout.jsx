@@ -21,19 +21,30 @@ import { glassSurface } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
-   the conversations (D2), PROFILE = your world. Discover dissolved into
-   the first two. Each tab carries its icon AND its word (Leyes 5, 13).
-   v5 (D3): the icons are the house's OWN star-chart marks — ✕ the night,
-   ○ the circle of people, ◇ the signal, ● the self, △ the instrument —
-   an icon system that is brand, not stock pictograms (Ley 14).
-   v11: the bar is FIVE fixed slots and cannot reflow — OS left the tab row
-   and now lives as a founder-only door on the Profile screen. /os is still a
-   route; it just stopped being a public-facing tab. */
+   the conversations (D2), PROFILE = your world.
+
+   v13 — LOS ÍCONOS AHORA COMUNICAN FUNCIÓN (pedido de Pato/Diego).
+   Hasta v12 el nav usaba las marcas abstractas de carta estelar (✕ ○ ◇ ●):
+   preciosas, de marca, y MUDAS — una "✕" para EVENT no dice evento, y el
+   reporte lo marcó. Las marcas abstractas se quedan como separadores de
+   sección (su trabajo real, CLAUDE.md), pero la NAVEGACIÓN necesita que el
+   ícono diga a dónde va sin leer la palabra.
+
+   Los cinco tipos ya vivían en Mark.jsx como propuesta ("nada renderiza
+   estos hasta que un fundador lo diga"). El fundador lo dijo. Cada uno está
+   dibujado en la MISMA mano —trazo geométrico, mismo peso, mismo envolvente—
+   así que siguen siendo marca de la casa, no pictogramas de stock:
+     · marquee — un póster con su cabecera: la sala, anunciada (EVENT)
+     · people  — dos círculos que se encuentran; el solape ES la tesis (COMMUNITY)
+     · bubble  — el glifo universal de "algo se dijo" (MESSAGES)
+     · world   — un mundo en órbita: cada perfil es un museo, no una persona (PROFILE)
+   CREATE conserva su + (el gesto universal de crear), en el centro geométrico.
+   El tratamiento liquid-glass del slot no cambia — sólo el glifo adentro. */
 const tabs = [
-  { to: '/',          mark: 'cross',   label: 'Event',     requiresAuth: false },
-  { to: '/community', mark: 'ring',    label: 'Community', requiresAuth: false },
-  { to: '/messages',  mark: 'diamond', label: 'Messages',  requiresAuth: true },
-  { to: '/profile',   mark: 'dot',     label: 'Profile',   requiresAuth: true },
+  { to: '/',          mark: 'marquee', label: 'Event',     requiresAuth: false },
+  { to: '/community', mark: 'people',  label: 'Community', requiresAuth: false },
+  { to: '/messages',  mark: 'bubble',  label: 'Messages',  requiresAuth: true },
+  { to: '/profile',   mark: 'world',   label: 'Profile',   requiresAuth: true },
 ]
 
 // Public routes never force the sign-in modal (Event + Community are
@@ -66,7 +77,7 @@ const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/
 // propio techo de 760px adentro (Settings.jsx), que es lo que un settings de
 // escritorio necesita: columna cómoda, no pantalla completa.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience|settings)(\/|$)/.test(path)
+  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience|settings|connections)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()

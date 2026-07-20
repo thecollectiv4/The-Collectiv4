@@ -391,7 +391,11 @@ export default function Settings() {
             <Row label="User ID" hint="Paste this when you report something.">
               <CopyValue value={user.id} />
             </Row>
-            <Row label="Edit your world" hint="Cover, crafts, moments — the builder." onClick={() => navigate('/profile')} last>
+            <Row label="Edit your world" hint="Cover, crafts, moments — the builder." onClick={() => navigate('/profile')}>
+              <ChevronRight size={15} color={SILVER} />
+            </Row>
+            {/* v13 — la puerta a la gestión de vínculos */}
+            <Row label="Connections" hint="Connected, requests, close friends — manage your people." onClick={() => navigate('/connections')} last>
               <ChevronRight size={15} color={SILVER} />
             </Row>
           </Panel>

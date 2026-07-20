@@ -24,6 +24,7 @@ import OS from '@/pages/OS'
 import DoorScanner from '@/pages/DoorScanner'
 import HouseWorld from '@/pages/HouseWorld'
 import Settings from '@/pages/Settings'
+import Connections from '@/pages/Connections'
 import { Terms, Privacy, Refunds } from '@/pages/Legal'
 
 // DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
@@ -135,6 +136,7 @@ export default function App() {
             <Route path="messages/:id" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />{/* v12: el cuarto de máquinas — apariencia, cuenta, privacidad, sesión */}
+            <Route path="connections" element={<Connections />} />{/* v13: gestión de conexiones + close friends */}
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
             <Route path="artist/:slug" element={<ArtistRedirect />} />{/* D1: /artist is dead — resolve to the real world or clean gone */}

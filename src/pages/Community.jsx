@@ -740,14 +740,10 @@ function CardAction({ type, label, active, onClick }) {
   )
 }
 
-function Stat({ n, label }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-      <span style={{ fontFamily: 'Bebas Neue', fontSize: '14px', color: SILVER }}>{String(n).padStart(2, '0')}</span>
-      <span style={{ fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>{label}</span>
-    </div>
-  )
-}
+/* v13 — `Stat` (los contadores 01 TASTE / 01 WORK) se eliminó: quedó muerto
+   cuando la tarjeta cambió a las tres acciones (CardAction) en v12.3. El
+   barrido de bugs lo marcó — código sin llamar que el próximo lector cree
+   que se usa. */
 
 /* ---- deterministic mini star field ----
    `k` scales radii down on wide containers (StarField lesson, Ley 8). */
