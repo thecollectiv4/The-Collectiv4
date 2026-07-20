@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { humanizeAuthError } from '@/lib/authErrors'
+import { fetchGateEnabled, humanizeGateError } from '@/lib/earlyAccess'
 import { X } from 'lucide-react'
 
 // signinTitle / signinKicker override the sign-in greeting for a first-touch
@@ -15,12 +17,25 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  /* v12 — LA PUERTA. This modal is the app's OTHER signup path (it calls
+     supabase.auth.signUp directly and never touches AuthContext), so it is
+     exactly where a gate springs a hole in its own UI. It does NOT host a
+     second gate: when the flag is on, the signup tab disappears here and
+     the visitor is sent to /auth, which is the one door. Sign-in in this
+     modal is never gated. */
+  const [gate, setGate] = useState(false)
+  const navigate = useNavigate()
+  useEffect(() => { let ok = true; fetchGateEnabled().then(v => { if (ok) setGate(v) }); return () => { ok = false } }, [])
+  useEffect(() => { if (gate && mode === 'signup') setMode('signin') }, [gate, mode])
 
   const handle = async () => {
     if (mode === 'signup' && (!firstName.trim() || !lastName.trim())) { setError('Escribe tu nombre y apellido'); return }
     setLoading(true); setError(''); setNotice('')
     try {
       if (mode === 'signup') {
+        // Belt and braces: if the gate turned on between mount and submit,
+        // hand the visitor to the real door instead of a rejected signup.
+        if (gate) { setLoading(false); onClose(); navigate('/auth'); return }
         const fullName = `${firstName.trim()} ${lastName.trim()}`
         const { error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName, first_name: firstName.trim(), last_name: lastName.trim() } } })
         if (error) throw error
@@ -31,7 +46,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
       // Just dismiss — the user stays on the page they were on. Members reach the
       // OS deliberately via its own server-gated nav entry, never an auto-redirect.
       onClose()
-    } catch (e) { setError(humanizeAuthError(e)) }
+    } catch (e) { setError(humanizeGateError(e) || humanizeAuthError(e)) }
     setLoading(false)
   }
 
@@ -67,14 +82,17 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
           {mode==='signin'?signinKicker:'Create your account'}
         </div>
 
-        {/* Toggle */}
-        <div style={{display:'flex',gap:'4px',marginBottom:'20px',background:'var(--bg-raised)',borderRadius:'10px',padding:'3px'}}>
-          {['signin','signup'].map(m=>(
-            <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} className="pressable" style={{flex:1,background:mode===m?'rgba(242,238,230,.08)':'transparent',border:'none',borderRadius:'8px',padding:'8px',color:mode===m?'var(--cream)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'background .2s, color .2s'}}>
-              {m==='signin'?'Sign In':'Create Account'}
-            </button>
-          ))}
-        </div>
+        {/* Toggle — v12: with the gate ON there is nothing to toggle to.
+            Creating an account is not a tab anymore, it is a door. */}
+        {!gate && (
+          <div style={{display:'flex',gap:'4px',marginBottom:'20px',background:'var(--bg-raised)',borderRadius:'10px',padding:'3px'}}>
+            {['signin','signup'].map(m=>(
+              <button key={m} onClick={()=>{setMode(m);setError('');setNotice('')}} className="pressable" style={{flex:1,background:mode===m?'rgba(242,238,230,.08)':'transparent',border:'none',borderRadius:'8px',padding:'8px',color:mode===m?'var(--cream)':'var(--cream-low)',fontSize:'12px',fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',transition:'background .2s, color .2s'}}>
+                {m==='signin'?'Sign In':'Create Account'}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
           {/* name row stays mounted and collapses via grid-template-rows so the
@@ -109,6 +127,16 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           {loading?'...':mode==='signin'?'Sign In':'Create Account'}
         </button>
+
+        {/* v12: the way to the door, for someone who has no account yet.
+            Never a dead end (Ley 9) — it goes to the real gate. */}
+        {gate && (
+          <div style={{marginTop:'18px',paddingTop:'16px',borderTop:'1px solid rgba(242,238,230,.08)',textAlign:'center'}}>
+            <button onClick={()=>{onClose();navigate('/auth')}} className="pressable" style={{background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans',fontSize:'12px',color:'var(--cream-low)',padding:'4px'}}>
+              New here? <span style={{color:'var(--cream-mid)',textDecoration:'underline',textUnderlineOffset:'3px'}}>Early access is by invitation&nbsp;→</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

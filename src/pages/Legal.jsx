@@ -30,7 +30,8 @@ function LegalShell({ title, kicker, children }) {
   const { pathname } = useLocation()
   useEffect(() => { window.scrollTo(0, 0) }, [pathname])
   return (
-    <div style={{ minHeight: '100vh', background: `radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}`, color: BONE }}>
+    // v12: transparent — the shared sky paints behind (App.jsx).
+    <div style={{ minHeight: '100vh', background: 'transparent', position: 'relative', zIndex: 1, color: BONE }}>
       <div style={{ maxWidth: '720px', margin: '0 auto', padding: '28px 24px 64px' }}>
         {/* out is always visible — never trapped */}
         <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', textDecoration: 'none', marginBottom: '30px' }}>

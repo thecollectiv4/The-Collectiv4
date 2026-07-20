@@ -10,7 +10,8 @@ import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 import GlassNav from './GlassNav'
 import Mark from './Mark'
-import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
+/* v12: Atmosphere/Grain/CosmosProvider moved to App.jsx (one sky, mounted
+   above <Routes> so every route gets it — not just Layout's children). */
 import { BUBBLE, WELL, BONE_GLOW } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
@@ -153,16 +154,16 @@ export default function Layout() {
   }, [wideFull])
 
   return (
-    <CosmosProvider>
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
 
-      {/* v8: THE atmosphere — one sky behind every room (D1). The page div
-          below carries zIndex 1, so content always reads above it. Density
-          and temperature resolve per route inside; a world can claim its
-          own sky via useCosmosOverride. The grain rides at the very top of
-          the stack — film over the whole lens, modals included. */}
-      <Atmosphere />
-      <Grain />
+      {/* v12: the sky MOVED UP — <Atmosphere/> + <Grain/> + <CosmosProvider>
+          now live in App.jsx, mounted above <Routes> so the six routes that
+          render OUTSIDE this Layout (/auth, /claim, /reset-password, /terms,
+          /privacy, /refunds) finally get the same universe. They had been
+          hand-rolling static void gradients with no stars — the auth flow and
+          the whole post-purchase ceremony were the only rooms with no sky.
+          Still ONE sky for the whole app; it just hangs one level higher.
+          The zIndex contract is unchanged: sky 0, page 1 (see below). */}
 
       {/* Wide header — the desktop navigation (fixed spans the viewport; the
           body frame doesn't constrain position:fixed). Bebas mark as the door
@@ -272,6 +273,5 @@ export default function Layout() {
         <CreateCentral user={user} isMemberVerified={osState === 'granted'} onClose={()=>setCreateOpen(false)} />
       )}
     </div>
-    </CosmosProvider>
   )
 }

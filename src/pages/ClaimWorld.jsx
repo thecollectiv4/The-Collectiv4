@@ -87,7 +87,10 @@ export default function ClaimWorld() {
     (profile.media && profile.media.length)))
 
   const shell = (children) => (
-    <div style={{ position: 'relative', minHeight: '100vh', background: `radial-gradient(120% 80% at 50% 0%, rgba(199,201,209,.07) 0%, transparent 55%), linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)`, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 28px', overflow: 'hidden' }}>
+    // v12: this used to hand-copy the canvas void gradient verbatim — the
+    // post-purchase ceremony rendered a still photograph of the sky instead
+    // of the sky. Now transparent: the real one is behind it (App.jsx).
+    <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '40px 28px', overflow: 'hidden' }}>
       {children}
     </div>
   )
