@@ -8,8 +8,10 @@ import { supabase } from '@/api/supabase'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
+import GlassNav from './GlassNav'
 import Mark from './Mark'
 import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
+import { BUBBLE, WELL, BONE_GLOW } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
@@ -17,15 +19,16 @@ import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
    the first two. Each tab carries its icon AND its word (Leyes 5, 13).
    v5 (D3): the icons are the house's OWN star-chart marks — ✕ the night,
    ○ the circle of people, ◇ the signal, ● the self, △ the instrument —
-   an icon system that is brand, not stock pictograms (Ley 14). */
-const baseTabs = [
+   an icon system that is brand, not stock pictograms (Ley 14).
+   v11: the bar is FIVE fixed slots and cannot reflow — OS left the tab row
+   and now lives as a founder-only door on the Profile screen. /os is still a
+   route; it just stopped being a public-facing tab. */
+const tabs = [
   { to: '/',          mark: 'cross',   label: 'Event',     requiresAuth: false },
   { to: '/community', mark: 'ring',    label: 'Community', requiresAuth: false },
   { to: '/messages',  mark: 'diamond', label: 'Messages',  requiresAuth: true },
   { to: '/profile',   mark: 'dot',     label: 'Profile',   requiresAuth: true },
 ]
-// Network members (verified/owner) get the internal OS as an extra tab.
-const osTab = { to: '/os', mark: 'triangle', label: 'OS', requiresAuth: true }
 
 // Public routes never force the sign-in modal (Event + Community are
 // top-of-funnel — and a shared world link must open the world, not a wall:
@@ -98,8 +101,8 @@ export default function Layout() {
     return () => { alive = false; window.removeEventListener(SIGNALS_EVENT, refresh) }
   }, [authLoading, user, location.pathname])
 
-  // Members (verified/owner) see the internal OS tab; everyone else sees the base four.
-  const tabs = osState === 'granted' ? [...baseTabs, osTab] : baseTabs
+  // The tab row is the same four for everyone now (v11) — nothing about who
+  // you are can change its shape, so it can never reflow under your thumb.
   const currentIdx = tabs.findIndex(t => t.to === '/' ? location.pathname === '/' : location.pathname.startsWith(t.to))
   const isSubPage = currentIdx === -1
 
@@ -180,24 +183,37 @@ export default function Layout() {
             {tabs.map((tab) => {
               const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
               return (
+                /* v11: desktop used to be the flat cousin — a bare 10px mark
+                   on a transparent button, while the phone got a lit glass
+                   bubble. Same recipe on both now (src/lib/glass.js), so the
+                   two can't drift again: the mark rides in a real 30px box,
+                   BUBBLE when you're standing in that room, WELL when you're
+                   not. */
                 <button key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
                   background:'transparent', border:'none', cursor:'pointer',
-                  padding:'8px 14px', display:'inline-flex', alignItems:'center', gap:'8px',
+                  padding:'6px 12px', display:'inline-flex', alignItems:'center', gap:'9px',
                   fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em', textTransform:'uppercase',
                   color: active ? '#F2EEE6' : '#83838F', transition:'color .2s',
                 }}
                   onMouseOver={e => { if (!active) e.currentTarget.style.color = '#C7C4BC' }}
                   onMouseOut={e => { if (!active) e.currentTarget.style.color = '#83838F' }}>
                   {/* the house mark — lit when this room is where you stand */}
-                  <span style={{ position:'relative', display:'inline-flex', flexShrink:0 }}>
-                    <Mark type={tab.mark} size={10} filled={active}
-                      color={active ? '#E8E9ED' : '#5B5952'}
-                      style={{ flexShrink:0, filter: active ? 'drop-shadow(0 0 5px rgba(232,233,237,.7))' : 'none', transition:'filter .2s' }} />
+                  <span style={{
+                    position:'relative', display:'inline-flex', flexShrink:0,
+                    alignItems:'center', justifyContent:'center',
+                    width:'34px', height:'34px', borderRadius:'12px',
+                    transition:'background .25s var(--ease-house), border-color .25s var(--ease-house), box-shadow .25s var(--ease-house)',
+                    ...(active ? BUBBLE : WELL),
+                  }}>
+                    <Mark type={tab.mark} size={17} filled={active}
+                      color={active ? '#F2EEE6' : '#83838F'}
+                      style={{ flexShrink:0, filter: active ? BONE_GLOW : 'none', transition:'filter .2s' }} />
                     {tab.to === '/messages' && bellCount > 0 && (
                       <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
-                        style={{ position:'absolute', top:'-7px', right:'-11px', minWidth:'13px', height:'13px',
+                        style={{ position:'absolute', top:'-4px', right:'-5px', minWidth:'13px', height:'13px',
                           borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
-                          fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>
+                          fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0,
+                          boxShadow:'0 0 0 2px rgba(12,12,17,.65)' }}>
                         {bellCount > 9 ? '9+' : bellCount}
                       </span>
                     )}
@@ -208,19 +224,28 @@ export default function Layout() {
             })}
             {/* CREATE — present in the instrument, one clear door (Ley 13) */}
             <button className="pressable" onClick={openCreate} aria-label="Create"
-              style={{ marginLeft:'12px', display:'inline-flex', alignItems:'center', gap:'7px',
-                background:'rgba(242,238,230,.06)', border:'1px solid rgba(242,238,230,.22)', borderRadius:'100px',
-                padding:'7px 15px', color:'#F2EEE6', fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em',
-                textTransform:'uppercase', cursor:'pointer', transition:'background .2s, border-color .2s' }}
-              onMouseOver={e => { e.currentTarget.style.background='rgba(242,238,230,.12)'; e.currentTarget.style.borderColor='rgba(242,238,230,.4)' }}
-              onMouseOut={e => { e.currentTarget.style.background='rgba(242,238,230,.06)'; e.currentTarget.style.borderColor='rgba(242,238,230,.22)' }}>
-              <Plus size={12} strokeWidth={2.2} /> Create
+              style={{ marginLeft:'12px', display:'inline-flex', alignItems:'center', gap:'8px',
+                borderRadius:'100px', padding:'8px 17px', color:'#F2EEE6',
+                fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em',
+                textTransform:'uppercase', cursor:'pointer',
+                transition:'box-shadow .25s var(--ease-house), border-color .25s var(--ease-house)',
+                ...BUBBLE,
+              }}
+              onMouseOver={e => { e.currentTarget.style.boxShadow = `${BUBBLE.boxShadow}, 0 0 18px rgba(242,238,230,.14)`; e.currentTarget.style.borderColor='rgba(242,238,230,.78)' }}
+              onMouseOut={e => { e.currentTarget.style.boxShadow = BUBBLE.boxShadow; e.currentTarget.style.borderColor='rgba(242,238,230,.58)' }}>
+              <Plus size={13} strokeWidth={2} /> Create
             </button>
           </nav>
         </header>
       )}
 
-      <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0, paddingBottom: (osDesktop || consumerWide) ? 0 : '100px' }}>
+      {/* v11: the bar FLOATS now, and it sits 28px up so it clears the band
+          iOS Safari reserves for re-expanding its collapsed toolbar. The
+          runway under the page tracks that offset — it has to clear the slab,
+          the 28px gap AND the home indicator. Derived from GlassNav's
+          DOCK_BOTTOM; if that moves, this moves with it. */}
+      <main style={{ flex:1, paddingTop: consumerWide ? '56px' : 0,
+        paddingBottom: (osDesktop || consumerWide) ? 0 : 'calc(98px + env(safe-area-inset-bottom, 0px))' }}>
         {/* position+zIndex are load-bearing: the shared Atmosphere sits at
             zIndex 0 — the page lifts itself one layer above the sky, and
             the sky shows through wherever the page leaves void. */}
@@ -234,75 +259,13 @@ export default function Layout() {
       {/* Also show if they try to navigate without auth after dismissing */}
 
       {/* Nav - consumer surfaces + mobile /os; never on desktop /os or wide (the header carries it).
-          CREATE sits at the CENTER (Ley 13 — the Base44 steal): the two leading
-          tabs on its left, the rest on its right, the + as the one raised mark. */}
-      {!osDesktop && !consumerWide && <nav style={{
-        position:'fixed', bottom:0, left:0, right:0,
-        background:'rgba(10,10,13,.97)',
-        borderTop:'1px solid rgba(242,238,230,.08)',
-        display:'flex', justifyContent:'center', alignItems:'center',
-        zIndex:9999,
-        paddingTop:'10px',
-        paddingBottom:'calc(10px + env(safe-area-inset-bottom, 0px))',
-      }}>
-        {(() => {
-          const renderTab = (tab) => {
-            const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
-            return (
-              <div key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
-                display:'flex', flexDirection:'column', alignItems:'center', gap:'5px',
-                padding:'4px 6px', cursor:'pointer', minWidth:0,
-                color: active ? '#F2EEE6' : '#83838F',
-                WebkitTapHighlightColor:'transparent',
-                transition:'color 0.2s',
-              }}>
-                {/* the house mark, lit where you stand (D3, Ley 14) */}
-                <span style={{ position:'relative', display:'inline-flex' }}>
-                  <Mark type={tab.mark} size={19} filled={active}
-                    color={active ? '#F2EEE6' : '#83838F'}
-                    style={{ filter: active ? 'drop-shadow(0 0 7px rgba(242,238,230,.55))' : 'none', transition:'filter .2s' }} />
-                  {tab.to === '/messages' && bellCount > 0 && (
-                    <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
-                      style={{ position:'absolute', top:'-5px', right:'-9px', minWidth:'14px', height:'14px',
-                        borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
-                        fontSize:'8.5px', fontWeight:700, lineHeight:'14px', textAlign:'center', padding:'0 3px', letterSpacing:0 }}>
-                      {bellCount > 9 ? '9+' : bellCount}
-                    </span>
-                  )}
-                </span>
-                {/* nowrap+ellipsis: five tabs (OS members) on a narrow phone
-                    must squeeze, never collide (review catch) */}
-                <span style={{ fontSize:'9.5px', fontWeight: active ? 700 : 500, letterSpacing:'0.06em', textTransform:'uppercase', maxWidth:'100%', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tab.label}</span>
-              </div>
-            )
-          }
-          // CREATE sits at the GEOMETRIC center of the bar (D5): both sides
-          // take equal flex space, so a fifth tab (OS) can never shove the
-          // + off-axis the way a per-item split did.
-          const mid = Math.ceil(tabs.length / 2)
-          return (
-            <>
-              <div style={{ flex:1, minWidth:0, display:'flex', justifyContent:'space-evenly', alignItems:'center' }}>
-                {tabs.slice(0, mid).map(renderTab)}
-              </div>
-              <button className="pressable" onClick={openCreate} aria-label="Create"
-                style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', flexShrink:0,
-                  background:'transparent', border:'none', padding:'0 6px', cursor:'pointer',
-                  WebkitTapHighlightColor:'transparent' }}>
-                <span style={{ width:'44px', height:'44px', borderRadius:'50%', marginTop:'-16px',
-                  background:'#F2EEE6', color:'#0A0A0D', display:'flex', alignItems:'center', justifyContent:'center',
-                  border:'1px solid rgba(242,238,230,.4)', boxShadow:'0 6px 22px rgba(242,238,230,.18)' }}>
-                  <Plus size={20} strokeWidth={2.4} />
-                </span>
-                <span style={{ fontSize:'9px', fontWeight:600, letterSpacing:'.08em', textTransform:'uppercase', color:'#C7C4BC' }}>Create</span>
-              </button>
-              <div style={{ flex:1, minWidth:0, display:'flex', justifyContent:'space-evenly', alignItems:'center' }}>
-                {tabs.slice(mid).map(renderTab)}
-              </div>
-            </>
-          )
-        })()}
-      </nav>}
+          v11: the bar is now GlassNav — same tabs, same destinations, same
+          handlers, same CREATE-at-the-geometric-center split (Ley 13). Only
+          the skin moved out of this file. */}
+      {!osDesktop && !consumerWide && (
+        <GlassNav tabs={tabs} currentIdx={currentIdx} bellCount={bellCount}
+          onTab={handleTabClick} onCreate={openCreate} />
+      )}
 
       {/* CREATE — the intentions behind the + (only what you can do TODAY) */}
       {createOpen && user && (

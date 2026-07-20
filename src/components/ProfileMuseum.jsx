@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Edit3, Camera, MapPin, BadgeCheck, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
+import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
+import VerifiedMark from './VerifiedMark'
+import { CARD_TINT, cardGlass } from '@/lib/glass'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
@@ -39,11 +41,86 @@ const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
 const SILVER = '#C7C9D1'                                  // solid chrome for lines / marks
 const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
+/* v11: translúcida, no opaca — el vidrio de los chips necesita algo
+   vivo que muestrear, y la atmósfera de la app pasa por detrás. */
+const CARD = CARD_TINT
 const CARD_HI = '#14141A'
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
+
+/* THE COVER DISSOLVE (v11). Two ramps that have to stay in register — they
+   run over the same bleeding box, so a percentage means the same pixel in
+   both.
+
+   COVER_FADE masks the photograph itself: solid through the top half, then a
+   long release to true transparency. Because it ends at alpha 0 rather than
+   at a colour, the tail of the cover reveals the app's live atmosphere
+   instead of a painted black slab — that is the whole difference between a
+   cut and a dissolve.
+
+   COVER_SCRIM is the legibility band (Ley 3): it peaks around 70%, which is
+   where the identity block lands, and then releases to nothing. Ending it
+   opaque is exactly what drew the hard edge before. Both are near-void
+   #07080E/#0A0A0D rather than #08080D so the tail matches the page it
+   dissolves into — three different blacks used to meet at that seam. */
+const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.55) 80%, rgba(0,0,0,.22) 90%, rgba(0,0,0,.06) 96%, rgba(0,0,0,0) 100%)'
+/* El velo tenía un AGUJERO: caía a alpha 0 en el 26%, así que la franja alta
+   de la portada corría a fuerza completa y era justo la que gritaba. Ahora
+   nunca suelta el piso atmosférico (~.30) — la foto vive detrás del vidrio de
+   la galería de arriba a abajo — y sólo se cierra donde tiene que cerrarse:
+   la banda de legibilidad del nombre. La cola (91%→100%) se queda intacta:
+   ésa es la disolución que ganó v11 y no se toca. */
+const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.42) 0%, rgba(7,8,14,.30) 22%, rgba(7,8,14,.34) 44%, rgba(7,8,14,.62) 62%, rgba(8,8,13,.90) 74%, rgba(8,8,13,.88) 82%, rgba(9,9,14,.50) 91%, rgba(10,10,13,.14) 97%, rgba(10,10,13,0) 100%)'
+
+/* LA PORTADA ES ATMÓSFERA, NO PROTAGONISTA (Ley del Lujo Inmersivo).
+   Antes la foto entraba a saturación y brillo completos y peleaba con el
+   nombre por la misma atención — eso es exactamente lo que se leía como
+   "naco": dos cosas gritando en la misma zona.
+   Bajarle la saturación y el brillo NO es esconder la obra: es ponerla
+   detrás del vidrio, como un cuadro iluminado por debajo en una galería.
+   El texto manda, la foto susurra.
+   El contraste sube apenas para que la imagen no se vuelva lodo al oscurecerla
+   — perder brillo sin recuperar forma es lo que aplana una foto. */
+const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
+
+/* CHIPS ANCLADOS A UNA REJILLA (Ley del Lujo Inmersivo).
+   Las pastillas de la tira de identidad —FOLLOW, amigo, MESSAGE— venían cada
+   una con su propio padding (9px 20px, 9px 18px, 8px 16px). Con paddings
+   distintos y iconos de distinto alto, cada pastilla terminaba con una altura
+   ligeramente distinta: la fila flotaba en vez de asentarse. Es un defecto
+   chiquito que el ojo sí registra, y lee como descuido.
+   La cura es fijar la ALTURA, no el padding: con height fija y padding sólo
+   horizontal, toda pastilla mide exactamente lo mismo aunque cambie el icono,
+   el texto o el idioma. Una sola fuente, ningún sitio donde volver a divergir. */
+/* ── LA REJILLA VERTICAL ─────────────────────────────────────────────────
+   El defecto de fondo del perfil no era ninguna pieza en particular: era que
+   cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,
+   20px…). Siete valores distintos apilados leen exactamente como lo que
+   eran, mejoras sueltas puestas una encima de otra, y el ojo lo registra
+   como descuido aunque no sepa nombrarlo.
+
+   Un solo compás, en múltiplos de 4. Y —más importante que la escala— el
+   ritmo se aplica desde el CONTENEDOR con un `gap`, no repartiendo márgenes
+   por hijo: así ninguna franja futura puede inventarse su propio espaciado
+   sin que se note. La rejilla deja de ser disciplina y pasa a ser estructura. */
+const S = { xs: 4, sm: 8, md: 14, lg: 22, xl: 34 }
+
+/* ── ELEVACIÓN, NO BORDES ────────────────────────────────────────────────
+   Dark-first: la profundidad se construye apilando capas de luz apenas
+   distintas sobre el void, no dibujando contornos. Un borde marcado sobre
+   negro lee como caja de CSS; una superficie 4% más clara lee como material. */
+const ELEV_1 = 'rgba(242,238,230,.045)'   // superficie en reposo
+const ELEV_2 = 'rgba(242,238,230,.085)'   // superficie que invita a tocar
+
+const CHIP_H = 38
+const chipBase = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+  height: `${CHIP_H}px`, padding: '0 18px', borderRadius: '100px',
+  fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, letterSpacing: '.02em',
+  whiteSpace: 'nowrap', cursor: 'pointer',
+  transition: 'background .2s, border-color .2s, color .2s, transform .2s',
+}
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
@@ -460,7 +537,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const links = normLinks(data.world_links)
   const worldTheme = THEMES.some(x => x.key === data.world_theme) ? data.world_theme : 'chrome'
   const displaySkin = nameSkin(worldTheme)
-  const marqueeText = marqueeOf(data.marquee_text)
+  /* EL MARQUEE SÓLO EXISTE SI ALGUIEN LO ESCRIBIÓ. `marqueeOf` devuelve el
+     texto POR DEFECTO cuando el campo viene vacío, así que 260 de 299 perfiles
+     mostraban exactamente la misma frase de bienvenida. Una frase que se
+     repite idéntica en todos los mundos no es una bienvenida: es relleno, y
+     delata que nadie la escribió.
+     El helper se queda vivo — lo usa el EDITOR para proponer el default
+     cuando abres a escribir. Lo que cambia es sólo qué se PINTA: tu texto o
+     nada. El vacío aquí es void Cosmos, que es justo lo que queremos. */
+  const marqueeText = (data.marquee_text ?? '').trim()
   const completeness = worldCompleteness(data)
   const displayName = data.full_name || 'Unnamed'
   const initial = displayName[0].toUpperCase()
@@ -481,21 +566,49 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   // OFFER: public sees it only when live pieces hang; the owner sees the
   // invitation only once the layer is live in the DB (honest pre-0017).
   const liveListings = listings.filter((l) => l.status === 'live')
+
+  /* ════ UN CUARTO SE MUESTRA SI TIENE ALGO DENTRO. PUNTO. ════
+
+     Antes cada llave llevaba `|| isOwner`, y eso tenía una consecuencia que
+     sólo se ve al abrir un perfil recién hecho: el dueño aterrizaba en OCHO
+     tarjetas de invitación seguidas, una por cuarto vacío, ~1,200px de "aún
+     no subes nada". Le pasaba a TODO el que llegaba, en el peor momento
+     posible — el primer segundo de su propio mundo. Ocho invitaciones no
+     invitan; abruman, y leen como formulario a medio llenar.
+
+     Ahora el gate es sólo contenido, para dueño y para público por igual, y
+     los cuartos vacíos se juntan MÁS ABAJO en UNA sola invitación compuesta
+     (ver `emptyRooms`). El público no nota diferencia: nunca vio invitaciones.
+     El dueño pasa de ocho paredes vacías a una puerta. */
   const show = {
-    gallery: gallery.length > 0 || isOwner,
-    moments: posts.length > 0 || isOwner,
-    offer: liveListings.length > 0 || (isOwner && (listings.length > 0 || !!social?.ready)),
-    sound: taste.music.length > 0 || isOwner,
-    screen: taste.films.length > 0 || isOwner,
-    influences: taste.influences.length > 0 || isOwner,
-    work: media.length > 0 || isOwner,
-    // TASTE: the public sees it only when something stepped into the light;
-    // the owner meets the invite only once the layer has LOADED (null = an
-    // unknown truth, never an invite flash)
-    taste: publicTasteItems.length > 0 || (isOwner && Array.isArray(publicTastes)),
+    gallery: gallery.length > 0,
+    moments: posts.length > 0,
+    offer: liveListings.length > 0,
+    sound: taste.music.length > 0,
+    screen: taste.films.length > 0,
+    influences: taste.influences.length > 0,
+    work: media.length > 0,
+    taste: publicTasteItems.length > 0,
     // SETS: hosting isn't universal — absence is honest silence, no invite
     sets: upcomingSets.length > 0,
   }
+
+  /* Los cuartos que el dueño todavía no llena, en el orden que él mismo
+     compuso. Dos leyes viejas se respetan aquí en vez de perderse con las
+     tarjetas que las cargaban:
+     · SETS nunca invita — no todo el mundo organiza, y su ausencia es
+       silencio honesto, no una tarea pendiente.
+     · OFFER y TASTE sólo invitan cuando su capa está VIVA y CARGADA. Invitar
+       a un cuarto que todavía no existe en la base es una puerta muerta
+       (Ley 9), y `publicTastes` en null es una verdad desconocida, no un
+       cuarto vacío. */
+  const roomReady = {
+    offer: listings.length > 0 || !!social?.ready,
+    taste: Array.isArray(publicTastes),
+  }
+  const emptyRooms = isOwner
+    ? moduleOrder.filter((k) => k !== 'sets' && !show[k] && (roomReady[k] ?? true))
+    : []
   // editorial catalog numbering, only across the movements actually rendered
   let counter = 0
   const num = {}
@@ -523,7 +636,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         posts arrive through CREATE central — Ley 13) */
     moments: (mt) => (
       <motion.div key="moments" {...reveal} style={{ marginTop: mt }}>
-        <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the wall continues — dated" wide={wide} />
+        <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="posted, with a date" wide={wide} />
         {posts.length > 0
           ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
           : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
@@ -679,23 +792,58 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 60vh, 600px)' : 'clamp(340px, 56vh, 440px)', overflow: 'hidden', background: cover ? VOID : 'transparent' }}>
-        {cover
-          ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          : (
-            /* no cover → the open sky (the page's constellation) + monogram
-               (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
-              <StarField seed={seed} wide={wide} />
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '480px' : '300px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.055, color: BONE }}>{initial}</span>
+      <div style={{ position: 'relative', height: wide ? 'clamp(480px, 66vh, 680px)' : 'clamp(400px, 62vh, 500px)', background: 'transparent' }}>
+        {/* THE ART LAYER (v11). It used to be flush with the hero and buried
+            under a scrim that went fully opaque at the bottom — a hard cut
+            painted over the photo. Now it BLEEDS past the hero and DISSOLVES:
+            a mask carries the image to real transparency, so what shows
+            through underneath is the app's own atmosphere, not a black slab.
+
+            Three things this layer has to keep doing:
+            · overflow:hidden stays HERE (not on the hero) — the 2s
+              scale(1.12)→scale(1) intro needs something to clip against,
+              and the no-cover monogram is 176-300px tall.
+            · zIndex 0 keeps it behind the identity block (3) and behind every
+              section below (all transparent at 3), so the dissolve passes
+              BEHIND the tagline instead of colliding with it.
+            · pointerEvents none — it now overlaps content that must stay
+              clickable. */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
+          overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
+          ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
+        }}>
+          {cover
+            ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: COVER_GRADE }} />
+            : (
+              /* no cover → the open sky (the page's constellation) + monogram
+                 (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
+              <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
+                <StarField seed={seed} wide={wide} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {/* LA INICIAL, CON JERARQUÍA DE LUJO. Estaba a 300/480px:
+                      a ese tamaño deja de ser una marca de agua y se vuelve
+                      una valla publicitaria detrás de la cara. Bajarla no le
+                      quita presencia — se la da, porque ahora acompaña al
+                      nombre en vez de competir con él. El vacío alrededor es
+                      el lujo; la letra sólo lo firma. */}
+                  <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '300px' : '176px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.05, color: BONE }}>{initial}</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+        </div>
 
         {/* scrim — GUARANTEED identity legibility over any art (Ley 3): the
-            lower band always lands the name on near-void, busy cover or not */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)' }} />
+            band peaks exactly where the name sits and then releases to fully
+            transparent. It bleeds with the art so the two ramps stay in
+            register; ending it opaque is what used to draw the seam. */}
+        <div aria-hidden="true" style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
+          zIndex: 1, pointerEvents: 'none',
+          background: cover ? COVER_SCRIM : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
+        }} />
 
         {/* top bar (back / sign-out) floats over the cover */}
         {topBar && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 }}>{topBar}</div>}
@@ -714,17 +862,33 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
         {/* IDENTITY BLOCK — who this is and what they make, as ONE composed
             unit above the fold (Ley 2: the 3-second answer; Ley 3: identity
-            never animates, never competes — editorial scale over a hard
-            scrim, not a 140px war with the art). NO entrance animation, by
-            decision: identity must never depend on an animation firing. */}
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? '30px' : '18px', zIndex: 3 }}>
+            never competes — editorial scale over a scrim, not a 140px war
+            with the art).
+
+            LA ENTRADA CINÉTICA, Y LA LEY QUE NO SE ROMPIÓ PARA TENERLA.
+            Antes decía "NO entrance animation, by decision: identity must
+            never depend on an animation firing". La ley sigue viva; lo que
+            cambió es que ya no hace falta elegir. `.identity-in` anima DESDE
+            un estado desplazado HACIA el natural, sin `forwards` y sin
+            opacity:0 en el estado base — así que si la animación no corre
+            (pestaña oculta, motor lento, movimiento reducido) el bloque ya
+            está exactamente donde debe estar. La identidad no depende de
+            nada; la animación sólo la afina.
+            Sube de 18 a 26px del borde: el aire bajo el nombre es lo que lo
+            hace leer editorial en vez de pegado al canto. */}
+        <div className="identity-in" style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? `${S.xl}px` : '26px', zIndex: 3 }}>
           <div style={{ ...frame, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: wide ? '56px' : '16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '20px' : '13px', minWidth: 0 }}>
               {/* the face — part of the identity block, not a footnote below */}
               <div style={{ position: 'relative', width: wide ? '74px' : '52px', height: wide ? '74px' : '52px', flexShrink: 0, marginBottom: '6px', cursor: isOwner ? 'pointer' : 'default' }} onClick={() => isOwner && fileRef.current?.click()}>
                 {avatar
-                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', outline: `1px solid ${SILVER}`, outlineOffset: '2px', boxShadow: '0 6px 22px rgba(0,0,0,.55)' }} />
-                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, outline: `1px solid ${SILVER}`, outlineOffset: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
+                  /* EL ANILLO ERA UN CONTORNO DURO: 1px de plata sólida a 2px de
+                     distancia, que sobre el void lee como sticker recortado.
+                     Ahora es un aro de luz —hueso al 28% pegado al canto, más
+                     un halo suave— o sea el mismo lenguaje especular del vidrio
+                     de la barra. Elevación, no borde. */
+                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 1px rgba(242,238,230,.28), 0 6px 22px rgba(0,0,0,.55)' }} />
+                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, boxShadow: '0 0 0 1px rgba(242,238,230,.28), 0 6px 22px rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
                 {isOwner && (
                   <>
                     <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: CARD, border: `1px solid ${HAIR_HI}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -741,7 +905,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     the legacy free-text line only when they don't (Ley 3:
                     identity always legible, never invented) */}
                 {crafts.length > 0 ? (
-                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                  /* el oficio ACOMPAÑA al nombre, no compite: una zona, un
+                     protagonista. .82 de opacidad lo manda al susurro sin
+                     tocarle el color de categoría, que sí es información. */
+                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
                     {/* primary ALWAYS leads — regardless of the order the
                         set arrived in (fresh save vs DB read) */}
                     {[...crafts].sort((a, b) => (b.isPrimary === true) - (a.isPrimary === true)).slice(0, 3).map((c, i) => {
@@ -757,19 +924,27 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     {crafts.length > 3 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em' }}>+{crafts.length - 3}</span>}
                   </div>
                 ) : data.discipline && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
                     {data.discipline}
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '14px' : '10px', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 88px)' : 'clamp(38px, 11vw, 52px)', letterSpacing: '.01em', lineHeight: 0.88, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.6)', ...displaySkin }}>{displayName}</h1>
-                  {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', color: STAR, marginBottom: wide ? '10px' : '5px', filter: 'drop-shadow(0 0 9px rgba(232,233,237,.5))' }}><BadgeCheck size={wide ? 24 : 19} /></span>}
+                  {/* EL NOMBRE MANDA — pero por jerarquía, no por tamaño.
+                      Bajó de 52→46px (móvil) y ganó tracking: a la escala
+                      anterior competía con la portada a gritos; a ésta la
+                      gana en silencio, porque ya nada más en la zona pesa lo
+                      mismo. La sombra también bajó (24px/.6 → 16px/.45): con
+                      la foto ya atenuada, una sombra pesada deja de ser
+                      legibilidad y se vuelve halo — y el halo es lo que se
+                      lee como barato. */}
+                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(48px, 5.2vw, 76px)' : 'clamp(34px, 9.5vw, 46px)', letterSpacing: '.02em', lineHeight: 0.9, margin: 0, textShadow: '0 2px 16px rgba(0,0,0,.45)', ...displaySkin }}>{displayName}</h1>
+                  {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: wide ? '10px' : '5px' }}><VerifiedMark size={wide ? 24 : 19} /></span>}
                   {/* guardrail 4: the museum itself — the destination of every
                       labeled card tap — carries the truth on its own hero */}
                   <span style={{ display: 'inline-flex', marginBottom: wide ? '12px' : '7px' }}><SeedPill is_demo={data.is_demo} size={8.5} /></span>
                 </div>
                 {(data.username || data.city || ticket) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 10px rgba(0,0,0,.7)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
                     {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
                     {/* City renders only when the user claimed one — no invented hometown. */}
                     {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -800,20 +975,45 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           Identity (face, name, craft, handle) lives in the hero block now;
           this strip carries the quote (mobile), the links, and the meter —
           composed, not abandoned (Ley 4). */}
-      <div style={{ position: 'relative', ...frame, paddingTop: wide ? '20px' : '16px', zIndex: 3 }}>
-        <div>
+      <div style={{ position: 'relative', ...frame, paddingTop: `${wide ? S.lg : S.md}px`, zIndex: 3 }}>
+        {/* EL RITMO VIVE AQUÍ, NO EN LOS HIJOS. Este div era un envoltorio sin
+            estilos y cada franja de abajo cargaba su propio marginTop — de ahí
+            los siete valores distintos. Ahora el espaciado es del CONTENEDOR,
+            así que cualquier franja que se agregue después entra en compás
+            sola, sin que nadie tenga que acordarse de la regla.
+
+            POR QUÉ `.byline-rhythm` (un `> * + *`) Y NO UN FLEX COLUMN CON GAP:
+            probé el flex primero y rompe la franja del dueño. Aquí adentro
+            conviven DOS tipos de hijo — bandas que deben ocupar todo el ancho
+            (el medidor, la migración de crafts) y pastillas que deben encogerse
+            a su contenido. En flex column hay que elegir: `flex-start` encoge
+            las bandas hasta colapsarlas, `stretch` estira las pastillas hasta
+            volverlas barras. Ninguno de los dos es lo que había.
+            El bloque normal ya hace lo correcto con ambos, así que se queda
+            bloque y sólo se le monta el ritmo encima. Un margen entre hermanos,
+            cero cambios de formato. */}
+        <div className="byline-rhythm" style={{ '--byline-gap': `${wide ? S.md : S.lg}px` }}>
 
         {/* tagline — mobile keeps it here as the featured statement; on wide
             it's already composed into the hero */}
         {!wide && (data.tagline ? (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: '2px 0 0', maxWidth: '460px', letterSpacing: '.005em' }}>
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: 0, maxWidth: '460px', letterSpacing: '.005em' }}>
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
         ) : (isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '2px 0 0' }}>Add a line — what you're on, right now.</p>
+          /* ERA UN <p>: se veía clickeable y no hacía nada. Nada que parezca
+             interactivo puede estar muerto — es lo contrario del lujo. Ahora
+             abre el editor, que es a donde el texto ya prometía llevarte. */
+          <button className="pressable" onClick={startEdit} data-testid="add-tagline"
+            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
+            Add a line — what you're on, right now.
+          </button>
         )))}
         {wide && !data.tagline && isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '0' }}>Add a line — what you're on, right now.</p>
+          <button className="pressable" onClick={startEdit} data-testid="add-tagline-wide"
+            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
+            Add a line — what you're on, right now.
+          </button>
         )}
 
         {/* CONNECT — the social layer's face on the world (0017): follow +
@@ -821,10 +1021,13 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             in the DB (Ley 9: no dead doors) and never for the owner's own
             world (you don't follow yourself — you see your count). */}
         {!editing && social?.ready && !isOwner && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: wide ? '6px' : '16px' }}>
+          /* rowGap explícito: al envolverse, la segunda fila tiene que caer
+             en el mismo ritmo que la primera — si no, la tira se desalinea
+             justo en los teléfonos angostos, que es donde más se nota. */
+          <div style={{ display: 'flex', alignItems: 'center', gap: `${S.sm}px`, rowGap: `${S.sm}px`, flexWrap: 'wrap' }}>
             <button className="pressable" onClick={onFollowToggle} aria-pressed={social.iFollow}
               data-testid="follow-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', borderRadius: '100px', padding: '9px 20px', color: social.iFollow ? BONE : VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+              style={{ ...chipBase, background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', color: social.iFollow ? BONE : VOID }}>
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
               {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
             </button>
@@ -835,36 +1038,39 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
                   onClick={() => { if (window.confirm('¿deshacer amistad?')) friendship.onRemove?.() }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                  style={{ ...chipBase, background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', color: BONE }}>
                   amigos <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: '1px solid transparent', borderRadius: '100px', padding: '9px 18px', color: VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                  style={{ ...chipBase, background: BONE, border: '1px solid transparent', color: VOID }}>
                   accept amigo?
                 </button>
               ) : friendship.state === 'out' ? (
                 <button className="pressable" data-testid="friend-btn" aria-disabled
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_LOW, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'default', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                  style={{ ...chipBase, background: 'transparent', border: `1px solid ${HAIR_HI}`, color: BONE_LOW, cursor: 'default' }}>
                   pending
                 </button>
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}
-                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
-                  onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+                  style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
+                  onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+                  onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
                   + amigo
                 </button>
               )
             )}
             <button className="pressable" onClick={onMessage} data-testid="message-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
-              onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
-              onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+              style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
+              onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+              onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
             </button>
             {(social.followers > 0 || social.following > 0) && (
-              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+              /* la misma altura que las pastillas: el conteo pertenece a la
+                 fila, no flota junto a ella (alignItems:baseline lo dejaba
+                 colgado medio pixel arriba de todo lo demás) */
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: `${CHIP_H}px`, gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
                 {social.followers > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected</span>}
                 {social.following > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> following</span>}
               </span>
@@ -878,20 +1084,20 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             back to curating, never follow-yourself buttons (review catch) */}
         {!editing && selfView && onSelfCurate && (
           <button className="pressable" onClick={onSelfCurate} data-testid="self-world"
-            style={{ marginTop: wide ? '6px' : '16px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 16px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: ELEV_1, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 16px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
             ◇ this is your world — curate it →
           </button>
         )}
         {/* the owner's own count — one honest line, never a vanity wall */}
         {!editing && social?.ready && isOwner && social.followers > 0 && (
-          <div style={{ marginTop: wide ? '6px' : '14px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
             <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected to your world
           </div>
         )}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
         {!editing && links.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: wide ? '2px' : '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${S.sm}px` }}>
             {links.map((l, i) => (
               <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer" className="pressable"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'border-color .2s, color .2s, transform .2s' }}
@@ -904,12 +1110,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           </div>
         )}
         {isOwner && !editing && links.length === 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: wide ? '2px' : '16px' }}>+ add your links — IG, portfolio, sound</div>
+          /* mismo caso que el de arriba: parecía botón, era un div */
+          <button className="pressable" onClick={startEdit} data-testid="add-links"
+            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>
+            + add your links — IG, portfolio, sound
+          </button>
         )}
-        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px' }}>⚠ {upErr}</div>}
+        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
-          <div style={{ marginTop: '18px' }}>
+          <div>
             {/* IN-UI CRAFT MIGRATION (D1): a legacy free-text discipline is
                 invited to become REAL crafts — recognition, not a form. The
                 band lives until the person chooses; nothing is rewritten
@@ -1151,6 +1361,42 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             const std = wide ? '84px' : '58px'
             return MOVEMENTS[k]((k === 'gallery' && i === 0 && !data.bio) ? '44px' : std)
           })}
+
+          {/* ════ LOS CUARTOS QUE FALTAN — UNA PUERTA, NO OCHO ════
+
+              Esto reemplaza las ocho tarjetas de invitación que abrían todo
+              perfil nuevo. Mismo trabajo —decirle al dueño qué le falta y
+              llevarlo al builder— en una sola pieza que se lee en dos
+              segundos en vez de ~1,200px que se leían como abandono.
+
+              Por qué NOMBRA los cuartos en vez de sólo contarlos: "4 cuartos
+              a oscuras" sin decir cuáles obliga a bajar a buscarlos. El
+              nombre ES la invitación; el resto es aire.
+
+              Va al FINAL, después de lo que el mundo ya tiene: lo que
+              construiste manda, lo que falta susurra. Al revés sería un
+              formulario con un perfil abajo. */}
+          {isOwner && !editing && emptyRooms.length > 0 && (
+            <div style={{
+              marginTop: wide ? '72px' : '52px',
+              padding: wide ? '30px 32px' : '26px 22px',
+              borderRadius: '18px', background: ELEV_1,
+              border: `1px solid ${HAIR}`,
+              maxWidth: wide ? '620px' : undefined,
+            }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: BONE_LOW, textTransform: 'uppercase' }}>◇ your world</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '25px', letterSpacing: '.03em', color: BONE, lineHeight: 1, marginTop: `${S.md}px` }}>
+                {emptyRooms.length} {emptyRooms.length === 1 ? 'ROOM' : 'ROOMS'} STILL DARK
+              </div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9.5px', letterSpacing: '.16em', color: BONE_MID, textTransform: 'uppercase', marginTop: `${S.sm}px`, lineHeight: 1.9 }}>
+                {emptyRooms.map((k) => MODULES[k]?.label || k).join('  ·  ')}
+              </div>
+              <button className="pressable" data-testid="rooms-dark-build" onClick={() => setBuilding(true)}
+                style={{ ...chipBase, marginTop: `${S.lg}px`, background: BONE, border: '1px solid transparent', color: VOID }}>
+                BUILD YOUR WORLD →
+              </button>
+            </div>
+          )}
 
           {/* an EMPTY world visited by the public: one honest statement, not
               40% of raw void — the absence gets a voice (panel catch, Leyes
@@ -1575,7 +1821,12 @@ function MediaCard({ item, full, featured }) {
                 ? <img src={p.thumb} alt="" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: .9 }} />
                 : <div style={{ width: '100%', height: '100%', background: `linear-gradient(150deg, rgba(199,201,209,.14), #08080D)` }} />}
               <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7,8,14,.2)' }}>
-                <div style={{ width: featured ? '62px' : '52px', height: featured ? '62px' : '52px', borderRadius: '50%', background: 'rgba(7,8,14,.5)', backdropFilter: 'blur(4px)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 26px rgba(199,201,209,.3)' }}>
+                {/* WebkitBackdropFilter was missing: Safari 17.6 and older
+                    know only the prefixed property, so this circle lost its
+                    blur entirely on exactly the phones the app is built for.
+                    The inset highlight is the v11 edge treatment — the blur
+                    is real here (its backdrop is the video's own thumbnail). */}
+                <div style={{ width: featured ? '62px' : '52px', height: featured ? '62px' : '52px', borderRadius: '50%', background: 'rgba(7,8,14,.5)', WebkitBackdropFilter: 'saturate(150%) blur(6px)', backdropFilter: 'saturate(150%) blur(6px)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,.4), 0 0 26px rgba(199,201,209,.3)' }}>
                   <Play size={featured ? 24 : 20} style={{ color: BONE, marginLeft: '3px' }} fill={BONE} />
                 </div>
               </div>
