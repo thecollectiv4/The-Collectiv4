@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 // v12: Sparkles → LayoutGrid (curate = arranging a gallery, not "magic"),
 // Mark 'star' → Users (a plan is people). ArrowLeft is still used by the
 // composers' Back; Sparkles is gone from this file entirely.
-import { X, ImagePlus, Loader2, ArrowLeft, Tag, Handshake, CalendarPlus, LayoutGrid, Users, Camera } from 'lucide-react'
+import { X, ImagePlus, Loader2, ArrowLeft, Package, Handshake, CalendarPlus, LayoutGrid, Users, Camera } from 'lucide-react'
 import { useWide } from '@/lib/useIsDesktop'
 import Mark from '@/components/Mark'
 import { createWorldPost } from '@/lib/worldPosts'
@@ -35,6 +35,36 @@ const BONE = '#F2EEE6'
 const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
 const FAINT = '#4C4C57'                              // deck --faint (group sub-labels)
+
+/* ---- the path chip's sky (v12) ----------------------------------------
+   The three CREATE paths carry the same atmosphere the app's background
+   got in v12 — a few stars and the gold/blue temperature — so they read as
+   part of the universe instead of flat UI. Held deliberately to a whisper:
+
+   • ONE treatment for all three. The paths differ by SHAPE, never by
+     colour. A colour per icon is borrowed meaning and reads as circus;
+     one temperature across the set reads as a system (Ley del Lujo
+     Inmersivo — less, better placed).
+   • Blue ~9%, gold ~4.5%: the same 3–5% register as the real sky. At this
+     level it lands as TEMPERATURE, not as hue. Museum, not circus.
+   • Pure CSS gradients — no canvas, no extra DOM, nothing per frame. The
+     chips are static until you touch them.
+   • ONLY the three path chips get this. The six action chips stay quiet:
+     three lit moments on the screen, not nine. That restraint is the
+     whole difference between "alive" and "loud". */
+/* Star opacities are higher than the real sky's on purpose: a 30px chip
+   holds four 1px points, and at the background's own 20–35% they simply
+   do not exist on a phone at arm's length. An atmosphere nobody can
+   perceive is a claim, not a feature. These are still points of light on
+   near-black, which is the motif at its most literal. */
+const CHIP_STARS = [
+  'radial-gradient(1.2px 1.2px at 24% 28%, rgba(242,238,230,.85), transparent)',
+  'radial-gradient(1px 1px at 76% 22%, rgba(242,238,230,.55), transparent)',
+  'radial-gradient(1px 1px at 68% 76%, rgba(242,238,230,.42), transparent)',
+  'radial-gradient(1px 1px at 32% 70%, rgba(242,238,230,.3), transparent)',
+].join(',')
+const CHIP_TEMP = 'radial-gradient(130% 130% at 22% 8%, rgba(122,146,190,.09), rgba(198,170,118,.045) 52%, rgba(0,0,0,0) 76%)'
+const CHIP_SKY = `${CHIP_STARS}, ${CHIP_TEMP}`
 const SILVER = '#C7C9D1'
 const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
@@ -216,7 +246,7 @@ function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, on
      elements competing inside one button. */
   const GROUPS = [
     {
-      key: 'share', mark: 'ring', tint: '242,238,230',
+      key: 'share', mark: 'publish', tint: '242,238,230',
       title: 'SHARE', line: 'your world speaks',
       items: [
         { icon: Camera,     title: 'POST TO YOUR WORLD', line: 'Images and a line — dated in your museum.', onGo: onPost, hero: true },
@@ -224,7 +254,7 @@ function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, on
       ],
     },
     {
-      key: 'gather', mark: 'diamond', tint: '232,233,237',
+      key: 'gather', mark: 'converge', tint: '232,233,237',
       title: 'GATHER', line: 'real life, planned',
       items: [
         ...(planReady ? [{ icon: Users, title: 'MAKE A PLAN', line: 'A kickback, a roadtrip, real life.', onGo: onPlan }] : []),
@@ -232,11 +262,14 @@ function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, on
       ],
     },
     {
-      key: 'offer', mark: 'triangle', tint: '199,201,209',
+      key: 'offer', mark: 'pricetag', tint: '199,201,209',
       title: 'OFFER', line: 'your craft, priced',
       items: marketReady ? [
         { icon: Handshake, title: 'OFFER A SERVICE', line: 'Shoots, sets, design — with your rate.', onGo: () => onSell('service') },
-        { icon: Tag,       title: 'SELL A PIECE',    line: 'Clothing, prints, archive — name it, price it.', onGo: () => onSell('piece') },
+        // Package, not Tag: the OFFER path's own symbol is now a price tag,
+        // and the group glyph must not be the same glyph as one of its
+        // children. The piece is the OBJECT; the tag is the pricing.
+        { icon: Package,   title: 'SELL A PIECE',    line: 'Clothing, prints, archive — name it, price it.', onGo: () => onSell('piece') },
       ] : [],
     },
   ].filter((g) => g.items.length > 0)   // a group with nothing live isn't there
@@ -255,10 +288,21 @@ function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, on
       {GROUPS.map((g) => (
         /* testid stays on the group so the v8 walkthrough's visibility
            assertions keep meaning something after the flow changed */
-        <div key={g.key} data-testid={`create-door-${g.key}`} style={{ marginTop: '20px' }}>
-          {/* the section marker doing its actual job */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '9px' }}>
-            <Mark type={g.mark} size={11} color={`rgb(${g.tint})`} />
+        <div key={g.key} className="create-group" data-testid={`create-door-${g.key}`} style={{ marginTop: '20px' }}>
+          {/* THE PATH: a legible symbol in a lit chip. These three are the
+              only lit surfaces on the screen — the atmosphere lives here and
+              nowhere else, so the sky reads as an accent and not a wallpaper. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '10px' }}>
+            <span className="path-chip" aria-hidden style={{
+              width: '30px', height: '30px', flexShrink: 0, borderRadius: '9px',
+              border: `1px solid rgba(${g.tint},.22)`,
+              // the sky, then the path's own faint body tint underneath it
+              backgroundImage: CHIP_SKY,
+              backgroundColor: `rgba(${g.tint},.045)`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Mark type={g.mark} size={14} color={`rgb(${g.tint})`} />
+            </span>
             <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.24em', textTransform: 'uppercase' }}>{g.title}</span>
             <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: FAINT, letterSpacing: '.14em', textTransform: 'uppercase' }}>· {g.line}</span>
             <span style={{ flex: 1, height: '1px', background: HAIR }} />
@@ -278,7 +322,10 @@ function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, on
 function ActionCard({ it, tint, wide }) {
   const Icon = it.icon
   return (
-    <button className="row-lead pressable" data-testid={`create-action-${it.title.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={it.onGo}
+    // row-lead ONLY — index.css: "Includes the press settle, so it REPLACES
+    // .pressable at these sites (never stack both — the transforms would
+    // collide)". The previous v12 push stacked them; this unstacks them.
+    <button className="row-lead" data-testid={`create-action-${it.title.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={it.onGo}
       style={{
         display: 'flex', alignItems: 'center', gap: '13px', width: '100%', textAlign: 'left',
         background: it.hero ? `rgba(${tint},.055)` : 'rgba(242,238,230,.022)',

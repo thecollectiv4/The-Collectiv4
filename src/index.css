@@ -195,6 +195,32 @@ input, textarea, select,
 }
 .row-lead:not(:disabled):active { transform: translateY(1px) scale(.99); }
 
+/* CREATE's three path chips (v12) — the sky, awake for a moment.
+   The chip is static at rest; it only lights when the group's cards are
+   being touched. Movement that CONFIRMS, never movement that decorates
+   (Ley 1: remove the effect and if nothing is lost, it was never needed —
+   remove this and you lose the "I am on this path" feedback).
+   Glow only: no transform, so nothing can collide with .row-lead's own
+   press settle, and no layout is touched. */
+.path-chip {
+  transition: box-shadow var(--dur-base) var(--ease-house),
+              border-color var(--dur-base) var(--ease-house);
+}
+@media (hover: hover) and (pointer: fine) {
+  .create-group:hover .path-chip {
+    border-color: rgba(242,238,230,.32);
+    box-shadow: inset 0 0 14px rgba(242,238,230,.07), 0 0 12px rgba(122,146,190,.10);
+  }
+}
+/* the press bloom — a touch of the gold that lives in the real nebula */
+.create-group:active .path-chip {
+  border-color: rgba(242,238,230,.40);
+  box-shadow: inset 0 0 18px rgba(242,238,230,.11), 0 0 14px rgba(198,170,118,.13);
+}
+@media (prefers-reduced-motion: reduce) {
+  .path-chip { transition: none; }
+}
+
 /* ============================================================
    OVERLAY GRAMMAR — everything arrives from somewhere (Ley 13).
    Sheets rise from the bottom edge; docked panels arrive from

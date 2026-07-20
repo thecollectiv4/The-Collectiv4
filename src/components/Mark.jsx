@@ -44,6 +44,51 @@ export default function Mark({ type = 'ring', size = 14, color = SILVER, filled 
   // PROFILE — a world in orbit. Not a person icon: every profile here is a
   // personal museum, a world. The orbit also separates it from ● decisively.
   else if (type === 'world') shape = <g {...common}><circle cx={c} cy={c} r={s * 0.17} fill={filled ? color : 'none'} /><ellipse cx={c} cy={c} rx={s * 0.42} ry={s * 0.17} transform={`rotate(-22 ${c} ${c})`} /></g>
+
+  /* ===================================================================
+     V12 — THE THREE PATHS OF CREATE (shipped, unlike the nav proposal).
+
+     ○ ◇ △ named SHARE / GATHER / OFFER and said nothing about them. They
+     stay locked as section markers everywhere else in the app; here they
+     were being asked to name a destination, which is not their job.
+
+     These three are drawn in the same hand — one stroke weight, round
+     caps, the 0.1–0.9 envelope — so they read as a SET. The three paths
+     are told apart by SHAPE. Never by colour: they all wear the same
+     Cosmos temperature (see CreateCentral), because a colour per icon is
+     borrowed meaning, and borrowed is how a screen turns into a circus.
+     =================================================================== */
+  // SHARE — out into the world. The near-universal publish glyph: an arrow
+  // leaving an open tray. Legible at 12px, which ○ never was.
+  else if (type === 'publish') shape = (
+    <g {...common}>
+      <path d={`M${s * 0.2} ${s * 0.56} L${s * 0.2} ${s * 0.85} L${s * 0.8} ${s * 0.85} L${s * 0.8} ${s * 0.56}`} />
+      <line x1={c} y1={s * 0.68} x2={c} y2={s * 0.17} />
+      <path d={`M${s * 0.32} ${s * 0.36} L${c} ${s * 0.16} L${s * 0.68} ${s * 0.36}`} />
+    </g>
+  )
+  // GATHER — three points pulled to a common centre. It reads as "things
+  // coming together", and it is also, literally, a constellation: the one
+  // place where the brand's own motif happens to BE the functional symbol.
+  else if (type === 'converge') shape = (
+    <g {...common}>
+      <line x1={c} y1={s * 0.28} x2={c} y2={s * 0.42} />
+      <line x1={s * 0.29} y1={s * 0.68} x2={s * 0.42} y2={s * 0.585} />
+      <line x1={s * 0.71} y1={s * 0.68} x2={s * 0.58} y2={s * 0.585} />
+      <circle cx={c} cy={s * 0.2} r={s * 0.085} />
+      <circle cx={s * 0.23} cy={s * 0.73} r={s * 0.085} />
+      <circle cx={s * 0.77} cy={s * 0.73} r={s * 0.085} />
+      <circle cx={c} cy={s * 0.5} r={s * 0.075} fill={color} stroke="none" />
+    </g>
+  )
+  // OFFER — a price tag. The one glyph nobody has to be taught for "this
+  // has a price on it", which is exactly what the OFFER path means.
+  else if (type === 'pricetag') shape = (
+    <g {...common}>
+      <path d={`M${s * 0.15} ${s * 0.47} L${s * 0.47} ${s * 0.15} L${s * 0.85} ${s * 0.15} L${s * 0.85} ${s * 0.53} L${s * 0.53} ${s * 0.85} Z`} />
+      <circle cx={s * 0.7} cy={s * 0.3} r={s * 0.062} />
+    </g>
+  )
   else shape = <path d={`M${c} ${s * 0.1} L${s * 0.9} ${c} L${c} ${s * 0.9} L${s * 0.1} ${c} Z`} {...(filled ? { fill: color, stroke: 'none' } : common)} />
   return <svg width={s} height={s} viewBox={`0 0 ${s} ${s}`} style={style} aria-hidden="true">{shape}</svg>
 }
