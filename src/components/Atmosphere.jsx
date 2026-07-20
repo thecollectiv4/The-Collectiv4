@@ -190,6 +190,22 @@ export default function Atmosphere() {
     let mx = -9999, my = -9999
     let fadeT = 0
     let clock = 0   // v12: seconds-ish, advanced by the loop — drives twinkle
+    // v12: the bloom, baked once. Alpha rides on globalAlpha at draw time, so
+    // one white sprite serves every brightness and every twinkle phase.
+    let haloSprite = null
+    const buildHalo = () => {
+      const S = 64
+      const cv = document.createElement('canvas')
+      cv.width = S; cv.height = S
+      const g2 = cv.getContext('2d')
+      if (!g2) return null
+      const g = g2.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2)
+      g.addColorStop(0, 'rgba(232,236,246,1)')
+      g.addColorStop(1, 'rgba(232,236,246,0)')
+      g2.fillStyle = g
+      g2.fillRect(0, 0, S, S)
+      return cv
+    }
     let holdBuild = false   // true while the OLD sky fades out — the loop
                             // must neither rebuild nor repaint over it
 
@@ -208,6 +224,7 @@ export default function Atmosphere() {
         canvas.style.height = `${h}px`
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (!haloSprite) haloSprite = buildHalo()
       const rnd = mulberry32(hash(cfg.seed) + 77)
       // the deck's own count: min(40, max(14, w/34)) — scaled by register.
       // quiet surfaces hold a fixed handful: a far star, not a chart.
@@ -391,16 +408,16 @@ export default function Atmosphere() {
         // v12 — magnitude + twinkle. Under reduced-motion the star holds its
         // base alpha: the twinkle is motion and motion is off, full stop.
         const tw = reduced ? 1 : 0.78 + 0.22 * Math.sin(clock * p.tw + p.ph)
-        if (p.halo) {
+        if (p.halo && haloSprite) {
           // the brightest few get a soft bloom — this is what sells "star"
-          // over "dot". Only ~3 per sky, so the cost is noise.
+          // over "dot". The gradient is baked ONCE into a 64px sprite at
+          // build time and blitted here: createRadialGradient in the draw
+          // loop would allocate a gradient object per bright star per frame
+          // (~90/sec on a phone) purely to throw it away. Same picture, no
+          // per-frame garbage.
           const hr = p.r * 5
-          const hg = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, hr)
-          hg.addColorStop(0, `rgba(232,236,246,${0.20 * tw})`)
-          hg.addColorStop(1, 'rgba(232,236,246,0)')
-          ctx.globalAlpha = 1
-          ctx.fillStyle = hg
-          ctx.beginPath(); ctx.arc(p.x, p.y, hr, 0, 6.3); ctx.fill()
+          ctx.globalAlpha = 0.20 * tw
+          ctx.drawImage(haloSprite, p.x - hr, p.y - hr, hr * 2, hr * 2)
         }
         ctx.globalAlpha = p.a * tw
         ctx.fillStyle = p.halo ? '#EDF1FA' : BONE
