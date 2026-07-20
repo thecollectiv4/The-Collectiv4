@@ -391,10 +391,21 @@ input, textarea, select,
    brighten. Hover styles live HERE (not inline) so :hover
    composes with the breathe animation.
    ============================================================ */
-.disc-card { transition: transform var(--dur-slow) var(--ease-house), border-color var(--dur-slow) ease; }
-.disc-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(242,238,230,.34) !important;
+/* v12 — THE LIFT IS GONE, AND IT HAD TO GO. This is the one card in the app
+   carrying real cardGlass() (Community.jsx: the same node holds .disc-card
+   AND the backdrop-filter). glass.js documents that WebKit never re-attaches
+   backdrop sampling once a transform is applied to and removed from a
+   backdrop-filter element — the glass is dead for the rest of the session.
+   The old rule was also an unfenced :hover, so it only ever fired on desktop
+   with a fine pointer: the glass broke on Mac and nowhere else, which is
+   exactly the bug being chased. Depth now comes from the border and the
+   shadow, which cost nothing and cannot poison the compositor. */
+.disc-card { transition: box-shadow var(--dur-slow) var(--ease-house), border-color var(--dur-slow) ease; }
+@media (hover: hover) and (pointer: fine) {
+  .disc-card:hover {
+    border-color: rgba(242,238,230,.34) !important;
+    box-shadow: 0 26px 54px rgba(0,0,0,.52), 0 8px 20px rgba(0,0,0,.38), inset 0 1.5px 0 rgba(242,238,230,.34);
+  }
 }
 /* the banner breathes — slow, alive, never busy */
 @keyframes discBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
@@ -544,7 +555,11 @@ input, textarea, select,
    en tierra de nadie — un blur a medias sobre texto es lo que rompe
    la legibilidad, no el blur completo. */
 @media (prefers-reduced-transparency: reduce) {
-  .glass-nav {
+  /* .glass-header (v12) rides along: the desktop header now carries the same
+     material as the bar, so it must carry the same accessibility floor. It
+     had NO fallback before, because it had no class and no real glass —
+     desktop users of these settings simply got nothing. */
+  .glass-nav, .glass-header {
     background: #121218 !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -559,7 +574,7 @@ input, textarea, select,
 
 /* Alto contraste: bordes definidos, fondo casi opaco. */
 @media (prefers-contrast: more) {
-  .glass-nav { background: #0E0E13 !important; border-color: rgba(242,238,230,.42) !important; }
+  .glass-nav, .glass-header { background: #0E0E13 !important; border-color: rgba(242,238,230,.42) !important; }
   .glass-nav-slot { opacity: 1 !important; }
 }
 

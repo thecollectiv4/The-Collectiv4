@@ -83,6 +83,10 @@ const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.42) 0%, rgba(7,8,14,.3
    El contraste sube apenas para que la imagen no se vuelva lodo al oscurecerla
    — perder brillo sin recuperar forma es lo que aplana una foto. */
 const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
+// v12 desktop: same recipe, one stop further down — a wide cover throws far
+// more total light than a phone's at the same per-pixel brightness, and the
+// identity block has to stay the thing that commands (Ley 3).
+const COVER_GRADE_WIDE = 'saturate(.62) brightness(.52) contrast(1.08)'
 
 /* CHIPS ANCLADOS A UNA REJILLA (Ley del Lujo Inmersivo).
    Las pastillas de la tira de identidad —FOLLOW, amigo, MESSAGE— venían cada
@@ -792,7 +796,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(480px, 66vh, 680px)' : 'clamp(400px, 62vh, 500px)', background: 'transparent' }}>
+      {/* v12 DESKTOP: the hero was 66vh + a 180px bleed, so opening a world on
+          a laptop showed a photograph and nothing else — you had to scroll to
+          learn the person makes anything. On a phone the same ratio leaves the
+          first works peeking, which is why it read correctly there and wrong
+          here. 52vh puts the top of the museum inside the first screen while
+          the portrait still commands it. The photo is atmosphere; the work is
+          the subject (Ley del Lujo Inmersivo). */}
+      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 52vh, 560px)' : 'clamp(400px, 62vh, 500px)', background: 'transparent' }}>
         {/* THE ART LAYER (v11). It used to be flush with the hero and buried
             under a scrim that went fully opaque at the bottom — a hard cut
             painted over the photo. Now it BLEEDS past the hero and DISSOLVES:
@@ -815,7 +826,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
         }}>
           {cover
-            ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: COVER_GRADE }} />
+            /* v12: a touch further down on wide. The grade is a per-pixel
+               value but the eye reads TOTAL light, and a 1440px-wide cover
+               throws ~4x the photons of a phone's at identical brightness.
+               Same intent as the mobile grade, corrected for area. */
+            ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: wide ? COVER_GRADE_WIDE : COVER_GRADE }} />
             : (
               /* no cover → the open sky (the page's constellation) + monogram
                  (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
@@ -963,7 +978,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             </div>
             {/* the quote, composed INTO the hero on wide — not floating below */}
             {wide && data.tagline && (
-              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '360px', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+              /* v12 desktop: space-between at 1440 threw 612px of dead air
+                 between the name and the quote — a pull-quote pinned to the
+                 window edge with nothing to relate to. Pulled in off the edge
+                 and widened, so it reads as the right-hand column of a spread
+                 rather than an island. It is still an editorial judgment call
+                 (see the handback) — the alternative is moving it under the
+                 identity block entirely, which is Pato's taste to settle. */
+              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '420px', marginRight: 'clamp(0px, 7vw, 150px)', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
                 <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
               </p>
             )}

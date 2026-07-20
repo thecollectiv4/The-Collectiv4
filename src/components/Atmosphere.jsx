@@ -180,7 +180,14 @@ export default function Atmosphere() {
     // frameMs=0 let draw() run at display rate, review HIGH), ~30 on touch,
     // and the QUIET register idles at ~15fps: five bare stars drifting
     // 0.16px/frame need nothing more (review catch)
-    const frameMs = preset.fixedCount ? 66 : (finePointer ? 15 : 31)
+    // v12 desktop: the 60fps decision was made for a phone and never
+    // reconsidered against AREA. A full-canvas blit at 2560x1440@66fps is
+    // ~974 Mpx/s against ~42 Mpx/s on a 390px phone — 23x, for a background.
+    // Above ~2.2 Mpx of viewport the sky drops to ~30fps; the drift is
+    // 0.16px/frame and the parallax is a lean, both of which read identically
+    // at 30. Nobody can see the difference; the laptop fan can.
+    const bigViewport = window.innerWidth * window.innerHeight > 2.2e6
+    const frameMs = preset.fixedCount ? 66 : (finePointer && !bigViewport ? 15 : 31)
 
     let nodes = []
     let raf = 0
@@ -228,7 +235,13 @@ export default function Atmosphere() {
       const rnd = mulberry32(hash(cfg.seed) + 77)
       // the deck's own count: min(40, max(14, w/34)) — scaled by register.
       // quiet surfaces hold a fixed handful: a far star, not a chart.
-      const n = preset.fixedCount ?? Math.round(Math.min(40, Math.max(14, Math.floor(w / 34))) * preset.k)
+      /* v12 desktop density. The old formula scaled by WIDTH, so the sky got
+         thinner the bigger the screen: ~42 nodes per megapixel on a phone,
+         ~11 per megapixel at 2560 — the same field stretched over 4x the
+         area, which is why desktop reads empty. Scaling by sqrt(area) keeps
+         the designed density. The 72 ceiling is non-negotiable: links are
+         O(n²), and 72 nodes is already 2,556 distance checks per frame. */
+      const n = preset.fixedCount ?? Math.round(Math.min(72, Math.max(14, Math.sqrt(w * h) / 26)) * preset.k)
       // v12 — the node count is UNCHANGED (the frame budget v10 tuned stays
       // exactly where it was). What changes is that each node now has a
       // MAGNITUDE and a twinkle phase, so the foreground reads as a star
@@ -276,7 +289,16 @@ export default function Atmosphere() {
         bgCache.current.delete(key); bgCache.current.set(key, hit)
         bgCanvas = hit; return
       }
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      /* The BACKGROUND raster is capped at 1.5x on desktop, not 2x. Everything
+         painted into it is low-frequency — a void gradient, four nebula clouds,
+         one soft river — plus sub-pixel dust. None of it carries an edge that
+         2x resolves and 1.5x does not; it is the one layer in the app where
+         the extra samples buy literally nothing visible. It buys 44% of the
+         memory back on the machine with the biggest canvas. The MOVING stars
+         still draw at full DPR (that clamp is untouched, above) — those DO
+         have edges. Phones keep 2x: there the raster is small and cheap. */
+      const bigView = w * h > 1.0e6
+      const dpr = Math.min(bigView ? 1.5 : 2, window.devicePixelRatio || 1)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
       bgCanvas.height = Math.round(h * dpr)
@@ -369,13 +391,18 @@ export default function Atmosphere() {
       b.globalAlpha = 1
       b.globalCompositeOperation = 'source-over'
 
-      // Cap of 4, down from 8. Each entry is a full-viewport canvas at DPR 2 —
-      // ~5–6 MB on a large phone. With per-entity seeds the cache now actually
-      // reaches its cap (it never did when the key was just size|tint), so 8
-      // meant ~50 MB of backing store on the device that can least afford it,
-      // on a surface that also runs Stripe checkout. 4 is ~20 MB and still
-      // holds every sky in a normal back-and-forth.
-      if (bgCache.current.size > 4) bgCache.current.delete(bgCache.current.keys().next().value)
+      /* v12 desktop: the cap was reasoned from a PHONE (~5MB/entry). At
+         2560x1440 DPR2 one entry is 5120x2880x4B = 59 MB, so the same cap
+         meant ~295 MB of backing store for decoration on a laptop. The cap is
+         now sized by area, and `>=` not `>` — the check runs BEFORE the
+         insert, so `> 4` actually kept FIVE resident. Off-by-one, mine. */
+      // 1.0e6 ≈ anything bigger than ~1000x1000, i.e. every real desktop.
+      // A 1440x900 laptop is 1.296e6 and its raster is 20.7 MB per entry —
+      // four of those is 83 MB of decoration. Phones (390x844 = 0.33e6) keep 4.
+      const maxEntries = (w * h > 1.0e6) ? 2 : 4
+      while (bgCache.current.size >= maxEntries) {
+        bgCache.current.delete(bgCache.current.keys().next().value)
+      }
       bgCache.current.set(key, bgCanvas)
     }
 
@@ -386,6 +413,15 @@ export default function Atmosphere() {
       if (!bgCanvas) return
       ctx.drawImage(bgCanvas, 0, 0, w, h)
       const linkA = preset.linkA
+      /* v12 desktop: the link and pointer radii were fixed pixel constants
+         tuned on a phone. At 2560 the stars sit far enough apart that a 120px
+         reach connects almost nothing — the constellation stops drawing its
+         own lines, which is the whole thesis, and the desktop-only pointer
+         link mostly finds no node at all. Both now scale with the diagonal
+         and stay clamped so a phone is untouched. */
+      const diagN = Math.hypot(w, h)
+      const LINK_R = Math.max(120, Math.min(260, diagN * 0.085))
+      const MOUSE_R = Math.max(150, Math.min(320, diagN * 0.105))
       for (let i = 0; i < nodes.length; i++) {
         const p = nodes[i]
         if (!reduced) {
@@ -399,9 +435,9 @@ export default function Atmosphere() {
             const q = nodes[j]
             const dx = p.x - q.x, dy = p.y - q.y
             const d = Math.sqrt(dx * dx + dy * dy)
-            if (d < 120) {
-              // the deck link law: alpha (1-d/120) × register ceiling
-              ctx.globalAlpha = (1 - d / 120) * linkA
+            if (d < LINK_R) {
+              // the deck link law: alpha (1 - d/R) × register ceiling
+              ctx.globalAlpha = (1 - d / LINK_R) * linkA
               ctx.strokeStyle = `rgb(${TINT})`
               ctx.lineWidth = 0.6
               ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke()
@@ -411,9 +447,9 @@ export default function Atmosphere() {
         if (preset.mouse && !reduced) {
           const mdx = p.x - mx, mdy = p.y - my
           const md = Math.sqrt(mdx * mdx + mdy * mdy)
-          if (md < 150) {
+          if (md < MOUSE_R) {
             // the sky reacts to whoever is looking at it (D4)
-            ctx.globalAlpha = (1 - md / 150) * 0.4
+            ctx.globalAlpha = (1 - md / MOUSE_R) * 0.4
             ctx.strokeStyle = BONE
             ctx.lineWidth = 0.7
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mx, my); ctx.stroke()

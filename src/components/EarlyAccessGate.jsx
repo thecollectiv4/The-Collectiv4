@@ -3,6 +3,7 @@ import {
   BONE, BONE_MID, BONE_LOW, FAINT, HAIR, HAIR_HI,
   FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, EASE_HOUSE,
 } from '@/lib/cosmos'
+import { useWide } from '@/lib/useIsDesktop'
 import { normalizeCode, isCodeComplete, checkInviteCode } from '@/lib/earlyAccess'
 
 /* =========================================================================
@@ -37,11 +38,24 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
   const [checking, setChecking] = useState(false)
   const [enter, setEnter] = useState(REDUCED())   // reduced-motion: land composed, not blank
   const inputRef = useRef(null)
+  const wide = useWide()
 
   useEffect(() => {
     if (REDUCED()) return undefined
     const t = setTimeout(() => setEnter(true), 40)
     return () => clearTimeout(t)
+  }, [])
+
+  /* THE DOOR WAS 430px WIDE ON A MAC. index.css puts `max-width:430px` on
+     BODY — the phone frame — and only Layout ever releases it (body.wide-full).
+     This route renders OUTSIDE Layout (App.jsx), so the frame never lifted and
+     the component's own maxWidth was dead code behind it. The first screen a
+     new member ever sees was a phone strip in a black desert, on the exact
+     device the launch statement gets opened from. Same mechanism Layout uses,
+     so there is one way to release the frame, not two. */
+  useEffect(() => {
+    document.body.classList.add('wide-full')
+    return () => document.body.classList.remove('wide-full')
   }, [])
 
   const complete = isCodeComplete(code)
@@ -71,10 +85,13 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
-      padding: '48px 28px', background: 'transparent',
+      padding: wide ? '80px 40px' : '48px 28px', background: 'transparent',
       position: 'relative', zIndex: 1, textAlign: 'center',
     }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
+      {/* A door is a focal moment, so it stays ONE centred column even on a
+          wide screen — the fix is not a second column, it is letting the
+          column and its type reach the scale of the screen they are on. */}
+      <div style={{ width: '100%', maxWidth: wide ? '620px' : '440px' }}>
 
         {/* kicker — the star-chart mark doing the job the design system
             actually assigns it: a section marker, not a destination */}
@@ -86,15 +103,18 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
         <h1 style={{
           ...rise(90), ...chromeText,
           fontFamily: FONT_DISPLAY, fontWeight: 400,
-          fontSize: 'clamp(40px, 12vw, 60px)', lineHeight: 0.94,
-          letterSpacing: '.015em', margin: '22px 0 0',
+          // the headline has to COMMAND the screen it is on; 60px was the
+          // phone ceiling and read timid across a laptop
+          fontSize: wide ? 'clamp(60px, 6vw, 88px)' : 'clamp(40px, 12vw, 60px)',
+          lineHeight: 0.94,
+          letterSpacing: '.015em', margin: wide ? '30px 0 0' : '22px 0 0',
         }}>
           NOT FOR<br />ALL PEOPLE
         </h1>
 
         <p style={{
-          ...rise(170), fontFamily: FONT_SANS, fontSize: '14px', lineHeight: 1.68,
-          color: BONE_MID, margin: '24px auto 0', maxWidth: '34ch',
+          ...rise(170), fontFamily: FONT_SANS, fontSize: wide ? '15.5px' : '14px', lineHeight: 1.68,
+          color: BONE_MID, margin: wide ? '28px auto 0' : '24px auto 0', maxWidth: '34ch',
           // balance kills the one-word orphan line; wraps evenly or not at all
           textWrap: 'balance', textAlign: 'center',
         }}>

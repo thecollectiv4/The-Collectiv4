@@ -12,7 +12,7 @@ import GlassNav from './GlassNav'
 import Mark from './Mark'
 /* v12: Atmosphere/Grain/CosmosProvider moved to App.jsx (one sky, mounted
    above <Routes> so every route gets it — not just Layout's children). */
-import { BUBBLE, WELL, BONE_GLOW } from '@/lib/glass'
+import { BUBBLE, WELL, BONE_GLOW, glassSurface } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
@@ -169,10 +169,29 @@ export default function Layout() {
           body frame doesn't constrain position:fixed). Bebas mark as the door
           home, DM Mono tabs, hairline below. One instrument, editorial. */}
       {consumerWide && (
-        <header style={{
+        /* v12 — THE DESKTOP HEADER FINALLY USES THE HOUSE GLASS.
+           It was rgba(10,10,13,.92) + blur(14px): 92% opaque, so there was
+           nothing to see THROUGH — which is why "the glass doesn't work on
+           desktop". glassSurface() had exactly one call site app-wide
+           (GlassNav), and GlassNav never mounts at >=1024px, so the app's
+           flagship material rendered at ZERO desktop widths. v11 unified the
+           buttons and left the container behind; this is that drift closed.
+           The two projected drop shadows are dropped — they are sized for a
+           floating pill and read as a skirt under a top-flush bar — and the
+           three insets stay, because the specular top edge is the thing that
+           makes it read as glass rather than as a tint. */
+        <header className="glass-header" style={{
+          ...glassSurface({
+            border: 'none',
+            borderBottom: '1px solid rgba(242,238,230,0.14)',
+            borderRadius: 0,
+            boxShadow: [
+              'inset 0 1.5px 0 rgba(242,238,230,0.30)',
+              'inset 0 -1px 0 rgba(7,8,14,0.55)',
+              'inset 0 30px 44px -30px rgba(242,238,230,0.26)',
+            ].join(', '),
+          }),
           position:'fixed', top:0, left:0, right:0, zIndex:9999, height:'56px',
-          background:'rgba(10,10,13,.92)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
-          borderBottom:'1px solid rgba(242,238,230,.08)',
           display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'0 clamp(24px, 4vw, 56px)',
         }}>

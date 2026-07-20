@@ -503,7 +503,11 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
       <ComposerTop onBack={onBack} onClose={onClose} busy={busy} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
         <span aria-hidden style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '10px', border: '1px solid rgba(199,201,209,.28)', background: 'rgba(199,201,209,.07)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          {service ? <Handshake size={15} strokeWidth={1.6} style={{ color: SILVER }} /> : <Tag size={15} strokeWidth={1.6} style={{ color: SILVER }} />}
+          {/* Package, matching the menu's own swap — Tag was dropped from the
+              imports when OFFER took the price-tag symbol, and this second
+              usage was missed: it threw ReferenceError and unmounted the whole
+              composer. Caught by audit, not by the build (runtime-only). */}
+          {service ? <Handshake size={15} strokeWidth={1.6} style={{ color: SILVER }} /> : <Package size={15} strokeWidth={1.6} style={{ color: SILVER }} />}
         </span>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', lineHeight: .95, color: BONE }}>{heading}</div>
       </div>
