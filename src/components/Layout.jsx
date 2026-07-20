@@ -58,8 +58,15 @@ const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/
 // y /legal son formularios, y una columna angosta y centrada es su forma
 // CORRECTA en escritorio, no una deuda. La diferencia es que ahora es una
 // decisión y no un olvido.
+//
+// v12: entra `settings`. Parece un formulario —y por esa regla se habría
+// quedado fuera— pero no lo es: es una LISTA larga de secciones, y en un
+// monitor una lista dentro de un marco de 430px es justo el teléfono varado
+// que el comentario de arriba describe. Entra al modo ancho y se pone su
+// propio techo de 760px adentro (Settings.jsx), que es lo que un settings de
+// escritorio necesita: columna cómoda, no pantalla completa.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience)(\/|$)/.test(path)
+  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience|settings)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()
@@ -185,7 +192,7 @@ export default function Layout() {
           home, DM Mono tabs, hairline below. One instrument, editorial. */}
       {consumerWide && (
         /* v12 — THE DESKTOP HEADER FINALLY USES THE HOUSE GLASS.
-           It was rgba(10,10,13,.92) + blur(14px): 92% opaque, so there was
+           It was rgba(var(--void-rgb),.92) + blur(14px): 92% opaque, so there was
            nothing to see THROUGH — which is why "the glass doesn't work on
            desktop". glassSurface() had exactly one call site app-wide
            (GlassNav), and GlassNav never mounts at >=1024px, so the app's
@@ -198,12 +205,12 @@ export default function Layout() {
         <header className="glass-header" style={{
           ...glassSurface({
             border: 'none',
-            borderBottom: '1px solid rgba(242,238,230,0.14)',
+            borderBottom: '1px solid rgba(var(--ink-rgb),0.14)',
             borderRadius: 0,
             boxShadow: [
-              'inset 0 1.5px 0 rgba(242,238,230,0.30)',
-              'inset 0 -1px 0 rgba(7,8,14,0.55)',
-              'inset 0 30px 44px -30px rgba(242,238,230,0.26)',
+              'inset 0 1.5px 0 rgba(var(--ink-rgb),0.30)',
+              'inset 0 -1px 0 rgba(var(--void-rgb),0.55)',
+              'inset 0 30px 44px -30px rgba(var(--ink-rgb),0.26)',
             ].join(', '),
           }),
           position:'fixed', top:0, left:0, right:0, zIndex:9999, height:'56px',
@@ -211,8 +218,8 @@ export default function Layout() {
           padding:'0 clamp(24px, 4vw, 56px)',
         }}>
           <div onClick={()=>navigate('/')} style={{ display:'flex', alignItems:'baseline', gap:'10px', cursor:'pointer' }}>
-            <span style={{ fontFamily:'Bebas Neue', fontSize:'18px', color:'#F2EEE6', letterSpacing:'.08em' }}>THE COLLECTIV4</span>
-            <span style={{ fontFamily:'DM Mono', fontSize:'8px', color:'#5B5952', letterSpacing:'.3em', textTransform:'uppercase' }}>◇ the creative universe</span>
+            <span style={{ fontFamily:'Bebas Neue', fontSize:'18px', color:'var(--cream)', letterSpacing:'.08em' }}>THE COLLECTIV4</span>
+            <span style={{ fontFamily:'DM Mono', fontSize:'8px', color:'var(--cream-dim)', letterSpacing:'.3em', textTransform:'uppercase' }}>◇ the creative universe</span>
           </div>
           {/* v12: la barra de arriba dejó de vivir suelta aquí. Es un
               componente hermano de GlassNav y comparte glass.js con él —

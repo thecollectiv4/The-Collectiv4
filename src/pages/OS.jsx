@@ -5,7 +5,7 @@ import { supabase } from '@/api/supabase'
 import { useOSAccess } from '@/lib/osAccess'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useIsDesktop, useRailFull } from '@/lib/useIsDesktop'
-import { VOID, VOID_2, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg } from '@/lib/cosmos'
+import { VOID, VOID_2, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, STAR, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, FALL_001_ISO, daysUntil, relTime, COLUMN_LABEL, safeImg, tintChannel } from '@/lib/cosmos'
 import Board from '@/components/os/Board'
 import ContentEngine from '@/components/os/ContentEngine'
 import Brain from '@/components/os/Brain'
@@ -334,7 +334,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
     // the Brain is a first-class citizen of the instrument — its door reads
     // like a presence, not a footnote (silver ring, star mark, steady glow)
     <button onClick={() => setDockOpen(v => !v)} aria-label="Toggle the Brain dock (B)" title="The Brain — press B"
-      style={{ background: dockOpen ? 'rgba(199,201,209,.12)' : 'rgba(199,201,209,.04)', border: `1px solid ${dockOpen ? SILVER : 'rgba(199,201,209,.3)'}`, borderRadius: '100px', padding: '6px 14px', color: dockOpen ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+      style={{ background: dockOpen ? 'rgba(var(--silver-rgb),.12)' : 'rgba(var(--silver-rgb),.04)', border: `1px solid ${dockOpen ? SILVER : 'rgba(var(--silver-rgb),.3)'}`, borderRadius: '100px', padding: '6px 14px', color: dockOpen ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
       <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 7px rgba(232,233,237,.6)' }} />
       The Brain{desktop ? ' · B' : ''}
     </button>
@@ -389,7 +389,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
   const temperature = (
     <div aria-hidden style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0 }}>
       {tabs.map(t => (
-        <div key={t.key} style={{ position: 'absolute', inset: 0, opacity: tab === t.key ? 1 : 0, transition: 'opacity .9s ease', background: `radial-gradient(110% 70% at 50% -8%, rgba(${t.tint},.05) 0%, rgba(${t.tint},0) 55%)` }} />
+        <div key={t.key} style={{ position: 'absolute', inset: 0, opacity: tab === t.key ? 1 : 0, transition: 'opacity .9s ease', background: `radial-gradient(110% 70% at 50% -8%, rgba(${tintChannel(t.tint)},.05) 0%, rgba(${tintChannel(t.tint)},0) 55%)` }} />
       ))}
     </div>
   )
@@ -454,8 +454,8 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
             const active = tab === t.key
             const Icon = t.icon
             return (
-              <button key={t.key} className="pressable" onClick={() => setTab(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? `rgb(${t.tint})` : 'transparent'}`, color: active ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', padding: '8px 4px 10px', cursor: 'pointer', marginBottom: '-3px', whiteSpace: 'nowrap' }}>
-                <Icon size={13} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? `rgb(${t.tint})` : BONE_LOW, flexShrink: 0 }} /> {t.label}
+              <button key={t.key} className="pressable" onClick={() => setTab(t.key)} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', borderBottom: `2px solid ${active ? `rgb(${tintChannel(t.tint)})` : 'transparent'}`, color: active ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', padding: '8px 4px 10px', cursor: 'pointer', marginBottom: '-3px', whiteSpace: 'nowrap' }}>
+                <Icon size={13} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? `rgb(${tintChannel(t.tint)})` : BONE_LOW, flexShrink: 0 }} /> {t.label}
               </button>
             )
           })}
@@ -486,7 +486,7 @@ function BrainDock({ mobile, onClose, children }) {
   )
   if (mobile) {
     return (
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(var(--void-rgb),.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
         <div onClick={(e) => e.stopPropagation()} role="dialog" aria-label="The Brain"
           style={{ position: 'relative', width: '100%', height: '85dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', padding: '16px 16px calc(14px + env(safe-area-inset-bottom,0px))', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {header}
@@ -497,7 +497,7 @@ function BrainDock({ mobile, onClose, children }) {
   }
   return (
     <aside role="dialog" aria-label="The Brain"
-      style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 92vw)', zIndex: 10000, background: `radial-gradient(120% 60% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%), ${VOID}`, borderLeft: `1px solid ${HAIR_HI}`, padding: '16px 18px 14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(440px, 92vw)', zIndex: 10000, background: `radial-gradient(120% 60% at 50% -10%, rgba(var(--ink-rgb),.045) 0%, rgba(var(--ink-rgb),0) 55%), ${VOID}`, borderLeft: `1px solid ${HAIR_HI}`, padding: '16px 18px 14px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {header}
       <div style={{ flex: 1, minHeight: 0, position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column' }}>{children}</div>
     </aside>
@@ -520,7 +520,7 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
      legibility > minimalism). */
   if (!full) {
     return (
-      <aside style={{ width: '68px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: `1px solid ${HAIR}`, padding: '24px 8px 18px', background: 'rgba(10,10,13,.55)' }}>
+      <aside style={{ width: '68px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: `1px solid ${HAIR}`, padding: '24px 8px 18px', background: 'rgba(var(--void-rgb),.55)' }}>
         {/* the brand is a door, not a decoration — tapping it always goes home */}
         <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
           style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
@@ -537,7 +537,7 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
             const Icon = t.icon
             return (
               <button key={t.key} className="pressable" onClick={() => setTab(t.key)} title={t.label} aria-label={t.label} aria-current={active ? 'page' : undefined}
-                style={{ width: '54px', padding: '9px 2px 7px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', background: active ? `rgba(${t.tint},.08)` : 'transparent', border: `1px solid ${active ? `rgba(${t.tint},.3)` : 'transparent'}`, borderRadius: '9px', color: active ? `rgb(${t.tint})` : BONE_LOW, cursor: 'pointer' }}>
+                style={{ width: '54px', padding: '9px 2px 7px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px', background: active ? `rgba(${tintChannel(t.tint)},.08)` : 'transparent', border: `1px solid ${active ? `rgba(${tintChannel(t.tint)},.3)` : 'transparent'}`, borderRadius: '9px', color: active ? `rgb(${tintChannel(t.tint)})` : BONE_LOW, cursor: 'pointer' }}>
                 <Icon size={18} strokeWidth={active ? 1.9 : 1.5} />
                 <span style={{ fontFamily: FONT_MONO, fontSize: '7.5px', letterSpacing: '.08em', textTransform: 'uppercase', lineHeight: 1 }}>{t.short || t.label}</span>
               </button>
@@ -570,7 +570,7 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
   }
 
   return (
-    <aside style={{ width: '232px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '28px 20px 22px', background: 'rgba(10,10,13,.55)' }}>
+    <aside style={{ width: '232px', flexShrink: 0, position: 'sticky', top: 0, height: '100vh', display: 'flex', flexDirection: 'column', borderRight: `1px solid ${HAIR}`, padding: '28px 20px 22px', background: 'rgba(var(--void-rgb),.55)' }}>
       {/* mark — the brand is a door, not a decoration: tapping it goes home */}
       <button onClick={() => navigate('/')} title="Back to The Collectiv4 app" aria-label="Back to The Collectiv4 app"
         style={{ background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left' }}>
@@ -593,8 +593,8 @@ export function Rail({ tabs = TABS, tab, setTab, profile, counts, full = true })
           const Icon = t.icon
           return (
             <button key={t.key} className="pressable" onClick={() => setTab(t.key)} aria-current={active ? 'page' : undefined}
-              style={{ display: 'flex', alignItems: 'center', gap: '11px', background: active ? `rgba(${t.tint},.06)` : 'transparent', border: 'none', borderLeft: `1px solid ${active ? `rgb(${t.tint})` : 'transparent'}`, borderRadius: '0 8px 8px 0', color: active ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', padding: '11px 13px', cursor: 'pointer', textAlign: 'left' }}>
-              <Icon size={15} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? `rgb(${t.tint})` : FAINT, flexShrink: 0 }} />
+              style={{ display: 'flex', alignItems: 'center', gap: '11px', background: active ? `rgba(${tintChannel(t.tint)},.06)` : 'transparent', border: 'none', borderLeft: `1px solid ${active ? `rgb(${tintChannel(t.tint)})` : 'transparent'}`, borderRadius: '0 8px 8px 0', color: active ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', padding: '11px 13px', cursor: 'pointer', textAlign: 'left' }}>
+              <Icon size={15} strokeWidth={active ? 1.9 : 1.5} style={{ color: active ? `rgb(${tintChannel(t.tint)})` : FAINT, flexShrink: 0 }} />
               {t.label}
               <span style={{ marginLeft: 'auto', fontSize: '8px', color: FAINT, letterSpacing: '.1em' }}>{t.code}</span>
             </button>
@@ -662,7 +662,7 @@ export function PulseRow({ counts }) {
 
 function Pill({ label, value, accent }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '8px', border: `1px solid ${accent ? 'rgba(199,201,209,.3)' : HAIR_HI}`, background: accent ? 'rgba(199,201,209,.06)' : 'transparent', borderRadius: '100px', padding: '7px 14px', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '8px', border: `1px solid ${accent ? 'rgba(var(--silver-rgb),.3)' : HAIR_HI}`, background: accent ? 'rgba(var(--silver-rgb),.06)' : 'transparent', borderRadius: '100px', padding: '7px 14px', whiteSpace: 'nowrap' }}>
       <span style={{ fontFamily: FONT_MONO, fontSize: '13px', color: accent ? BONE : BONE_MID }}>{String(value).padStart(2, '0')}</span>
       <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase' }}>{label}</span>
     </span>
@@ -698,7 +698,7 @@ export function Signal({ activity, owners, firstVisit = false }) {
    faint bone glow stays; the solid void is gone so the sky shows through. */
 export function Shell({ children, center }) {
   return (
-    <div className="os-root" style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.045) 0%, rgba(242,238,230,0) 55%)' }}>
+    <div className="os-root" style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'radial-gradient(120% 80% at 50% -10%, rgba(var(--ink-rgb),.045) 0%, rgba(var(--ink-rgb),0) 55%)' }}>
       <div style={{ position: 'relative', zIndex: 1, ...(center ? { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px' } : {}) }}>
         {children}
       </div>

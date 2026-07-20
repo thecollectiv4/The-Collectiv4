@@ -26,9 +26,9 @@ import { glassSurface } from '@/lib/glass'
    navega con teclado no se quede tecleando detrás de un panel abierto.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_LOW = '#5B5952'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
+const BONE = 'var(--cream)'
+const BONE_LOW = 'var(--cream-dim)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
 
 export default function GlassSheet({ title, kicker, onClose, wide, children, maxWidth = '440px' }) {
   const panelRef = useRef(null)
@@ -88,7 +88,7 @@ export default function GlassSheet({ title, kicker, onClose, wide, children, max
           </div>
           <button className="pressable" onClick={onClose} aria-label="Close"
             style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '50%',
-              background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, color: BONE,
+              background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`, color: BONE,
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={14} />
           </button>

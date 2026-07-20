@@ -8,6 +8,7 @@ import { MapPin, Clock, Calendar, Ticket, Users, Check, ArrowRight, ChevronRight
 import { socialReady, joinEventChat, setAttendanceVisibility, VIS_TIERS, VIS_LABEL } from '@/lib/social'
 import { resolveLineupWorlds, normVibe, vibeMeta, experienceTemp } from '@/lib/match'
 import { useCosmosOverride } from '@/components/Atmosphere'
+import { tintChannel } from '@/lib/cosmos'
 
 /* The root landing: THE house event, from the single source of truth
    (useLiveEvent). The composition itself lives in EventShow — /e/:slug
@@ -232,13 +233,13 @@ export function EventShow({ live }) {
   return (
     /* transparent over the shared atmosphere (v8 D1): the room's sky is the
        dense register with the vibe's temperature — no solid void on top */
-    <div style={{position:'relative',zIndex:1,background:'radial-gradient(120% 80% at 50% -10%, rgba(242,238,230,.05) 0%, rgba(242,238,230,0) 55%)',minHeight:'100vh'}}>
+    <div style={{position:'relative',zIndex:1,background:'radial-gradient(120% 80% at 50% -10%, rgba(var(--ink-rgb),.05) 0%, rgba(var(--ink-rgb),0) 55%)',minHeight:'100vh'}}>
 
       {/* HEADER — phone only; on wide the Layout header carries the brand */}
-      {!wide && <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(10,10,13,.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(242,238,230,.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'#F2EEE6',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
+      {!wide && <div style={{position:'fixed',top:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:'430px',zIndex:50,background:'rgba(var(--void-rgb),.9)',backdropFilter:'blur(16px)',borderBottom:'1px solid rgba(var(--ink-rgb),.08)',padding:'12px 28px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>THE COLLECTIV4</div>
         <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-          <div className="pulse-dot" style={{width:'6px',height:'6px',borderRadius:'50%',background:'#C7C9D1',boxShadow:'0 0 10px rgba(199,201,209,.5)'}}/>
+          <div className="pulse-dot" style={{width:'6px',height:'6px',borderRadius:'50%',background:'var(--silver)',boxShadow:'0 0 10px rgba(var(--silver-rgb),.5)'}}/>
           <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.08em'}}>LIVE</span>
         </div>
       </div>}
@@ -255,28 +256,28 @@ export function EventShow({ live }) {
       {/* HERO title block */}
       <div style={{position:'relative',minHeight: wide ? 0 : '460px',display:'flex',flexDirection:'column',justifyContent:'flex-end',padding: wide ? 0 : '48px 28px 32px'}}>
         {/* Ambient bone glow — one, composed with the title block */}
-        <div style={{position:'absolute',top:'60px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(242,238,230,.06) 0%,transparent 70%)',filter:'blur(80px)'}} />
+        <div style={{position:'absolute',top:'60px',left:'-60px',width:'300px',height:'300px',borderRadius:'50%',background:'radial-gradient(circle,rgba(var(--ink-rgb),.06) 0%,transparent 70%)',filter:'blur(80px)'}} />
         <div style={{position:'relative',zIndex:2}}>
           <div className="fade-up" style={{display:'flex',gap:'10px',marginBottom:'22px',flexWrap:'wrap'}}>
             {/* Edition badge - golden glow */}
             <div className="pressable" onClick={()=>navigate('/editions')} style={{
-              border:'1px solid rgba(242,238,230,.35)',borderRadius:'100px',padding:'6px 16px',
-              fontFamily:'DM Mono',fontSize:'10px',color:'#F2EEE6',letterSpacing:'.1em',
+              border:'1px solid rgba(var(--ink-rgb),.35)',borderRadius:'100px',padding:'6px 16px',
+              fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',letterSpacing:'.1em',
               cursor:'pointer',transition:'border-color .2s, transform .2s',
-              background:'linear-gradient(135deg,rgba(242,238,230,.08),rgba(242,238,230,.03))',
-              boxShadow:'0 0 12px rgba(242,238,230,.1)',
+              background:'linear-gradient(135deg,rgba(var(--ink-rgb),.08),rgba(var(--ink-rgb),.03))',
+              boxShadow:'0 0 12px rgba(var(--ink-rgb),.1)',
             }}
-              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(242,238,230,.15),rgba(242,238,230,.08))';e.currentTarget.style.boxShadow='0 0 20px rgba(242,238,230,.15)';e.currentTarget.style.borderColor='rgba(242,238,230,.6)'}}
-              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(242,238,230,.08),rgba(242,238,230,.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(242,238,230,.1)';e.currentTarget.style.borderColor='rgba(242,238,230,.35)'}}>
+              onMouseOver={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(var(--ink-rgb),.15),rgba(var(--ink-rgb),.08))';e.currentTarget.style.boxShadow='0 0 20px rgba(var(--ink-rgb),.15)';e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.6)'}}
+              onMouseOut={e=>{e.currentTarget.style.background='linear-gradient(135deg,rgba(var(--ink-rgb),.08),rgba(var(--ink-rgb),.03))';e.currentTarget.style.boxShadow='0 0 12px rgba(var(--ink-rgb),.1)';e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.35)'}}>
               {event.edition || 'RAN BY ARTISTS'}
             </div>
             {/* Countdown — honest states only: TONIGHT on the day, a real
                 count when it's coming, silence when it's past (Ley 11) */}
             {(isToday || isFuture) && (
-              <div className="glow-pulse" style={{border:'1px solid rgba(199,201,209,.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:isFuture?'pointer':'default',position:'relative',background:'rgba(199,201,209,.04)'}}
+              <div className="glow-pulse" style={{border:'1px solid rgba(var(--silver-rgb),.2)',borderRadius:'100px',padding:'6px 16px',display:'flex',alignItems:'center',gap:'6px',cursor:isFuture?'pointer':'default',position:'relative',background:'rgba(var(--silver-rgb),.04)'}}
                 onMouseOver={()=>isFuture&&setShowCountdown(true)} onMouseOut={()=>setShowCountdown(false)}>
-                <div className="pulse-dot" style={{width:'5px',height:'5px',borderRadius:'50%',background:'#C7C9D1',boxShadow:'0 0 8px rgba(199,201,209,.5)'}} />
-                <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'#C7C9D1',letterSpacing:'.06em'}}>
+                <div className="pulse-dot" style={{width:'5px',height:'5px',borderRadius:'50%',background:'var(--silver)',boxShadow:'0 0 8px rgba(var(--silver-rgb),.5)'}} />
+                <span style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--silver)',letterSpacing:'.06em'}}>
                   {isToday ? 'TONIGHT' : showCountdown ? `${countdown.d}D ${countdown.h}H ${countdown.m}M ${countdown.s}S` : `${days} DAYS`}
                 </span>
               </div>
@@ -307,13 +308,13 @@ export function EventShow({ live }) {
             <div className="fade-up-4" data-testid="event-vibe" style={{display:'flex',alignItems:'center',flexWrap:'wrap',gap:'8px',rowGap:'10px',marginTop:'16px'}}>
               {vMeta && (
                 <span className={vMeta.pulse==='warm'?'temp-warm':vMeta.pulse==='electric'?'temp-electric':undefined}
-                  style={{display:'inline-flex',alignItems:'center',gap:'8px',border:`1px solid rgba(${vMeta.tint},.4)`,background:`rgba(${vMeta.tint},.06)`,borderRadius:'100px',padding:'6px 14px',boxShadow:`0 0 18px rgba(${vMeta.tint},.14)`}}>
-                  <span aria-hidden style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgb(${vMeta.tint})`}}>{vMeta.mark}</span>
+                  style={{display:'inline-flex',alignItems:'center',gap:'8px',border:`1px solid rgba(${tintChannel(vMeta.tint)},.4)`,background:`rgba(${tintChannel(vMeta.tint)},.06)`,borderRadius:'100px',padding:'6px 14px',boxShadow:`0 0 18px rgba(${tintChannel(vMeta.tint)},.14)`}}>
+                  <span aria-hidden style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgb(${tintChannel(vMeta.tint)})`}}>{vMeta.mark}</span>
                   <span style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',textTransform:'uppercase',color:'var(--cream)'}}>{vMeta.label}</span>
                 </span>
               )}
               {vibe.sound.map((s)=>(
-                <span key={s} style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.12em',textTransform:'uppercase',color:'var(--cream-mid)',border:'1px solid rgba(242,238,230,.14)',borderRadius:'100px',padding:'5px 12px'}}>{s}</span>
+                <span key={s} style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.12em',textTransform:'uppercase',color:'var(--cream-mid)',border:'1px solid rgba(var(--ink-rgb),.14)',borderRadius:'100px',padding:'5px 12px'}}>{s}</span>
               ))}
               {vibe.line && <span style={{flexBasis:'100%',fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.06em',fontStyle:'normal'}}>— {vibe.line}</span>}
             </div>
@@ -324,9 +325,9 @@ export function EventShow({ live }) {
       {/* CTA — the right column of the fold on wide; a section on mobile */}
       <div style={{padding: wide ? '0 0 8px' : '0 28px 22px'}}>
         {ticketStatus === 'success' && (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)',marginBottom:'12px'}}>
-            <Check size={16} style={{color:'#C7C9D1'}} />
-            <span style={{color:'#C7C9D1',fontWeight:500,fontSize:'14px'}}>You're in. Check your email for your ticket. See you {shortDate}.</span>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(var(--ink-rgb),.4)',borderRadius:'12px',padding:'18px',background:'rgba(var(--ink-rgb),.06)',marginBottom:'12px'}}>
+            <Check size={16} style={{color:'var(--silver)'}} />
+            <span style={{color:'var(--silver)',fontWeight:500,fontSize:'14px'}}>You're in. Check your email for your ticket. See you {shortDate}.</span>
           </div>
         )}
         {ticketStatus === 'cancelled' && (
@@ -336,9 +337,9 @@ export function EventShow({ live }) {
         )}
         {hasTicket || ticketStatus === 'success' ? (
           <>
-            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(242,238,230,.4)',borderRadius:'12px',padding:'18px',background:'rgba(242,238,230,.06)'}}>
-              <Check size={16} style={{color:'#C7C9D1'}} />
-              <span style={{color:'#C7C9D1',fontWeight:500,fontSize:'14px'}}>You're in. See you {shortDate}.</span>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',border:'1px solid rgba(var(--ink-rgb),.4)',borderRadius:'12px',padding:'18px',background:'rgba(var(--ink-rgb),.06)'}}>
+              <Check size={16} style={{color:'var(--silver)'}} />
+              <span style={{color:'var(--silver)',fontWeight:500,fontSize:'14px'}}>You're in. See you {shortDate}.</span>
             </div>
             {/* THE ROOM CHAT — the room that continues (D2, the Base44 steal
                 rebuilt). Ticket holders only; the door renders only when the
@@ -350,29 +351,29 @@ export function EventShow({ live }) {
                   onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.4)';e.currentTarget.style.background='rgba(232,233,237,.09)'}}
                   onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.2)';e.currentTarget.style.background='rgba(232,233,237,.05)'}}>
                   {chatBusy
-                    ? <Loader2 size={16} style={{color:'#E8E9ED',animation:'spin 1s linear infinite',flexShrink:0}} />
-                    : <MessagesSquare size={16} strokeWidth={1.6} style={{color:'#E8E9ED',flexShrink:0}} />}
+                    ? <Loader2 size={16} style={{color:'var(--star)',animation:'spin 1s linear infinite',flexShrink:0}} />
+                    : <MessagesSquare size={16} strokeWidth={1.6} style={{color:'var(--star)',flexShrink:0}} />}
                   <span style={{flex:1,minWidth:0}}>
                     <span style={{display:'block',fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.05em',lineHeight:1}}>THE ROOM CHAT</span>
                     <span style={{display:'block',fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.08em',marginTop:'4px'}}>outfits, USBs, who's bringing what — the room before the room</span>
                   </span>
                   <ArrowRight size={13} style={{color:'var(--cream-mid)',flexShrink:0}} />
                 </button>
-                {chatErr && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'#E5A0A0',marginTop:'8px'}}>⚠ {chatErr}</div>}
+                {chatErr && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--warn)',marginTop:'8px'}}>⚠ {chatErr}</div>}
               </>
             )}
           </>
         ) : availableTiers.length > 0 ? (
           <button className="pressable" onClick={()=>setTicketOpen(!ticketOpen)} disabled={checkingOut}
-            style={{width:'100%',background:checkingOut?'var(--cream-low)':'#F2EEE6',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'background .25s, transform .25s',boxShadow:'0 4px 20px rgba(242,238,230,.12)'}}
-            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(242,238,230,.2)'}}}
-            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(242,238,230,.12)'}}>
+            style={{width:'100%',background:checkingOut?'var(--cream-low)':'var(--cream)',border:'none',borderRadius:'12px',padding:'18px 24px',cursor:checkingOut?'not-allowed':'pointer',display:'flex',alignItems:'center',justifyContent:'space-between',transition:'background .25s, transform .25s',boxShadow:'0 4px 20px rgba(var(--ink-rgb),.12)'}}
+            onMouseOver={e=>{if(!checkingOut){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 32px rgba(var(--ink-rgb),.2)'}}}
+            onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(var(--ink-rgb),.12)'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
               <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING...' : 'GET YOUR TICKET'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-              {fromPrice != null && <span style={{fontSize:'12px',color:'rgba(10,10,13,.55)',fontWeight:500}}>from ${fromPrice}</span>}
+              {fromPrice != null && <span style={{fontSize:'12px',color:'rgba(var(--void-rgb),.55)',fontWeight:500}}>from ${fromPrice}</span>}
               <ArrowRight size={14} style={{color:'var(--bg)'}} />
             </div>
           </button>
@@ -380,7 +381,7 @@ export function EventShow({ live }) {
           /* nothing sellable YET — the brightest element on screen must not
              promise a purchase the tiers below deny (panel catch, Ley 9).
              The state declares itself; the tier catalog stays visible. */
-          <div style={{width:'100%',border:'1px solid rgba(242,238,230,.22)',background:'rgba(242,238,230,.05)',borderRadius:'12px',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <div style={{width:'100%',border:'1px solid rgba(var(--ink-rgb),.22)',background:'rgba(var(--ink-rgb),.05)',borderRadius:'12px',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               <Ticket size={18} style={{color:'var(--cream-mid)'}} />
               <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--cream)',letterSpacing:'.06em'}}>TICKETS SOON</span>
@@ -406,7 +407,7 @@ export function EventShow({ live }) {
         {availableTiers.length === 0 && tiers.length > 0 && (
           <div style={{marginTop:'10px',display:'flex',flexDirection:'column',gap:'8px'}}>
             {tiers.map((t,i)=>(
-              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:'10px',background:'rgba(242,238,230,.02)',border:'1px solid var(--border)'}}>
+              <div key={i} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 16px',borderRadius:'10px',background:'rgba(var(--ink-rgb),.02)',border:'1px solid var(--border)'}}>
                 <div>
                   <div style={{fontFamily:'Bebas Neue',fontSize:'15px',color:'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
                   {t.note && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>}
@@ -429,14 +430,14 @@ export function EventShow({ live }) {
                 room is forming" (the sales signal), never the private guest list. */}
             <div className={attendees.length > 0 ? 'pressable' : undefined} onClick={attendees.length > 0 ? (()=>setGuestsOpen(v=>!v)) : undefined} role={attendees.length > 0 ? 'button' : undefined} tabIndex={attendees.length > 0 ? 0 : undefined} aria-expanded={attendees.length > 0 ? guestsOpen : undefined} aria-label="Who's confirmed"
               onKeyDown={attendees.length > 0 ? ((ev)=>{ if (ev.key==='Enter'||ev.key===' ') { ev.preventDefault(); setGuestsOpen(v=>!v) } }) : undefined}
-              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:attendees.length > 0 ? 'pointer' : 'default',transition:'border-color .2s, background .2s'}}
-              onMouseOver={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.28)';e.currentTarget.style.background='rgba(242,238,230,.03)'}) : undefined}
-              onMouseOut={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.1)';e.currentTarget.style.background='transparent'}) : undefined}>
+              style={{marginTop:'14px',padding:'13px 16px',border:'1px solid rgba(var(--ink-rgb),.1)',borderRadius:'12px',display:'flex',alignItems:'center',gap:'14px',cursor:attendees.length > 0 ? 'pointer' : 'default',transition:'border-color .2s, background .2s'}}
+              onMouseOver={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.28)';e.currentTarget.style.background='rgba(var(--ink-rgb),.03)'}) : undefined}
+              onMouseOut={attendees.length > 0 ? (e=>{e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.1)';e.currentTarget.style.background='transparent'}) : undefined}>
               {attendees.length > 0 && (<div style={{display:'flex',alignItems:'center'}}>
                 {attendees.slice(0, wide ? 9 : 6).map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
                   return (
-                    <div key={a.id || i} title={a.name || ''} style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.5)',background:'var(--bg-card)',marginLeft: i===0?0:'-9px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                    <div key={a.id || i} title={a.name || ''} style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(var(--silver-rgb),.5)',background:'var(--bg-card)',marginLeft: i===0?0:'-9px',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                       {src
                         ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
                         : <span style={{fontFamily:'Bebas Neue',fontSize:'13px',color:'var(--cream)'}}>{(a.name||'?')[0].toUpperCase()}</span>}
@@ -451,20 +452,20 @@ export function EventShow({ live }) {
               {attendees.length > 0 && <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-mid)',letterSpacing:'.1em',flexShrink:0}}>{guestsOpen ? 'CLOSE ×' : 'SEE WHO →'}</span>}
             </div>
             {guestsOpen && attendees.length > 0 && (
-              <div style={{marginTop:'8px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px',padding:'6px 16px',animation:'fadeUp .3s ease'}}>
+              <div style={{marginTop:'8px',border:'1px solid rgba(var(--ink-rgb),.1)',borderRadius:'12px',padding:'6px 16px',animation:'fadeUp .3s ease'}}>
                 {attendees.map((a, i) => {
                   const src = /^https?:\/\//i.test((a.avatar_url||'').trim()) || (a.avatar_url||'').startsWith('data:image/') ? a.avatar_url : ''
                   return (
                     <div key={a.id || i} className={a.id ? 'row-lead' : 'pressable'} onClick={()=>a.id&&navigate('/user/'+a.id)} role={a.id?'button':undefined} tabIndex={a.id?0:undefined}
                       onKeyDown={(ev)=>{ if (a.id && (ev.key==='Enter'||ev.key===' ')) { ev.preventDefault(); navigate('/user/'+a.id) } }}
-                      style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 0',borderBottom:i<attendees.length-1?'1px solid rgba(242,238,230,.06)':'none',cursor:a.id?'pointer':'default'}}>
-                      <div style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(199,201,209,.35)',background:'var(--bg-card)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                      style={{display:'flex',alignItems:'center',gap:'12px',padding:'10px 0',borderBottom:i<attendees.length-1?'1px solid rgba(var(--ink-rgb),.06)':'none',cursor:a.id?'pointer':'default'}}>
+                      <div style={{width:'30px',height:'30px',borderRadius:'50%',overflow:'hidden',border:'1px solid rgba(var(--silver-rgb),.35)',background:'var(--bg-card)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                         {src
                           ? <img src={src} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
                           : <span style={{fontFamily:'Bebas Neue',fontSize:'13px',color:'var(--cream)'}}>{(a.name||'?')[0].toUpperCase()}</span>}
                       </div>
                       <span style={{flex:1,fontSize:'13px',color:'var(--cream)',fontFamily:'DM Sans',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{a.name||'Guest'}</span>
-                      <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'#C7C9D1',letterSpacing:'.14em',flexShrink:0}}>GOING</span>
+                      <span style={{fontFamily:'DM Mono',fontSize:'8px',color:'var(--silver)',letterSpacing:'.14em',flexShrink:0}}>GOING</span>
                     </div>
                   )
                 })}
@@ -479,14 +480,14 @@ export function EventShow({ live }) {
         {/* D5: your call — who sees you're going. Default connections; the wall
             only shows a guest to those their tier admits (enforced server-side). */}
         {hasTicket && user && (
-          <div style={{marginTop:'10px',padding:'12px 14px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px'}}>
+          <div style={{marginTop:'10px',padding:'12px 14px',border:'1px solid rgba(var(--ink-rgb),.1)',borderRadius:'12px'}}>
             <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream-low)',letterSpacing:'.14em',textTransform:'uppercase',marginBottom:'9px'}}>Who sees you're going</div>
             <div style={{display:'flex',gap:'6px'}}>
               {VIS_TIERS.map(t => {
                 const on = (myVis || 'friends') === t
                 return (
                   <button key={t} disabled={visBusy} onClick={async()=>{ setVisBusy(true); try { const v = await setAttendanceVisibility(event.id, t); setMyVis(v || t) } catch(_) {} finally { setVisBusy(false) } }}
-                    style={{flex:1,borderRadius:'100px',padding:'8px 8px',cursor:visBusy?'default':'pointer',opacity:visBusy?0.6:1,border:`1px solid ${on?'rgba(199,201,209,.5)':'rgba(242,238,230,.14)'}`,background:on?'rgba(199,201,209,.1)':'transparent',color:on?'var(--cream)':'var(--cream-low)',fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.06em',textTransform:'uppercase',transition:'border-color var(--dur-fast) var(--ease-house), background var(--dur-fast) var(--ease-house), color var(--dur-fast) var(--ease-house), opacity var(--dur-fast) var(--ease-house)'}}>
+                    style={{flex:1,borderRadius:'100px',padding:'8px 8px',cursor:visBusy?'default':'pointer',opacity:visBusy?0.6:1,border:`1px solid ${on?'rgba(var(--silver-rgb),.5)':'rgba(var(--ink-rgb),.14)'}`,background:on?'rgba(var(--silver-rgb),.1)':'transparent',color:on?'var(--cream)':'var(--cream-low)',fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.06em',textTransform:'uppercase',transition:'border-color var(--dur-fast) var(--ease-house), background var(--dur-fast) var(--ease-house), color var(--dur-fast) var(--ease-house), opacity var(--dur-fast) var(--ease-house)'}}>
                     {VIS_LABEL[t]}
                   </button>
                 )
@@ -501,10 +502,10 @@ export function EventShow({ live }) {
             {/* consent — the buyer accepts before any available tier can fire.
                 Links open in a new tab so the checkout selection isn't lost. */}
             {availableTiers.length > 0 && (
-              <div style={{border:`1px solid ${agreeError?'rgba(229,160,160,.5)':'rgba(242,238,230,.14)'}`,borderRadius:'10px',padding:'12px 14px',background:'rgba(242,238,230,.02)',marginBottom:'2px',transition:'border-color .2s'}}>
+              <div style={{border:`1px solid ${agreeError?'rgba(229,160,160,.5)':'rgba(var(--ink-rgb),.14)'}`,borderRadius:'10px',padding:'12px 14px',background:'rgba(var(--ink-rgb),.02)',marginBottom:'2px',transition:'border-color .2s'}}>
                 <label style={{display:'flex',gap:'10px',alignItems:'flex-start',cursor:'pointer'}}>
                   <input type="checkbox" checked={agreed} onChange={e=>{setAgreed(e.target.checked); if(e.target.checked) setAgreeError(false)}}
-                    style={{accentColor:'#F2EEE6',width:'15px',height:'15px',marginTop:'2px',flexShrink:0,cursor:'pointer'}} />
+                    style={{accentColor:'var(--cream)',width:'15px',height:'15px',marginTop:'2px',flexShrink:0,cursor:'pointer'}} />
                   <span style={{fontSize:'11px',color:'var(--cream-mid)',lineHeight:1.55}}>
                     I agree to the{' '}
                     <a href="/terms" target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{color:'var(--cream)',textDecoration:'underline'}}>Terms</a>,{' '}
@@ -513,21 +514,21 @@ export function EventShow({ live }) {
                     <span style={{color:'var(--cream-low)'}}>All sales are final — refunds only if the event is cancelled.</span>
                   </span>
                 </label>
-                {agreeError && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'#E5A0A0',letterSpacing:'.06em',marginTop:'8px',paddingLeft:'25px'}}>△ Please accept to continue.</div>}
+                {agreeError && <div style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--warn)',letterSpacing:'.06em',marginTop:'8px',paddingLeft:'25px'}}>△ Please accept to continue.</div>}
               </div>
             )}
             {tiers.map((t,i)=>(
               <div key={i} className={t.status==='available' ? 'pressable' : undefined} onClick={()=>{ if(t.status!=='available') return; if(!agreed){ setAgreeError(true); return } handleCheckout(t.id) }}
-                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(242,238,230,.06)':'rgba(242,238,230,.02)',border:'1px solid '+(t.status==='available'?'rgba(242,238,230,.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
-                onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.5)';e.currentTarget.style.background='rgba(242,238,230,.12)'}}}
-                onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(242,238,230,.25)';e.currentTarget.style.background='rgba(242,238,230,.06)'}}}>
+                style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 16px',borderRadius:'10px',background:t.status==='available'?'rgba(var(--ink-rgb),.06)':'rgba(var(--ink-rgb),.02)',border:'1px solid '+(t.status==='available'?'rgba(var(--ink-rgb),.25)':'var(--border)'),cursor:t.status==='available'?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
+                onMouseOver={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.5)';e.currentTarget.style.background='rgba(var(--ink-rgb),.12)'}}}
+                onMouseOut={e=>{if(t.status==='available'){e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.25)';e.currentTarget.style.background='rgba(var(--ink-rgb),.06)'}}}>
                 <div>
                   <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:t.status==='available'?'var(--cream)':'var(--cream-low)',letterSpacing:'.04em'}}>{t.name}</div>
                   <div style={{fontFamily:'DM Mono',fontSize:'9px',color:t.status==='available'?'var(--cream-mid)':'var(--cream-low)',marginTop:'2px',letterSpacing:'.05em'}}>{t.note}</div>
                 </div>
                 <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                  <span style={{fontFamily:'Bebas Neue',fontSize:'22px',color:t.status==='available'?'#F2EEE6':'var(--cream-low)'}}>{t.doorLabel||'$'+Math.round(t.price/100)}</span>
-                  {t.status==='available'&&<ArrowRight size={12} style={{color:'#F2EEE6'}} />}
+                  <span style={{fontFamily:'Bebas Neue',fontSize:'22px',color:t.status==='available'?'var(--cream)':'var(--cream-low)'}}>{t.doorLabel||'$'+Math.round(t.price/100)}</span>
+                  {t.status==='available'&&<ArrowRight size={12} style={{color:'var(--cream)'}} />}
                 </div>
               </div>
             ))}
@@ -552,23 +553,23 @@ export function EventShow({ live }) {
             const avatar = world && (/^https?:\/\//i.test((world.avatar_url||'').trim()) || (world.avatar_url||'').startsWith('data:image/')) ? world.avatar_url : ''
             return (
             <div key={i} className={world ? 'pressable' : undefined} data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={world ? ()=>navigate('/user/'+world.id) : undefined}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(242,238,230,.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(242,238,230,.1)'}`,cursor:world?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
-              onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.3)';e.currentTarget.style.background='rgba(242,238,230,.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.22)';e.currentTarget.style.background='rgba(242,238,230,.04)'}):undefined}>
-              <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(242,238,230,.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(242,238,230,.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'#F2EEE6',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(var(--ink-rgb),.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(var(--ink-rgb),.1)'}`,cursor:world?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
+              onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.3)';e.currentTarget.style.background='rgba(var(--ink-rgb),.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.22)';e.currentTarget.style.background='rgba(var(--ink-rgb),.04)'}):undefined}>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(var(--ink-rgb),.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(var(--ink-rgb),.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
                 {avatar ? <img src={avatar} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : a.name[0]}
               </div>
               <div style={{flex:1,minWidth:0}}>
                 <div style={{fontFamily:'Bebas Neue',fontSize:'28px',color:'var(--cream)',letterSpacing:'.02em',lineHeight:1}}>{a.name}</div>
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
                 {world && (
-                  <div style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:'6px',fontFamily:'DM Mono',fontSize:'8px',color:'#E8E9ED',letterSpacing:'.16em',textTransform:'uppercase'}}>
-                    <span aria-hidden style={{width:'4px',height:'4px',borderRadius:'50%',background:'#E8E9ED',boxShadow:'0 0 6px rgba(232,233,237,.7)'}} />
+                  <div style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:'6px',fontFamily:'DM Mono',fontSize:'8px',color:'var(--star)',letterSpacing:'.16em',textTransform:'uppercase'}}>
+                    <span aria-hidden style={{width:'4px',height:'4px',borderRadius:'50%',background:'var(--star)',boxShadow:'0 0 6px rgba(232,233,237,.7)'}} />
                     their world is open →
                   </div>
                 )}
               </div>
               <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:'6px'}}>
-                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream)',background:'rgba(242,238,230,.08)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
+                <span style={{fontFamily:'DM Mono',fontSize:'9px',color:'var(--cream)',background:'rgba(var(--ink-rgb),.08)',padding:'4px 12px',borderRadius:'100px',letterSpacing:'.08em',fontWeight:600}}>{a.role}</span>
                 {world && <ChevronRight size={14} style={{color:'var(--cream-low)'}} />}
               </div>
             </div>
@@ -595,10 +596,10 @@ export function EventShow({ live }) {
             const pulseClass = temp.pulse==='warm' ? 'temp-warm' : temp.pulse==='electric' ? 'temp-electric' : undefined
             return (
             <div key={i} className="row-lead" data-testid="event-experience" onClick={()=>navigate('/experience/'+exp.slug)}
-              style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(242,238,230,.08)',cursor:'pointer'}}
-              onMouseOver={e=>{e.currentTarget.style.borderColor=`rgba(${temp.tint},.3)`}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(242,238,230,.08)'}}>
-              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgba(${temp.tint},.75)`,letterSpacing:'.1em',flexShrink:0}}>{String(i+1).padStart(2,'0')}</span>
-              <span aria-hidden className={pulseClass} style={{width:'34px',height:'34px',flexShrink:0,borderRadius:'10px',border:`1px solid rgba(${temp.tint},.32)`,background:`rgba(${temp.tint},.06)`,display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:'DM Mono',fontSize:'13px',color:`rgb(${temp.tint})`,boxShadow:`0 0 14px rgba(${temp.tint},.1)`}}>
+              style={{display:'flex',alignItems:'center',gap:'14px',padding:'14px 2px',borderBottom:'1px solid rgba(var(--ink-rgb),.08)',cursor:'pointer'}}
+              onMouseOver={e=>{e.currentTarget.style.borderColor=`rgba(${tintChannel(temp.tint)},.3)`}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.08)'}}>
+              <span style={{fontFamily:'DM Mono',fontSize:'10px',color:`rgba(${tintChannel(temp.tint)},.75)`,letterSpacing:'.1em',flexShrink:0}}>{String(i+1).padStart(2,'0')}</span>
+              <span aria-hidden className={pulseClass} style={{width:'34px',height:'34px',flexShrink:0,borderRadius:'10px',border:`1px solid rgba(${tintChannel(temp.tint)},.32)`,background:`rgba(${tintChannel(temp.tint)},.06)`,display:'inline-flex',alignItems:'center',justifyContent:'center',fontFamily:'DM Mono',fontSize:'13px',color:`rgb(${tintChannel(temp.tint)})`,boxShadow:`0 0 14px rgba(${tintChannel(temp.tint)},.1)`}}>
                 {temp.mark}
               </span>
               <div style={{flex:1,minWidth:0}}>

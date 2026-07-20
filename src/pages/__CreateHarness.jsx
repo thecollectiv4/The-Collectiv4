@@ -18,7 +18,7 @@ export default function CreateHarness() {
   const [verified, setVerified] = useState(false)
 
   const btn = (on) => ({
-    background: on ? BONE : 'transparent', color: on ? '#0A0A0D' : BONE,
+    background: on ? BONE : 'transparent', color: on ? 'var(--bg)' : BONE,
     border: `1px solid ${on ? BONE : HAIR}`, borderRadius: '4px',
     padding: '10px 16px', fontFamily: FONT_MONO, fontSize: '10px',
     letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer',

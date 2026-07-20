@@ -11,6 +11,7 @@ import { vibeMeta } from '@/lib/match'
 import { Plus, UserCheck } from 'lucide-react'
 import VerifiedMark from './VerifiedMark'
 import { CARD_TINT, cardGlass } from '@/lib/glass'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    FOR YOU — the discovery feed (D2 · 0022): local talent, worlds and
@@ -28,18 +29,18 @@ import { CARD_TINT, cardGlass } from '@/lib/glass'
    an honest, quiet moment with a door to the brainstorm.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
 /* v11: translúcida, no opaca — el vidrio de los chips necesita algo
    vivo que muestrear, y la atmósfera de la app pasa por detrás. */
 const CARD = CARD_TINT
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase() : 'DATE TBA'
@@ -140,7 +141,7 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
         /* three dim hairline frames — no spinner jank */
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '14px' }}>
           {[0, 1, 2].map((i) => (
-            <div key={i} aria-hidden style={{ height: i === 1 ? '108px' : '176px', borderRadius: '16px', border: `1px solid ${HAIR}`, background: 'rgba(242,238,230,.015)' }} />
+            <div key={i} aria-hidden style={{ height: i === 1 ? '108px' : '176px', borderRadius: '16px', border: `1px solid ${HAIR}`, background: 'rgba(var(--ink-rgb),.015)' }} />
           ))}
         </div>
       ) : empty ? (
@@ -222,7 +223,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
     <>
       {primary && (
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px', minWidth: 0, overflow: 'hidden' }}>
-          <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${meta.tint})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primary.name}</span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${tintChannel(meta.tint)})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{primary.name}</span>
           {crafts.length > 1 && <span style={{ fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.1em', flexShrink: 0 }}>+{crafts.length - 1}</span>}
         </div>
       )}
@@ -234,7 +235,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
         {canFollow && (
           <button className="pressable" onClick={(ev) => { ev.stopPropagation(); onFollow() }}
             aria-label={following ? `Unfollow ${name}` : `Follow ${name}`}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: following ? 'rgba(199,201,209,.10)' : 'transparent', border: `1px solid ${following ? 'rgba(199,201,209,.45)' : HAIR_HI}`, borderRadius: '100px', padding: '6px 14px', color: following ? SILVER : BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: following ? 'rgba(var(--silver-rgb),.10)' : 'transparent', border: `1px solid ${following ? 'rgba(var(--silver-rgb),.45)' : HAIR_HI}`, borderRadius: '100px', padding: '6px 14px', color: following ? SILVER : BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
             {following ? <UserCheck size={10} /> : <Plus size={10} />}
             {/* v12: decía "Connected" queriendo decir "ya lo sigues" — la
                 misma colisión que el museo. El vínculo mutuo se llama
@@ -259,12 +260,12 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
         <div style={{ position: 'relative', height: '132px', overflow: 'hidden', background: VOID }}>
           {backdrop
             ? <img src={backdrop} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '110px', lineHeight: 1, color: 'rgba(242,238,230,.06)' }}>{initial}</span>}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 25%, #0E0E13 100%)' }} />
+            : <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '110px', lineHeight: 1, color: 'rgba(var(--ink-rgb),.06)' }}>{initial}</span>}
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 25%, var(--card-solid) 100%)' }} />
           {p.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={16} /></span>}
           {seedBadge && <span style={{ position: 'absolute', top: '9px', left: '9px', display: 'inline-flex' }}>{seedBadge}</span>}
         </div>
-        <div style={{ position: 'absolute', left: '14px', top: '108px', width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
+        <div style={{ position: 'absolute', left: '14px', top: '108px', width: '48px', height: '48px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(var(--shadow-rgb),.5)', zIndex: 2 }}>
           {avatar
             ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '21px', color: BONE }}>{initial}</span>}
@@ -286,7 +287,7 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
       {cover && (
         <>
           <img src={cover} alt="" loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: .2 }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(10,10,13,.94) 0%, rgba(10,10,13,.72) 55%, rgba(10,10,13,.9) 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(var(--void-rgb),.94) 0%, rgba(var(--void-rgb),.72) 55%, rgba(var(--void-rgb),.9) 100%)' }} />
         </>
       )}
       <div style={{ position: 'relative', display: 'flex', gap: '14px', padding: '16px' }}>
@@ -321,12 +322,12 @@ function EventCard({ ev, onOpen }) {
     <div data-testid={`foryou-event-${ev.slug}`} className="pressable" role="button" tabIndex={0}
       aria-label={`Enter ${ev.title}`} onClick={onOpen}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${meta ? `rgba(${meta.tint},.28)` : HAIR_HI}`, background: CARD, cursor: 'pointer', padding: '16px' }}>
+      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${meta ? `rgba(${tintChannel(meta.tint)},.28)` : HAIR_HI}`, background: CARD, cursor: 'pointer', padding: '16px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>A room</span>
         {meta && (
-          <span className={pulseClass} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', border: `1px solid rgba(${meta.tint},.4)`, background: `rgba(${meta.tint},.06)`, borderRadius: '100px', padding: '3px 11px' }}>
-            <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgb(${meta.tint})` }}>{meta.mark}</span>
+          <span className={pulseClass} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', border: `1px solid rgba(${tintChannel(meta.tint)},.4)`, background: `rgba(${tintChannel(meta.tint)},.06)`, borderRadius: '100px', padding: '3px 11px' }}>
+            <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgb(${tintChannel(meta.tint)})` }}>{meta.mark}</span>
             <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: BONE }}>{meta.label}</span>
           </span>
         )}

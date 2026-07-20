@@ -11,51 +11,51 @@ const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 const EXPERIENCES = {
   'live-art': {
     label:'LIVE ART', iconName:'Paintbrush',
-    color:'rgba(242,238,230,.05)', borderColor:'rgba(242,238,230,.15)', accent:'#F2EEE6',
-    gradient:'linear-gradient(160deg,#0A0A0D,#0A0A0D,#0A0A0D)',
+    color:'rgba(var(--ink-rgb),.05)', borderColor:'rgba(var(--ink-rgb),.15)', accent:'var(--cream)',
+    gradient:'linear-gradient(160deg,var(--bg),var(--bg),var(--bg))',
     fullDesc:"Live painters take over the space as the night unfolds. You don't just see the finished work — you witness its creation. Each stroke synced to the music, each piece a permanent record of this specific night.",
     artistNote:"Drecol takes the stage as the live painter for Edition 002, creating work in real time as the music plays. Expect raw, expressive work — nothing cleaned up for a gallery.",
     details:["Original work created live during the event","All pieces available for purchase on the night","Artists present to talk about their work"],
     artists:[
-      { name:'Drecol', slug:'drecol', color:'#F2EEE6', role:'Live Painter · Featured Artist', desc:'Painting live as the music plays. Each piece is a one-of-one record of the night — created in the room, in the moment.' },
+      { name:'Drecol', slug:'drecol', color:'var(--cream)', role:'Live Painter · Featured Artist', desc:'Painting live as the music plays. Each piece is a one-of-one record of the night — created in the room, in the moment.' },
     ],
   },
   'gallery': {
     label:'GALLERY', iconName:'Frame',
-    color:'rgba(199,201,209,.04)', borderColor:'rgba(199,201,209,.12)', accent:'#C7C9D1',
-    gradient:'linear-gradient(160deg,#0A0A0D,#0A0A0D,#0A0A0D)',
+    color:'rgba(var(--silver-rgb),.04)', borderColor:'rgba(var(--silver-rgb),.12)', accent:'var(--silver)',
+    gradient:'linear-gradient(160deg,var(--bg),var(--bg),var(--bg))',
     fullDesc:"A curated selection of original works on display throughout the venue. Not behind glass — in the room with you. Art that lives in the same space as the music and the people.",
     artistNote:"Each piece was selected to reflect the energy of this edition. The gallery is a living part of the event — walk through it, talk about it, feel it.",
     details:["Curated original works on display","Art available for purchase","Meet the artists in person","Pieces created specifically for this edition"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C7C9D1', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
-      { name:'Drecol', slug:'drecol', color:'#F2EEE6', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'var(--silver)', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
+      { name:'Drecol', slug:'drecol', color:'var(--cream)', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
       { name:'Pato Durán', slug:'pato-duran', profile_id:PATO, color:'#4A7AFF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
-      { name:'Diego Villaseñor', slug:'diego-villasenor', profile_id:DIEGO, color:'#C7C9D1', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
+      { name:'Diego Villaseñor', slug:'diego-villasenor', profile_id:DIEGO, color:'var(--silver)', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
     ],
   },
   'fashion': {
     label:'FASHION POP-UP', iconName:'Shirt',
-    color:'rgba(199,201,209,.04)', borderColor:'rgba(199,201,209,.12)', accent:'#C7C9D1',
-    gradient:'linear-gradient(160deg,#0A0A0D,#0A0A0D,#0A0A0D)',
+    color:'rgba(var(--silver-rgb),.04)', borderColor:'rgba(var(--silver-rgb),.12)', accent:'var(--silver)',
+    gradient:'linear-gradient(160deg,var(--bg),var(--bg),var(--bg))',
     fullDesc:"A curated selection of Houston's most compelling fashion voices. Independent designers, emerging brands, and makers who turn fabric into identity. Not a mall — a living fashion gallery.",
     artistNote:"Each brand at the pop-up was personally invited. The selection reflects Houston's creative scene: diverse, authentic, and impossible to find anywhere else in one room.",
     details:["Houston-based designers only","Limited and exclusive pieces","Direct from the makers — no middlemen","Collab merch with RBA branding available"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C7C9D1', role:'Artist · Designer', desc:'Bringing his visual world into wearable art. Original designs that bridge street culture and fine art.' },
-      { name:'Stained Vase', slug:'stained-vase', color:'#C7C9D1', role:'Brand Partner', desc:'Houston-based brand turning identity into fabric. Exclusive pieces designed for this edition.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'var(--silver)', role:'Artist · Designer', desc:'Bringing his visual world into wearable art. Original designs that bridge street culture and fine art.' },
+      { name:'Stained Vase', slug:'stained-vase', color:'var(--silver)', role:'Brand Partner', desc:'Houston-based brand turning identity into fabric. Exclusive pieces designed for this edition.' },
     ],
   },
   'screen-printing': {
     label:'SCREEN PRINTING', iconName:'Layers',
-    color:'rgba(199,201,209,.04)', borderColor:'rgba(199,201,209,.12)', accent:'#C7C9D1',
-    gradient:'linear-gradient(160deg,#0A0A0D,#0A0A0D,#0A0A0D)',
+    color:'rgba(var(--silver-rgb),.04)', borderColor:'rgba(var(--silver-rgb),.12)', accent:'var(--silver)',
+    gradient:'linear-gradient(160deg,var(--bg),var(--bg),var(--bg))',
     fullDesc:"A live screen printing station producing exclusive RBA Edition 002 merch in real time. Watch the process, choose your design, wear it out. Collab pieces from Houston artists — made that night, not before.",
     artistNote:"Designed in collaboration with Houston artists for this edition only. Once the supply runs out, the design is gone. No restocks. No online store. If you're there, you can have it.",
     details:["Printed live on-site","Limited quantities — first come, first served","RBA 002 exclusive designs","Collab artist pieces available"],
     artists:[
-      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C7C9D1', role:'Artist · Designer', desc:'Original artwork translated into screen-printed pieces. Each design is exclusive to this edition.' },
-      { name:'Stained Vase', slug:'stained-vase', color:'#C7C9D1', role:'Brand Partner', desc:'Collab designs merging Stained Vase aesthetic with the RBA universe. Limited run, one night only.' },
+      { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'var(--silver)', role:'Artist · Designer', desc:'Original artwork translated into screen-printed pieces. Each design is exclusive to this edition.' },
+      { name:'Stained Vase', slug:'stained-vase', color:'var(--silver)', role:'Brand Partner', desc:'Collab designs merging Stained Vase aesthetic with the RBA universe. Limited run, one night only.' },
     ],
   },
 }
@@ -95,7 +95,7 @@ export default function ExperienceDetail() {
   const IconComp = ICON_MAP[exp.iconName]
 
   return (
-    <div style={{background:`linear-gradient(180deg, ${exp.accent}0A 0%, ${exp.accent}05 15%, ${exp.accent}03 30%, #0A0A0D 50%, #0A0A0D 100%)`,minHeight:'100vh',position:'relative'}}>
+    <div style={{background:`linear-gradient(180deg, ${exp.accent}0A 0%, ${exp.accent}05 15%, ${exp.accent}03 30%, var(--bg) 50%, var(--bg) 100%)`,minHeight:'100vh',position:'relative'}}>
       {/* Ambient color orb that extends far down */}
       <div style={{position:'absolute',top:'0',left:'0',width:'100%',height:'800px',background:`radial-gradient(ellipse at 30% 15%, ${exp.accent}0C 0%, transparent 50%)`,pointerEvents:'none'}} />
       {/* v12 — la medida en escritorio. Antes esta página se quedaba en el
@@ -107,7 +107,7 @@ export default function ExperienceDetail() {
         padding: wide ? '72px clamp(32px, 5vw, 64px) 64px' : '60px 28px 40px',
         maxWidth: wide ? '860px' : undefined, margin: wide ? '0 auto' : undefined}}>
         <div style={{position:'absolute',top:'40px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}10 0%,transparent 70%)`,filter:'blur(60px)'}} />
-        <button className="pressable" onClick={()=>navigate('/')} style={{position:'relative',zIndex:5,background:'rgba(10,10,13,.5)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',marginBottom:'40px',width:'fit-content',transition:'border-color .2s, color .2s, transform .2s'}}
+        <button className="pressable" onClick={()=>navigate('/')} style={{position:'relative',zIndex:5,background:'rgba(var(--void-rgb),.5)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',marginBottom:'40px',width:'fit-content',transition:'border-color .2s, color .2s, transform .2s'}}
           onMouseOver={e=>{e.currentTarget.style.borderColor='var(--cream-low)';e.currentTarget.style.color='var(--cream)'}}
           onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border-hi)';e.currentTarget.style.color='var(--cream-mid)'}}>
           <ArrowLeft size={13}/> Back
@@ -194,7 +194,7 @@ export default function ExperienceDetail() {
         </div>
 
         <button className="pressable" onClick={()=>navigate('/')} style={{width:'100%',background:'var(--cream)',border:'none',borderRadius:'12px',padding:'16px',display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',cursor:'pointer',transition:'transform .2s'}}
-          onMouseOver={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(242,238,230,.15)'}}
+          onMouseOver={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 16px rgba(var(--ink-rgb),.15)'}}
           onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}>
           <Ticket size={16} style={{color:'var(--bg)'}}/>
           {/* No invented price — the landing shows the real tiers. */}

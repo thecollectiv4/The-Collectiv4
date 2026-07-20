@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
-import { LogOut, Calendar, MapPin, Clock, ChevronRight, Copy, Check } from 'lucide-react'
+import { SlidersHorizontal, Calendar, MapPin, Clock, ChevronRight, Copy, Check } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
@@ -17,7 +17,10 @@ import { fetchUpcomingSets } from '@/lib/world'
 import { isOwnerFounder } from '@/lib/osAccess'
 
 export default function Profile() {
-  const { user, loading: authLoading, signOut } = useAuth()
+  // signOut ya no se desestructura aquí: se fue con el botón a /settings.
+  // Un import/binding vivo sin uso es basura que el próximo lector lee como
+  // "esto todavía hace algo" (misma nota que Layout.jsx dejó en su día).
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const live = useLiveEvent()
   const [profile, setProfile] = useState(null)
@@ -230,15 +233,23 @@ export default function Profile() {
     } catch { return null }
   }
 
+  {/* v12 — AQUÍ HABÍA UN "SIGN OUT" Y AHORA HAY UNA PUERTA.
+      Cerrar sesión se mudó a /settings, que es donde vive junto a todo lo
+      demás que gobierna tu cuenta (§09). Dejarlo en los dos lados era la
+      opción cobarde: dos botones que hacen lo mismo en una barra de dos
+      elementos, y el de aquí compitiendo por espacio con la puerta que
+      lleva a las otras ocho secciones.
+      Se pierde un toque de atajo y se gana un lugar donde buscar. Si Diego
+      lo quiere de vuelta arriba, es este bloque y nada más. */}
   const topBar = (
     <>
       <span />
       {/* ghost silver, same register as the Cover pill — the palette admits
           no salmon, not even as "danger" (panel catch, Ley 14) */}
-      <button onClick={async () => { await signOut(); navigate('/') }}
-        style={{ background: 'rgba(10,10,13,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(199,201,209,.22)', borderRadius: '100px', padding: '6px 14px', color: '#C7C9D1', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'border-color .2s' }}
-        onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.45)'} onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.22)'}>
-        <LogOut size={11} /> Sign Out
+      <button onClick={() => navigate('/settings')} aria-label="Settings"
+        style={{ background: 'rgba(var(--void-rgb),.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(var(--silver-rgb),.22)', borderRadius: '100px', padding: '6px 14px', color: 'var(--silver)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'border-color .2s' }}
+        onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.45)'} onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.22)'}>
+        <SlidersHorizontal size={11} /> Settings
       </button>
     </>
   )
@@ -275,7 +286,7 @@ export default function Profile() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
                     <span style={{ fontFamily: 'DM Mono', fontSize: '12px', color: 'var(--cream)', letterSpacing: '.04em', fontWeight: 600 }}>{ticket.qr_code}</span>
                     <button onClick={() => { navigator.clipboard.writeText(ticket.qr_code); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-                      {copied ? <Check size={14} style={{ color: '#C7C9D1' }} /> : <Copy size={14} style={{ color: 'var(--cream-low)' }} />}
+                      {copied ? <Check size={14} style={{ color: 'var(--silver)' }} /> : <Copy size={14} style={{ color: 'var(--cream-low)' }} />}
                     </button>
                   </div>
                 </>
@@ -284,17 +295,17 @@ export default function Profile() {
                 <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.06em' }}>{fmtPrice(Number(ticket.price_paid))} PAID</div>
               )}
             </div>
-            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(199,201,209,.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#C7C9D1', boxShadow: '0 0 6px rgba(199,201,209,.4)' }} />
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#C7C9D1', letterSpacing: '.06em', fontWeight: 600 }}>CONFIRMED</span>
+            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(var(--silver-rgb),.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--silver)', boxShadow: '0 0 6px rgba(var(--silver-rgb),.4)' }} />
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--silver)', letterSpacing: '.06em', fontWeight: 600 }}>CONFIRMED</span>
             </div>
           </div>
         ) : (
           <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .3s' }}
             onClick={() => navigate('/')}
-            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,238,230,.2)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
+            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.2)'} onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
             <div style={{ padding: '24px', background: 'var(--bg-card)' }}>
-              <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>{live.name} {live.editionNumber && <span style={{ color: '#F2EEE6' }}>{live.editionNumber}</span>}</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: 'var(--cream)' }}>{live.name} {live.editionNumber && <span style={{ color: 'var(--cream)' }}>{live.editionNumber}</span>}</div>
               <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)', marginTop: '4px', letterSpacing: '.08em' }}>{live.edition || 'UPCOMING'}</div>
               <div style={{ display: 'flex', gap: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
                 {[[Calendar, live.dateMed.toUpperCase()], live.doors ? [Clock, live.doors.toUpperCase()] : null, live.city ? [MapPin, live.city.toUpperCase()] : null]
@@ -358,11 +369,11 @@ export default function Profile() {
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>THE INSTRUMENT</div>
           <div onClick={() => navigate('/os')}
             style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .3s' }}
-            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(242,238,230,.2)'}
+            onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.2)'}
             onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
             <div style={{ padding: '22px 24px', background: 'var(--bg-card)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: '#C7C9D1', letterSpacing: '.08em' }}>△</span>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: 'var(--silver)', letterSpacing: '.08em' }}>△</span>
                 <span style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', letterSpacing: '.02em', lineHeight: 1 }}>OS</span>
               </div>
               <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--cream-low)', marginTop: '8px', lineHeight: 1.5 }}>

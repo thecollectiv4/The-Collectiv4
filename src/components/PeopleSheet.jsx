@@ -23,11 +23,11 @@ import VerifiedMark from './VerifiedMark'
    tiene que explicarse, porque "cero" y "no cargó" se ven idénticos si no.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const HAIR = 'rgba(242,238,230,0.08)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 

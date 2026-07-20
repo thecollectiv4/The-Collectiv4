@@ -10,14 +10,14 @@ import { postDate } from '@/lib/worldPosts'
    lives in ProfileMuseum with the other movements.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) ? raw : '')
 

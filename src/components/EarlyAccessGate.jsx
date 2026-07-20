@@ -73,7 +73,7 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
   }
 
   // the one moment of light on the page: the field wakes as the code completes
-  const fieldBorder = error ? 'rgba(229,160,160,.5)' : complete ? 'rgba(242,238,230,.42)' : HAIR_HI
+  const fieldBorder = error ? 'rgba(229,160,160,.5)' : complete ? 'rgba(var(--ink-rgb),.42)' : HAIR_HI
 
   const rise = (d) => ({
     opacity: enter ? 1 : 0,
@@ -137,7 +137,7 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
             spellCheck={false}
             inputMode="text"
             style={{
-              width: '100%', background: 'rgba(242,238,230,.022)',
+              width: '100%', background: 'rgba(var(--ink-rgb),.022)',
               border: `1px solid ${fieldBorder}`, borderRadius: '4px',
               padding: '18px 16px', textAlign: 'center',
               fontFamily: FONT_MONO, fontSize: '16px', letterSpacing: '.22em',
@@ -145,11 +145,11 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
               transition: `border-color .35s ${EASE_HOUSE}, background .35s ${EASE_HOUSE}`,
             }}
           />
-          <div style={{ marginTop: '10px', fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.24em', textTransform: 'uppercase', color: error ? '#E5A0A0' : FAINT, minHeight: '14px', transition: `color .3s ${EASE_HOUSE}` }}>
+          <div style={{ marginTop: '10px', fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.24em', textTransform: 'uppercase', color: error ? 'var(--warn)' : FAINT, minHeight: '14px', transition: `color .3s ${EASE_HOUSE}` }}>
             {error ? '' : 'Invitation code'}
           </div>
           {error && (
-            <div style={{ fontFamily: FONT_SANS, fontSize: '12.5px', lineHeight: 1.55, color: '#E5A0A0', marginTop: '2px', maxWidth: '32ch', marginInline: 'auto' }}>
+            <div style={{ fontFamily: FONT_SANS, fontSize: '12.5px', lineHeight: 1.55, color: 'var(--warn)', marginTop: '2px', maxWidth: '32ch', marginInline: 'auto' }}>
               {error}
             </div>
           )}
@@ -160,8 +160,8 @@ export default function EarlyAccessGate({ onAccepted, onSignIn }) {
           disabled={!complete || checking}
           style={{
             ...rise(320), width: '100%', marginTop: '18px',
-            background: complete ? BONE : 'rgba(242,238,230,.06)',
-            color: complete ? '#0A0A0D' : BONE_LOW,
+            background: complete ? BONE : 'rgba(var(--ink-rgb),.06)',
+            color: complete ? 'var(--bg)' : BONE_LOW,
             border: complete ? 'none' : `1px solid ${HAIR}`,
             borderRadius: '4px', padding: '17px',
             fontFamily: FONT_MONO, fontSize: '11px', letterSpacing: '.22em',

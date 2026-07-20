@@ -20,11 +20,28 @@
      dark inner floor is what the eye reads as thickness; past ~28px the blur
      only buys GPU cost (the kernel runs in DEVICE pixels — 28 CSS px is an
      84px kernel on a 3x iPhone).
+
+   ── V12: DOS TEMPERATURAS, UNA RECETA ────────────────────────────────────
+   Los colores salieron de aquí y se volvieron tokens (index.css). El archivo
+   dejó de ser una paleta y quedó siendo lo que siempre debió ser: la FÓRMULA
+   del material. La estructura —especular arriba, piso oscuro abajo, canto
+   hairline, dos proyectadas— es idéntica en los dos registros; lo único que
+   cambia es de qué lado viene la luz.
+
+   LA REGLA DEL LITERAL SIGUE VIVA Y ES LA MÁS IMPORTANTE DE ESTE ARCHIVO:
+   `backdrop-filter` NO puede tocar una custom property (WebKit 289800 tira
+   la declaración entera, en silencio, y DevTools miente diciendo que aplicó).
+   Por suerte ese filtro no lleva color — es saturate/contrast/brightness/blur
+   puro — así que se queda literal y no pierde nada. Todo lo demás (background,
+   border, box-shadow) sí admite var() sin drama: son propiedades normales.
+   Si alguien alguna vez mete un color en GLASS_FILTER, esto se rompe en
+   Safari y sólo en Safari. Que no pase.
    ========================================================================= */
 
 /* The full material — only for surfaces that genuinely have live page behind
    them (the floating bar, chrome over the atmosphere). Both properties must
-   be emitted; Safari 17.6 and older only know the prefixed one. */
+   be emitted; Safari 17.6 and older only know the prefixed one.
+   LITERAL A PROPÓSITO — ver la regla de arriba. Sin color adentro. */
 export const GLASS_FILTER = 'saturate(158%) contrast(0.96) brightness(1.05) blur(20px)'
 
 /* EL VIDRIO SOBRE EL VACÍO — por qué el filo hace el trabajo, no el blur.
@@ -54,33 +71,39 @@ export const GLASS_FILTER = 'saturate(158%) contrast(0.96) brightness(1.05) blur
 export const glassSurface = (extra = {}) => ({
   WebkitBackdropFilter: GLASS_FILTER,
   backdropFilter: GLASS_FILTER,
-  background: 'linear-gradient(180deg, rgba(30,31,40,0.42) 0%, rgba(12,12,17,0.56) 100%)',
-  border: '1px solid rgba(242,238,230,0.14)',
+  background: 'linear-gradient(180deg, var(--glass-hi) 0%, var(--glass-lo) 100%)',
+  border: '1px solid var(--glass-border)',
   boxShadow: [
-    '0 26px 54px rgba(0,0,0,0.52)',
-    '0 8px 20px rgba(0,0,0,0.38)',
-    'inset 0 1.5px 0 rgba(242,238,230,0.30)',
-    'inset 0 -1px 0 rgba(7,8,14,0.55)',
-    'inset 0 30px 44px -30px rgba(242,238,230,0.26)',
+    'var(--glass-cast)',
+    'inset 0 1.5px 0 var(--glass-edge)',
+    'inset 0 -1px 0 var(--glass-floor)',
+    'inset 0 30px 44px -30px var(--glass-bloom)',
   ].join(', '),
   ...extra,
 })
 
 /* CHIP — the pane of brighter glass that marks the active thing. Gradient
    only (see the no-nesting rule). Reads as a lit facet resting ON the slab. */
+/* EL ACTIVO SE INVIERTE, Y ESO ES CORRECTO. En el vacío "activo" es MÁS LUZ:
+   un panel teñido de hueso sobre la losa oscura. De día no se puede subir
+   más allá del blanco, así que activo pasa a ser MÁS TINTA — el mismo .24,
+   ahora de vacío sobre el vidrio claro. El canal hace el trabajo solo y la
+   jerarquía (activo destaca contra el reposo) se conserva en los dos
+   registros sin re-afinar un solo número. La especular se queda blanca en
+   ambos: la luz cae de arriba en el vacío y de día igual. */
 export const CHIP = {
-  background: 'linear-gradient(180deg, rgba(242,238,230,0.24), rgba(242,238,230,0.09), rgba(10,10,13,0.12))',
-  border: '1px solid rgba(242,238,230,0.26)',
-  boxShadow: 'inset 0 1.5px 1px rgba(255,255,255,0.50), inset 0 -6px 10px -4px rgba(0,0,0,0.5), 0 6px 16px rgba(0,0,0,0.38)',
+  background: 'linear-gradient(180deg, rgba(var(--ink-rgb),0.24), rgba(var(--ink-rgb),0.09), rgba(var(--void-rgb),0.12))',
+  border: '1px solid rgba(var(--ink-rgb),0.26)',
+  boxShadow: 'inset 0 1.5px 1px rgba(255,255,255,0.50), inset 0 -6px 10px -4px rgba(var(--shadow-rgb),0.5), 0 6px 16px rgba(var(--shadow-rgb),0.38)',
 }
 
 /* BUBBLE — the CREATE treatment: brighter fill, a thin BONE ring, a specular
    top edge. This is what makes an icon read as a physical control instead of
    a glyph on a flat plane. */
 export const BUBBLE = {
-  background: 'linear-gradient(180deg, rgba(242,238,230,0.22), rgba(242,238,230,0.07))',
-  border: '1px solid rgba(242,238,230,0.58)',
-  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.45), 0 4px 12px rgba(0,0,0,0.35)',
+  background: 'linear-gradient(180deg, rgba(var(--ink-rgb),0.22), rgba(var(--ink-rgb),0.07))',
+  border: '1px solid rgba(var(--ink-rgb),0.58)',
+  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.45), 0 4px 12px rgba(var(--shadow-rgb),0.35)',
 }
 
 /* WELL — the resting version of a BUBBLE, not a flat box. The first pass
@@ -100,9 +123,9 @@ export const BUBBLE = {
    (0.58 / 0.45), so active vs resting is never in doubt; it just no longer
    falls off the bottom of the material. */
 export const WELL = {
-  background: 'linear-gradient(180deg, rgba(242,238,230,0.16), rgba(242,238,230,0.045) 55%, rgba(10,10,13,0.10))',
-  border: '1px solid rgba(242,238,230,0.34)',
-  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.38), inset 0 -5px 9px -5px rgba(0,0,0,0.50), 0 3px 10px rgba(0,0,0,0.32)',
+  background: 'linear-gradient(180deg, rgba(var(--ink-rgb),0.16), rgba(var(--ink-rgb),0.045) 55%, rgba(var(--void-rgb),0.10))',
+  border: '1px solid rgba(var(--ink-rgb),0.34)',
+  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.38), inset 0 -5px 9px -5px rgba(var(--shadow-rgb),0.50), 0 3px 10px rgba(var(--shadow-rgb),0.32)',
 }
 
 /* ── THE SHAPE RULE (v12) ────────────────────────────────────────────────
@@ -127,8 +150,13 @@ export const markChip = (active = false) => ({
   ...(active ? BUBBLE : WELL),
 })
 
-/* The bone glow, one value, so every lit mark in the app agrees. */
-export const BONE_GLOW = 'drop-shadow(0 0 7px rgba(242,238,230,.55))'
+/* The bone glow, one value, so every lit mark in the app agrees.
+   De día no es un brillo sino un PESO: la misma α de tinta alrededor de una
+   marca ya oscura lee como énfasis, que es exactamente el trabajo que hacía
+   el resplandor sobre el vacío. Un halo de hueso sobre papel sería invisible
+   — la marca activa se quedaría sin señal, que es el único estado que este
+   valor existe para comunicar. */
+export const BONE_GLOW = 'drop-shadow(0 0 7px rgba(var(--ink-rgb),.55))'
 
 /* ── CARDS ───────────────────────────────────────────────────────────────
    Cards used to be a flat opaque #0E0E13, which meant any "glass" chip drawn
@@ -152,14 +180,15 @@ export const BONE_GLOW = 'drop-shadow(0 0 7px rgba(242,238,230,.55))'
    CARD_TINT is the plain translucent fill for surfaces that should show the
    sky but do not warrant their own compositor layer (nested rows, inner
    panels). Reach for cardGlass only on the outer card. */
-export const CARD_TINT = 'rgba(14,14,19,0.76)'
+export const CARD_TINT = 'var(--card-tint)'
 
+/* LITERAL A PROPÓSITO — misma regla que GLASS_FILTER. Sin color adentro. */
 const CARD_FILTER = 'saturate(150%) brightness(1.06) blur(14px)'
 
 export const cardGlass = (extra = {}) => ({
-  background: 'linear-gradient(180deg, rgba(20,20,26,0.74) 0%, rgba(12,12,17,0.82) 100%)',
+  background: 'linear-gradient(180deg, var(--card-hi) 0%, var(--card-lo) 100%)',
   WebkitBackdropFilter: CARD_FILTER,
   backdropFilter: CARD_FILTER,
-  boxShadow: 'inset 0 1px 0 rgba(242,238,230,0.10), inset 0 -1px 0 rgba(7,8,14,0.55), 0 10px 30px rgba(0,0,0,0.42)',
+  boxShadow: 'inset 0 1px 0 var(--card-edge), inset 0 -1px 0 var(--glass-floor), var(--card-cast)',
   ...extra,
 })

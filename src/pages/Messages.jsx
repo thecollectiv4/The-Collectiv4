@@ -16,6 +16,7 @@ import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signa
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    MESSAGES — the conversations that continue (D2: the Base44 chat rebuilt
@@ -36,18 +37,18 @@ import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRi
    wires are going in — no dead composer, no fake inbox. Ley 14: starlight.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const VOID_2 = '#07080E'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const VOID = 'var(--bg)'
+const VOID_2 = 'var(--bg-deep)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
@@ -592,7 +593,7 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
             <SeedPill is_demo={f.is_demo} />
           </span>
           {craft
-            ? <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tint})`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{craft.name}</span>
+            ? <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tintChannel(tint)})`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{craft.name}</span>
             : (f.city && <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '4px' }}>{f.city}</span>)}
         </span>
       </button>
@@ -781,7 +782,7 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
 function RsvpBtn({ testid, on, label, mark, onClick }) {
   return (
     <button className="pressable" data-testid={testid} onClick={onClick} aria-pressed={on}
-      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(var(--ink-rgb),.09)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--ink-rgb),.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
       <Mark type={mark} size={10} color={on ? BONE : BONE_LOW} />
       {label}
     </button>
@@ -803,7 +804,7 @@ function Sheet({ label, busy, onClose, children }) {
   return createPortal(
     <>
       <div onClick={() => { if (!busy) onClose() }} aria-hidden className="overlay-backdrop"
-        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
+        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(var(--void-rgb),.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
       <div role="dialog" aria-modal="true" aria-label={label} className="sheet-up-centered"
         style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '460px', zIndex: 10000, background: VOID, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '82dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
@@ -932,7 +933,7 @@ function VisibilityPicker({ value, onChange, disabled, compact }) {
           return (
             <button key={t} type="button" className="pressable" data-testid={`plan-vis-${t}`} disabled={disabled}
               onClick={() => onChange(t)} aria-pressed={on}
-              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s, transform .2s' }}>
+              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(var(--ink-rgb),.09)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--ink-rgb),.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s, transform .2s' }}>
               <Icon size={compact ? 11 : 14} strokeWidth={1.6} fill={t === 'close' && on ? STAR : 'none'} color={on ? (t === 'close' ? STAR : BONE) : BONE_LOW} />
               <span style={{ fontFamily: 'DM Mono', fontSize: compact ? '8px' : '8.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{VIS_LABEL[t]}</span>
             </button>
@@ -1126,7 +1127,7 @@ function Thread({ threadId, me, wide }) {
         <Lock size={22} strokeWidth={1.2} style={{ color: BONE_LOW, marginBottom: '18px' }} />
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: BONE, letterSpacing: '.02em', marginBottom: '8px' }}>THIS CONVERSATION ISN'T YOURS TO OPEN</div>
         <div style={{ fontSize: '13px', color: BONE_MID, marginBottom: '24px', lineHeight: 1.6, fontFamily: 'DM Sans' }}>Threads open only for the people in them.</div>
-        <button className="pressable" onClick={() => navigate('/messages')} style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '10px 20px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        <button className="pressable" onClick={() => navigate('/messages')} style={{ background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '10px 20px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
           ← Messages
         </button>
       </div>
@@ -1145,7 +1146,7 @@ function Thread({ threadId, me, wide }) {
           where people read each other, the galaxy shuts up */}
 
       {/* header — who this room is (tap the name: their world / the event) */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(10,10,13,.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: `1px solid ${HAIR}` }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(var(--void-rgb),.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: `1px solid ${HAIR}` }}>
         <div style={{ maxWidth: wide ? '720px' : undefined, margin: wide ? '0 auto' : undefined, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button className="pressable" onClick={() => navigate(backTo)} aria-label="Back to Messages" style={{ background: 'transparent', border: 'none', color: BONE, cursor: 'pointer', display: 'inline-flex', padding: '4px' }}>
             <ArrowLeft size={17} />
@@ -1210,7 +1211,7 @@ function Thread({ threadId, me, wide }) {
                         : <span style={{ fontFamily: 'Bebas Neue', fontSize: '11px', color: BONE }}>{(sender?.full_name || '?')[0].toUpperCase()}</span>}
                     </span>
                   )}
-                  <div style={{ maxWidth: '78%', background: mine ? 'rgba(242,238,230,.07)' : CARD, border: `1px solid ${mine ? 'rgba(242,238,230,.14)' : HAIR}`, borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px' }}>
+                  <div style={{ maxWidth: '78%', background: mine ? 'rgba(var(--ink-rgb),.07)' : CARD, border: `1px solid ${mine ? 'rgba(var(--ink-rgb),.14)' : HAIR}`, borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px' }}>
                     {/* v12: en una sala con varias personas, el nombre sobre
                         cada mensaje es puerta a su mundo. Es EL sitio donde a
                         alguien le dan ganas de saber quién es el que habla, y
@@ -1255,7 +1256,7 @@ function Thread({ threadId, me, wide }) {
           the bar's runway begins and the messages scroll through the gap.
           112px tracks Layout's runway — if GlassNav's DOCK_BOTTOM moves, both
           move with it. */}
-      <div style={{ position: 'fixed', bottom: 'calc(98px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(10,10,13,.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
+      <div style={{ position: 'fixed', bottom: 'calc(98px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(var(--void-rgb),.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
         <div style={{ maxWidth: wide ? '720px' : '430px', margin: '0 auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text" value={text} placeholder="Say something…" maxLength={2000}
@@ -1263,7 +1264,7 @@ function Thread({ threadId, me, wide }) {
             onKeyDown={(e) => e.key === 'Enter' && send()}
             style={{ flex: 1, background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '12px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '13px', outline: 'none' }} />
           <button className="pressable" onClick={send} disabled={!text.trim() || sending} aria-label="Send"
-            style={{ width: '42px', height: '42px', borderRadius: '50%', background: text.trim() ? BONE : 'rgba(242,238,230,.06)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>
+            style={{ width: '42px', height: '42px', borderRadius: '50%', background: text.trim() ? BONE : 'rgba(var(--ink-rgb),.06)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>
             {sending
               ? <Loader2 size={14} style={{ color: text.trim() ? VOID : BONE_LOW, animation: 'spin 1s linear infinite' }} />
               : <Send size={14} style={{ color: text.trim() ? VOID : BONE_LOW }} />}

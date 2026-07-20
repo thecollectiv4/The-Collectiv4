@@ -14,6 +14,7 @@ import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
 import VerifiedMark from '@/components/VerifiedMark'
 import { CARD_TINT, cardGlass } from '@/lib/glass'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    COMMUNITY — solo personas (D1, decisión de Pato): descubrir creativos,
@@ -29,18 +30,18 @@ import { CARD_TINT, cardGlass } from '@/lib/glass'
    PREVIEW toggle (network only) reveals demo worlds for the team.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
 /* v11: translúcida, no opaca — el vidrio de los chips necesita algo
    vivo que muestrear, y la atmósfera de la app pasa por detrás. */
 const CARD = CARD_TINT
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
@@ -218,7 +219,7 @@ export default function Community() {
               back to the switch (Ley 9: every click keeps its promise) */}
           {showDemo && (
             <button data-testid="seed-visible-pill" onClick={() => navigate('/os?tab=moderation')}
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: '4px' }}>
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(var(--silver-rgb),.12)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '6px 13px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', marginBottom: '4px' }}>
               <Eye size={12} /> seed visible · manage in /os
             </button>
           )}
@@ -233,7 +234,7 @@ export default function Community() {
             return (
               <button key={key} className="pressable" data-testid={tid}
                 onClick={() => { if (key === 'foryou' && !authLoading && !user) { setShowAuth(true); return } setView(key) }}
-                style={{ background: 'transparent', border: 'none', padding: '0 2px 10px', marginBottom: '-1px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.22em', textTransform: 'uppercase', color: on ? BONE : 'rgba(199,201,209,.45)', borderBottom: `1px solid ${on ? BONE : 'transparent'}`, transition: 'color .2s, border-color .2s' }}>
+                style={{ background: 'transparent', border: 'none', padding: '0 2px 10px', marginBottom: '-1px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.22em', textTransform: 'uppercase', color: on ? BONE : 'rgba(var(--silver-rgb),.45)', borderBottom: `1px solid ${on ? BONE : 'transparent'}`, transition: 'color .2s, border-color .2s' }}>
                 {label}
               </button>
             )
@@ -254,7 +255,7 @@ export default function Community() {
             <ForYou user={user} onBrainstorm={() => navigate('/profile')} onEveryone={() => setView('everyone')} />
           ) : (
             /* deep-linked anon on ?view=foryou — a sober invitation, not a wall */
-            <div style={{ marginTop: '26px', padding: '44px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center' }}>
+            <div style={{ marginTop: '26px', padding: '44px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.05), rgba(var(--silver-rgb),.01))', textAlign: 'center' }}>
               <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>◇ matched by taste</div>
               <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '30px', letterSpacing: '.03em', lineHeight: .95, margin: '14px 0 0', color: BONE }}>A FEED THAT KNOWS YOUR TASTE</h2>
               <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '310px' }}>
@@ -329,7 +330,7 @@ export default function Community() {
               <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" tabIndex={0} aria-label="Claim your world"
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate(user ? '/profile' : '/auth?next=/profile') } }}
                 style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '16px', minHeight: wide ? '236px' : '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', cursor: 'pointer', transition: 'border-color .25s ease' }}
-                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'}
+                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.5)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', textTransform: 'uppercase', color: BONE_LOW }}>◇ your world goes here</span>
                 <span style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID }}>claim yours →</span>
@@ -394,7 +395,7 @@ function FilterRow({ label, value, onChange, options, wide }) {
         {all.map(opt => {
           const on = value === opt
           return (
-            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(199,201,209,.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <button key={opt} className="pressable" onClick={() => onChange(opt)} title={opt === 'all' ? 'All' : opt} style={{ flexShrink: 0, padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? SILVER : HAIR_HI}`, background: on ? 'rgba(var(--silver-rgb),.10)' : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', maxWidth: '210px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {opt === 'all' ? 'All' : opt}
             </button>
           )
@@ -424,8 +425,8 @@ function CraftFilterRow({ value, onChange, options, wide }) {
           return (
             <button key={opt.slug} className="pressable" data-testid={`craft-filter-${opt.slug}`}
               onClick={() => onChange(on && opt.slug !== 'all' ? 'all' : opt.slug)}
-              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${meta.tint},.6)` : HAIR_HI}`, background: on ? `rgba(${meta.tint},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', boxShadow: on ? `0 0 12px rgba(${meta.tint},.12)` : 'none' }}>
-              {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${meta.tint})` }}>{meta.mark}</span>}
+              style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 14px', borderRadius: '100px', border: `1px solid ${on ? `rgba(${tintChannel(meta.tint)},.6)` : HAIR_HI}`, background: on ? `rgba(${tintChannel(meta.tint)},.1)` : 'transparent', color: on ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.06em', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'background .2s, border-color .2s, color .2s, transform .2s', boxShadow: on ? `0 0 12px rgba(${tintChannel(meta.tint)},.12)` : 'none' }}>
+              {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tintChannel(meta.tint)})` }}>{meta.mark}</span>}
               {opt.name}
               {on && opt.slug !== 'all' && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, marginLeft: '2px' }}>×</span>}
             </button>
@@ -465,7 +466,7 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={c.id || c.username || name} />}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 30%, #0E0E13 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 30%, var(--card-solid) 100%)' }} />
         {/* v12: 16px was frozen at phone scale inside a card that is ~50%
             wider on desktop — the membership mark read as a speck there. */}
         {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={wide ? 20 : 16} /></span>}
@@ -478,7 +479,7 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
           </span>
         )}
       </div>
-      <div style={{ position: 'absolute', left: '12px', top: `${(wide ? 116 : 92) - 22}px`, width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,.5)', zIndex: 2 }}>
+      <div style={{ position: 'absolute', left: '12px', top: `${(wide ? 116 : 92) - 22}px`, width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${SILVER}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(var(--shadow-rgb),.5)', zIndex: 2 }}>
         {avatar
           ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE }}>{initial}</span>}
@@ -492,7 +493,7 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
               CONNECTED ya reservado para el vínculo mutuo: la misma palabra
               en dos sentidos, que es justo lo que se vino a matar. */}
           {following && (
-            <span title={`You follow ${name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(199,201,209,.3)', borderRadius: '100px', padding: '2px 7px' }}>
+            <span title={`You follow ${name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(var(--silver-rgb),.3)', borderRadius: '100px', padding: '2px 7px' }}>
               <UserCheck size={8} /> {VOCAB.followingState}
             </span>
           )}
@@ -509,13 +510,13 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
                 onClick={(e) => { e.stopPropagation(); onPickCraft?.(crafts[0].slug) }}
                 aria-label={`See other ${crafts[0].name}s`}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0,
-                  fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${meta.tint})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</button>
+                  fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${tintChannel(meta.tint)})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</button>
             ) })()}
             {crafts.length > 1 && (
               <button className="pressable" data-testid="card-crafts-more"
                 onClick={(e) => { e.stopPropagation(); onShowCrafts?.() }}
                 aria-label={`See all ${crafts.length} crafts`}
-                style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR}`, borderRadius: '100px',
+                style={{ background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR}`, borderRadius: '100px',
                   padding: '1px 6px', cursor: 'pointer', flexShrink: 0,
                   fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.1em' }}>+{crafts.length - 1}</button>
             )}
@@ -560,7 +561,7 @@ function MiniStars({ seed, k = 1 }) {
   const rnd = mulberry32(hash(String(seed)) + 5)
   const stars = Array.from({ length: 20 }, () => ({ x: +(rnd() * 100).toFixed(1), y: +(rnd() * 100).toFixed(1), r: +(0.6 + rnd() * 1.3).toFixed(2), o: +(0.15 + rnd() * 0.55).toFixed(2) }))
   return (
-    <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(199,201,209,.09) 0%, transparent 60%), ${VOID}` }}>
+    <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(var(--silver-rgb),.09) 0%, transparent 60%), ${VOID}` }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} aria-hidden="true">
         {stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={(s.r / 2) * k} fill={STAR} opacity={s.o} />)}
       </svg>
@@ -571,7 +572,7 @@ function MiniStars({ seed, k = 1 }) {
 /* ---- honest presence-when-empty ---- */
 function Empty({ title, body, cta, onCta, k }) {
   return (
-    <div style={{ marginTop: '10px', padding: '40px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ marginTop: '10px', padding: '40px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.05), rgba(var(--silver-rgb),.01))', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
       <MiniStars seed={title} k={k} />
       <div style={{ position: 'relative' }}>
         <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '30px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>{title}</h2>

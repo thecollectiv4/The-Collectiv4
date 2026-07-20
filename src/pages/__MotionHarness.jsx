@@ -32,17 +32,17 @@ function Row({ id, sev, title, where, note, mode, children, onReplay }) {
     <div style={{ borderTop: `1px solid ${HAIR}`, padding: '22px 0' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap', marginBottom: '4px' }}>
         <span style={{ ...mono, fontSize: '12px', color: BONE, letterSpacing: '.08em', fontWeight: 500 }}>{id}</span>
-        <span style={{ ...mono, fontSize: '8px', letterSpacing: '.14em', textTransform: 'uppercase', color: sev === 'HIGH' ? '#E5A0A0' : sev === 'MEDIUM' ? SILVER : FAINT, border: `1px solid ${sev === 'HIGH' ? 'rgba(229,160,160,.35)' : sev === 'MEDIUM' ? 'rgba(199,201,209,.3)' : HAIR}`, borderRadius: '2px', padding: '2px 7px' }}>{sev}</span>
+        <span style={{ ...mono, fontSize: '8px', letterSpacing: '.14em', textTransform: 'uppercase', color: sev === 'HIGH' ? 'var(--warn)' : sev === 'MEDIUM' ? SILVER : FAINT, border: `1px solid ${sev === 'HIGH' ? 'rgba(229,160,160,.35)' : sev === 'MEDIUM' ? 'rgba(var(--silver-rgb),.3)' : HAIR}`, borderRadius: '2px', padding: '2px 7px' }}>{sev}</span>
         <span style={{ ...sans, fontSize: '13.5px', color: BONE_MID }}>{title}</span>
         <span style={{ ...mono, fontSize: '9px', color: FAINT, letterSpacing: '.06em', marginLeft: 'auto' }}>{where}</span>
       </div>
       <div style={{ ...mono, fontSize: '9.5px', color: FAINT, letterSpacing: '.04em', marginBottom: '14px' }}>{note}</div>
       <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <button className="pressable" onClick={onReplay}
-          style={{ ...mono, flexShrink: 0, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '6px', padding: '9px 14px', color: BONE, cursor: 'pointer' }}>
+          style={{ ...mono, flexShrink: 0, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '6px', padding: '9px 14px', color: BONE, cursor: 'pointer' }}>
           {mode === 'toggle' ? '⇄ alternar' : mode === 'live' ? '▶ probar' : '▶ replay'}
         </button>
-        <div style={{ flex: 1, minWidth: '260px', border: `1px dashed ${HAIR}`, borderRadius: '10px', padding: '18px', background: 'rgba(242,238,230,.012)' }}>
+        <div style={{ flex: 1, minWidth: '260px', border: `1px dashed ${HAIR}`, borderRadius: '10px', padding: '18px', background: 'rgba(var(--ink-rgb),.012)' }}>
           {children}
         </div>
       </div>
@@ -71,7 +71,7 @@ export default function MotionHarness() {
   const [vis, setVis] = useState('friends')           // A-30
 
   const card = { border: `1px solid ${HAIR}`, background: CARD, borderRadius: '12px', padding: '13px 15px', ...sans, fontSize: '13px', color: BONE }
-  const chip = { display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 12px', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR_HI}`, ...mono, fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: BONE_MID }
+  const chip = { display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 12px', background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR_HI}`, ...mono, fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: BONE_MID }
 
   return (
     <div style={{ background: VOID, minHeight: '100vh', padding: '46px 22px 120px' }}>
@@ -146,7 +146,7 @@ export default function MotionHarness() {
               {['friends', 'everyone', 'private'].map(t => {
                 const on = vis === t
                 return (
-                  <button key={t} onClick={() => setVis(t)} style={{ flex: 1, borderRadius: '100px', padding: '8px', cursor: 'pointer', border: `1px solid ${on ? 'rgba(199,201,209,.5)' : 'rgba(242,238,230,.14)'}`, background: on ? 'rgba(199,201,209,.1)' : 'transparent', color: on ? BONE : BONE_LOW, ...mono, fontSize: '9px', letterSpacing: '.06em', textTransform: 'uppercase', transition: 'border-color var(--dur-fast) var(--ease-house), background var(--dur-fast) var(--ease-house), color var(--dur-fast) var(--ease-house), opacity var(--dur-fast) var(--ease-house)' }}>{t}</button>
+                  <button key={t} onClick={() => setVis(t)} style={{ flex: 1, borderRadius: '100px', padding: '8px', cursor: 'pointer', border: `1px solid ${on ? 'rgba(var(--silver-rgb),.5)' : 'rgba(var(--ink-rgb),.14)'}`, background: on ? 'rgba(var(--silver-rgb),.1)' : 'transparent', color: on ? BONE : BONE_LOW, ...mono, fontSize: '9px', letterSpacing: '.06em', textTransform: 'uppercase', transition: 'border-color var(--dur-fast) var(--ease-house), background var(--dur-fast) var(--ease-house), color var(--dur-fast) var(--ease-house), opacity var(--dur-fast) var(--ease-house)' }}>{t}</button>
                 )
               })}
             </div>
@@ -214,7 +214,7 @@ export default function MotionHarness() {
           <Row id="A-03" sev="HIGH" title="Press feedback en los CTAs" where="/experience/:slug" mode="live" note="pressable · translateY(1px) scale(.99) · 160ms entra / 80ms suelta — MANTÉN PRESIONADO" onReplay={() => {}}>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button className="pressable" style={{ background: BONE, border: 'none', borderRadius: '12px', padding: '15px 22px', color: VOID, ...sans, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>GET YOUR TICKET</button>
-              <button className="pressable" style={{ background: 'rgba(10,10,13,.5)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '9px 16px', color: BONE_MID, ...sans, fontSize: '12px', cursor: 'pointer' }}>← Back</button>
+              <button className="pressable" style={{ background: 'rgba(var(--void-rgb),.5)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '9px 16px', color: BONE_MID, ...sans, fontSize: '12px', cursor: 'pointer' }}>← Back</button>
             </div>
           </Row>
 
@@ -224,8 +224,8 @@ export default function MotionHarness() {
           </Row>
 
           <Row id="A-31" sev="LOW" title="La sala destacada respira (sin levantarse)" where="/ (home)" mode="live" note="feat-room · border 500ms + discBreathe 6s — PASA EL CURSOR (desktop)" onReplay={() => {}}>
-            <div className="feat-room" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid rgba(242,238,230,.16)', background: CARD, cursor: 'pointer' }}>
-              <div className="disc-banner" style={{ height: '120px', background: 'linear-gradient(150deg, rgba(199,201,209,.16), rgba(199,201,209,.02))', overflow: 'hidden' }}>
+            <div className="feat-room" style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid rgba(var(--ink-rgb),.16)', background: CARD, cursor: 'pointer' }}>
+              <div className="disc-banner" style={{ height: '120px', background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.16), rgba(var(--silver-rgb),.02))', overflow: 'hidden' }}>
                 <svg width="100%" height="120" style={{ display: 'block' }}><circle cx="50%" cy="60" r="34" fill="none" stroke={SILVER} strokeWidth="1" opacity=".5" /></svg>
               </div>
               <div style={{ padding: '14px 16px', fontFamily: 'Bebas Neue, sans-serif', fontSize: '24px', letterSpacing: '.03em' }}>FALL 001</div>
@@ -256,12 +256,12 @@ export default function MotionHarness() {
               <div className="row-collapse" style={{ display: 'grid', gridTemplateRows: signup ? '1fr' : '0fr', opacity: signup ? 1 : 0 }}>
                 <div style={{ overflow: 'hidden', minHeight: 0 }}>
                   <div style={{ display: 'flex', gap: '8px' }}>
-                    <input readOnly placeholder="First name" style={{ flex: 1, background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '12px', color: BONE, ...sans, fontSize: '13px' }} />
-                    <input readOnly placeholder="Last name" style={{ flex: 1, background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '12px', color: BONE, ...sans, fontSize: '13px' }} />
+                    <input readOnly placeholder="First name" style={{ flex: 1, background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '12px', color: BONE, ...sans, fontSize: '13px' }} />
+                    <input readOnly placeholder="Last name" style={{ flex: 1, background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '12px', color: BONE, ...sans, fontSize: '13px' }} />
                   </div>
                 </div>
               </div>
-              <input readOnly placeholder="Email" style={{ background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '12px', color: BONE, ...sans, fontSize: '13px' }} />
+              <input readOnly placeholder="Email" style={{ background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR_HI}`, borderRadius: '8px', padding: '12px', color: BONE, ...sans, fontSize: '13px' }} />
               <div style={{ ...mono, fontSize: '9px', color: FAINT }}>modo: {signup ? 'Create Account' : 'Sign In'} · ojo al espacio que queda en Sign In</div>
             </div>
           </Row>
@@ -295,14 +295,14 @@ export default function MotionHarness() {
           <Row id="A-21" sev="LOW" title="Los botones del chip responden" where="/profile · editar" mode="live" note="pressable · 160/80ms — PRESIÓNALOS" onReplay={() => {}}>
             <span style={chip}>
               <button className="pressable" style={{ background: 'transparent', border: 'none', color: BONE_MID, cursor: 'pointer', ...mono, fontSize: '10.5px', padding: 0 }}>◇ PRODUCER</button>
-              <button className="pressable" style={{ width: '17px', height: '17px', borderRadius: '50%', background: 'rgba(242,238,230,.05)', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
+              <button className="pressable" style={{ width: '17px', height: '17px', borderRadius: '50%', background: 'rgba(var(--ink-rgb),.05)', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: 0, lineHeight: 1 }}>×</button>
             </span>
           </Row>
 
           <Row id="A-28" sev="LOW" title="El hairline del roadmap se dibuja" where="/os · HQ" note="os-orbit-draw · scaleX(0)→1 · 950ms (el beat cinematográfico del deck)" onReplay={() => bump('a28')}>
             <div key={k('a28')} style={{ position: 'relative', height: '10px' }}>
               <div style={{ position: 'absolute', top: '4px', left: 0, right: 0, height: '1px', background: HAIR_HI }} />
-              <div className="os-orbit-draw" style={{ position: 'absolute', top: '4px', left: 0, width: '62%', height: '1px', background: 'rgba(242,238,230,.55)' }} />
+              <div className="os-orbit-draw" style={{ position: 'absolute', top: '4px', left: 0, width: '62%', height: '1px', background: 'rgba(var(--ink-rgb),.55)' }} />
             </div>
           </Row>
 
@@ -338,7 +338,7 @@ export default function MotionHarness() {
             <div>
               <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                 {['review', 'building'].map(f => (
-                  <button key={f} onClick={() => setFilt(f)} style={{ ...mono, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', background: filt === f ? 'rgba(242,238,230,.07)' : 'transparent', border: `1px solid ${filt === f ? HAIR_HI : HAIR}`, borderRadius: '100px', padding: '6px 12px', color: filt === f ? BONE : FAINT, cursor: 'pointer' }}>{f}</button>
+                  <button key={f} onClick={() => setFilt(f)} style={{ ...mono, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', background: filt === f ? 'rgba(var(--ink-rgb),.07)' : 'transparent', border: `1px solid ${filt === f ? HAIR_HI : HAIR}`, borderRadius: '100px', padding: '6px 12px', color: filt === f ? BONE : FAINT, cursor: 'pointer' }}>{f}</button>
                 ))}
               </div>
               <div key={filt} className="refilter-in" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -348,7 +348,7 @@ export default function MotionHarness() {
           </Row>
 
           <Row id="A-27" sev="LOW" title="Verificar transiciona, no salta" where="/os · Network" mode="toggle" note="background + border-color · 200ms" onReplay={() => setVerif(v => !v)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${verif ? 'rgba(199,201,209,.28)' : HAIR}`, background: verif ? 'rgba(199,201,209,.05)' : CARD, transition: 'background .2s ease, border-color .2s ease' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${verif ? 'rgba(var(--silver-rgb),.28)' : HAIR}`, background: verif ? 'rgba(var(--silver-rgb),.05)' : CARD, transition: 'background .2s ease, border-color .2s ease' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '50%', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0 }} />
               <span style={{ ...sans, fontSize: '13px', color: BONE }}>Diego Villaseñor</span>
               <span style={{ ...mono, fontSize: '9px', color: verif ? STAR : FAINT, marginLeft: 'auto', letterSpacing: '.14em' }}>{verif ? 'VERIFIED' : '—'}</span>

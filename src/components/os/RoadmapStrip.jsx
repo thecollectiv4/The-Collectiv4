@@ -103,7 +103,7 @@ export default function RoadmapStrip({ tasks = [], content = [] }) {
       <div style={{ position: 'relative', height: '10px' }}>
         {/* the orbit: full hairline + elapsed filled in bone */}
         <div style={{ position: 'absolute', top: '4px', left: 0, right: 0, height: '1px', background: HAIR_HI }} />
-        <div className="os-orbit-draw" style={{ position: 'absolute', top: '4px', left: 0, width: `${nowPct}%`, height: '1px', background: 'rgba(242,238,230,.55)' }} />
+        <div className="os-orbit-draw" style={{ position: 'absolute', top: '4px', left: 0, width: `${nowPct}%`, height: '1px', background: 'rgba(var(--ink-rgb),.55)' }} />
 
         {/* origin tick — endpoint label, never hidden */}
         <Node pct={0} past label={START_LABEL} kind="tick" edge="start" />
@@ -135,7 +135,7 @@ function Node({ pct, past, iso, label, kind, mid, edge, labelVisible = true }) {
       ) : kind === 'tick' ? (
         <div style={{ width: '1px', height: '9px', background: HAIR_HI, marginTop: 0 }} />
       ) : (
-        <div style={{ width: '6px', height: '6px', marginTop: '1.5px', transform: 'rotate(45deg)', background: past ? BONE : 'transparent', border: `1px solid ${past ? BONE : 'rgba(242,238,230,.4)'}`, flexShrink: 0 }} />
+        <div style={{ width: '6px', height: '6px', marginTop: '1.5px', transform: 'rotate(45deg)', background: past ? BONE : 'transparent', border: `1px solid ${past ? BONE : 'rgba(var(--ink-rgb),.4)'}`, flexShrink: 0 }} />
       )}
       <div aria-hidden={!labelVisible || undefined} style={{ ...labelStyle, color: past ? BONE_MID : BONE_LOW, visibility: labelVisible ? 'visible' : 'hidden' }}>
         {mid && iso ? fmt(iso) : label}

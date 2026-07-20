@@ -7,6 +7,7 @@ import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { normListings, priceLabel, KINDS } from '@/lib/listings'
 import { Calendar, MapPin, ArrowUpRight, ArrowRight, BadgeCheck, Loader2 } from 'lucide-react'
 import FoundersLine from '@/components/FoundersLine'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    THE HOUSE WORLD — /c4 (D4, the flagship).
@@ -22,16 +23,16 @@ import FoundersLine from '@/components/FoundersLine'
    Both founders credited, always (canon).
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
@@ -135,11 +136,11 @@ export default function HouseWorld() {
           </p>
           <div className="fade-up-3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '20px' }}>
             <button className="pressable" onClick={() => navigate('/community')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: BONE, border: 'none', borderRadius: '11px', padding: '12px 22px', color: VOID, fontFamily: 'Bebas Neue', fontSize: '15px', letterSpacing: '.06em', cursor: 'pointer', boxShadow: '0 4px 20px rgba(242,238,230,.14)' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: BONE, border: 'none', borderRadius: '11px', padding: '12px 22px', color: VOID, fontFamily: 'Bebas Neue', fontSize: '15px', letterSpacing: '.06em', cursor: 'pointer', boxShadow: '0 4px 20px rgba(var(--ink-rgb),.14)' }}>
               MEET THE COMMUNITY <ArrowRight size={13} />
             </button>
             <button className="pressable" onClick={() => navigate('/')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '11px', padding: '12px 22px', color: BONE, fontFamily: 'Bebas Neue', fontSize: '15px', letterSpacing: '.06em', cursor: 'pointer' }}>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '9px', background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '11px', padding: '12px 22px', color: BONE, fontFamily: 'Bebas Neue', fontSize: '15px', letterSpacing: '.06em', cursor: 'pointer' }}>
               THE ROOMS
             </button>
           </div>
@@ -157,7 +158,7 @@ export default function HouseWorld() {
                 <HouseRoom e={featured} wide={wide} featured onOpen={() => navigate(featured.slug ? `/e/${featured.slug}` : '/')} />
               ) : lastRoom ? (
                 <div style={wide ? { display: 'grid', gridTemplateColumns: 'minmax(0,5fr) minmax(0,7fr)', gap: '22px', alignItems: 'stretch' } : { display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                  <div style={{ padding: wide ? '34px 30px' : '26px 22px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ padding: wide ? '34px 30px' : '26px 22px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--ink-rgb),.05), rgba(var(--ink-rgb),.01))', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                     <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '24px', color: BONE, lineHeight: .95 }}>THE NEXT ONE IS BEING BUILT</div>
                     <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 0' }}>
                       Stay close — the room always comes back. Meanwhile, the last one keeps the door warm.
@@ -194,7 +195,7 @@ export default function HouseWorld() {
                         onClick={() => navigate('/user/' + p.id)}
                         onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate('/user/' + p.id) } }}
                         style={{ flexShrink: 0, minWidth: wide ? 0 : '196px', display: 'flex', alignItems: 'center', gap: '13px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: CARD, padding: '14px 15px', cursor: 'pointer' }}>
-                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(${meta.tint},.5)`, background: VOID, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 0 12px rgba(${meta.tint},.1)` }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(${tintChannel(meta.tint)},.5)`, background: VOID, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 0 12px rgba(${tintChannel(meta.tint)},.1)` }}>
                           {avatar
                             ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE }}>{name[0].toUpperCase()}</span>}
@@ -206,7 +207,7 @@ export default function HouseWorld() {
                           </div>
                           {/* the craft is identity — it clamps to two lines,
                               never dies mid-word (panel catch, Ley 5) */}
-                          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: lead ? `rgb(${meta.tint})` : BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>
+                          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: lead ? `rgb(${tintChannel(meta.tint)})` : BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5 }}>
                             {lead ? `${lead.name}${crafts.length > 1 ? ` +${crafts.length - 1}` : ''}` : (p.discipline || 'in the network')}
                           </div>
                         </div>
@@ -221,7 +222,7 @@ export default function HouseWorld() {
             <Chapter n={network.length ? '03' : '02'} mark="diamond" label="THE CULTURE" kicker="the 4-language" wide={wide} className={entered.current ? undefined : 'card-in'} delay="140ms">
               <div style={wide ? { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0,1fr))', gap: '14px' } : { display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {CULTURE.map((c) => (
-                  <div key={c.title} style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', border: `1px solid ${HAIR}`, borderRadius: '15px', background: 'rgba(242,238,230,.02)', padding: wide ? '20px 22px' : '16px 18px' }}>
+                  <div key={c.title} style={{ display: 'flex', gap: '15px', alignItems: 'flex-start', border: `1px solid ${HAIR}`, borderRadius: '15px', background: 'rgba(var(--ink-rgb),.02)', padding: wide ? '20px 22px' : '16px 18px' }}>
                     <Mark type={c.mark} size={13} color={SILVER} style={{ flexShrink: 0, marginTop: '4px', opacity: .85 }} />
                     <div>
                       <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '21px' : '18px', color: BONE, letterSpacing: '.04em', lineHeight: 1 }}>{c.title}</div>
@@ -253,9 +254,9 @@ export default function HouseWorld() {
                         <div className="disc-banner" style={{ position: 'relative', height: '120px', background: VOID, overflow: 'hidden' }}>
                           {img
                             ? <img src={img} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(150deg, rgba(199,201,209,.1), transparent)' }} />}
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 40%, rgba(14,14,19,.92) 100%)' }} />
-                          <span style={{ position: 'absolute', top: '9px', left: '10px', fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.18em', color: BONE_MID, border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 8px', background: 'rgba(7,8,14,.5)', textTransform: 'uppercase' }}>{KINDS[l.kind]?.label || 'PIECE'}</span>
+                            : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.1), transparent)' }} />}
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 40%, rgba(14,14,19,.92) 100%)' }} />
+                          <span style={{ position: 'absolute', top: '9px', left: '10px', fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.18em', color: BONE_MID, border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 8px', background: 'rgba(var(--void-rgb),.5)', textTransform: 'uppercase' }}>{KINDS[l.kind]?.label || 'PIECE'}</span>
                         </div>
                         <div style={{ padding: '11px 13px' }}>
                           <div style={{ fontFamily: 'DM Sans', fontSize: '12.5px', fontWeight: 600, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
@@ -269,7 +270,7 @@ export default function HouseWorld() {
                   })}
                 </div>
               ) : (
-                <div style={{ padding: '22px 22px', borderRadius: '15px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.04), rgba(199,201,209,.01))', maxWidth: '480px' }}>
+                <div style={{ padding: '22px 22px', borderRadius: '15px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.04), rgba(var(--silver-rgb),.01))', maxWidth: '480px' }}>
                   <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: 0 }}>
                     The wall is being hung — pieces and services by the network land here, with real prices. The drops come through the rooms first.
                   </p>
@@ -323,23 +324,23 @@ function HouseRoom({ e, wide, featured, pastRoom, onOpen }) {
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${e.title}`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: featured ? '20px' : '16px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(242,238,230,.16)' : HAIR_HI}`, background: CARD, cursor: 'pointer', boxShadow: featured ? '0 18px 60px rgba(0,0,0,.45)' : 'none' }}>
+      style={{ position: 'relative', borderRadius: featured ? '20px' : '16px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(var(--ink-rgb),.16)' : HAIR_HI}`, background: CARD, cursor: 'pointer', boxShadow: featured ? '0 18px 60px rgba(var(--shadow-rgb),.45)' : 'none' }}>
       <div className="disc-banner" style={{ position: 'relative', height: featured ? (wide ? '280px' : '190px') : '136px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : (
             /* no flyer → a DESIGNED void, never a black slab (panel catch):
                the house glow + the 4 monogram, faint, centered */
-            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(242,238,230,.08) 0%, transparent 60%), ${VOID}` }}>
+            <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(var(--ink-rgb),.08) 0%, transparent 60%), ${VOID}` }}>
               <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: featured ? '120px' : '76px', lineHeight: 1, color: BONE, opacity: .06, userSelect: 'none' }}>4</span>
             </div>
           )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.08) 25%, rgba(7,8,14,.6) 65%, rgba(9,9,14,.96) 100%)' }} />
-        <span style={{ position: 'absolute', top: '12px', left: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.18em', color: pastRoom ? BONE_MID : BONE, border: `1px solid ${pastRoom ? HAIR : 'rgba(242,238,230,.3)'}`, borderRadius: '100px', padding: '3px 10px', background: 'rgba(7,8,14,.55)', textTransform: 'uppercase' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),.08) 25%, rgba(var(--void-rgb),.6) 65%, rgba(var(--void-rgb),.96) 100%)' }} />
+        <span style={{ position: 'absolute', top: '12px', left: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.18em', color: pastRoom ? BONE_MID : BONE, border: `1px solid ${pastRoom ? HAIR : 'rgba(var(--ink-rgb),.3)'}`, borderRadius: '100px', padding: '3px 10px', background: 'rgba(var(--void-rgb),.55)', textTransform: 'uppercase' }}>
           {pastRoom ? 'the last room' : (e.edition || 'Ran By Artists')}
         </span>
         <div style={{ position: 'absolute', left: '16px', right: '16px', bottom: '13px' }}>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: featured ? (wide ? '44px' : '32px') : '25px', letterSpacing: '.02em', lineHeight: .9, color: BONE, textShadow: '0 2px 20px rgba(0,0,0,.6)' }}>{e.title}</div>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: featured ? (wide ? '44px' : '32px') : '25px', letterSpacing: '.02em', lineHeight: .9, color: BONE, textShadow: '0 2px 20px rgba(var(--shadow-rgb),.6)' }}>{e.title}</div>
         </div>
       </div>
       <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>

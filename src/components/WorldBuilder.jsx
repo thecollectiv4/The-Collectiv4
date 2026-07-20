@@ -30,15 +30,15 @@ import { useWide } from '@/lib/useIsDesktop'
    persistence, the serial upload chain, drag/paste, guilt-free skips.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
 
 
 const inp = { width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }
@@ -383,8 +383,8 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
   // phone: a bottom sheet under the live museum · wide: a studio panel docked
   // right, the world composing at full width beside it
   const shell = wide
-    ? { position: 'fixed', top: '56px', right: 0, bottom: 0, width: '480px', zIndex: 10000, background: '#0A0A0D', borderLeft: `1px solid ${HAIR_HI}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '-40px 0 90px rgba(0,0,0,.45)' }
-    : { position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '430px', zIndex: 10000, background: '#0A0A0D', borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '58vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
+    ? { position: 'fixed', top: '56px', right: 0, bottom: 0, width: '480px', zIndex: 10000, background: 'var(--bg)', borderLeft: `1px solid ${HAIR_HI}`, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '-40px 0 90px rgba(var(--shadow-rgb),.45)' }
+    : { position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '430px', zIndex: 10000, background: 'var(--bg)', borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '58vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }
 
   /* ------------------------- header (all stages) ------------------------- */
   const headerLine = stage === 'steps'
@@ -448,7 +448,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                       const on = answers.show.includes(o.key)
                       return (
                         <button key={o.key} aria-pressed={on} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'background .2s, border-color .2s' }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(var(--silver-rgb),.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'background .2s, border-color .2s' }}>
                           <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: on ? BONE : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                           <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID }}>{o.label}</span>
                         </button>
@@ -464,7 +464,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
               <div style={{ display: 'flex', gap: '10px' }}>
                 {meetIdx > 0 && (
                   <button onClick={() => setMeetIdx(i => i - 1)} disabled={busy} aria-label="Back" className="pressable"
-                    style={{ background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                    style={{ background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                     <ArrowLeft size={12} /> Back
                   </button>
                 )}
@@ -543,7 +543,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
       {stage === 'steps' && (
         <>
           {/* step body */}
-          <div className="no-scrollbar" {...dragProps} style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0, ...(dragOver && { outline: `1px dashed ${SILVER}`, outlineOffset: '-8px', background: 'rgba(199,201,209,.04)' }) }}>
+          <div className="no-scrollbar" {...dragProps} style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0, ...(dragOver && { outline: `1px dashed ${SILVER}`, outlineOffset: '-8px', background: 'rgba(var(--silver-rgb),.04)' }) }}>
             <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', letterSpacing: '.04em', lineHeight: 1, ...chromeDisplayText }}>{copy.title}</div>
             <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', marginTop: '5px' }}>{copy.kicker}</div>
             <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{copy.why}</p>
@@ -615,7 +615,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                   </div>
                 )}
                 <button onClick={() => galleryRef.current?.click()} disabled={uploadingN > 0}
-                  style={{ width: '100%', background: dragOver ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px dashed ${dragOver ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '16px 13px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: 'DM Sans', opacity: uploadingN > 0 ? .6 : 1, transition: 'background .2s, border-color .2s, opacity .2s' }}>
+                  style={{ width: '100%', background: dragOver ? 'rgba(var(--silver-rgb),.07)' : 'transparent', border: `1px dashed ${dragOver ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '16px 13px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: 'DM Sans', opacity: uploadingN > 0 ? .6 : 1, transition: 'background .2s, border-color .2s, opacity .2s' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
                     {uploadingN > 0 ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <ImagePlus size={14} />}
                     {uploadingN > 0 ? `Uploading ${uploadingN}…` : 'Add your work'}
@@ -661,7 +661,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                     const active = (data.world_theme || 'chrome') === t.key
                     return (
                       <button key={t.key} onClick={() => onDraft({ world_theme: t.key })} className="pressable"
-                        style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
+                        style={{ flex: 1, background: active ? 'rgba(var(--silver-rgb),.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
                         <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', lineHeight: 1, ...nameSkin(t.key) }}>Aa</span>
                         <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', textTransform: 'uppercase', color: active ? BONE : BONE_LOW }}>{t.label}</span>
                       </button>
@@ -684,7 +684,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
             <div style={{ display: 'flex', gap: '10px' }}>
               {safeStep > 0 && (
                 <button onClick={() => setStep(s => s - 1)} disabled={busy} aria-label="Back" className="pressable"
-                  style={{ background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+                  style={{ background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                   <ArrowLeft size={12} /> Back
                 </button>
               )}

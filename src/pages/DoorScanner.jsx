@@ -21,7 +21,7 @@ import { VOID, VOID_2, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, HAIR, HAIR
    ========================================================================= */
 
 const RESULT_STYLES = {
-  welcome:     { color: SILVER, border: 'rgba(199,201,209,.4)', bg: 'rgba(199,201,209,.08)', title: 'WELCOME IN' },
+  welcome:     { color: SILVER, border: 'rgba(var(--silver-rgb),.4)', bg: 'rgba(var(--silver-rgb),.08)', title: 'WELCOME IN' },
   already_in:  { color: WARN,   border: 'rgba(229,160,160,.4)', bg: 'rgba(229,160,160,.07)', title: 'ALREADY IN' },
   wrong_event: { color: WARN,   border: 'rgba(229,160,160,.4)', bg: 'rgba(229,160,160,.07)', title: 'WRONG EVENT' },
   not_found:   { color: WARN,   border: 'rgba(229,160,160,.4)', bg: 'rgba(229,160,160,.07)', title: 'NOT FOUND' },
@@ -179,7 +179,7 @@ export default function DoorScanner() {
   const rs = result ? (RESULT_STYLES[result.status] || RESULT_STYLES.error) : null
 
   return (
-    <div style={{ minHeight: '100vh', background: `radial-gradient(120% 70% at 50% -10%, rgba(242,238,230,.05) 0%, rgba(242,238,230,0) 55%), ${VOID}` }}>
+    <div style={{ minHeight: '100vh', background: `radial-gradient(120% 70% at 50% -10%, rgba(var(--ink-rgb),.05) 0%, rgba(var(--ink-rgb),0) 55%), ${VOID}` }}>
       <div style={{ padding: '20px 18px 130px', maxWidth: '520px', margin: '0 auto' }}>
         {/* header */}
         <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: '10px' }}>
@@ -267,7 +267,7 @@ export default function DoorScanner() {
                 placeholder="TICKET CODE" autoFocus autoCapitalize="characters" autoCorrect="off" spellCheck={false}
                 style={{ width: '100%', background: VOID_2, border: `1px solid ${HAIR_HI}`, borderRadius: '14px', padding: '20px 16px', color: BONE, fontFamily: FONT_MONO, fontSize: '18px', letterSpacing: '.08em', textAlign: 'center', outline: 'none' }} />
               <button onClick={() => manualCode.trim() && eventId && checkIn(manualCode.trim())} disabled={!manualCode.trim() || !eventId}
-                style={{ width: '100%', marginTop: '12px', padding: '20px', borderRadius: '14px', background: manualCode.trim() && eventId ? BONE : 'rgba(242,238,230,.08)', border: 'none', color: manualCode.trim() && eventId ? VOID : BONE_LOW, fontFamily: FONT_MONO, fontSize: '13px', fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', cursor: manualCode.trim() && eventId ? 'pointer' : 'default' }}>
+                style={{ width: '100%', marginTop: '12px', padding: '20px', borderRadius: '14px', background: manualCode.trim() && eventId ? BONE : 'rgba(var(--ink-rgb),.08)', border: 'none', color: manualCode.trim() && eventId ? VOID : BONE_LOW, fontFamily: FONT_MONO, fontSize: '13px', fontWeight: 600, letterSpacing: '.14em', textTransform: 'uppercase', cursor: manualCode.trim() && eventId ? 'pointer' : 'default' }}>
                 Check in
               </button>
               <button onClick={() => setMode('camera')}

@@ -107,7 +107,7 @@ export default function Cohorts() {
 
 function Stat({ n, of, label, hero }) {
   return (
-    <div style={{ border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '10px 12px', background: 'rgba(242,238,230,.02)' }}>
+    <div style={{ border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '10px 12px', background: 'rgba(var(--ink-rgb),.02)' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
         <span style={{ fontFamily: FONT_DISPLAY, fontSize: hero ? '26px' : '22px', color: hero ? STAR : BONE, lineHeight: 1 }}>{n ?? 0}</span>
         {of != null && <span style={{ fontFamily: FONT_MONO, fontSize: '9px', color: FAINT }}>/ {of ?? 0}</span>}

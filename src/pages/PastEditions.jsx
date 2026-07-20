@@ -63,10 +63,10 @@ export default function PastEditions() {
     : { padding: '24px 28px 100px' }
 
   return (
-    <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh'}}>
+    <div style={{background:'linear-gradient(180deg,var(--bg) 0%,var(--bg) 20%,var(--bg) 40%,var(--bg) 100%)',minHeight:'100vh'}}>
       {/* Header matching Event page. En escritorio la barra global ya vive
           arriba (56px), así que ésta se pega DEBAJO en vez de encima. */}
-      <div style={{position:'sticky',top: wide ? '56px' : 0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding: wide ? '12px clamp(24px, 4vw, 56px)' : '12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
+      <div style={{position:'sticky',top: wide ? '56px' : 0,zIndex:50,background:'rgba(var(--void-rgb),.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding: wide ? '12px clamp(24px, 4vw, 56px)' : '12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button className="pressable" onClick={()=>navigate('/')} style={{background:'none',border:'none',color:'var(--cream-mid)',cursor:'pointer',display:'flex',alignItems:'center',transition:'color var(--dur-fast) var(--ease-house)'}}
           onMouseOver={e=>{e.currentTarget.style.color='var(--cream)'}}
           onMouseOut={e=>{e.currentTarget.style.color='var(--cream-mid)'}}>
@@ -80,9 +80,9 @@ export default function PastEditions() {
           <div key={ed.id} style={{
             borderRadius:'20px',
             overflow:'hidden',
-            background:'linear-gradient(160deg,#0A0A0D,#0A0A0D,#0A0A0D)',
+            background:'linear-gradient(160deg,var(--bg),var(--bg),var(--bg))',
             border:'1px solid rgba(255,255,255,.1)',
-            boxShadow:'0 8px 40px rgba(0,0,0,.5)',
+            boxShadow:'0 8px 40px rgba(var(--shadow-rgb),.5)',
           }}>
             {/* Ticket hero */}
             <div style={{

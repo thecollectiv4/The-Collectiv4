@@ -1,8 +1,16 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
+
+// La versión que /settings muestra sale de package.json, no de una constante
+// escrita a mano en la pantalla: un número de versión que hay que acordarse
+// de subir miente en cuanto alguien lo olvida, y es de lo primero que se le
+// pide a un usuario cuando reporta un bug.
+const pkg = JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8'))
 
 export default defineConfig({
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react()],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }

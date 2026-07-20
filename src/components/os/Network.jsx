@@ -116,7 +116,7 @@ export default function Network() {
           const name = u.full_name || (u.email ? u.email.split('@')[0] : 'Unnamed')
           const busy = pending === u.id
           return (
-            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${u.verified ? 'rgba(199,201,209,.28)' : HAIR}`, background: u.verified ? 'rgba(199,201,209,.05)' : CARD, transition: 'background .2s ease, border-color .2s ease' }}>
+            <div key={u.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${u.verified ? 'rgba(var(--silver-rgb),.28)' : HAIR}`, background: u.verified ? 'rgba(var(--silver-rgb),.05)' : CARD, transition: 'background .2s ease, border-color .2s ease' }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <span style={{ fontFamily: FONT_DISPLAY, fontSize: '16px', ...chromeText }}>{name[0].toUpperCase()}</span>}
@@ -137,7 +137,7 @@ export default function Network() {
               </div>
               <button onClick={() => toggle(u)} disabled={busy}
                 style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1,
-                  border: `1px solid ${u.verified ? SILVER : HAIR_HI}`, background: u.verified ? 'rgba(199,201,209,.12)' : 'transparent',
+                  border: `1px solid ${u.verified ? SILVER : HAIR_HI}`, background: u.verified ? 'rgba(var(--silver-rgb),.12)' : 'transparent',
                   color: u.verified ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>
                 {busy ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <BadgeCheck size={11} />}
                 {u.verified ? 'Verified' : 'Verify'}

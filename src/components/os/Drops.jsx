@@ -74,20 +74,20 @@ export function DropButton({ onDrop, desktop = false, context = {} }) {
              it — and this button is zIndex 9000, under the bar's 9999). */
           bottom: desktop ? '22px' : 'calc(108px + env(safe-area-inset-bottom, 0px))',
           zIndex: 9000, display: 'inline-flex', alignItems: 'center', gap: '8px',
-          background: 'rgba(199,201,209,.08)', border: `1px solid rgba(199,201,209,.32)`,
+          background: 'rgba(var(--silver-rgb),.08)', border: `1px solid rgba(var(--silver-rgb),.32)`,
           backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
           borderRadius: '100px', padding: '11px 16px', color: BONE, cursor: 'pointer',
-          boxShadow: '0 6px 24px rgba(7,8,14,.5)', transition: 'background .2s, border-color .2s, transform .2s',
+          boxShadow: '0 6px 24px rgba(var(--void-rgb),.5)', transition: 'background .2s, border-color .2s, transform .2s',
         }}
-        onMouseOver={e => { e.currentTarget.style.background = 'rgba(199,201,209,.14)'; e.currentTarget.style.borderColor = SILVER; e.currentTarget.style.transform = 'translateY(-1px)' }}
-        onMouseOut={e => { e.currentTarget.style.background = 'rgba(199,201,209,.08)'; e.currentTarget.style.borderColor = 'rgba(199,201,209,.32)'; e.currentTarget.style.transform = 'translateY(0)' }}>
+        onMouseOver={e => { e.currentTarget.style.background = 'rgba(var(--silver-rgb),.14)'; e.currentTarget.style.borderColor = SILVER; e.currentTarget.style.transform = 'translateY(-1px)' }}
+        onMouseOut={e => { e.currentTarget.style.background = 'rgba(var(--silver-rgb),.08)'; e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.32)'; e.currentTarget.style.transform = 'translateY(0)' }}>
         <Zap size={14} strokeWidth={1.8} style={{ color: STAR }} />
         <span style={{ fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.18em', textTransform: 'uppercase' }}>Drop</span>
       </button>
 
       {open && (
         <div onClick={() => !sending && close()} role="dialog" aria-label="Drop a note for the founders" className="overlay-backdrop"
-          style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(7,8,14,.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', padding: desktop ? '40px' : '0' }}>
+          style={{ position: 'fixed', inset: 0, zIndex: 10001, background: 'rgba(var(--void-rgb),.78)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: desktop ? 'center' : 'flex-end', justifyContent: 'center', padding: desktop ? '40px' : '0' }}>
           <div onClick={e => e.stopPropagation()} className="dialog-in"
             style={{ position: 'relative', width: '100%', maxWidth: '460px', background: VOID_2, border: `1px solid ${HAIR_HI}`, borderRadius: desktop ? '16px' : '20px 20px 0 0', padding: '18px 18px calc(16px + env(safe-area-inset-bottom, 0px))' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -116,7 +116,7 @@ export function DropButton({ onDrop, desktop = false, context = {} }) {
                 </div>
                 {err && <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: WARN, letterSpacing: '.04em', marginTop: '10px' }}>△ {err}</div>}
                 <button onClick={send} disabled={sending || !body.trim()}
-                  style={{ marginTop: '14px', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: body.trim() && !sending ? BONE : 'rgba(242,238,230,.12)', color: body.trim() && !sending ? '#0A0A0D' : BONE_LOW, border: 'none', borderRadius: '10px', padding: '13px', fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: sending || !body.trim() ? 'default' : 'pointer' }}>
+                  style={{ marginTop: '14px', width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '9px', background: body.trim() && !sending ? BONE : 'rgba(var(--ink-rgb),.12)', color: body.trim() && !sending ? 'var(--bg)' : BONE_LOW, border: 'none', borderRadius: '10px', padding: '13px', fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: sending || !body.trim() ? 'default' : 'pointer' }}>
                   {sending ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={13} strokeWidth={2} />}
                   {sending ? 'sending' : 'send the drop'}
                 </button>

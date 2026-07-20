@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useWide } from '@/lib/useIsDesktop'
 import { categoryMeta } from '@/lib/crafts'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    RelatedWorlds — the matching column's first public face (D2).
@@ -15,14 +16,14 @@ import { categoryMeta } from '@/lib/crafts'
    NOTHING — never a filler rail (Ley 11).
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
 
@@ -111,14 +112,14 @@ export default function RelatedWorlds({ profileId, crafts = [] }) {
                 onClick={() => navigate('/user/' + p.id)}
                 onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate('/user/' + p.id) } }}
                 style={{ flexShrink: 0, minWidth: wide ? 0 : (related.length <= 2 ? 0 : '186px'), display: 'flex', alignItems: 'center', gap: '12px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: CARD, padding: '13px 14px', cursor: 'pointer' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(${meta.tint},.5)`, background: VOID, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 0 12px rgba(${meta.tint},.1)` }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(${tintChannel(meta.tint)},.5)`, background: VOID, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: `0 0 12px rgba(${tintChannel(meta.tint)},.1)` }}>
                   {avatar
                     ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : <span style={{ fontFamily: 'Bebas Neue', fontSize: '17px', color: BONE }}>{name[0].toUpperCase()}</span>}
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: '18px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: `rgba(${meta.tint},.9)`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: `rgba(${tintChannel(meta.tint)},.9)`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     also {lead?.name}{p.shared.length > 1 ? ` +${p.shared.length - 1}` : ''}
                   </div>
                 </div>

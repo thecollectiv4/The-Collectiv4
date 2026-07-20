@@ -4,9 +4,34 @@
   <meta charset="UTF-8" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <meta name="theme-color" content="#0A0908" />
+  <!-- Rewritten at runtime by the guard below and by src/lib/theme.jsx. The
+       literal here is the DARK value (the house default) so a no-JS load
+       still gets the right notch band. -->
+  <meta name="theme-color" content="#0A0A0D" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <!-- EL GUARDIA DEL PRIMER PÍXEL. React mounts several frames after the
+       first paint, so resolving the theme in JS alone means a light-mode
+       member eats a black flash on every cold load — the one bug that makes
+       a theme toggle feel bolted on. This runs BEFORE the body exists and
+       writes the attribute the tokens hang off. Kept deliberately tiny and
+       dependency-free; src/lib/theme.jsx adopts whatever it finds here.
+       The two colours mirror THEME_COLOR in that file. -->
+  <script>
+    (function () {
+      try {
+        var p = localStorage.getItem('c4:theme');
+        if (p !== 'light' && p !== 'dark') p = null;
+        var r = p || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', r);
+        document.documentElement.style.colorScheme = r;
+        var m = document.querySelector('meta[name="theme-color"]');
+        if (m) m.setAttribute('content', r === 'light' ? '#EDEBE6' : '#0A0A0D');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
   <title>The Collectiv4 — Ran By Artists</title>
   <meta name="description" content="A night where Houston's artists stop performing for the world and start creating for each other. Sound, paint, and fabric — alive in the same room." />
   <!-- Open Graph -->
