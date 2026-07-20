@@ -1,96 +1,125 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Check } from 'lucide-react'
+import { Loader2, Check, ArrowRight } from 'lucide-react'
 import GlassSheet from './GlassSheet'
-import { fetchFriendState, requestFriend, respondFriend, startDM, sendMessage } from '@/lib/social'
+import {
+  fetchFriendState, requestFriend, respondFriend, startDM, sendMessage,
+  addCloseFriend, removeCloseFriend, myCloseFriends,
+} from '@/lib/social'
 import { announceSignalsChange } from '@/lib/signals'
 import { VOCAB } from '@/lib/socialVocab'
-import { BONE, BONE_MID, BONE_LOW, SILVER, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { WELL } from '@/lib/glass'
+import { BONE, BONE_MID, BONE_LOW, SILVER, FAINT, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
 
 /* =========================================================================
-   CONNECT — LA INTERFAZ DE CONEXIÓN (v12.3, idea de Diego).
+   CONNECT — LA INTERFAZ DE CONEXIÓN (v13 · Design Max).
 
-   ─── QUÉ PROBLEMA RESUELVE ──────────────────────────────────────────────
-   Antes había un botón que decía CONNECT y hacía una cosa: mandar la
-   solicitud. Y una vez aceptada… nada. Dos personas quedaban "conectadas" y
-   ninguna de las dos sabía para qué. La conexión era un estado, no un
-   principio de algo.
+   ─── QUÉ ES ─────────────────────────────────────────────────────────────
+   Picar CONNECT no es "seguir". Abre una intención: le decís a la persona
+   PARA QUÉ querés conectar, y esa intención se vuelve el primer mensaje del
+   hilo. La conexión es un principio de algo, no un estado muerto.
 
-   Aquí la conexión SE PIDE CON UNA INTENCIÓN. No "acepta mi solicitud" sino
-   "quiero que hagamos X". Eso cambia lo que la otra persona recibe: en vez
-   de una notificación vacía, le llega una propuesta con motivo.
+   EL HANDSHAKE (Diego, refinado en v13): picar Connect y NO mandar nada = NO
+   conecta. El vínculo se PIDE al mandar (requestFriend → pending) y se
+   CONFIRMA cuando la otra persona lo recibe/acepta. Hasta entonces el estado
+   es honesto: "requested", no "connected".
 
-   ─── CÓMO SE SINCRONIZA CON MESSAGES (lo que pidió Diego) ───────────────
-   No hay dos sistemas que haya que mantener de acuerdo — hay UNO. Mandar la
-   conexión hace tres cosas seguidas sobre primitivas que ya existían:
+   ─── LAS CAPAS (la profundidad que pidió el Design Max) ─────────────────
+   No todas las conexiones son iguales, y la interfaz lo dice con su forma:
 
-     1. requestFriend(otro)  → el vínculo MUTUO (friendships, pending)
-     2. startDM(otro)        → el hilo de conversación
-     3. sendMessage(hilo, …) → la intención, como PRIMER MENSAJE del hilo
+     · SIN CONECTAR → cuatro intenciones. Colaborar, proponer un booking,
+       invitar a una sala, o simplemente conectar. Cada una manda su vínculo
+       + su primer mensaje.
+     · YA CONECTADOS → el círculo íntimo. Aparece CLOSE FRIENDS: meter a
+       alguien a tu lista privada, para lo cercano. La DB obliga close ⊆
+       friends (add_close_friend rechaza a un no-amigo), así que esta capa
+       SÓLO existe una vez que el vínculo es mutuo — la arquitectura y la UI
+       dicen lo mismo, que es como tiene que ser.
 
-   O sea que la intención no es metadata que haya que reflejar en otra
-   pantalla: ES el primer mensaje. Messages no necesita saber que existe
-   Connect — abre el hilo y ahí está la propuesta, con su hora y su autor,
-   como cualquier otro mensaje. Sincronizado por construcción, no por
-   sincronización.
+   ─── CÓMO SINCRONIZA CON MESSAGES ───────────────────────────────────────
+   No hay dos sistemas. La intención ES el primer mensaje del hilo (startDM +
+   sendMessage), así que Messages no necesita saber que Connect existe: abre
+   el hilo y ahí está la propuesta, con su hora y su autor. Sincronizado por
+   construcción.
 
-   ─── POR QUÉ RESPETA EL MODELO SOCIAL ───────────────────────────────────
-   socialVocab.js lo dejó escrito: FOLLOW es direccional y público; CONNECTED
-   es el vínculo MUTUO que se pide y se acepta, y su lista es privada por RLS.
-   Esta hoja opera el vínculo mutuo (request/respond), NO el follow. Por eso
-   la tarjeta tiene los dos íconos separados: seguir es un gesto, conectar es
-   una conversación.
-
-   ─── DECISIONES DE PRODUCTO PARA DIEGO ──────────────────────────────────
-   Marcadas para que las apruebe o las cambie; ninguna es técnica.
-
-   D1 · LAS CUATRO INTENCIONES. Elegí el conjunto más chico que cubre por qué
-        un creativo le escribe a otro y que NO se pisan entre sí:
-          · COLLABORATE — hacer algo juntos
-          · INVITE      — traerlo a una noche/sala
-          · ASK         — preguntar por su trabajo, pedir consejo
-          · JUST CONNECT — sin agenda, que es una respuesta legítima
-        Cuatro y no ocho a propósito: un menú de intenciones largo convierte
-        una decisión de dos segundos en un formulario.
-
-   D2 · LA INTENCIÓN VIAJA COMO TEXTO, NO COMO CAMPO. Va de primer mensaje.
-        Ventaja: funciona hoy, sin migración, y se lee en Messages como lo
-        que es. Límite: no se puede filtrar Messages por "todas las
-        colaboraciones" ni pintar la intención como etiqueta en la bandeja.
-        Para eso haría falta `thread_messages.kind` (o una tabla de
-        intenciones) — PENDIENTE DE BACKEND si Diego lo quiere estructurado.
-
-   D3 · CONECTAR ABRE HILO SIEMPRE. Aun con "just connect" se crea la
-        conversación. Alternativa era no crearla y dejar la bandeja limpia;
-        preferí que conectar SIEMPRE deje una puerta abierta, porque una
-        conexión sin conversación es exactamente el estado muerto que esto
-        vino a arreglar. Si Diego prefiere lo otro, es un `if`.
-
-   D4 · LA NOTA ES OPCIONAL. La intención sola ya dice algo. Obligar a
-        escribir convierte el gesto en tarea.
+   ─── EL DISEÑO (Ley del Lujo Inmersivo, al tope) ────────────────────────
+   Las intenciones NO son cuatro cajas. Son una composición: un riel de luz
+   que baja por el lado izquierdo del que está elegido, la marca de la casa
+   como índice tranquilo, jerarquía de tipo estricta, y UN solo movimiento
+   que confirma la elección — nada que decore. El vidrio de la fila elegida
+   es WELL (la faceta encendida de glass.js), no un relleno plano. Museo, no
+   circo: el vacío alrededor es el lujo.
    ========================================================================= */
 
-/* Las intenciones. Una entrada más aquí y aparece sola en la hoja — el
-   `line` es lo que se manda si la persona no escribe nada de su puño. */
+/* Las intenciones. Una entrada más aquí y aparece sola en la hoja. El `line`
+   es lo que se manda si la persona no escribe nada de su puño. Los marks son
+   las marcas de carta estelar de la casa — índice, no pictograma: la palabra
+   y el hint cargan la función, la marca sólo da ritmo. */
 export const CONNECT_INTENTS = [
-  { key: 'collab',  mark: '◇', label: 'Collaborate', hint: 'make something together',
+  { key: 'collab',  mark: '◇', label: 'Collaborate',    hint: 'make something together',
     line: 'I want to make something with you.' },
-  { key: 'invite',  mark: '✕', label: 'Invite',      hint: 'bring them to a room',
-    line: 'I want to invite you to a room.' },
-  { key: 'ask',     mark: '○', label: 'Ask',         hint: 'about their work',
-    line: 'I have something to ask you about your work.' },
-  { key: 'connect', mark: '●', label: 'Just connect', hint: 'no agenda',
+  { key: 'booking', mark: '△', label: 'Propose a booking', hint: 'work together — details later',
+    line: 'I want to book you / propose working together.' },
+  { key: 'invite',  mark: '✕', label: 'Invite',         hint: 'to a room or a world',
+    line: 'I want to invite you to something.' },
+  { key: 'connect', mark: '●', label: 'Just connect',    hint: 'no agenda',
     line: 'I like what you make — connecting.' },
 ]
 
+/* ── UNA FILA DE INTENCIÓN ────────────────────────────────────────────────
+   El riel de luz izquierdo es lo único que se mueve: entra con scaleY cuando
+   la fila se elige (confirma "este camino"), y se va cuando otra la releva.
+   La fila elegida se apoya sobre WELL — vidrio con canto, no color plano. */
+function IntentRow({ intent, active, onPick }) {
+  return (
+    <button
+      type="button" role="radio" aria-checked={active}
+      onClick={onPick} className="pressable"
+      style={{
+        position: 'relative', width: '100%', display: 'flex', alignItems: 'center', gap: '13px',
+        textAlign: 'left', padding: '15px 15px 15px 17px', borderRadius: '12px', cursor: 'pointer',
+        overflow: 'hidden',
+        border: `1px solid ${active ? 'transparent' : HAIR}`,
+        transition: 'border-color 260ms var(--ease-house)',
+        ...(active ? WELL : { background: 'transparent' }),
+      }}
+    >
+      {/* el riel de luz — sólo en la elegida, entra desde el centro */}
+      <span aria-hidden style={{
+        position: 'absolute', left: 0, top: '10%', bottom: '10%', width: '2.5px', borderRadius: '2px',
+        background: 'linear-gradient(180deg, transparent, rgba(var(--ink-rgb),.85) 22%, rgba(var(--ink-rgb),.85) 78%, transparent)',
+        transformOrigin: 'center', transform: active ? 'scaleY(1)' : 'scaleY(0)',
+        transition: 'transform 300ms var(--ease-house)',
+      }} />
+      {/* la marca de la casa, en un chip que se enciende con la elección */}
+      <span aria-hidden style={{
+        flexShrink: 0, width: '30px', height: '30px', borderRadius: '9px',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: FONT_MONO, fontSize: '13px',
+        color: active ? BONE : BONE_LOW,
+        background: active ? 'rgba(var(--ink-rgb),.10)' : 'rgba(var(--ink-rgb),.04)',
+        border: `1px solid ${active ? 'rgba(var(--ink-rgb),.22)' : HAIR}`,
+        transition: 'color 260ms var(--ease-house), background 260ms var(--ease-house), border-color 260ms var(--ease-house)',
+      }}>{intent.mark}</span>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <span style={{ display: 'block', fontFamily: FONT_SANS, fontSize: '14.5px', letterSpacing: '.005em', color: active ? BONE : BONE_MID, transition: 'color 260ms var(--ease-house)' }}>{intent.label}</span>
+        <span style={{ display: 'block', fontFamily: FONT_MONO, fontSize: '8.5px', color: active ? BONE_LOW : FAINT, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', transition: 'color 260ms var(--ease-house)' }}>{intent.hint}</span>
+      </span>
+    </button>
+  )
+}
+
 export default function ConnectSheet({ me, person, wide, onClose, onStateChange }) {
   const navigate = useNavigate()
-  const [bond, setBond] = useState(null)     // none | out | in | friends | null(cargando)
+  const [bond, setBond] = useState(null)      // none | out | in | friends | null(cargando)
   const [intent, setIntent] = useState('collab')
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
-  const [done, setDone] = useState(false)
+  const [done, setDone] = useState('')        // '' | 'sent' | 'close-on' | 'close-off'
+  const [isClose, setIsClose] = useState(false)
+  const [closeBusy, setCloseBusy] = useState(false)
+  const doneTimer = useRef(0)
 
   const name = person.full_name || person.username || 'this world'
   const firstName = name.split(' ')[0]
@@ -98,13 +127,23 @@ export default function ConnectSheet({ me, person, wide, onClose, onStateChange 
   useEffect(() => {
     let alive = true
     fetchFriendState(me.id, person.id).then((s) => { if (alive) setBond(s || 'none') })
-    return () => { alive = false }
+    return () => { alive = false; clearTimeout(doneTimer.current) }
   }, [me.id, person.id])
 
-  /* EL ENVÍO. Los tres pasos van en orden y el vínculo va PRIMERO: si algo
-     falla después, quedó pedida la conexión —que es lo que importa— en vez
-     de un mensaje suelto sin vínculo. El hilo y el mensaje son la parte
-     recuperable; el estado social no. */
+  // sólo si ya son amigos tiene sentido leer la lista íntima (la door la
+  // rechazaría de otro modo, y pedirla sin conexión sería ruido)
+  useEffect(() => {
+    if (bond !== 'friends') return undefined
+    let alive = true
+    myCloseFriends().then((list) => {
+      if (alive) setIsClose(list.some((p) => (p.id || p.friend_id) === person.id))
+    })
+    return () => { alive = false }
+  }, [bond, person.id])
+
+  /* EL ENVÍO. El vínculo va PRIMERO: si algo falla después, quedó pedida la
+     conexión —que es lo que importa— en vez de un mensaje sin vínculo. El
+     hilo y el mensaje son recuperables; el estado social no. */
   const send = async () => {
     if (busy) return
     setBusy(true); setErr('')
@@ -114,109 +153,208 @@ export default function ConnectSheet({ me, person, wide, onClose, onStateChange 
       else if (bond === 'in') await respondFriend(person.id, true)
 
       const threadId = await startDM(person.id)
-      const body = note.trim() || chosen.line
-      await sendMessage(threadId, me.id, body)
+      await sendMessage(threadId, me.id, note.trim() || chosen.line)
 
       announceSignalsChange()
       onStateChange?.()
-      setDone(true)
-      // se queda un latido en "listo" y recién ahí abre el hilo: sin esa
-      // pausa el salto de pantalla se siente como un error, no como respuesta
-      setTimeout(() => { onClose(); navigate(`/messages/${threadId}`) }, 620)
+      setDone('sent')
+      // un latido en "listo" antes del salto de pantalla — sin la pausa el
+      // cambio se siente como un error, no como una respuesta
+      doneTimer.current = setTimeout(() => { onClose(); navigate(`/messages/${threadId}`) }, 720)
     } catch (e) {
       setErr(e?.message || "couldn't send — try again")
       setBusy(false)
     }
   }
 
-  const title = bond === 'friends' ? `You and ${firstName}` : `Connect with ${firstName}`
-  const kicker = bond === 'friends' ? VOCAB.followingState : 'a connection with intent'
+  /* CLOSE FRIENDS — optimista con reversión honesta. Sólo alcanzable en el
+     estado 'friends' (la door lo exige y la UI también). */
+  const toggleClose = async () => {
+    if (closeBusy) return
+    const next = !isClose
+    setCloseBusy(true); setErr('')
+    setIsClose(next)   // optimista
+    try {
+      if (next) await addCloseFriend(person.id)
+      else await removeCloseFriend(person.id)
+      announceSignalsChange()
+      onStateChange?.()
+      setDone(next ? 'close-on' : 'close-off')
+      doneTimer.current = setTimeout(() => setDone(''), 1500)
+    } catch (e) {
+      setIsClose(!next)   // reversión limpia a la verdad del servidor
+      setErr(e?.message || "couldn't update — try again")
+    } finally {
+      setCloseBusy(false)
+    }
+  }
+
+  const connected = bond === 'friends'
+  const title = connected ? `You & ${firstName}` : `Connect with ${firstName}`
+  const kicker = connected ? 'your connection' : 'a connection with intent'
 
   return (
-    <GlassSheet title={title} kicker={kicker} onClose={onClose} wide={wide} maxWidth="460px">
+    <GlassSheet title={title} kicker={kicker} onClose={onClose} wide={wide} maxWidth="480px">
       {done ? (
-        <div style={{ padding: '26px 4px 10px', textAlign: 'center' }}>
-          <Check size={22} color={SILVER} />
-          <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_MID, letterSpacing: '.18em', textTransform: 'uppercase', marginTop: '12px' }}>
-            sent — opening the conversation
+        <DoneCeremony kind={done} firstName={firstName} />
+      ) : connected ? (
+        /* ── YA CONECTADOS: el círculo íntimo + un mensaje ── */
+        <div style={{ paddingTop: '2px' }}>
+          <CloseFriendsCard on={isClose} busy={closeBusy} firstName={firstName} onToggle={toggleClose} />
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '22px 0 12px' }}>
+            <span style={{ height: '1px', flex: 1, background: HAIR }} />
+            <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: FAINT, letterSpacing: '.24em', textTransform: 'uppercase' }}>or say something</span>
+            <span style={{ height: '1px', flex: 1, background: HAIR }} />
           </div>
+
+          <NoteField value={note} onChange={setNote} placeholder={`Message ${firstName}…`} />
+          {err && <ErrLine msg={err} />}
+          <SendButton onClick={send} busy={busy} disabled={!note.trim()} label="Send message" />
         </div>
       ) : (
-        <>
-          {/* EL ESTADO DEL VÍNCULO, DICHO. Sin esto la hoja no sabe decirte si
-              ya le pediste conexión a alguien la semana pasada, y volverías a
-              pedirla sin enterarte. */}
-          {bond === 'out' && (
-            <div style={{ fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE_MID, lineHeight: 1.6, marginBottom: '16px' }}>
-              You already asked to connect. Sending again just adds to the conversation.
-            </div>
-          )}
-          {bond === 'in' && (
-            <div style={{ fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE, lineHeight: 1.6, marginBottom: '16px' }}>
-              {firstName} asked to connect with you — sending this accepts it.
-            </div>
-          )}
+        /* ── SIN CONECTAR: las cuatro intenciones ── */
+        <div style={{ paddingTop: '2px' }}>
+          {bond === 'out' && <StateNote tone="mid">You already asked to connect — sending again just adds to the conversation.</StateNote>}
+          {bond === 'in' && <StateNote tone="hi">{firstName} asked to connect with you. Choosing an intent accepts it.</StateNote>}
 
-          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em', textTransform: 'uppercase', marginBottom: '10px' }}>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', margin: '2px 0 11px' }}>
             what for
           </div>
 
-          <div role="radiogroup" aria-label="Connection intent" style={{ display: 'grid', gridTemplateColumns: wide ? '1fr 1fr' : '1fr', gap: '7px' }}>
-            {CONNECT_INTENTS.map((i) => {
-              const on = intent === i.key
-              return (
-                <button key={i.key} type="button" role="radio" aria-checked={on}
-                  onClick={() => setIntent(i.key)} className="pressable"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '10px', textAlign: 'left',
-                    padding: '12px 13px', borderRadius: '10px', cursor: 'pointer',
-                    background: on ? 'rgba(var(--ink-rgb),.08)' : 'transparent',
-                    border: `1px solid ${on ? 'rgba(var(--ink-rgb),.30)' : HAIR}`,
-                    transition: 'background 200ms var(--ease-house), border-color 200ms var(--ease-house)',
-                  }}>
-                  <span aria-hidden style={{ fontFamily: FONT_MONO, fontSize: '11px', color: on ? SILVER : BONE_LOW, flexShrink: 0 }}>{i.mark}</span>
-                  <span style={{ minWidth: 0 }}>
-                    <span style={{ display: 'block', fontFamily: FONT_SANS, fontSize: '13.5px', color: on ? BONE : BONE_MID }}>{i.label}</span>
-                    <span style={{ display: 'block', fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '3px' }}>{i.hint}</span>
-                  </span>
-                </button>
-              )
-            })}
+          <div role="radiogroup" aria-label="Connection intent" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {CONNECT_INTENTS.map((i) => (
+              <IntentRow key={i.key} intent={i} active={intent === i.key} onPick={() => setIntent(i.key)} />
+            ))}
           </div>
 
-          {/* La nota es opcional (D4) y el placeholder enseña qué se manda si
-              la dejás vacía — así nadie descubre después qué dijo en su nombre. */}
-          <textarea
-            value={note} onChange={(e) => setNote(e.target.value)} rows={3} maxLength={400}
-            aria-label="Add a note"
-            placeholder={(CONNECT_INTENTS.find((i) => i.key === intent) || CONNECT_INTENTS[0]).line}
-            style={{
-              width: '100%', marginTop: '14px', padding: '12px 13px', borderRadius: '10px',
-              background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR_HI}`,
-              color: BONE, fontFamily: FONT_SANS, fontSize: '13.5px', lineHeight: 1.5, resize: 'none',
-            }}
-          />
-
-          {err && (
-            <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: 'var(--warn)', letterSpacing: '.08em', marginTop: '10px' }}>{err}</div>
-          )}
-
-          <button onClick={send} disabled={busy} className="pressable"
-            style={{
-              width: '100%', marginTop: '16px', padding: '14px', borderRadius: '11px',
-              background: BONE, border: 'none', color: 'var(--bg)', cursor: busy ? 'default' : 'pointer',
-              fontFamily: FONT_MONO, fontSize: '11px', letterSpacing: '.16em', textTransform: 'uppercase',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px', opacity: busy ? .6 : 1,
-            }}>
-            {busy && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
-            {bond === 'in' ? 'Accept & send' : bond === 'friends' ? 'Send' : 'Send request'}
-          </button>
-
-          <div style={{ fontFamily: FONT_SANS, fontSize: '11.5px', color: BONE_LOW, lineHeight: 1.55, marginTop: '11px', textAlign: 'center' }}>
-            This opens a conversation in Messages — your note is the first thing they read.
+          <div style={{ marginTop: '16px' }}>
+            <NoteField
+              value={note} onChange={setNote}
+              placeholder={(CONNECT_INTENTS.find((i) => i.key === intent) || CONNECT_INTENTS[0]).line}
+            />
           </div>
-        </>
+
+          {err && <ErrLine msg={err} />}
+
+          <SendButton onClick={send} busy={busy}
+            label={bond === 'in' ? 'Accept & send' : 'Send request'} />
+
+          <p style={{ fontFamily: FONT_SANS, fontSize: '11.5px', color: BONE_LOW, lineHeight: 1.55, marginTop: '12px', textAlign: 'center' }}>
+            Nothing is sent until you tap. Your note becomes the first thing they read in Messages.
+          </p>
+        </div>
       )}
     </GlassSheet>
+  )
+}
+
+/* ── EL CÍRCULO ÍNTIMO ────────────────────────────────────────────────────
+   Una tarjeta con presencia, no una casilla. El estado ON se lee de lejos:
+   el canto se enciende, el punto orbital se llena. Es privado por doctrina —
+   el copy lo dice, porque una persona tiene que saber que su círculo no lo
+   ve nadie más. */
+function CloseFriendsCard({ on, busy, firstName, onToggle }) {
+  return (
+    <button type="button" onClick={onToggle} disabled={busy} className="pressable"
+      aria-pressed={on}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left',
+        padding: '16px 16px', borderRadius: '14px', cursor: busy ? 'default' : 'pointer',
+        border: `1px solid ${on ? 'rgba(var(--ink-rgb),.30)' : HAIR_HI}`,
+        transition: 'border-color 300ms var(--ease-house), background 300ms var(--ease-house)',
+        ...(on ? WELL : { background: 'rgba(var(--ink-rgb),.03)' }),
+      }}>
+      {/* la marca del círculo — un anillo con su satélite, lleno cuando estás dentro */}
+      <span aria-hidden style={{ position: 'relative', flexShrink: 0, width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg width="34" height="34" viewBox="0 0 34 34" style={{ display: 'block' }}>
+          <circle cx="17" cy="17" r="11" fill="none" stroke={on ? BONE : BONE_LOW} strokeWidth="1.2" opacity={on ? 0.85 : 0.5} />
+          <circle cx="17" cy="6" r={on ? 3 : 2.4} fill={on ? BONE : BONE_LOW}
+            style={{ transition: 'r 300ms var(--ease-house)' }} />
+        </svg>
+      </span>
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <span style={{ display: 'block', fontFamily: FONT_SANS, fontSize: '15px', color: on ? BONE : BONE_MID, transition: 'color 300ms var(--ease-house)' }}>
+          {on ? `${firstName} is in your close friends` : 'Add to close friends'}
+        </span>
+        <span style={{ display: 'block', fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px' }}>
+          your private circle · only you see it
+        </span>
+      </span>
+      {busy
+        ? <Loader2 size={15} color={SILVER} style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+        : <span style={{ flexShrink: 0, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: on ? BONE : FAINT }}>{on ? 'in' : 'add'}</span>}
+    </button>
+  )
+}
+
+/* ── piezas compartidas ── */
+
+function NoteField({ value, onChange, placeholder }) {
+  return (
+    <textarea
+      value={value} onChange={(e) => onChange(e.target.value)} rows={3} maxLength={400}
+      aria-label="Add a note" placeholder={placeholder}
+      style={{
+        width: '100%', padding: '13px 14px', borderRadius: '12px',
+        background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR_HI}`,
+        color: BONE, fontFamily: FONT_SANS, fontSize: '14px', lineHeight: 1.5, resize: 'none',
+        transition: 'border-color 200ms var(--ease-house)',
+      }}
+      onFocus={(e) => { e.target.style.borderColor = 'rgba(var(--ink-rgb),.34)' }}
+      onBlur={(e) => { e.target.style.borderColor = HAIR_HI }}
+    />
+  )
+}
+
+function SendButton({ onClick, busy, disabled, label }) {
+  const off = busy || disabled
+  return (
+    <button onClick={onClick} disabled={off} className="pressable"
+      style={{
+        width: '100%', marginTop: '16px', padding: '15px', borderRadius: '12px',
+        background: off ? 'rgba(var(--ink-rgb),.10)' : BONE, border: 'none',
+        color: off ? BONE_LOW : 'var(--bg)', cursor: off ? 'default' : 'pointer',
+        fontFamily: FONT_MONO, fontSize: '11px', letterSpacing: '.18em', textTransform: 'uppercase',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
+        transition: 'background 220ms var(--ease-house), color 220ms var(--ease-house)',
+      }}>
+      {busy && <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} />}
+      {label}
+      {!busy && !disabled && <ArrowRight size={14} />}
+    </button>
+  )
+}
+
+function StateNote({ tone, children }) {
+  return (
+    <div style={{
+      fontFamily: FONT_SANS, fontSize: '12.5px', lineHeight: 1.6, marginBottom: '16px',
+      padding: '12px 14px', borderRadius: '11px',
+      background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR}`,
+      color: tone === 'hi' ? BONE : BONE_MID,
+    }}>{children}</div>
+  )
+}
+
+function ErrLine({ msg }) {
+  return <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: 'var(--warn)', letterSpacing: '.06em', marginTop: '11px', textAlign: 'center' }}>{msg}</div>
+}
+
+/* La ceremonia — el único momento de recompensa. La marca se dibuja, la
+   línea la nombra. Se usa igual para el envío y para el toggle del círculo. */
+function DoneCeremony({ kind, firstName }) {
+  const line = kind === 'sent' ? 'sent — opening the conversation'
+    : kind === 'close-on' ? `${firstName} is in your close friends`
+    : `removed from close friends`
+  return (
+    <div style={{ padding: '30px 4px 18px', textAlign: 'center' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '46px', height: '46px', borderRadius: '50%', border: `1px solid ${HAIR_HI}`, background: 'rgba(var(--ink-rgb),.05)' }}>
+        <Check size={20} color={SILVER} />
+      </span>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_MID, letterSpacing: '.18em', textTransform: 'uppercase', marginTop: '15px' }}>
+        {line}
+      </div>
+    </div>
   )
 }

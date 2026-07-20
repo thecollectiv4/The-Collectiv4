@@ -75,6 +75,7 @@ export function announceSignalsChange() {
 export function signalLine(s) {
   const t = s?.subject || {}
   switch (s?.kind) {
+    case 'follow':         return 'started following you'
     case 'friend_request': return 'asked to join your circle'
     case 'friend_accept':  return "accepted — you're in each other's circle"
     case 'plan_invite':    return t.title ? `invited you — ${t.title}` : 'invited you to a plan'
@@ -91,6 +92,9 @@ export function signalLine(s) {
 export function signalTo(s) {
   const t = s?.subject || {}
   switch (s?.kind) {
+    // un follow abre el mundo de quien te siguió — la campana cumple su
+    // promesa (Ley 9): te lleva a lo que nombra, no a una bandeja genérica
+    case 'follow':         return s?.actor?.id ? '/user/' + s.actor.id : '/community'
     case 'friend_request': return '/messages?seg=crews'
     case 'friend_accept':  return s?.actor?.id ? '/user/' + s.actor.id : '/messages?seg=crews'
     case 'plan_invite':
