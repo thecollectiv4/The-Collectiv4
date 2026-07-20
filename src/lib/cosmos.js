@@ -5,24 +5,71 @@
    re-declaring the block on every file (as the older pages do).
    ========================================================================= */
 /* Token values are the alignment deck's (collectiv4-universe.html) — the deck
-   is the reference; the OS must read as that deck become an app. */
-export const VOID = '#0A0A0D'
-export const VOID_2 = '#07080E'
-export const BONE = '#F2EEE6'
-export const BONE_MID = '#C7C4BC'                    // deck --bone-dim
-export const BONE_LOW = '#83838F'                    // deck --ash
-export const FAINT = '#4C4C57'                       // deck --faint
-export const SILVER = '#C7C9D1'
-export const STAR = '#E8E9ED'
-export const PANEL = 'rgba(242,238,230,.022)'        // deck --panel
-export const CARD = 'rgba(242,238,230,.025)'
-export const CARD_HI = 'rgba(242,238,230,.05)'
-export const HAIR = 'rgba(242,238,230,0.08)'         // deck --line-soft
-export const HAIR_HI = 'rgba(242,238,230,0.15)'      // deck --line
-export const WARN = '#E5A0A0'
+   is the reference; the OS must read as that deck become an app.
+
+   V12 — LOS NOMBRES SE QUEDAN, LOS VALORES SE MUDARON. Cada constante apunta
+   ahora al token de index.css en vez de llevar el literal. Los 18 archivos
+   que importan de aquí no cambiaron ni una línea y aun así respetan tema:
+   `style={{ color: BONE }}` emite `color: var(--cream)`, que en el vacío es
+   hueso y de día es tinta. Ese fue el punto de mantener el módulo compartido.
+
+   LOS VALORES ORIGINALES siguen siendo la fuente de verdad del registro
+   oscuro — viven en el bloque `:root` de index.css, comentados con el nombre
+   del deck. Aquí sólo queda la indirección.
+
+   ⚠ ESTAS CONSTANTES YA NO SIRVEN PARA CANVAS. Un contexto 2D toma colores
+   literales: `ctx.fillStyle = 'var(--cream)'` no lanza, simplemente no pinta.
+   Atmosphere.jsx es el único consumidor de canvas de la app y por eso lleva
+   su propia paleta en JS — no importa este archivo, y no debe empezar a
+   hacerlo. */
+export const VOID = 'var(--bg)'
+export const VOID_2 = 'var(--bg-deep)'
+export const BONE = 'var(--cream)'
+export const BONE_MID = 'var(--cream-mid)'           // deck --bone-dim
+export const BONE_LOW = 'var(--cream-low)'           // deck --ash
+export const FAINT = 'var(--cream-ghost)'            // deck --faint
+export const SILVER = 'var(--silver)'
+export const STAR = 'var(--star)'
+export const PANEL = 'rgba(var(--ink-rgb),.022)'     // deck --panel
+export const CARD = 'rgba(var(--ink-rgb),.025)'
+export const CARD_HI = 'rgba(var(--ink-rgb),.05)'
+export const HAIR = 'rgba(var(--ink-rgb),0.08)'      // deck --line-soft
+export const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'   // deck --line
+export const WARN = 'var(--warn)'
 
 // chrome — ONLY on display type (never fills, never large areas). Deck .chrome.
-export const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)'
+// Acero pulido sobre el vacío, metal oscuro grabado sobre papel (index.css).
+export const CHROME = 'var(--chrome)'
+
+/* =========================================================================
+   LAS TEMPERATURAS, TRADUCIDAS PARA CSS (v12).
+
+   Las "tints" (Ley 14) viven en DATOS como tripletes RGB crudos —
+   crafts.js, match.js, CreateCentral, las pestañas del OS— y se consumen de
+   dos maneras incompatibles entre sí:
+
+     · CSS    → `rgb(${tint})`, `rgba(${tint},.3)`   … quiere tema
+     · CANVAS → Atmosphere, vía useCosmosOverride    … quiere números
+
+   Un contexto 2D toma colores literales, así que la tabla NO se puede
+   convertir a variables sin romper el cielo en silencio (el regex de
+   Atmosphere lo mandaría a su fallback y nadie se enteraría). Por eso el
+   dato se queda crudo y la traducción ocurre en el borde: los consumidores
+   de CSS pasan por aquí, el canvas usa el triplete tal cual.
+
+   Se usa poniendo la función DONDE IBA el dato — el resto de la plantilla no
+   cambia, y por eso `rgba(...,α)` sigue funcionando igual:
+
+       color: `rgb(${meta.tint})`  →  color: `rgb(${tintChannel(meta.tint)})`
+
+   El fallback es plata: una temperatura desconocida se degrada a legible,
+   nunca a invisible. */
+const TINT_CHANNEL = {
+  '242,238,230': 'var(--tint-bone)',
+  '199,201,209': 'var(--tint-silver)',
+  '232,233,237': 'var(--tint-star)',
+}
+export const tintChannel = (tint) => TINT_CHANNEL[tint] || 'var(--tint-silver)'
 export const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 export const FONT_DISPLAY = "'Bebas Neue', sans-serif"

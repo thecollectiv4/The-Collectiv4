@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Loader2, X, Search } from 'lucide-react'
 import { searchCrafts, categoryMeta, recognitionLine } from '@/lib/crafts'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    CraftPicker — the craft stops being a text field and becomes RECOGNITION
@@ -19,14 +20,14 @@ import { searchCrafts, categoryMeta, recognitionLine } from '@/lib/crafts'
    crafts that exist in the taxonomy can ever be chosen.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
 
 const MAX_CRAFTS = 12
 
@@ -82,15 +83,15 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
             const meta = categoryMeta(c.category)
             return (
               <span key={c.id} data-testid={`craft-chip-${c.slug}`} className="chip-in"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 6px 6px 12px', background: isP ? `rgba(${meta.tint},.12)` : 'rgba(242,238,230,.04)', border: `1px solid ${isP ? `rgba(${meta.tint},.55)` : HAIR_HI}`, transition: 'background .25s ease, border-color .25s ease', boxShadow: isP ? `0 0 16px rgba(${meta.tint},.12)` : 'none' }}>
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', borderRadius: '100px', padding: '6px 6px 6px 12px', background: isP ? `rgba(${tintChannel(meta.tint)},.12)` : 'rgba(var(--ink-rgb),.04)', border: `1px solid ${isP ? `rgba(${tintChannel(meta.tint)},.55)` : HAIR_HI}`, transition: 'background .25s ease, border-color .25s ease', boxShadow: isP ? `0 0 16px rgba(${tintChannel(meta.tint)},.12)` : 'none' }}>
                 <button className="pressable" onClick={() => lead(c)} title={isP ? 'your primary craft' : 'make this your lead'} aria-pressed={isP}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-                  <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '10px', color: isP ? `rgb(${meta.tint})` : BONE_LOW }}>{isP ? '◆' : '◇'}</span>
+                  <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '10px', color: isP ? `rgb(${tintChannel(meta.tint)})` : BONE_LOW }}>{isP ? '◆' : '◇'}</span>
                   <span style={{ fontFamily: 'DM Mono', fontSize: '10.5px', letterSpacing: '.08em', textTransform: 'uppercase', color: isP ? BONE : BONE_MID }}>{c.name}</span>
-                  {isP && <span style={{ fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.2em', color: `rgba(${meta.tint},.85)`, textTransform: 'uppercase' }}>lead</span>}
+                  {isP && <span style={{ fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.2em', color: `rgba(${tintChannel(meta.tint)},.85)`, textTransform: 'uppercase' }}>lead</span>}
                 </button>
                 <button className="pressable" onClick={() => remove(c)} aria-label={`Remove ${c.name}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '17px', height: '17px', borderRadius: '50%', background: 'rgba(242,238,230,.05)', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: 0 }}>
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '17px', height: '17px', borderRadius: '50%', background: 'rgba(var(--ink-rgb),.05)', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: 0 }}>
                   <X size={9} />
                 </button>
               </span>
@@ -117,14 +118,14 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
           maxLength={40}
           onChange={(e) => setQ(e.target.value)}
           style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 36px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)' }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.5)' }}
           onBlur={(e) => { e.currentTarget.style.borderColor = HAIR_HI }}
         />
         {searching && <Loader2 size={13} style={{ position: 'absolute', right: '13px', top: '50%', transform: 'translateY(-50%)', color: BONE_LOW, animation: 'spin 1s linear infinite' }} />}
       </div>
 
       {/* the constellation of possibilities — grouped, lit by temperature */}
-      <div className="no-scrollbar" style={{ marginTop: '10px', maxHeight, overflowY: 'auto', border: `1px solid ${HAIR}`, borderRadius: '12px', background: 'rgba(242,238,230,.015)', padding: '4px 12px 12px' }}>
+      <div className="no-scrollbar" style={{ marginTop: '10px', maxHeight, overflowY: 'auto', border: `1px solid ${HAIR}`, borderRadius: '12px', background: 'rgba(var(--ink-rgb),.015)', padding: '4px 12px 12px' }}>
         {groups === null ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '26px 0' }}>
             <Loader2 size={15} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />
@@ -148,7 +149,7 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
               return (
                 <div key={g.category} style={{ paddingTop: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                    <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgba(${meta.tint},.8)` }}>{meta.mark}</span>
+                    <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgba(${tintChannel(meta.tint)},.8)` }}>{meta.mark}</span>
                     <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>{g.category}</span>
                     <span aria-hidden style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR}, transparent)` }} />
                   </div>
@@ -158,8 +159,8 @@ export default function CraftPicker({ value = [], primaryId = null, onChange, se
                       return (
                         <button key={c.id} className="pressable" data-testid={`craft-opt-${c.slug}`} aria-pressed={on}
                           onClick={() => toggle({ ...c, category: g.category })}
-                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', background: on ? `rgba(${meta.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${meta.tint},.5)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease', boxShadow: on ? `0 0 12px rgba(${meta.tint},.1)` : 'none' }}>
-                          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: on ? `rgb(${meta.tint})` : BONE_LOW }}>{on ? '◆' : '◇'}</span>
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', background: on ? `rgba(${tintChannel(meta.tint)},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${tintChannel(meta.tint)},.5)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease', boxShadow: on ? `0 0 12px rgba(${tintChannel(meta.tint)},.1)` : 'none' }}>
+                          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: on ? `rgb(${tintChannel(meta.tint)})` : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                           {c.name}
                         </button>
                       )

@@ -1,6 +1,7 @@
 import { ArrowUpRight } from 'lucide-react'
 import GlassSheet from './GlassSheet'
 import { categoryMeta } from '@/lib/crafts'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    CraftsSheet (v12) — lo que hay detrás del "+11".
@@ -20,9 +21,9 @@ import { categoryMeta } from '@/lib/crafts'
    — la misma regla que el hero, para que no digan cosas distintas.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_LOW = '#5B5952'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
+const BONE = 'var(--cream)'
+const BONE_LOW = 'var(--cream-dim)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
 
 export default function CraftsSheet({ name, crafts = [], onPickCraft, onClose, wide }) {
   // primario primero, pase lo que pase — igual que el hero (una fila recién
@@ -49,14 +50,14 @@ export default function CraftsSheet({ name, crafts = [], onPickCraft, onClose, w
                 background: 'transparent', border: 'none', borderRadius: '12px',
                 padding: '13px 12px', cursor: 'pointer', color: BONE,
               }}>
-              <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: `rgb(${meta.tint})`, flexShrink: 0, width: '14px' }}>
+              <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: `rgb(${tintChannel(meta.tint)})`, flexShrink: 0, width: '14px' }}>
                 {meta.mark}
               </span>
               <span style={{ minWidth: 0, flex: 1 }}>
                 <span style={{
                   display: 'block', fontFamily: 'DM Mono', fontSize: '11.5px',
                   letterSpacing: '.16em', textTransform: 'uppercase',
-                  color: isP ? `rgb(${meta.tint})` : BONE,
+                  color: isP ? `rgb(${tintChannel(meta.tint)})` : BONE,
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>{c.name}</span>
                 {isP && (

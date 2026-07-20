@@ -22,13 +22,23 @@ if (import.meta.env.VITE_SENTRY_DSN) {
    exactly this class of failure — decoration, now Atmosphere.jsx, must
    never take the page with it). When the DSN is set, it's also reported.
    Inline styles + system tokens so the fallback can't itself depend on
-   anything that might be the thing that broke. */
+   anything that might be the thing that broke.
+
+   V12 — POR QUÉ AQUÍ SÍ VAN LOS DOS: `var(--bg, #0A0A0D)`.
+   La migración de tema saltó este archivo a propósito. Su regla es no
+   depender de nada que pudiera ser lo que se rompió, y una hoja de estilos
+   que no cargó es un motivo perfectamente plausible de pantalla de crash —
+   con var() pelón, un fallo así deja esta pantalla sin color y el mensaje
+   ilegible, justo cuando más se necesita leer.
+   El respaldo de var() resuelve las dos cosas sin elegir: si los tokens
+   existen, esto respeta el tema; si index.css no llegó, cae al literal del
+   vacío y sigue siendo legible. Es CSS puro, sin dependencias nuevas. */
 function CrashFallback() {
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '40px', textAlign: 'center', background: '#0A0A0D', color: '#F2EEE6' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '16px', padding: '40px', textAlign: 'center', background: 'var(--bg, #0A0A0D)', color: 'var(--cream, #F2EEE6)' }}>
       <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '34px', letterSpacing: '.02em' }}>SOMETHING BROKE</div>
-      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: '#83838F', letterSpacing: '.06em', lineHeight: 1.6, maxWidth: '320px' }}>A part of the universe hit an error. Reloading usually fixes it.</div>
-      <button onClick={() => window.location.assign('/')} style={{ marginTop: '4px', background: '#F2EEE6', color: '#0A0A0D', border: 'none', borderRadius: '100px', padding: '11px 22px', fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>Reload</button>
+      <div style={{ fontFamily: "'DM Mono', monospace", fontSize: '11px', color: 'var(--cream-low, #83838F)', letterSpacing: '.06em', lineHeight: 1.6, maxWidth: '320px' }}>A part of the universe hit an error. Reloading usually fixes it.</div>
+      <button onClick={() => window.location.assign('/')} style={{ marginTop: '4px', background: 'var(--cream, #F2EEE6)', color: 'var(--bg, #0A0A0D)', border: 'none', borderRadius: '100px', padding: '11px 22px', fontFamily: "'DM Mono', monospace", fontSize: '10px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>Reload</button>
     </div>
   )
 }

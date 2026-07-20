@@ -4,7 +4,8 @@ import { Loader2, Plus, ScanLine, Trash2, Pencil, ArrowLeft, ImagePlus, X } from
 import { supabase } from '@/api/supabase'
 import { useAuth } from '@/lib/AuthContext'
 import { useIsDesktop } from '@/lib/useIsDesktop'
-import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, safeImg } from '@/lib/cosmos'
+import { glassControl } from '@/lib/glass'
+import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, safeImg, tintChannel } from '@/lib/cosmos'
 import { Field, Input, Textarea, Select, Btn } from '@/components/os/ui'
 import { uploadWorldImage, validateImage } from '@/lib/worldStorage'
 import { VIBES, normVibe } from '@/lib/match'
@@ -260,8 +261,8 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
                 <button key={kind} type="button" data-testid={`vibe-${kind}`} aria-pressed={on}
                   className={pulseClass}
                   onClick={() => set('vibeKind', on ? '' : kind)}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '8px 15px', background: on ? `rgba(${v.tint},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${v.tint},.55)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, filter .2s, transform .2s' }}>
-                  <span aria-hidden style={{ fontSize: '10px', color: on ? `rgb(${v.tint})` : BONE_LOW }}>{v.mark}</span>
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '8px 15px', background: on ? `rgba(${tintChannel(v.tint)},.1)` : 'transparent', border: `1px solid ${on ? `rgba(${tintChannel(v.tint)},.55)` : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, filter .2s, transform .2s' }}>
+                  <span aria-hidden style={{ fontSize: '10px', color: on ? `rgb(${tintChannel(v.tint)})` : BONE_LOW }}>{v.mark}</span>
                   {v.label}
                 </button>
               )
@@ -451,7 +452,9 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
    world images: writes only under auth.uid()). Replaces the raw "Cover image
    URL" input; stores the resulting PUBLIC url in form.cover_url. A legacy URL
    already on an event row still renders and is replaceable. */
-const pillBtn = { display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(10,10,13,.7)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 11px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }
+/* v12.1 — mismo caso que el `pill` del museo: blur de 6px inventado aquí.
+   Unificado a la receta de glass.js. */
+const pillBtn = { ...glassControl(), display: 'inline-flex', alignItems: 'center', gap: '5px', borderRadius: '100px', padding: '6px 11px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }
 
 function CoverUpload({ user, value, onChange }) {
   const inputRef = useRef(null)
@@ -508,7 +511,7 @@ function CoverUpload({ user, value, onChange }) {
           onDragOver={e => { e.preventDefault(); setDrag(true) }}
           onDragLeave={() => setDrag(false)}
           onDrop={onDrop}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', minHeight: '120px', border: `1px dashed ${drag ? SILVER : HAIR_HI}`, background: drag ? 'rgba(199,201,209,.06)' : PANEL, borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'border-color .2s, background .2s', textAlign: 'center' }}>
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', minHeight: '120px', border: `1px dashed ${drag ? SILVER : HAIR_HI}`, background: drag ? 'rgba(var(--silver-rgb),.06)' : PANEL, borderRadius: '12px', padding: '20px', cursor: 'pointer', transition: 'border-color .2s, background .2s', textAlign: 'center' }}>
           {busy ? <Loader2 size={18} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
             : <ImagePlus size={18} strokeWidth={1.5} style={{ color: BONE_LOW }} />}
           <div style={{ fontFamily: FONT_MONO, fontSize: '10px', color: BONE_MID, letterSpacing: '.08em' }}>{busy ? 'uploading…' : 'Drop, paste, or click to upload'}</div>

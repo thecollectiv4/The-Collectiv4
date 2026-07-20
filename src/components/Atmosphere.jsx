@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
+import { useTheme } from '@/lib/theme'
 
 /* =========================================================================
    ATMOSPHERE — the founder's own galaxy, crossed into the product (v8).
@@ -36,21 +37,24 @@ const BONE = '#F2EEE6'
 const NOISE = "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>"
 const GRAIN_URI = `url("data:image/svg+xml,${encodeURIComponent(NOISE)}")`
 
-/* ---- deck starfield tiles (560px @ .5 / 360px @ .35, scaled per surface) ---- */
+/* ---- deck starfield tiles (560px @ .5 / 360px @ .35, scaled per surface) ----
+   Estas DOS capas son CSS, no canvas, así que se llevan la variable de canal
+   directo y cambian de registro solas — cero JavaScript, cero rebuild. Es la
+   única parte del cielo que no tuvo que aprender de temas: ya sabía. */
 const STARS_1 = [
-  'radial-gradient(1px 1px at 18% 28%, rgba(242,238,230,.95), transparent)',
-  'radial-gradient(1px 1px at 82% 18%, rgba(242,238,230,.7), transparent)',
-  'radial-gradient(1.3px 1.3px at 64% 68%, rgba(242,238,230,.85), transparent)',
-  'radial-gradient(1px 1px at 34% 82%, rgba(242,238,230,.7), transparent)',
-  'radial-gradient(1px 1px at 50% 48%, rgba(242,238,230,.8), transparent)',
-  'radial-gradient(1px 1px at 11% 62%, rgba(242,238,230,.6), transparent)',
-  'radial-gradient(1px 1px at 90% 46%, rgba(242,238,230,.6), transparent)',
+  'radial-gradient(1px 1px at 18% 28%, rgba(var(--ink-rgb),.95), transparent)',
+  'radial-gradient(1px 1px at 82% 18%, rgba(var(--ink-rgb),.7), transparent)',
+  'radial-gradient(1.3px 1.3px at 64% 68%, rgba(var(--ink-rgb),.85), transparent)',
+  'radial-gradient(1px 1px at 34% 82%, rgba(var(--ink-rgb),.7), transparent)',
+  'radial-gradient(1px 1px at 50% 48%, rgba(var(--ink-rgb),.8), transparent)',
+  'radial-gradient(1px 1px at 11% 62%, rgba(var(--ink-rgb),.6), transparent)',
+  'radial-gradient(1px 1px at 90% 46%, rgba(var(--ink-rgb),.6), transparent)',
 ].join(',')
 const STARS_2 = [
-  'radial-gradient(1px 1px at 22% 44%, rgba(242,238,230,.55), transparent)',
-  'radial-gradient(1px 1px at 72% 34%, rgba(242,238,230,.5), transparent)',
-  'radial-gradient(1px 1px at 46% 84%, rgba(242,238,230,.5), transparent)',
-  'radial-gradient(1px 1px at 88% 76%, rgba(242,238,230,.45), transparent)',
+  'radial-gradient(1px 1px at 22% 44%, rgba(var(--ink-rgb),.55), transparent)',
+  'radial-gradient(1px 1px at 72% 34%, rgba(var(--ink-rgb),.5), transparent)',
+  'radial-gradient(1px 1px at 46% 84%, rgba(var(--ink-rgb),.5), transparent)',
+  'radial-gradient(1px 1px at 88% 76%, rgba(var(--ink-rgb),.45), transparent)',
 ].join(',')
 
 /* ---- density registers (D2) — the deck numbers, then restraint ----
@@ -90,15 +94,117 @@ const PRESETS = {
    purpose — museum, not circus.
    ========================================================================= */
 
-// nebula tints — cold silver-blue with ONE restrained gold, the aurora of
-// the brief held at a whisper. Never saturated: these are near-greys that
-// merely lean. [r,g,b, peak alpha]
-const NEBULA = [
-  [122, 146, 190, 0.088],   // cold blue — the deep field
-  [186, 198, 222, 0.058],   // silver — the diffuse middle
-  [198, 170, 118, 0.048],   // gold — the aurora, the single warm note
-  [96, 118, 158, 0.068],    // far blue — the depth behind everything
-]
+/* =========================================================================
+   V12 — EL CIELO TIENE DOS REGISTROS, Y EL DE DÍA NO ES "EL CIELO ACLARADO".
+
+   La tentación era subirle el brillo al fondo y dejar todo lo demás igual.
+   Eso da un cielo lavado: las estrellas claras se pierden contra el papel y
+   la nebulosa desaparece, porque en `screen` una nube clara sobre un fondo
+   claro no suma nada. Sería exactamente el "tema genérico" que el encargo
+   prohíbe.
+
+   LA REFERENCIA REAL — LA PLACA FOTOGRÁFICA. Los archivos astronómicos de
+   verdad (Harvard, el Palomar) son NEGATIVOS: estrellas OSCURAS impresas
+   sobre papel crema. Un siglo de astronomía se ve así. De día el cielo de
+   C4 es esa placa — no una inversión de software, un objeto de museo que ya
+   existe. Museo, no circo, literalmente.
+
+   LO QUE ESO CAMBIA, Y POR QUÉ CADA COSA:
+   · `screen` → `multiply`. En el vacío la profundidad SUMA luz; en el papel
+     la profundidad es TINTA. Es la misma nube, con el signo cambiado.
+   · Las estrellas más brillantes son las MÁS OSCURAS. Suena al revés hasta
+     que se ve: en un negativo, más luz capturada = más plata revelada.
+   · El halo deja de ser resplandor y pasa a ser una mancha suave de tinta —
+     el florecimiento del grano alrededor de una estrella sobreexpuesta.
+   Las α de día son ~1.5x las de noche: `multiply` sobre un sustrato claro
+   rinde menos que `screen` sobre uno oscuro, así que igualar los números
+   habría dado un cielo tímido.
+
+   LA TEMPERATURA SOBREVIVE EN LOS DOS. El azul-dorado del encargo son los
+   mismos matices en ambos registros: cerca del gris, apenas inclinados,
+   entre 4% y 13%. Cosmos prohíbe degradados de color; esto no es color, es
+   distancia. Saturarlo sería romper la paleta, y se nota enseguida.
+   ========================================================================= */
+const SKY = {
+  dark: {
+    grad: ['#0B0B10', '#08080D', '#07080E'],
+    blend: 'screen',
+    // [r,g,b, peak alpha] — grises que apenas se inclinan, nunca saturados
+    nebula: [
+      [122, 146, 190, 0.088],   // cold blue — the deep field
+      [186, 198, 222, 0.058],   // silver — the diffuse middle
+      [198, 170, 118, 0.048],   // gold — the aurora, the single warm note
+      [96, 118, 158, 0.068],    // far blue — the depth behind everything
+    ],
+    river: { edge: '150,172,208', spine: '214,222,238', aEdge: 0.044, aSpine: 0.070 },
+    dust: { base: BONE, bright: '#DCE4F2', aFar: 0.22, aMid: 0.4, aNear: 0.62 },
+    micro: '#C9D2E4', aMicro: 0.10,
+    node: BONE, nodeHi: '#EDF1FA',
+    halo: '232,236,246',
+    haloA: 0.20,
+    spike: '226,232,244', aSpike: 0.13,
+    glow: null,                 // el glow superior usa el TINT de la ruta
+  },
+  /* ── REVISIÓN DE DIEGO: "muy blanco, no parece galaxy" ──────────────────
+     Tenía razón y la causa era medible, no de gusto. Tres cosas la
+     aplanaban, en orden de culpa:
+
+     1. EL LAVADO BLANCO AL 0.5. Un resplandor blanco cubriendo el 70% del
+        radio superior sobre un fondo que ya era casi blanco: en la práctica
+        borraba el recorrido vertical del degradado y dejaba una hoja lisa.
+        La luz de día tiene que INSINUARSE (0.14), no inundar.
+     2. EL DEGRADADO BASE NO RECORRÍA NADA. #F3F1EC → #E4E2DA son 15 puntos
+        de luminancia: sin viaje de arriba a abajo no hay espacio, hay papel.
+        Ahora abre a ~34 puntos y el fondo tiene fondo.
+     3. LAS α DE `multiply` COPIADAS DE LA INTUICIÓN. Multiplicar sobre un
+        sustrato claro rinde MUCHO menos que `screen` sobre uno oscuro; las
+        subí ~1.5x en el primer intento y seguía corto. Van ~2.4x sobre el
+        original y recién ahí la nebulosa se lee como nebulosa.
+
+     Se suma una VIÑETA que el registro oscuro no necesita: en el vacío los
+     bordes ya caen a negro solos, en papel no cae nada y la pantalla lee
+     como una hoja pegada. Oscurecer las esquinas es lo que convierte la
+     hoja en una bóveda. Es la única capa que existe en un registro y no en
+     el otro, y por eso está comentada.
+     Todo esto vive en el raster cacheado: cero costo por frame. */
+  light: {
+    grad: ['#F7F5F1', '#EAE8E1', '#D9D6CD'],
+    blend: 'multiply',
+    nebula: [
+      [78, 108, 164, 0.240],   // azul frío — el campo profundo
+      [120, 138, 172, 0.150],  // plata — el medio difuso
+      [166, 132, 74, 0.130],   // oro — la aurora, la única nota cálida
+      [58, 84, 132, 0.195],    // azul lejano — la profundidad de atrás
+    ],
+    /* El río baja de 0.185 a 0.115 A PROPÓSITO, y no es un retroceso: al
+       0.185 la banda leía como un manchón gris cruzando la pantalla —
+       barrido pintado, no cielo. En una placa real la Vía Láctea es densa
+       porque tiene MÁS ESTRELLAS, no porque alguien pasó un pincel. Así que
+       la presencia se mueve de la pintura al polvo: menos banda, 1.7x más
+       puntos (dustMul). Mismo peso visual, y ahora resiste que te acerques. */
+    river: { edge: '104,128,172', spine: '62,78,110', aEdge: 0.072, aSpine: 0.115 },
+    dust: { base: '#3E4150', bright: '#1A1C24', aFar: 0.34, aMid: 0.55, aNear: 0.78 },
+    dustMul: 1.7,
+    micro: '#5A6072', aMicro: 0.20,
+    node: '#2B2D36', nodeHi: '#15171E',
+    halo: '38,40,52',
+    haloA: 0.20,
+    spike: '48,50,62', aSpike: 0.15,
+    glow: '255,255,255',        // luz de ventana — insinuada, no inundando
+    vignette: '108,104,116',    // la bóveda: sólo de día (ver la nota arriba)
+  },
+}
+
+/* El TINT de ruta es una temperatura clara (hueso / plata / estrella) y de
+   día tiene que leerse como tinta o las líneas de la constelación —la tesis
+   entera del dibujo— desaparecen contra el papel. Mismo papel semántico,
+   otro extremo de la escala. */
+const TINT_LIGHT = {
+  '242,238,230': '58,58,66',
+  '199,201,209': '74,76,85',
+  '232,233,237': '42,44,51',
+}
+const tintFor = (theme, tint) => (theme === 'light' ? (TINT_LIGHT[tint] || '74,76,85') : tint)
 
 /* route → surface register. Overrides (a world's own sky) win over this. */
 function presetForPath(path) {
@@ -109,6 +215,13 @@ function presetForPath(path) {
   if (path.startsWith('/experience') || path.startsWith('/editions')) return { density: 'medium', tint: '242,238,230', seed: 'the-archive' }
   if (path.startsWith('/messages')) return { density: 'quiet', tint: '232,233,237', seed: 'the-conversations' }
   if (path.startsWith('/os')) return { density: 'quiet', tint: '232,233,237', seed: 'the-instrument' }
+  /* v12 — /settings es superficie de LECTURA: donde se lee, la galaxia se
+     calla. Va en la tabla de rutas y no por useCosmosOverride a propósito:
+     el override existe para cielos DINÁMICOS (un mundo que se tiñe con su
+     oficio) y se aplica después del montaje, lo que dispara el crossfade
+     completo. Una ruta estática no debería pagar un fundido para llegar al
+     mismo sitio donde ya iba a caer. */
+  if (path.startsWith('/settings')) return { density: 'quiet', tint: '199,201,209', seed: 'the-machine-room' }
   /* v12 — the rooms that never had a sky. /auth and /claim are ceremony:
      the door you're being let through, and the night you just bought. They
      get a live register. The legal pages are paperwork — grain and a far
@@ -118,6 +231,51 @@ function presetForPath(path) {
   if (path.startsWith('/reset-password')) return { density: 'quiet', tint: '199,201,209', seed: 'the-way-back' }
   if (path.startsWith('/terms') || path.startsWith('/privacy') || path.startsWith('/refunds')) return { density: 'quiet', tint: '199,201,209', seed: 'the-paperwork' }
   return { density: 'quiet', tint: '199,201,209', seed: 'c4' }
+}
+
+/* =========================================================================
+   EL DPR — LA CAUSA RAÍZ DEL BUG DEL IPHONE (v12.2).
+
+   El síntoma que reportó Diego: en iPhone la galaxia se veía plana / a
+   medias, y SÓLO se ponía nítida mientras hacía pinch-zoom; al soltar,
+   volvía a verse mal.
+
+   LA CAUSA A — ESTE NÚMERO. Aquí decía `Math.min(2, devicePixelRatio)`.
+   Los iPhone desde el X reportan devicePixelRatio = 3. Así que el respaldo
+   del canvas se construía a 2x mientras la pantalla pedía 3x:
+
+       (w·2 · h·2) / (w·3 · h·3)  =  4/9  =  44%
+
+   El canvas llevaba el 44% de los píxeles que la pantalla necesitaba, y el
+   compositor lo estiraba. Eso es "plano y a medias", exactamente. No era
+   una impresión: es menos de la mitad de la información.
+
+   POR QUÉ NADIE LO VIO ANTES — y por qué yo tampoco: en un Mac
+   devicePixelRatio es 2, y `Math.min(2, 2)` da 2. La fracción sale 1.0,
+   perfecta. El bug es INVISIBLE en el aparato donde se desarrolla y severo
+   en el aparato donde se usa. Medido en los dos.
+
+   EL TOPE AHORA LO PONE EL ÁREA, no un número mágico. Un teléfono a 3x son
+   ~3 Mpx (barato); un monitor de 2560 a 3x serían 10 Mpx para decoración.
+   Así que los viewports chicos —los teléfonos— reciben su DPR nativo
+   completo, y los grandes se quedan en 2 como estaban.
+   ========================================================================= */
+export function canvasDpr(w, h) {
+  const native = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+  // 1.2e6 px CSS ≈ cualquier cosa más grande que un teléfono en horizontal
+  return (w * h > 1.2e6) ? Math.min(2, native) : Math.min(3, native)
+}
+
+/* ¿VA A CORRER EL PARALLAX? Una sola función para las dos preguntas que
+   antes se respondían por separado —el guard del efecto y la promoción de
+   capa del estilo— y que por eso pudieron contradecirse durante meses: el
+   efecto decía "en táctil no corro" y el estilo decía "voy a animarme toda
+   la vida". Con una sola fuente ya no se pueden desmentir. */
+function parallaxRuns(presetMouse) {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return !!presetMouse
+    && window.matchMedia('(pointer: fine)').matches
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
 /* deterministic sky per seed — a person's world keeps its own stars */
@@ -149,6 +307,11 @@ export function useCosmosOverride(seed, tint, density) {
 export default function Atmosphere() {
   const location = useLocation()
   const { override } = useContext(CosmosContext)
+  // El canvas 2D es el ÚNICO consumidor de color de la app que no puede leer
+  // una variable CSS — un contexto 2D toma literales y `var(--x)` no pinta
+  // nada (sin lanzar, que es lo peor). Por eso aquí el tema es un valor de
+  // JavaScript y no un token, y por eso ThemeProvider cuelga arriba de esto.
+  const { resolved: theme } = useTheme()
   const canvasRef = useRef(null)
   const wrapRef = useRef(null)
   const s1Ref = useRef(null)
@@ -161,8 +324,16 @@ export default function Atmosphere() {
     seed: override?.seed || routeCfg.seed,
   }
   const preset = PRESETS[cfg.density] || PRESETS.quiet
-  const TINT = /^\d{1,3},\d{1,3},\d{1,3}$/.test(cfg.tint) ? cfg.tint : '199,201,209'
-  const cfgKey = `${cfg.density}|${TINT}|${cfg.seed}`
+  const RAW_TINT = /^\d{1,3},\d{1,3},\d{1,3}$/.test(cfg.tint) ? cfg.tint : '199,201,209'
+  const TINT = tintFor(theme, RAW_TINT)
+  const PAL = SKY[theme] || SKY.dark
+  // `theme` entra en la llave: cambiar de registro tiene que reconstruir el
+  // cielo Y volver a resolver el caché de fondo (las dos paletas conviven en
+  // el Map, así que ir y venir entre día y noche no repaga el raster).
+  const cfgKey = `${cfg.density}|${TINT}|${cfg.seed}|${theme}`
+  // memoizado: matchMedia en cada render sería trabajo por nada, y esto sólo
+  // puede cambiar cuando cambia el registro de la superficie.
+  const parallaxOn = useMemo(() => parallaxRuns(preset.mouse), [preset.mouse])
   // survives cfg changes: bg raster cache (size|tint → offscreen canvas) and
   // the first-mount flag that decides fade-in vs full crossfade (review catch)
   const bgCache = useRef(new Map())
@@ -207,8 +378,10 @@ export default function Atmosphere() {
       const g2 = cv.getContext('2d')
       if (!g2) return null
       const g = g2.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2)
-      g.addColorStop(0, 'rgba(232,236,246,1)')
-      g.addColorStop(1, 'rgba(232,236,246,0)')
+      // el color sale de la paleta: resplandor en el vacío, mancha de tinta
+      // en la placa. Un sprite por registro, construido en el build.
+      g.addColorStop(0, `rgba(${PAL.halo},1)`)
+      g.addColorStop(1, `rgba(${PAL.halo},0)`)
       g2.fillStyle = g
       g2.fillRect(0, 0, S, S)
       return cv
@@ -220,7 +393,7 @@ export default function Atmosphere() {
       const w = window.innerWidth
       const h = window.innerHeight
       if (w < 1 || h < 1) { nodes = []; return }
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      const dpr = canvasDpr(w, h)
       // realloc the backing store ONLY when the size actually changed — a
       // seed/tint change must not repay a multi-MB canvas alloc (review catch)
       const bw = Math.round(w * dpr), bh = Math.round(h * dpr)
@@ -277,7 +450,9 @@ export default function Atmosphere() {
       if (w < 1 || h < 1) { bgCanvas = null; return }
       // v12: seed + sky join the cache key — two worlds at the same size no
       // longer share one bitmap now that the deep field is per-seed.
-      const key = `${w}x${h}|${TINT}|${cfg.seed}|${preset.sky}`
+      // `theme` va también: día y noche son dos bitmaps distintos del mismo
+      // mundo, y los dos merecen quedarse en el caché.
+      const key = `${w}x${h}|${TINT}|${cfg.seed}|${preset.sky}|${theme}`
       // LRU, not FIFO. v12 added the SEED to this key, and seeds are per-entity
       // (a profile id, an event slug), so the number of distinct keys is now
       // unbounded where it used to be a handful of tints. Under plain FIFO a
@@ -294,25 +469,37 @@ export default function Atmosphere() {
          one soft river — plus sub-pixel dust. None of it carries an edge that
          2x resolves and 1.5x does not; it is the one layer in the app where
          the extra samples buy literally nothing visible. It buys 44% of the
-         memory back on the machine with the biggest canvas. The MOVING stars
-         still draw at full DPR (that clamp is untouched, above) — those DO
-         have edges. Phones keep 2x: there the raster is small and cheap. */
+         memory back on the machine with the biggest canvas.
+
+         v12.2 — LA PARTE DE "PHONES KEEP 2x" ERA JUSTO EL BUG. El párrafo de
+         arriba sigue siendo cierto para ESCRITORIO y ahí no se toca. Pero en
+         teléfono la frase "nada aquí tiene bordes" dejó de ser verdad cuando
+         v12 metió el POLVO: ~500 puntos de radio 0.35–1.25px son bordes puros,
+         y son exactamente lo que se veía suave. En un viewport chico el raster
+         es barato, así que sigue al canvas principal y va a DPR nativo. */
       const bigView = w * h > 1.0e6
-      const dpr = Math.min(bigView ? 1.5 : 2, window.devicePixelRatio || 1)
+      const dpr = bigView ? Math.min(1.5, window.devicePixelRatio || 1) : canvasDpr(w, h)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
       bgCanvas.height = Math.round(h * dpr)
       const b = bgCanvas.getContext('2d')
       b.setTransform(dpr, 0, 0, dpr, 0, 0)
       const g = b.createLinearGradient(0, 0, 0, h)
-      g.addColorStop(0, '#0B0B10')
-      g.addColorStop(0.55, '#08080D')
-      g.addColorStop(1, '#07080E')
+      g.addColorStop(0, PAL.grad[0])
+      g.addColorStop(0.55, PAL.grad[1])
+      g.addColorStop(1, PAL.grad[2])
       b.fillStyle = g
       b.fillRect(0, 0, w, h)
+      // El lavado superior. De noche es la temperatura de la ruta entrando
+      // por arriba; de día es luz de ventana — blanca, no teñida, porque un
+      // tinte claro sobre papel claro es una mancha y no una fuente.
+      const glowRGB = PAL.glow || TINT
+      // 0.14, no 0.5 — ver la nota (1) en SKY.light. Media docena de puntos
+      // de más aquí y el cielo entero vuelve a ser una hoja.
+      const glowA = theme === 'light' ? 0.14 : 0.055
       const glow = b.createRadialGradient(w * 0.5, h * 0.04, 0, w * 0.5, h * 0.04, Math.max(w, h) * 0.7)
-      glow.addColorStop(0, `rgba(${TINT},0.055)`)
-      glow.addColorStop(1, `rgba(${TINT},0)`)
+      glow.addColorStop(0, `rgba(${glowRGB},${glowA})`)
+      glow.addColorStop(1, `rgba(${glowRGB},0)`)
       b.fillStyle = glow
       b.fillRect(0, 0, w, h)
 
@@ -327,20 +514,41 @@ export default function Atmosphere() {
       // instead of muddying the void. Placement is seeded but biased to the
       // upper field and the corners: clouds behind the content, never a
       // bloom under the middle of the page where text lives (Ley 3).
-      b.globalCompositeOperation = 'screen'
-      for (let i = 0; i < NEBULA.length; i++) {
-        const [r, gg, bb, a] = NEBULA[i]
+      b.globalCompositeOperation = PAL.blend
+      for (let i = 0; i < PAL.nebula.length; i++) {
+        const [r, gg, bb, a] = PAL.nebula[i]
         const cx = w * (0.12 + srnd() * 0.78)
         // keep the mass out of the reading band: top third or bottom sixth
         const cy = srnd() < 0.7 ? h * (0.02 + srnd() * 0.32) : h * (0.82 + srnd() * 0.2)
         const rad = diag * (0.34 + srnd() * 0.36)
-        const cloud = b.createRadialGradient(cx, cy, 0, cx, cy, rad)
         const peak = a * sky
+        /* V12.1 — LOS FILAMENTOS. Cuatro nubes redondas leen como cuatro
+           manchas; una nebulosa real tiene HEBRA, se estira en una dirección.
+           Dos de las cuatro se dibujan bajo una escala no uniforme y un giro
+           propio, así que la misma parada de gradiente produce una banda
+           alargada en vez de un círculo. Cuesta un save/restore y ni un solo
+           píxel más de relleno — y es la diferencia entre "hay algo detrás"
+           y "hay una nube ahí". */
+        const filament = i % 2 === 1
+        b.save()
+        if (filament) {
+          b.translate(cx, cy)
+          b.rotate(-0.5 + srnd() * 1.0)
+          b.scale(1, 0.34 + srnd() * 0.2)
+          b.translate(-cx, -cy)
+        }
+        const cloud = b.createRadialGradient(cx, cy, 0, cx, cy, rad)
         cloud.addColorStop(0, `rgba(${r},${gg},${bb},${peak})`)
         cloud.addColorStop(0.42, `rgba(${r},${gg},${bb},${peak * 0.38})`)
         cloud.addColorStop(1, `rgba(${r},${gg},${bb},0)`)
         b.fillStyle = cloud
-        b.fillRect(0, 0, w, h)
+        // Sólo la nube estirada necesita desbordar el viewport (su escala
+        // vertical encoge el espacio que el rect cubre). Las redondas se
+        // quedan con el rect exacto: expandir las cuatro habría triplicado
+        // el relleno del raster en un monitor grande sin cambiar un píxel.
+        if (filament) b.fillRect(-diag, -diag, w + diag * 2, h + diag * 2)
+        else b.fillRect(0, 0, w, h)
+        b.restore()
       }
 
       // 2. THE RIVER — the current of light the brief asked for. A soft band
@@ -353,12 +561,13 @@ export default function Atmosphere() {
       b.save()
       b.translate(rcx, rcy)
       b.rotate(ang)
+      const RV = PAL.river
       const band = b.createLinearGradient(0, -diag * 0.16, 0, diag * 0.16)
-      band.addColorStop(0, 'rgba(150,172,208,0)')
-      band.addColorStop(0.42, `rgba(150,172,208,${0.044 * sky})`)
-      band.addColorStop(0.5, `rgba(214,222,238,${0.070 * sky})`)   // the spine
-      band.addColorStop(0.58, `rgba(150,172,208,${0.044 * sky})`)
-      band.addColorStop(1, 'rgba(150,172,208,0)')
+      band.addColorStop(0, `rgba(${RV.edge},0)`)
+      band.addColorStop(0.42, `rgba(${RV.edge},${RV.aEdge * sky})`)
+      band.addColorStop(0.5, `rgba(${RV.spine},${RV.aSpine * sky})`)   // the spine
+      band.addColorStop(0.58, `rgba(${RV.edge},${RV.aEdge * sky})`)
+      band.addColorStop(1, `rgba(${RV.edge},0)`)
       b.fillStyle = band
       b.fillRect(-diag, -diag * 0.16, diag * 2, diag * 0.32)
       b.restore()
@@ -367,8 +576,14 @@ export default function Atmosphere() {
       // gradient. ~420 sub-pixel stars, denser along the river (that is what
       // a galactic band IS), all static. This is the single biggest visual
       // win in the file and it costs exactly one bitmap.
-      const dustN = Math.round(Math.min(520, Math.max(160, (w * h) / 2600)) * sky)
+      const DU = PAL.dust
+      // dustMul: el registro claro compra su densidad con estrellas en vez de
+      // con banda pintada (ver la nota junto a `river` en SKY.light). Sigue
+      // siendo raster estático — más puntos aquí no cuestan un solo frame.
+      const dustN = Math.round(Math.min(520, Math.max(160, (w * h) / 2600)) * sky * (PAL.dustMul || 1))
       const sinA = Math.sin(ang), cosA = Math.cos(ang)
+      // los pocos más brillantes se guardan para las púas de abajo
+      const anchors = []
       for (let i = 0; i < dustN; i++) {
         let x = srnd() * w
         let y = srnd() * h
@@ -383,27 +598,97 @@ export default function Atmosphere() {
         }
         const m = srnd()                       // magnitude roll
         const rr = m > 0.985 ? 1.25 : m > 0.9 ? 0.85 : 0.55
-        const aa = (m > 0.985 ? 0.62 : m > 0.9 ? 0.4 : 0.22) * sky
+        const aa = (m > 0.985 ? DU.aNear : m > 0.9 ? DU.aMid : DU.aFar) * sky
         b.globalAlpha = aa
-        b.fillStyle = m > 0.96 ? '#DCE4F2' : BONE   // the brightest lean blue-white
+        b.fillStyle = m > 0.96 ? DU.bright : DU.base   // the brightest lean blue-white
         b.beginPath(); b.arc(x, y, rr, 0, 6.3); b.fill()
+        if (m > 0.985 && anchors.length < 4) anchors.push({ x, y, rr })
       }
+
+      /* V12.1 — EL POLVO FINO. La capa anterior tiene tres magnitudes y ahí se
+         acaba; entre ellas el fondo queda liso, y un cielo liso lee como
+         degradado por bonito que sea el degradado. Esta segunda pasada mete
+         ~1.6x más puntos a un radio sub-píxel y una α de un dígito: por
+         separado ninguno se ve, juntos son la TEXTURA — la sensación de que
+         hay más cielo del que alcanzás a resolver. Es lo más barato del
+         archivo (un arc de radio .35 no llena ni un píxel) y lo que más
+         "espacio de verdad" compra. Estático: no cuesta un solo frame. */
+      const microN = Math.round(dustN * 1.6)
+      b.fillStyle = PAL.micro
+      b.globalAlpha = PAL.aMicro * sky
+      for (let i = 0; i < microN; i++) {
+        const x = srnd() * w
+        const y = srnd() * h
+        b.beginPath(); b.arc(x, y, 0.35 + srnd() * 0.22, 0, 6.3); b.fill()
+      }
+
+      /* V12.1 — LAS PÚAS. Cuatro, nada más, sobre las estrellas más brillantes
+         del campo: dos trazos finos en cruz que se desvanecen a los extremos.
+         Es el artefacto del telescopio (la difracción en las arañas del
+         secundario) y es LA señal que el ojo lee como "esto es una fotografía
+         astronómica" y no como puntos en una pantalla. Cuatro es la cifra
+         entera: a la sexta ya es un adorno navideño, y el encargo dice museo,
+         no circo. */
+      const SP = PAL.spike
+      b.lineWidth = 0.7
+      for (const a of anchors) {
+        const len = a.rr * (7 + srnd() * 5)
+        for (const [dx, dy] of [[1, 0], [0, 1]]) {
+          const gsp = b.createLinearGradient(a.x - dx * len, a.y - dy * len, a.x + dx * len, a.y + dy * len)
+          gsp.addColorStop(0, `rgba(${SP},0)`)
+          gsp.addColorStop(0.5, `rgba(${SP},${PAL.aSpike * sky})`)
+          gsp.addColorStop(1, `rgba(${SP},0)`)
+          b.strokeStyle = gsp
+          b.beginPath()
+          b.moveTo(a.x - dx * len, a.y - dy * len)
+          b.lineTo(a.x + dx * len, a.y + dy * len)
+          b.stroke()
+        }
+      }
+
       b.globalAlpha = 1
       b.globalCompositeOperation = 'source-over'
 
+      /* LA BÓVEDA (sólo de día). En el vacío los bordes caen a negro por su
+         cuenta y no hace falta nada; en papel no cae nada, y una pantalla
+         claro-uniforme de borde a borde lee como una hoja pegada al vidrio,
+         no como un espacio con fondo. Un oscurecimiento muy bajo en las
+         esquinas es lo que le da bóveda — el mismo truco que usa una copia
+         de galería para que la vista caiga al centro.
+         Va al FINAL y en source-over, encima del campo profundo: la viñeta
+         tiene que abrazar la nebulosa y el polvo, no quedar debajo de ellos.
+         El centro se queda intacto (parada 0.5 todavía en alpha 0), así que
+         no le roba contraste a nada de lo que se lee. */
+      if (PAL.vignette) {
+        const vg = b.createRadialGradient(w * 0.5, h * 0.46, 0, w * 0.5, h * 0.46, Math.hypot(w, h) * 0.72)
+        vg.addColorStop(0, `rgba(${PAL.vignette},0)`)
+        vg.addColorStop(0.5, `rgba(${PAL.vignette},0)`)
+        vg.addColorStop(0.78, `rgba(${PAL.vignette},${0.085 * sky})`)
+        vg.addColorStop(1, `rgba(${PAL.vignette},${0.20 * sky})`)
+        b.fillStyle = vg
+        b.fillRect(0, 0, w, h)
+      }
+
       /* v12 desktop: the cap was reasoned from a PHONE (~5MB/entry). At
          2560x1440 DPR2 one entry is 5120x2880x4B = 59 MB, so the same cap
-         meant ~295 MB of backing store for decoration on a laptop. The cap is
-         now sized by area, and `>=` not `>` — the check runs BEFORE the
-         insert, so `> 4` actually kept FIVE resident. Off-by-one, mine. */
-      // 1.0e6 ≈ anything bigger than ~1000x1000, i.e. every real desktop.
-      // A 1440x900 laptop is 1.296e6 and its raster is 20.7 MB per entry —
-      // four of those is 83 MB of decoration. Phones (390x844 = 0.33e6) keep 4.
-      const maxEntries = (w * h > 1.0e6) ? 2 : 4
-      while (bgCache.current.size >= maxEntries) {
-        bgCache.current.delete(bgCache.current.keys().next().value)
-      }
+         meant ~295 MB of backing store for decoration on a laptop.
+
+         v12.2 — EL CUPO ES DE MEMORIA, NO DE ENTRADAS. Contar entradas fue
+         siempre una aproximación del dato que de verdad importa (bytes), y se
+         rompió sola en cuanto el DPR de teléfono subió de 2 a 3: la misma
+         "4 entradas" pasó de ~21 MB a ~48 MB sin que nadie tocara el número.
+         Un presupuesto en bytes no se puede desincronizar así, porque mide
+         justo lo que se quiere limitar. Se expulsa por LRU hasta caber. */
+      const BYTES = (cv) => cv.width * cv.height * 4
+      const BUDGET = 40e6   // ~40 MB de decoración, en cualquier aparato
       bgCache.current.set(key, bgCanvas)
+      let used = 0
+      for (const cv of bgCache.current.values()) used += BYTES(cv)
+      while (used > BUDGET && bgCache.current.size > 1) {
+        const oldestKey = bgCache.current.keys().next().value
+        used -= BYTES(bgCache.current.get(oldestKey))
+        bgCache.current.delete(oldestKey)
+      }
     }
 
     const draw = (dtFrames) => {
@@ -450,7 +735,7 @@ export default function Atmosphere() {
           if (md < MOUSE_R) {
             // the sky reacts to whoever is looking at it (D4)
             ctx.globalAlpha = (1 - md / MOUSE_R) * 0.4
-            ctx.strokeStyle = BONE
+            ctx.strokeStyle = PAL.node
             ctx.lineWidth = 0.7
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mx, my); ctx.stroke()
           }
@@ -466,11 +751,11 @@ export default function Atmosphere() {
           // (~90/sec on a phone) purely to throw it away. Same picture, no
           // per-frame garbage.
           const hr = p.r * 5
-          ctx.globalAlpha = 0.20 * tw
+          ctx.globalAlpha = PAL.haloA * tw
           ctx.drawImage(haloSprite, p.x - hr, p.y - hr, hr * 2, hr * 2)
         }
         ctx.globalAlpha = p.a * tw
-        ctx.fillStyle = p.halo ? '#EDF1FA' : BONE
+        ctx.fillStyle = p.halo ? PAL.nodeHi : PAL.node
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.3); ctx.fill()
       }
       ctx.globalAlpha = 1
@@ -548,8 +833,7 @@ export default function Atmosphere() {
      dead on QUIET surfaces: where you read, even the tiles hold still
      (review catch: the register promised zero pointer reaction). */
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced || !preset.mouse || !window.matchMedia('(pointer: fine)').matches) return undefined
+    if (!parallaxRuns(preset.mouse)) return undefined
     let raf = 0
     const onMove = (ev) => {
       if (raf) return
@@ -565,11 +849,39 @@ export default function Atmosphere() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove) }
   }, [preset.mouse])
 
-  // -28px covers the ±12px max parallax travel with margin (the tiles repeat,
-  // no empty band can show); -40% rasterized 3.24x the viewport per layer for
-  // nothing (review catch). willChange: these layers animate for the app's
-  // whole life — the one legitimate use.
-  const layer = { position: 'fixed', inset: '-28px', pointerEvents: 'none', backgroundRepeat: 'repeat', transition: 'opacity .8s ease', willChange: 'transform' }
+  /* =======================================================================
+     LA CAUSA B DEL BUG DEL IPHONE — `will-change` SOBRE ALGO QUE NO SE MUEVE.
+
+     Este objeto llevaba `willChange: 'transform'` SIEMPRE, con el comentario
+     "these layers animate for the app's whole life — the one legitimate use".
+     Eso es cierto en escritorio y FALSO en teléfono: el efecto de parallax
+     que lo justifica hace early-return en táctil (`pointer: fine`), o sea que
+     en cada iPhone se promovían DOS capas del tamaño del viewport para una
+     animación que jamás corre.
+
+     Por qué eso produce el síntoma exacto de "sólo se ve HD con zoom":
+     `will-change` fuerza al compositor a rasterizar la capa por separado y
+     guardarla. Con dos capas de viewport completo + el canvas + el grano +
+     cada superficie con backdrop-filter, iOS Safari se pasa del presupuesto
+     de memoria de compositor y responde RASTERIZANDO LAS CAPAS A MENOR
+     ESCALA. Al hacer pinch, Safari re-rasteriza a la escala del gesto y todo
+     se ve nítido; al soltar, vuelve a la escala reducida y se ve mal otra
+     vez. Es exactamente lo que Diego describió, incluido el "y al volver
+     queda a medias".
+
+     Ahora la promoción se declara sólo cuando la animación de verdad va a
+     correr. Y de paso, sin parallax no hay recorrido que cubrir, así que el
+     sangrado de -28px también se va: la capa deja de rasterizar el viewport
+     más 56px de más en cada eje.
+     ======================================================================= */
+  const layer = {
+    position: 'fixed',
+    inset: parallaxOn ? '-28px' : 0,
+    pointerEvents: 'none',
+    backgroundRepeat: 'repeat',
+    transition: 'opacity .8s ease',
+    ...(parallaxOn ? { willChange: 'transform' } : null),
+  }
 
   return (
     <div ref={wrapRef} aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>

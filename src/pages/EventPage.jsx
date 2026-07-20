@@ -51,7 +51,7 @@ export default function EventPage() {
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', color: 'var(--cream)', letterSpacing: '.02em', marginBottom: '8px' }}>THIS ROOM ISN'T OPEN</div>
         <div style={{ fontSize: '13px', color: 'var(--cream-low)', lineHeight: 1.6, marginBottom: '20px' }}>No published event lives at this address.</div>
         <button className="pressable" onClick={() => navigate('/discover')}
-          style={{ background: 'rgba(242,238,230,.06)', border: '1px solid rgba(242,238,230,.18)', borderRadius: '100px', padding: '10px 20px', color: 'var(--cream-mid)', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+          style={{ background: 'rgba(var(--ink-rgb),.06)', border: '1px solid rgba(var(--ink-rgb),.18)', borderRadius: '100px', padding: '10px 20px', color: 'var(--cream-mid)', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
           ← Discover
         </button>
       </div>

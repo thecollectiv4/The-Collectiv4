@@ -18,16 +18,16 @@ import { Loader2, BadgeCheck, Search, ShieldCheck, ArrowLeft } from 'lucide-reac
    ========================================================================= */
 
 /* ---- brand palette (void · bone · chrome) — same universe as Discover ---- */
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
@@ -96,7 +96,7 @@ export default function NetworkAdmin() {
   if (loadErr) return (
     <Center>
       <div style={{ textAlign: 'center', maxWidth: '300px' }}>
-        <ShieldCheck size={26} style={{ color: '#E5A0A0' }} />
+        <ShieldCheck size={26} style={{ color: 'var(--warn)' }} />
         <div style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '14px' }}>Couldn't load the network</div>
         <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em', marginTop: '10px', lineHeight: 1.5 }}>{loadErr}</div>
         <button onClick={() => setReload(n => n + 1)} style={{ marginTop: '18px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', cursor: 'pointer' }}>↻ Retry</button>
@@ -116,7 +116,7 @@ export default function NetworkAdmin() {
   const verifiedCount = rows.filter(r => r.verified).length
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', background: 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)', overflowX: 'hidden' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', background: 'linear-gradient(180deg,var(--bg-top) 0%,var(--bg-deep-2) 55%,var(--bg-deep) 100%)', overflowX: 'hidden' }}>
       <div style={{ position: 'relative', zIndex: 2, padding: '26px 22px 60px', maxWidth: '640px', margin: '0 auto' }}>
 
         {/* header */}
@@ -144,7 +144,7 @@ export default function NetworkAdmin() {
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: BONE, fontFamily: 'DM Sans', fontSize: '14px' }} />
         </div>
 
-        {err && <div style={{ marginTop: '12px', fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', letterSpacing: '.06em' }}>⚠ {err}</div>}
+        {err && <div style={{ marginTop: '12px', fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--warn)', letterSpacing: '.06em' }}>⚠ {err}</div>}
 
         {/* list */}
         <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -153,7 +153,7 @@ export default function NetworkAdmin() {
               const name = r.full_name || 'Unnamed'
               const busy = pending === r.id
               return (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${r.verified ? 'rgba(199,201,209,.28)' : HAIR}`, background: r.verified ? 'rgba(199,201,209,.05)' : CARD, transition: 'background .2s, border-color .2s' }}>
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${r.verified ? 'rgba(var(--silver-rgb),.28)' : HAIR}`, background: r.verified ? 'rgba(var(--silver-rgb),.05)' : CARD, transition: 'background .2s, border-color .2s' }}>
                   {/* avatar */}
                   <div style={{ width: '40px', height: '40px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -163,7 +163,7 @@ export default function NetworkAdmin() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontFamily: 'DM Sans', fontSize: '14px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                      {r.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} />}
+                      {r.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' }} />}
                       {r.is_demo && <span style={{ fontFamily: 'DM Mono', fontSize: '7px', color: BONE_LOW, letterSpacing: '.1em', border: `1px solid ${HAIR}`, borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>DEMO</span>}
                     </div>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -173,7 +173,7 @@ export default function NetworkAdmin() {
                   {/* toggle */}
                   <button onClick={() => toggle(r)} disabled={busy}
                     style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', borderRadius: '100px', padding: '7px 13px', cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s',
-                      border: `1px solid ${r.verified ? SILVER : HAIR_HI}`, background: r.verified ? 'rgba(199,201,209,.12)' : 'transparent',
+                      border: `1px solid ${r.verified ? SILVER : HAIR_HI}`, background: r.verified ? 'rgba(var(--silver-rgb),.12)' : 'transparent',
                       color: r.verified ? BONE : BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase' }}>
                     {busy ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <BadgeCheck size={11} />}
                     {r.verified ? 'Verified' : 'Grant'}
@@ -191,5 +191,5 @@ export default function NetworkAdmin() {
 }
 
 function Center({ children }) {
-  return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg,#0B0B10 0%,#07080E 100%)', padding: '40px' }}>{children}</div>
+  return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg,var(--bg-top) 0%,var(--bg-deep) 100%)', padding: '40px' }}>{children}</div>
 }

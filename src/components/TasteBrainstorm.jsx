@@ -22,13 +22,13 @@ import Mark from '@/components/Mark'
    its own beat, exactly like CraftPicker.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
 
 const MAX_PER_DOMAIN = 40
 const MAX_TOTAL = 90
@@ -108,7 +108,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
           return (
             <button key={d.key} className="pressable" data-testid={`taste-domain-${d.key}`} aria-pressed={on}
               onClick={() => setDomain(d.key)}
-              style={{ flex: 1, minHeight: '54px', background: on ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px solid ${on ? 'rgba(199,201,209,.45)' : HAIR_HI}`, borderRadius: '10px', padding: '9px 6px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'background .2s ease, border-color .2s ease, transform .2s ease' }}>
+              style={{ flex: 1, minHeight: '54px', background: on ? 'rgba(var(--silver-rgb),.07)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--silver-rgb),.45)' : HAIR_HI}`, borderRadius: '10px', padding: '9px 6px 8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'background .2s ease, border-color .2s ease, transform .2s ease' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Mark type={d.mark} size={10} color={on ? BONE : BONE_LOW} />
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: on ? BONE : BONE_MID }}>{d.label}{n > 0 ? ` · ${n}` : ''}</span>
@@ -130,7 +130,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); onEnter() } }}
           style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 36px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }}
-          onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)' }}
+          onFocus={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.5)' }}
           onBlur={(e) => { e.currentTarget.style.borderColor = HAIR_HI }}
         />
         {searching && <Loader2 size={13} style={{ position: 'absolute', right: '13px', top: '50%', transform: 'translateY(-50%)', color: BONE_LOW, animation: 'spin 1s linear infinite' }} />}
@@ -138,7 +138,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
 
       {/* the suggestion constellation — never blank: empty query scatters
           the bank's first ten of the active domain */}
-      <div className="no-scrollbar" style={{ marginTop: '10px', maxHeight, overflowY: 'auto', border: `1px solid ${HAIR}`, borderRadius: '12px', background: 'rgba(242,238,230,.015)', padding: '12px' }}>
+      <div className="no-scrollbar" style={{ marginTop: '10px', maxHeight, overflowY: 'auto', border: `1px solid ${HAIR}`, borderRadius: '12px', background: 'rgba(var(--ink-rgb),.015)', padding: '12px' }}>
         {suggestions === null ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: '22px 0' }}>
             <Loader2 size={15} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />
@@ -163,7 +163,7 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
                 return (
                   <button key={it.id} className="pressable" data-testid={`taste-opt-${it.slug}`} aria-pressed={on}
                     onClick={() => toggle(domain, it.label)}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', borderRadius: '100px', padding: '8px 14px', background: on ? 'rgba(199,201,209,.1)' : 'transparent', border: `1px solid ${on ? 'rgba(199,201,209,.5)' : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease', boxShadow: on ? '0 0 12px rgba(199,201,209,.1)' : 'none' }}>
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', borderRadius: '100px', padding: '8px 14px', background: on ? 'rgba(var(--silver-rgb),.1)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--silver-rgb),.5)' : HAIR_HI}`, color: on ? BONE : BONE_MID, fontFamily: 'DM Sans', fontSize: '12.5px', cursor: 'pointer', transition: 'background .2s ease, border-color .2s ease, color .2s ease, transform .2s ease', boxShadow: on ? '0 0 12px rgba(var(--silver-rgb),.1)' : 'none' }}>
                     <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: on ? SILVER : BONE_LOW }}>{on ? '◆' : '◇'}</span>
                     {it.label}
                   </button>
@@ -194,14 +194,14 @@ export default function TasteBrainstorm({ value = [], onChange, maxHeight = '24v
                     const pub = !!t.is_public
                     return (
                       <span key={`${t.domain}:${kb}`} data-testid={`taste-chip-${t.domain}-${kb}`} className="chip-in"
-                        style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: '100px', border: `1px solid ${pub ? 'rgba(242,238,230,.45)' : HAIR_HI}`, background: pub ? 'rgba(242,238,230,.07)' : 'rgba(242,238,230,.02)', overflow: 'hidden', transition: 'background .25s ease, border-color .25s ease' }}>
+                        style={{ display: 'inline-flex', alignItems: 'stretch', borderRadius: '100px', border: `1px solid ${pub ? 'rgba(var(--ink-rgb),.45)' : HAIR_HI}`, background: pub ? 'rgba(var(--ink-rgb),.07)' : 'rgba(var(--ink-rgb),.02)', overflow: 'hidden', transition: 'background .25s ease, border-color .25s ease' }}>
                         <button className="pressable" onClick={() => remove(t.domain, t.label)} aria-label={`Remove ${t.label}`} title="tap to remove"
                           style={{ display: 'inline-flex', alignItems: 'center', background: 'transparent', border: 'none', padding: '10px 6px 10px 13px', cursor: 'pointer', minHeight: '40px' }}>
                           <span style={{ fontFamily: 'DM Mono', fontSize: '10.5px', letterSpacing: '.06em', color: pub ? BONE : BONE_MID }}>{t.label}</span>
                         </button>
                         <button className="pressable" onClick={() => flip(t.domain, t.label)} data-testid={`taste-vis-${t.domain}-${kb}`} aria-pressed={pub}
                           aria-label={pub ? `${t.label} — shown in your world; tap to keep it quiet` : `${t.label} — quiet, only you; tap to show it in your world`}
-                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: pub ? 'rgba(242,238,230,.04)' : 'transparent', border: 'none', borderLeft: `1px solid ${pub ? 'rgba(242,238,230,.3)' : HAIR}`, padding: '10px 12px 10px 10px', cursor: 'pointer', minWidth: '64px', minHeight: '40px' }}>
+                          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px', background: pub ? 'rgba(var(--ink-rgb),.04)' : 'transparent', border: 'none', borderLeft: `1px solid ${pub ? 'rgba(var(--ink-rgb),.3)' : HAIR}`, padding: '10px 12px 10px 10px', cursor: 'pointer', minWidth: '64px', minHeight: '40px' }}>
                           <Mark type={pub ? 'dot' : 'ring'} size={8} color={pub ? BONE : BONE_LOW} />
                           <span style={{ fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.16em', textTransform: 'uppercase', color: pub ? BONE : BONE_LOW }}>{pub ? 'SHOWN' : 'QUIET'}</span>
                         </button>

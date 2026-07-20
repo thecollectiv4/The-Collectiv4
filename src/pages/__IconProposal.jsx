@@ -114,7 +114,7 @@ export default function IconProposal() {
 
         {/* the separate bug — worth fixing whatever is decided here */}
         <div style={{ marginTop: '44px', padding: '20px', border: `1px solid ${HAIR}`, borderRadius: '4px' }}>
-          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.24em', textTransform: 'uppercase', color: '#E5A0A0' }}>Separate finding · not a taste question</div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.24em', textTransform: 'uppercase', color: 'var(--warn)' }}>Separate finding · not a taste question</div>
           <p style={{ fontFamily: FONT_SANS, fontSize: '13px', lineHeight: 1.65, color: BONE_MID, margin: '10px 0 0' }}>
             <strong style={{ color: BONE }}>The active state is a silent no-op on three of four tabs.</strong> GlassNav
             passes <code style={{ fontFamily: FONT_MONO, fontSize: '12px', color: BONE }}>filled={'{'}active{'}'}</code>, but

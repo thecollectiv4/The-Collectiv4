@@ -46,18 +46,18 @@ export default function TestPurchase() {
   }
 
   return (
-    <div style={{background:'#0A0A0D',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
+    <div style={{background:'var(--bg)',minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'28px'}}>
       <div style={{maxWidth:'400px',width:'100%',textAlign:'center'}}>
-        <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'#83838F',letterSpacing:'.2em',marginBottom:'16px'}}>INTERNAL · TEST MODE</div>
-        <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'#F2EEE6',marginBottom:'8px'}}>END-TO-END TEST</div>
-        <div style={{fontSize:'13px',color:'#C7C4BC',lineHeight:1.6,marginBottom:'32px'}}>
+        <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-low)',letterSpacing:'.2em',marginBottom:'16px'}}>INTERNAL · TEST MODE</div>
+        <div style={{fontFamily:'Bebas Neue',fontSize:'32px',color:'var(--cream)',marginBottom:'8px'}}>END-TO-END TEST</div>
+        <div style={{fontSize:'13px',color:'var(--cream-mid)',lineHeight:1.6,marginBottom:'32px'}}>
           Runs a Stripe <strong>test-mode</strong> checkout against a hidden QA event — card 4242, $1 symbolic, <strong>no real money is charged</strong>. After payment, verify the ticket row, /claim, and the confirmation email.
         </div>
 
         <button onClick={runTest} disabled={loading} style={{
           width:'100%',padding:'18px',borderRadius:'12px',border:'none',cursor:loading?'wait':'pointer',
-          background:loading?'#1C1C22':'#F2EEE6',
-          color:loading?'#C7C4BC':'#0A0A0D',
+          background:loading?'var(--bg-raised)':'var(--cream)',
+          color:loading?'var(--cream-mid)':'var(--bg)',
           fontFamily:'Bebas Neue',fontSize:'18px',letterSpacing:'.04em',
           display:'flex',alignItems:'center',justifyContent:'center',gap:'10px',
         }}>
@@ -65,13 +65,13 @@ export default function TestPurchase() {
         </button>
 
         {status && (
-          <div style={{marginTop:'20px',padding:'16px',borderRadius:'10px',background:status.ok?'rgba(199,201,209,.06)':'rgba(229,160,160,.06)',border:`1px solid ${status.ok?'rgba(199,201,209,.2)':'rgba(229,160,160,.2)'}`,display:'flex',alignItems:'center',gap:'10px',justifyContent:'center'}}>
-            {status.ok ? <CheckCircle size={16} style={{color:'#C7C9D1'}}/> : <AlertCircle size={16} style={{color:'#E5A0A0'}}/>}
-            <span style={{fontSize:'13px',color:status.ok?'#C7C9D1':'#E5A0A0'}}>{status.msg}</span>
+          <div style={{marginTop:'20px',padding:'16px',borderRadius:'10px',background:status.ok?'rgba(var(--silver-rgb),.06)':'rgba(229,160,160,.06)',border:`1px solid ${status.ok?'rgba(var(--silver-rgb),.2)':'rgba(229,160,160,.2)'}`,display:'flex',alignItems:'center',gap:'10px',justifyContent:'center'}}>
+            {status.ok ? <CheckCircle size={16} style={{color:'var(--silver)'}}/> : <AlertCircle size={16} style={{color:'var(--warn)'}}/>}
+            <span style={{fontSize:'13px',color:status.ok?'var(--silver)':'var(--warn)'}}>{status.msg}</span>
           </div>
         )}
 
-        <div style={{marginTop:'40px',fontSize:'11px',color:'#83838F'}}>
+        <div style={{marginTop:'40px',fontSize:'11px',color:'var(--cream-low)'}}>
           Hidden QA event · never shown publicly · session-gated.
         </div>
       </div>

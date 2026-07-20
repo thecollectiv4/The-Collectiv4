@@ -4,6 +4,36 @@
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================================
+   LOS DOS REGISTROS — void y día (v12).
+
+   Cosmos nació en el vacío y ahí se queda por defecto: DARK no es un tema,
+   es la casa. LIGHT es el mismo universo de día — la misma constelación, el
+   mismo río, el mismo grano, leídos como grafito sobre un muro de galería.
+   Es una INVERSIÓN, nunca un segundo sistema de diseño.
+
+   EL MECANISMO QUE HIZO ESTO POSIBLE — `--ink-rgb` y `--void-rgb`.
+
+   La app tenía 262 literales con la forma `rgba(242,238,230, α)`. Leídos de
+   cerca no son "bone al 8%": son EL FRENTE al 8% — un velo del color de la
+   tinta sobre el fondo. Filetes, bordes, tintes de superficie, todos. Así
+   que el canal se vuelve variable y la α se queda donde estaba:
+
+       rgba(242,238,230,.08)   →   rgba(var(--ink-rgb),.08)
+
+   En dark eso es hueso sobre vacío; en light es vacío sobre hueso. La misma
+   línea de código, invertida correctamente, sin tocar la α que alguien ya
+   afinó a ojo. Ése es el motivo de que 500+ sitios se pudieran voltear sin
+   rediseñar ninguno — y de que un `α` mal elegido siga siendo un bug de ese
+   sitio, no del tema.
+
+   `--void-rgb` es su espejo: el color del FONDO, para velos que oscurecen
+   (scrims, pisos internos de vidrio).
+
+   DARK VIVE EN `:root` A PROPÓSITO, sin atributo. Si el guardia de
+   index.html no corre —JS bloqueado, error temprano— la casa sigue siendo
+   la casa. Light es una capa que se pone encima, nunca la base.
+   ========================================================================= */
 :root {
   /* Cosmos palette (was the old warm/paper set). Values mirror src/lib/cosmos.js
      so consumer surfaces read as the same universe as /os. The legacy token
@@ -35,6 +65,125 @@
   --silver:     #C7C9D1;   /* SILVER */
   --star:       #E8E9ED;   /* STAR */
   --success:    #C7C9D1;
+  --warn:       #E5A0A0;
+
+  /* ---- LOS DOS CANALES (ver la nota larga arriba) ---- */
+  --ink-rgb:    242,238,230;   /* el frente: hueso sobre vacío */
+  --void-rgb:   10,10,13;      /* el fondo: para velos que oscurecen */
+  --silver-rgb: 199,201,209;
+  /* STAR como canal. Se me escapó en la primera pasada: 35 usos en glows,
+     bordes y tintes que son ACENTO DEL FRENTE — o sea, la misma familia que
+     --ink-rgb, sólo que un punto más fría. Sin esto, de día un resplandor de
+     estrella sobre papel es un borrón blanco invisible. */
+  --star-rgb:   232,233,237;
+  /* Sobre vacío una sombra negra es profundidad; sobre papel es suciedad.
+     El CANAL cambia de registro y las α escritas a mano se quedan donde
+     están — igual que con --ink-rgb. */
+  --shadow-rgb: 0,0,0;
+
+  /* ---- superficies sólidas (constantes locales de ~10 archivos) ---- */
+  --bg-top:       #0B0B10;   /* la cabeza del degradado de página */
+  --bg-deep-2:    #08080D;   /* su medio */
+  --bg-deep:      #07080E;   /* VOID_2 — su cola */
+  --card-solid:   #0E0E13;
+  --card-hi-solid:#14141A;
+  --menu-bg:      #0C0C11;
+  --cream-dim:    #5B5952;   /* etiqueta terciaria — decorativa en ambos */
+  --cream-soft:   #9B9891;   /* secundaria legible */
+
+  /* ---- LA PORTADA DE PERFIL, POR REGISTRO (v12.2) ----
+     Diego: "en light la portada se ve neblinosa y pierde color; en dark se
+     ve bien". No es percepción, es una asimetría real del compositing:
+
+       oscurecer una foto CONSERVA el croma (los colores se hacen profundos)
+       aclararla hacia blanco lo MATA (todo converge al mismo punto)
+
+     El velo de arriba es el mismo .42 en los dos temas, pero en vacío es
+     negro al 42% —atmósfera— y en papel es hueso al 42% sobre la foto, que
+     es literalmente niebla. Y encima el grado bajaba el brillo a .74, así
+     que la foto se oscurecía Y se blanqueaba a la vez: lodo.
+
+     De día entonces: el velo de arriba casi desaparece (ahí no hay texto que
+     proteger — el bloque de identidad está abajo, y esas paradas no se
+     tocan), el brillo deja de recortarse, y la saturación sube POR ENCIMA de
+     1 para compensar lo que el blanqueo se lleva. */
+  --cover-grade:      saturate(1.0) brightness(.74) contrast(1.13);
+  --cover-grade-wide: saturate(.94) brightness(.65) contrast(1.15);
+  --cover-veil-top:   .42;
+  --cover-veil-hi:    .30;
+  --cover-veil-mid:   .34;
+  /* dónde arranca la rampa, medido desde abajo (más chico = más abajo).
+     Estos son los valores históricos de dark y no se tocan: es el registro
+     que Diego aprobó y el que light tiene que igualar EN APARIENCIA. */
+  --cover-o1:         300px;
+  --cover-o2:         190px;
+
+  /* EL VELO DE LA TARJETA DE COMMUNITY — y por qué NO es simétrico.
+     En vacío el velo OSCURECE y el texto es hueso: oscurecer siempre ayuda,
+     así que cualquier α razonable basta y la foto se puede dejar ver mucho.
+     De día el velo tiene que ACLARAR lo suficiente como para garantizar
+     fondo claro bajo texto oscuro — y una foto puede ser tan oscura como
+     quiera. Medido contra la peor foto (un rgb(18,20,16)): al .46 que tenía,
+     el contraste caía a 4.08:1, por debajo de AA para el texto chico de la
+     tarjeta. Ése es el "difícil de leer" que reportó Diego, y por eso el
+     registro claro necesita α MÁS ALTAS y no las mismas. */
+  --card-cover-scrim: linear-gradient(180deg,
+    rgba(var(--void-rgb),.06) 0%,
+    rgba(var(--void-rgb),.18) 38%,
+    rgba(var(--void-rgb),.46) 58%,
+    rgba(var(--void-rgb),.68) 76%,
+    rgba(var(--void-rgb),.74) 100%);
+
+  /* ---- LAS TEMPERATURAS (Ley 14) ----
+     Cada oficio, cada vibra y cada pestaña del OS lleva una "temperatura":
+     un triplete RGB crudo guardado en DATOS (crafts.js, match.js, OS.jsx…) y
+     consumido como `rgb(${tint})`. La migración de tema no podía verlos —
+     son plantillas sobre una variable, no literales— así que en día salían
+     con su valor de NOCHE: hueso claro sobre papel claro, 1.02:1. Medido en
+     /community, encontrado por la auditoría de contraste.
+
+     Sólo hay TRES temperaturas en toda la app, así que viven aquí como
+     canales y cosmos.js las resuelve con tintChannel(). El dato crudo se
+     queda intacto a propósito: el CANVAS lo necesita numérico (un contexto
+     2D no lee variables), y ése es justo el motivo de que no se pudiera
+     arreglar cambiando la tabla. */
+  --tint-bone:   242,238,230;
+  --tint-silver: 199,201,209;
+  --tint-star:   232,233,237;
+
+  /* ---- EL VIDRIO, por ingredientes ----
+     glass.js compone estas variables en vez de llevar literales, así que la
+     receta es UNA y la paleta es dos. Lo único que NO puede salir de aquí es
+     el propio `backdrop-filter`: WebKit tira la declaración entera si alguna
+     parte resuelve de una custom property (bug 289800) — y ese filtro no
+     lleva color, así que no hace falta. */
+  --glass-hi:     rgba(30,31,40,0.42);
+  --glass-lo:     rgba(12,12,17,0.56);
+  --glass-edge:   rgba(242,238,230,0.30);   /* la especular de arriba */
+  --glass-floor:  rgba(7,8,14,0.55);        /* el piso interno oscuro */
+  --glass-border: rgba(242,238,230,0.14);
+  --glass-bloom:  rgba(242,238,230,0.26);   /* el derrame bajo la especular */
+  --glass-solid:  #121218;                  /* respaldo sin transparencia */
+  --glass-solid-hc: #0E0E13;                /* respaldo alto contraste */
+  --card-hi:      rgba(20,20,26,0.74);
+  --card-lo:      rgba(12,12,17,0.82);
+  --card-tint:    rgba(14,14,19,0.76);
+  --card-edge:    rgba(242,238,230,0.16);   /* .10 leía como línea, no como filo */
+  --card-bloom:   rgba(242,238,230,0.13);   /* la luz que entra por el canto */
+  --card-underglow: rgba(0,0,0,0.42);       /* el cuerpo proyectando sobre su base */
+  /* Las proyectadas del vidrio van COMPLETAS, no por canal+α: son los
+     valores más afinados del sistema (glass.js documenta por qué .60→.52 y
+     .45→.38) y en día no se re-tiñen, se REESCALAN. Una sombra de vacío con
+     el canal cambiado sigue siendo una sombra de vacío. */
+  --glass-cast:   0 26px 54px rgba(0,0,0,0.52), 0 8px 20px rgba(0,0,0,0.38);
+  --card-cast:    0 10px 30px rgba(0,0,0,0.42);
+
+  /* CHROME — el metal líquido, sólo sobre tipografía de display. Sobre
+     vacío es acero pulido claro; sobre papel tiene que ser metal OSCURO o
+     no se ve (un degradado casi blanco sobre hueso es una mancha). Mismo
+     gesto, misma restricción de un acento por vista, dos temperaturas. */
+  --chrome: linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%);
+
 
   /* Motion — the deck's curve is the house signature; strong ease-out for
      overlay entrances (per-surface). Durations are a scale, not a free-for-all. */
@@ -48,11 +197,157 @@
   --dur-cinematic: 950ms;                          /* the deck's .95s reveal — rare, deliberate */
 }
 
+/* =========================================================================
+   EL DÍA — la misma galería con la luz encendida.
+
+   NO es blanco. Un blanco plano es exactamente el tema genérico que la Ley
+   del Lujo Inmersivo prohíbe: sin profundidad, sin material, sin casa. El
+   fondo es un MURO — hueso-papel frío, con las tarjetas por ENCIMA de él en
+   vez de por debajo, porque de día la luz viene de arriba y lo que sobresale
+   se aclara (en el vacío pasa lo contrario, y por eso --bg-card es más
+   oscuro que --bg en dark y más claro que --bg aquí).
+
+   Contraste medido, no supuesto, contra --bg #EDEBE6:
+     --cream      #14141A  → 15.2:1   (texto principal)
+     --cream-mid  #43434C  →  8.9:1   (secundario)
+     --cream-low  #62626C  →  4.6:1   (etiquetas mono — pasa AA de texto chico)
+     --silver     #4A4C55  →  7.0:1   (acento frío)
+     --warn       #A33B3B  →  5.9:1   (el salmón #E5A0A0 daba 1.9:1 aquí)
+   --cream-ghost queda decorativo en los dos registros (~2:1), igual que el
+   FAINT de dark: filetes y adornos, jamás texto.
+   ========================================================================= */
+:root[data-theme="light"] {
+  --bg:         #EDEBE6;   /* el muro de la galería */
+  --bg-warm:    #E7E5DF;
+  --bg-card:    #F6F4EF;   /* las tarjetas SUBEN hacia la luz */
+  --bg-raised:  #FCFBF8;
+  --cream:      #14141A;   /* la tinta — vacío levantado, nunca negro puro */
+  --cream-mid:  #43434C;
+  --cream-low:  #62626C;
+  --cream-ghost:#A9A79F;
+  --accent:     #14141A;
+  --accent-dim: rgba(10,10,13,0.05);
+  --accent-mid: rgba(10,10,13,0.11);
+  --gold:       #14141A;
+  --gold-dim:   rgba(10,10,13,0.07);
+  --rust:       #4A4C55;
+  --rust-dim:   rgba(74,76,85,0.07);
+  --sage:       #4A4C55;
+  --sage-dim:   rgba(74,76,85,0.06);
+  --wine:       #4A4C55;
+  --wine-dim:   rgba(74,76,85,0.06);
+  --indigo:     #4A4C55;
+  --indigo-dim: rgba(74,76,85,0.06);
+  --border:     #D8D5CD;
+  --border-hi:  #C4C1B8;
+  --silver:     #4A4C55;
+  --star:       #2A2C33;
+  --success:    #4A4C55;
+  --warn:       #A33B3B;
+
+  /* los canales se INTERCAMBIAN — ésta es la línea que voltea la app entera */
+  --ink-rgb:    10,10,13;
+  --void-rgb:   237,235,230;
+  --silver-rgb: 74,76,85;
+  --star-rgb:   42,44,51;
+  /* La sombra deja de ser negra. Las α están escritas a mano por toda la app
+     (.3 … .7) y no se pueden reescalar desde aquí, así que el CANAL absorbe
+     el trabajo: un gris-tierra medio que ni al .7 de un scrim lee como
+     mugre, y al .3 de una tarjeta lee como una sombra suave de papel. */
+  --shadow-rgb: 120,116,106;
+
+  /* ---- superficies sólidas: el degradado de página se vuelve un muro con
+     una caída muy leve hacia abajo — vignette de galería, no bloque plano ---- */
+  --bg-top:       #F2F0EB;
+  --bg-deep-2:    #EDEBE6;
+  --bg-deep:      #E7E5DE;
+  --card-solid:   #F6F4EF;
+  --card-hi-solid:#FBFAF6;
+  --menu-bg:      #FAF9F5;
+  --cream-dim:    #87857D;
+  --cream-soft:   #55534C;
+
+  /* Las tres temperaturas, en tinta. Conservan su ORDEN relativo (star más
+     frío y oscuro, bone más neutro) para que la jerarquía entre oficios siga
+     leyéndose, sólo que ahora sobre papel. Contra --bg: 7.6 / 7.0 / 9.4:1. */
+  --tint-bone:   58,58,66;
+  --tint-silver: 74,76,85;
+  --tint-star:   42,44,51;
+
+  /* la portada de día: sin recorte de brillo, saturación por encima de 1
+     para recuperar lo que el velo claro se lleva, y el velo de arriba casi
+     retirado (ver la nota larga en :root) */
+  --cover-grade:      saturate(1.12) brightness(1) contrast(1.06);
+  --cover-grade-wide: saturate(1.06) brightness(.96) contrast(1.08);
+  --cover-veil-top:   .10;
+  --cover-veil-hi:    .05;
+  /* .12 → .20: el arranque deja de ser un salto de medio punto de alfa y la
+     transición se lee como transición, no como línea */
+  --cover-veil-mid:   .20;
+  /* ~100px más abajo que dark. No es "distinto por gusto": es lo que hace
+     falta para que la foto se vea limpia igual de lejos en los dos registros
+     (ver la nota larga en ProfileMuseum). El pico no se mueve. */
+  --cover-o1:         200px;
+  --cover-o2:         150px;
+
+  /* SEGUNDA PASADA — el contraste numérico no alcanzaba.
+     Con .62 en la banda del texto el número daba AA, y aun así el nombre
+     sobre la pintura de Pato seguía costando. La razón es que el contraste
+     mide UN par de colores y una foto no es un color: es un campo con ruido,
+     y un texto sobre un fondo agitado se lee mal aunque el promedio pase.
+     Contra ruido no se gana subiendo un poco — se gana quitando el ruido.
+
+     Así que el reparto de la tarjeta se vuelve explícito: la mitad de ARRIBA
+     es de la foto (velo casi nulo, se ve entera y nítida), la de ABAJO es del
+     texto (velo alto y parejo, la foto ya sólo se insinúa). Un corte limpio
+     lee mejor que un degradado tibio que no termina de ser ninguna de las
+     dos cosas — y de paso es más editorial: imagen arriba, pie abajo. */
+  --card-cover-scrim: linear-gradient(180deg,
+    rgba(var(--void-rgb),.04) 0%,
+    rgba(var(--void-rgb),.14) 34%,
+    rgba(var(--void-rgb),.74) 54%,
+    rgba(var(--void-rgb),.90) 68%,
+    rgba(var(--void-rgb),.94) 100%);
+
+  /* EL VIDRIO DE DÍA. Se invierte la lógica del material: la losa se ACLARA
+     (luz atrapada en el vidrio, no oscuridad) y el filete de arriba se vuelve
+     blanco casi puro. El borde tiene que SUBIR de .14 a .16 de tinta porque
+     sobre papel un hairline claro simplemente no existe — sin eso el vidrio
+     pierde su canto y vuelve a leer como un rectángulo dibujado, que es el
+     modo de fallo que WELL ya documentó en glass.js. */
+  --glass-hi:     rgba(255,255,255,0.60);
+  --glass-lo:     rgba(244,242,236,0.72);
+  --glass-edge:   rgba(255,255,255,0.92);
+  --glass-floor:  rgba(10,10,13,0.09);
+  --glass-border: rgba(10,10,13,0.16);
+  --glass-bloom:  rgba(255,255,255,0.66);
+  --glass-solid:  #F2F0EA;
+  --glass-solid-hc: #FBFAF6;
+  --card-hi:      rgba(255,255,255,0.74);
+  --card-lo:      rgba(246,244,238,0.84);
+  --card-tint:    rgba(250,249,245,0.82);
+  --card-edge:    rgba(255,255,255,0.92);
+  --card-bloom:   rgba(255,255,255,0.75);
+  /* de día la sombra interna es tierra, no negro: sobre papel el negro lee
+     como mugre en el canto (misma razón que --shadow-rgb) */
+  --card-underglow: rgba(60,56,48,0.16);
+  /* Reescaladas, no re-teñidas: mismo gesto de profundidad, un tercio del
+     peso. En papel la elevación la da la LUZ del canto, no la oscuridad. */
+  --glass-cast:   0 18px 40px rgba(60,56,48,0.11), 0 6px 16px rgba(60,56,48,0.08);
+  --card-cast:    0 8px 24px rgba(60,56,48,0.09);
+
+  /* metal oscuro pulido — grabado en la pared, no reflejo sobre el vacío */
+  --chrome: linear-gradient(100deg,#3A3D46 0%,#8A8F9C 26%,#23252B 50%,#7C818E 73%,#40434C 100%);
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { background: #0A0A0D; }
+/* El fondo sale de la variable en los DOS elementos: iOS Safari resuelve el
+   rebote/overscroll contra el raíz, así que un html en vacío bajo un body en
+   papel enseña una banda negra al estirar la página. */
+html { background: var(--bg); }
 
 body {
-  background: #0A0A0D;
+  background: var(--bg);
   color: var(--cream);
   font-family: 'DM Sans', -apple-system, sans-serif;
   margin: 0 auto;
@@ -149,7 +444,7 @@ input, textarea, select,
    (an infinite box-shadow keyframe repaints for as long as the page is
    open). The live dots become a class so reduced motion can silence them. */
 .glow-pulse { position: relative; }
-.glow-pulse::after { content:''; position:absolute; inset:-2px; border-radius:inherit; box-shadow:0 0 14px 4px rgba(242,238,230,.10); opacity:0; animation: glowFade 3s ease-in-out infinite; pointer-events:none; }
+.glow-pulse::after { content:''; position:absolute; inset:-2px; border-radius:inherit; box-shadow:0 0 14px 4px rgba(var(--ink-rgb),.10); opacity:0; animation: glowFade 3s ease-in-out infinite; pointer-events:none; }
 .pulse-dot { animation: pulse 2s infinite; }
 
 /* Page transitions */
@@ -208,14 +503,14 @@ input, textarea, select,
 }
 @media (hover: hover) and (pointer: fine) {
   .create-group:hover .path-chip {
-    border-color: rgba(242,238,230,.32);
-    box-shadow: inset 0 0 14px rgba(242,238,230,.07), 0 0 12px rgba(122,146,190,.10);
+    border-color: rgba(var(--ink-rgb),.32);
+    box-shadow: inset 0 0 14px rgba(var(--ink-rgb),.07), 0 0 12px rgba(122,146,190,.10);
   }
 }
 /* the press bloom — a touch of the gold that lives in the real nebula */
 .create-group:active .path-chip {
-  border-color: rgba(242,238,230,.40);
-  box-shadow: inset 0 0 18px rgba(242,238,230,.11), 0 0 14px rgba(198,170,118,.13);
+  border-color: rgba(var(--ink-rgb),.40);
+  box-shadow: inset 0 0 18px rgba(var(--ink-rgb),.11), 0 0 14px rgba(198,170,118,.13);
 }
 @media (prefers-reduced-motion: reduce) {
   .path-chip { transition: none; }
@@ -273,13 +568,13 @@ input, textarea, select,
    register per experience — never wallpaper.
    ============================================================ */
 @keyframes tempWarm {
-  0%,100% { opacity:.78; box-shadow:0 0 8px rgba(242,238,230,.10); }
-  50%     { opacity:1;   box-shadow:0 0 18px rgba(242,238,230,.28); }
+  0%,100% { opacity:.78; box-shadow:0 0 8px rgba(var(--ink-rgb),.10); }
+  50%     { opacity:1;   box-shadow:0 0 18px rgba(var(--ink-rgb),.28); }
 }
 @keyframes tempElectric {
-  0%,100% { opacity:.92; box-shadow:0 0 5px rgba(232,233,237,.18); }
+  0%,100% { opacity:.92; box-shadow:0 0 5px rgba(var(--star-rgb),.18); }
   6%      { opacity:.6; }
-  11%     { opacity:1;   box-shadow:0 0 20px rgba(232,233,237,.4); }
+  11%     { opacity:1;   box-shadow:0 0 20px rgba(var(--star-rgb),.4); }
   54%     { opacity:.85; }
   60%     { opacity:1; }
 }
@@ -291,9 +586,9 @@ input, textarea, select,
    Tokens + motion from collectiv4-universe.html; §E density.
    ============================================================ */
 .os-root {
-  --os-line: rgba(242,238,230,.15);
-  --os-line-soft: rgba(242,238,230,.08);
-  --os-panel: rgba(242,238,230,.022);
+  --os-line: rgba(var(--ink-rgb),.15);
+  --os-line-soft: rgba(var(--ink-rgb),.08);
+  --os-panel: rgba(var(--ink-rgb),.022);
 }
 
 /* reveal — the deck's curve exactly: .95s cubic-bezier(.2,.7,.2,1), 20px rise */
@@ -311,7 +606,7 @@ input, textarea, select,
 .os-slide-in-left { animation: osSlideInLeft var(--dur-fast) var(--ease-house); }
 
 /* "now" marker on the roadmap strip */
-@keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(232,233,237,.35); } 50% { box-shadow:0 0 0 5px rgba(232,233,237,0); } }
+@keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(var(--star-rgb),.35); } 50% { box-shadow:0 0 0 5px rgba(var(--star-rgb),0); } }
 .os-now-dot { animation: osNowPulse 2.4s ease-in-out infinite; }
 
 /* hover-reveal card actions (always visible on touch devices) */
@@ -321,14 +616,14 @@ input, textarea, select,
 
 /* rows/cards: quiet hover lift — instrument, not brochure */
 .os-card { transition: background .18s ease, border-color .18s ease; }
-.os-card:hover { background: rgba(242,238,230,.03); }
+.os-card:hover { background: rgba(var(--ink-rgb),.03); }
 .os-card.os-dragging { opacity:.35; }
-.os-lane-over { background: rgba(242,238,230,.035) !important; border-color: rgba(242,238,230,.28) !important; }
+.os-lane-over { background: rgba(var(--ink-rgb),.035) !important; border-color: rgba(var(--ink-rgb),.28) !important; }
 
 /* a moved/created card SETTLES — feedback, not an entrance (no delay, no rise).
    The entrance is for a first visit; an action's own answer must never hide
    the thing the member just acted on. */
-@keyframes osSettle { from { transform: scale(.98); border-color: rgba(242,238,230,.28); } to { transform: scale(1); } }
+@keyframes osSettle { from { transform: scale(.98); border-color: rgba(var(--ink-rgb),.28); } to { transform: scale(1); } }
 .os-settle { animation: osSettle var(--dur-fast) var(--ease-house); }
 
 /* the one message that just arrived — the transcript behind it stays still */
@@ -347,26 +642,34 @@ input, textarea, select,
 .os-root textarea:focus-visible,
 .os-root select:focus-visible,
 .os-root [tabindex]:focus-visible {
-  outline: 1px solid rgba(199,201,209,.6);
+  outline: 1px solid rgba(var(--silver-rgb),.6);
   outline-offset: 2px;
 }
 
 /* styled selects — mono, void, custom chevron (never the browser default) */
 .os-select {
   appearance: none; -webkit-appearance: none;
-  background-color: #0A0A0D;
+  background-color: var(--bg);
+  /* El galón va como data-URI y ahí el color viaja PERCENT-ENCODED (%23 = #),
+     que es el único sitio del sistema donde una variable no puede entrar: la
+     URL se resuelve como texto, no como CSS. Por eso hay dos declaraciones en
+     vez de un token — la de día se sobrescribe abajo. Es la excepción, y es
+     ésta: nada más en la app pinta color dentro de una URL. */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2383838F'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 12px center;
   font-family: 'DM Mono', monospace; letter-spacing: .04em;
 }
-.os-select option { background:#0A0A0D; color:#F2EEE6; }
+:root[data-theme="light"] .os-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%2362626C'/%3E%3C/svg%3E");
+}
+.os-select option { background:var(--bg); color:var(--cream); }
 
 /* instrument scrollbars inside the OS (global app hides them) */
 .os-root ::-webkit-scrollbar { width: 8px; height: 8px; }
 .os-root ::-webkit-scrollbar-track { background: transparent; }
-.os-root ::-webkit-scrollbar-thumb { background: rgba(242,238,230,.12); border-radius: 4px; }
-.os-root ::-webkit-scrollbar-thumb:hover { background: rgba(242,238,230,.22); }
-.os-root { scrollbar-width: thin; scrollbar-color: rgba(242,238,230,.12) transparent; }
+.os-root ::-webkit-scrollbar-thumb { background: rgba(var(--ink-rgb),.12); border-radius: 4px; }
+.os-root ::-webkit-scrollbar-thumb:hover { background: rgba(var(--ink-rgb),.22); }
+.os-root { scrollbar-width: thin; scrollbar-color: rgba(var(--ink-rgb),.12) transparent; }
 
 /* roadmap node labels: visibility is measured, not breakpointed —
    RoadmapStrip runs computeVisibleLabels off a ResizeObserver. */
@@ -376,13 +679,12 @@ input, textarea, select,
 .os-board-snap > section { scroll-snap-align: start; }
 
 /* mic while listening */
-@keyframes osMicPulse { 0%,100% { box-shadow:0 0 0 0 rgba(242,238,230,.3); } 50% { box-shadow:0 0 0 7px rgba(242,238,230,0); } }
+@keyframes osMicPulse { 0%,100% { box-shadow:0 0 0 0 rgba(var(--ink-rgb),.3); } 50% { box-shadow:0 0 0 7px rgba(var(--ink-rgb),0); } }
 .os-mic-live { animation: osMicPulse 1.6s ease-in-out infinite; }
 
-/* world marquee — the museum's welcome ticker. The track holds TWO copies of
-   the phrase run; -50% lands exactly on the seam, so the loop never jumps. */
-@keyframes worldTicker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
-.world-ticker { display:inline-flex; white-space:nowrap; animation: worldTicker var(--ticker-dur, 28s) linear infinite; will-change: transform; }
+/* world marquee — RETIRADO (v12.4). El marquee del perfil se eliminó y su
+   componente también; estas reglas eran su único consumidor. Se quitan para
+   que no queden estilos huérfanos que sugieran que algo todavía los usa. */
 
 /* ============================================================
    DISCOVER — the sky of worlds. Cards lift on hover, the banner
@@ -403,8 +705,8 @@ input, textarea, select,
 .disc-card { transition: box-shadow var(--dur-slow) var(--ease-house), border-color var(--dur-slow) ease; }
 @media (hover: hover) and (pointer: fine) {
   .disc-card:hover {
-    border-color: rgba(242,238,230,.34) !important;
-    box-shadow: 0 26px 54px rgba(0,0,0,.52), 0 8px 20px rgba(0,0,0,.38), inset 0 1.5px 0 rgba(242,238,230,.34);
+    border-color: rgba(var(--ink-rgb),.34) !important;
+    box-shadow: 0 26px 54px rgba(var(--shadow-rgb),.52), 0 8px 20px rgba(var(--shadow-rgb),.38), inset 0 1.5px 0 rgba(var(--ink-rgb),.34);
   }
 }
 /* the banner breathes — slow, alive, never busy */
@@ -415,8 +717,8 @@ input, textarea, select,
 .disc-banner img, .disc-banner svg { transform-origin: 50% 50%; animation: discBreathe 6s ease-in-out infinite; animation-play-state: paused; }
 .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation-play-state: running; }
 /* the name brightens — chrome belongs to the title alone (Ley 8) */
-.disc-name { color: #F2EEE6; transition: text-shadow .3s ease; }
-.disc-card:hover .disc-name { text-shadow: 0 0 18px rgba(242,238,230,.25); }
+.disc-name { color: var(--cream); transition: text-shadow .3s ease; }
+.disc-card:hover .disc-name { text-shadow: 0 0 18px rgba(var(--ink-rgb),.25); }
 /* micro-reveal — the person's line surfaces when you lean in */
 .disc-reveal { opacity: 0; transform: translateY(3px); transition: opacity .35s ease .06s, transform .35s ease .06s; }
 .disc-card:hover .disc-reveal { opacity: 1; transform: translateY(0); }
@@ -461,7 +763,7 @@ input, textarea, select,
 /* la sala destacada respira en hover — sin lift (demasiado grande para levantar) */
 .feat-room { transition: border-color var(--dur-slow) ease; }
 @media (hover: hover) and (pointer: fine) {
-  .feat-room:hover { border-color: rgba(242,238,230,.34); }
+  .feat-room:hover { border-color: rgba(var(--ink-rgb),.34); }
   .feat-room:hover .disc-banner img, .feat-room:hover .disc-banner svg { animation-play-state: running; }
 }
 
@@ -530,8 +832,8 @@ input, textarea, select,
    "hay más, deslízame". El mask corta el PIXEL, no el contenido: nada se
    pierde y el scroll sigue intacto. */
 .edge-fade-r {
-  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(0,0,0,.25) calc(100% - 8px), transparent 100%);
-  mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(0,0,0,.25) calc(100% - 8px), transparent 100%);
+  -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(var(--shadow-rgb),.25) calc(100% - 8px), transparent 100%);
+  mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(var(--shadow-rgb),.25) calc(100% - 8px), transparent 100%);
 }
 
 /* ============================================================
@@ -559,12 +861,12 @@ input, textarea, select,
               background 110ms var(--ease-exit);
 }
 .glass-tap:not(:disabled):active .glass-chip {
-  border-color: rgba(242,238,230,.74);
-  background: linear-gradient(180deg, rgba(242,238,230,0.30), rgba(242,238,230,0.11));
+  border-color: rgba(var(--ink-rgb),.74);
+  background: linear-gradient(180deg, rgba(var(--ink-rgb),0.30), rgba(var(--ink-rgb),0.11));
   box-shadow: inset 0 1.5px 1px rgba(255,255,255,.62),
-              inset 0 -5px 9px -5px rgba(0,0,0,.45),
-              0 0 16px rgba(242,238,230,.18),
-              0 3px 10px rgba(0,0,0,.34);
+              inset 0 -5px 9px -5px rgba(var(--shadow-rgb),.45),
+              0 0 16px rgba(var(--ink-rgb),.18),
+              0 3px 10px rgba(var(--shadow-rgb),.34);
   transition-duration: 200ms;
 }
 /* Puntero fino: el vidrio se insinúa ANTES del click — el cursor ya
@@ -572,11 +874,11 @@ input, textarea, select,
    hover de verdad; en táctil un hover pegado sería una mentira. */
 @media (hover: hover) and (pointer: fine) {
   .glass-tap:not(:disabled):hover .glass-chip {
-    border-color: rgba(242,238,230,.52);
+    border-color: rgba(var(--ink-rgb),.52);
     box-shadow: inset 0 1px 0.5px rgba(255,255,255,.46),
-                inset 0 -5px 9px -5px rgba(0,0,0,.50),
-                0 0 12px rgba(242,238,230,.10),
-                0 3px 10px rgba(0,0,0,.32);
+                inset 0 -5px 9px -5px rgba(var(--shadow-rgb),.50),
+                0 0 12px rgba(var(--ink-rgb),.10),
+                0 3px 10px rgba(var(--shadow-rgb),.32);
     transition-duration: 200ms;
   }
 }
@@ -607,21 +909,21 @@ input, textarea, select,
      had NO fallback before, because it had no class and no real glass —
      desktop users of these settings simply got nothing. */
   .glass-nav, .glass-header {
-    background: #121218 !important;
+    background: var(--glass-solid) !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    border-color: rgba(242,238,230,.22) !important;
+    border-color: rgba(var(--ink-rgb),.22) !important;
   }
   .glass-nav-chip {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    background: rgba(242,238,230,.16) !important;
+    background: rgba(var(--ink-rgb),.16) !important;
   }
 }
 
 /* Alto contraste: bordes definidos, fondo casi opaco. */
 @media (prefers-contrast: more) {
-  .glass-nav, .glass-header { background: #0E0E13 !important; border-color: rgba(242,238,230,.42) !important; }
+  .glass-nav, .glass-header { background: var(--glass-solid-hc) !important; border-color: rgba(var(--ink-rgb),.42) !important; }
   .glass-nav-slot { opacity: 1 !important; }
 }
 
@@ -645,7 +947,6 @@ input, textarea, select,
   .os-slide-in-right, .os-slide-in-left { animation:none; }
   .os-settle, .msg-in { animation: none; }
   .os-now-dot, .os-mic-live { animation:none; }
-  .world-ticker { animation:none; }
   .os-root button:not(:disabled):active { transform:none; }
   .pressable:not(:disabled):active { transform:none; }
   .glow-pulse::after, .pulse-dot { animation:none; }

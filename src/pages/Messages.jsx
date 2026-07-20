@@ -16,6 +16,7 @@ import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signa
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    MESSAGES — the conversations that continue (D2: the Base44 chat rebuilt
@@ -36,18 +37,18 @@ import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRi
    wires are going in — no dead composer, no fake inbox. Ley 14: starlight.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const VOID_2 = '#07080E'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const VOID = 'var(--bg)'
+const VOID_2 = 'var(--bg-deep)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
@@ -100,7 +101,7 @@ export default function Messages() {
   if (ready === false) return (
     <Shell wide={wide}>
       <Header wide={wide} count={null} />
-      <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(232,233,237,.05), rgba(232,233,237,.01))', textAlign: 'center' }}>
+      <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
         <MessagesSquare size={22} strokeWidth={1.3} style={{ color: SILVER, marginBottom: '14px' }} />
         <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>THE WIRES ARE GOING IN</h2>
         <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '340px' }}>
@@ -307,7 +308,7 @@ function Inbox({ me, wide }) {
           )}
           {seg === 'signals' && (
             signals.length === 0 ? (
-              <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(232,233,237,.05), rgba(232,233,237,.01))', textAlign: 'center' }}>
+              <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
                 <MessagesSquare size={22} strokeWidth={1.3} style={{ color: SILVER, marginBottom: '14px' }} />
                 <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>NO CONVERSATIONS YET</h2>
                 <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '320px' }}>
@@ -369,7 +370,7 @@ function Inbox({ me, wide }) {
             ) : (
               <>
                 {plans.length === 0 && (
-                  <div style={{ marginTop: '22px', padding: '38px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(232,233,237,.05), rgba(232,233,237,.01))', textAlign: 'center' }}>
+                  <div style={{ marginTop: '22px', padding: '38px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
                     <Mark type="star" size={16} color={SILVER} style={{ marginBottom: '12px' }} />
                     <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '26px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>NO PLANS YET</h2>
                     <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '12px auto 0', maxWidth: '300px' }}>
@@ -443,7 +444,7 @@ function TheBell({ bells, onOpen, onMarkAll }) {
               onClick={() => onOpen(s)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(s) } }}
               style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 14px', cursor: 'pointer',
-                borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: unread ? 'rgba(232,233,237,.03)' : 'transparent',
+                borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: unread ? 'rgba(var(--star-rgb),.03)' : 'transparent',
                 transition: 'background-color var(--dur-base) var(--ease-house)' }}>
               <div style={{ width: '34px', height: '34px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${unread ? SILVER : HAIR_HI}`, background: CARD, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color var(--dur-base) var(--ease-house)' }}>
                 {avatar
@@ -462,7 +463,7 @@ function TheBell({ bells, onOpen, onMarkAll }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>{msgTime(s.created_at)}</span>
                 {/* always mounted so mark-all-read fades the dot out, never teleports it (A-16) */}
-                <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(232,233,237,.6)', opacity: unread ? 1 : 0, transition: 'opacity var(--dur-base) var(--ease-house)' }} />
+                <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(var(--star-rgb),.6)', opacity: unread ? 1 : 0, transition: 'opacity var(--dur-base) var(--ease-house)' }} />
               </div>
             </div>
           )
@@ -581,7 +582,7 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderBottom: `1px solid ${HAIR}` }}>
       <button className="pressable" onClick={onOpen} aria-label={`Open ${name}'s world`}
         style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
-        <span style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${isClose ? 'rgba(232,233,237,.5)' : HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <span style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${isClose ? 'rgba(var(--star-rgb),.5)' : HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           {avatar
             ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
@@ -592,7 +593,7 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
             <SeedPill is_demo={f.is_demo} />
           </span>
           {craft
-            ? <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tint})`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{craft.name}</span>
+            ? <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tintChannel(tint)})`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{craft.name}</span>
             : (f.city && <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '4px' }}>{f.city}</span>)}
         </span>
       </button>
@@ -603,7 +604,7 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
         {/* fill stays STAR; state rides interpolable props so the star lights
             up like a star, not a checkbox — interruptible on optimistic rollback (A-17) */}
         <Star size={17} strokeWidth={1.6} fill={STAR}
-          style={{ fillOpacity: isClose ? 1 : 0, color: isClose ? STAR : BONE_LOW, filter: isClose ? 'drop-shadow(0 0 6px rgba(232,233,237,.5))' : 'drop-shadow(0 0 0 rgba(232,233,237,0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }} />
+          style={{ fillOpacity: isClose ? 1 : 0, color: isClose ? STAR : BONE_LOW, filter: isClose ? 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' : 'drop-shadow(0 0 0 rgba(var(--star-rgb),0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }} />
       </button>
     </div>
   )
@@ -661,7 +662,7 @@ function InboxRow({ t, me, last, onOpen }) {
       </span>
       <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
         <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>{relDay(t.last_message_at)}</span>
-        {t.unread && <span aria-label="Unread" style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(232,233,237,.7)' }} />}
+        {t.unread && <span aria-label="Unread" style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(var(--star-rgb),.7)' }} />}
       </span>
     </button>
   )
@@ -710,7 +711,7 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
   const creatorName = p.creator?.name || (p.creator?.username ? '@' + p.creator.username : null)
   return (
     <div data-testid={`plan-card-${p.id}`}
-      style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '14px', padding: '16px 16px 12px', marginBottom: '12px', background: 'linear-gradient(150deg, rgba(232,233,237,.04), rgba(232,233,237,.01))', opacity: canceled ? .55 : 1 }}>
+      style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '14px', padding: '16px 16px 12px', marginBottom: '12px', background: 'linear-gradient(150deg, rgba(var(--star-rgb),.04), rgba(var(--star-rgb),.01))', opacity: canceled ? .55 : 1 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: BONE, letterSpacing: '.02em', lineHeight: .95 }}>{p.title}</div>
@@ -781,7 +782,7 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
 function RsvpBtn({ testid, on, label, mark, onClick }) {
   return (
     <button className="pressable" data-testid={testid} onClick={onClick} aria-pressed={on}
-      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+      style={{ flex: 1, minHeight: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '7px', background: on ? 'rgba(var(--ink-rgb),.09)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--ink-rgb),.3)' : HAIR}`, borderRadius: '10px', padding: '10px 8px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
       <Mark type={mark} size={10} color={on ? BONE : BONE_LOW} />
       {label}
     </button>
@@ -803,7 +804,7 @@ function Sheet({ label, busy, onClose, children }) {
   return createPortal(
     <>
       <div onClick={() => { if (!busy) onClose() }} aria-hidden className="overlay-backdrop"
-        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(7,8,14,.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
+        style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(var(--void-rgb),.75)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }} />
       <div role="dialog" aria-modal="true" aria-label={label} className="sheet-up-centered"
         style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 0, width: '100%', maxWidth: '460px', zIndex: 10000, background: VOID, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '18px 18px 0 0', maxHeight: '82dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
@@ -932,7 +933,7 @@ function VisibilityPicker({ value, onChange, disabled, compact }) {
           return (
             <button key={t} type="button" className="pressable" data-testid={`plan-vis-${t}`} disabled={disabled}
               onClick={() => onChange(t)} aria-pressed={on}
-              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(242,238,230,.09)' : 'transparent', border: `1px solid ${on ? 'rgba(242,238,230,.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s, transform .2s' }}>
+              style={{ flex: 1, minHeight: compact ? '36px' : '46px', display: 'inline-flex', flexDirection: compact ? 'row' : 'column', alignItems: 'center', justifyContent: 'center', gap: compact ? '5px' : '5px', background: on ? 'rgba(var(--ink-rgb),.09)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--ink-rgb),.3)' : HAIR}`, borderRadius: '10px', padding: compact ? '8px 6px' : '10px 6px', color: on ? BONE : BONE_LOW, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? .6 : 1, transition: 'background .2s, border-color .2s, color .2s, opacity .2s, transform .2s' }}>
               <Icon size={compact ? 11 : 14} strokeWidth={1.6} fill={t === 'close' && on ? STAR : 'none'} color={on ? (t === 'close' ? STAR : BONE) : BONE_LOW} />
               <span style={{ fontFamily: 'DM Mono', fontSize: compact ? '8px' : '8.5px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{VIS_LABEL[t]}</span>
             </button>
@@ -1126,7 +1127,7 @@ function Thread({ threadId, me, wide }) {
         <Lock size={22} strokeWidth={1.2} style={{ color: BONE_LOW, marginBottom: '18px' }} />
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', color: BONE, letterSpacing: '.02em', marginBottom: '8px' }}>THIS CONVERSATION ISN'T YOURS TO OPEN</div>
         <div style={{ fontSize: '13px', color: BONE_MID, marginBottom: '24px', lineHeight: 1.6, fontFamily: 'DM Sans' }}>Threads open only for the people in them.</div>
-        <button className="pressable" onClick={() => navigate('/messages')} style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '10px 20px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        <button className="pressable" onClick={() => navigate('/messages')} style={{ background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '10px 20px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
           ← Messages
         </button>
       </div>
@@ -1145,7 +1146,7 @@ function Thread({ threadId, me, wide }) {
           where people read each other, the galaxy shuts up */}
 
       {/* header — who this room is (tap the name: their world / the event) */}
-      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(10,10,13,.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: `1px solid ${HAIR}` }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 10, background: 'rgba(var(--void-rgb),.92)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: `1px solid ${HAIR}` }}>
         <div style={{ maxWidth: wide ? '720px' : undefined, margin: wide ? '0 auto' : undefined, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button className="pressable" onClick={() => navigate(backTo)} aria-label="Back to Messages" style={{ background: 'transparent', border: 'none', color: BONE, cursor: 'pointer', display: 'inline-flex', padding: '4px' }}>
             <ArrowLeft size={17} />
@@ -1210,7 +1211,7 @@ function Thread({ threadId, me, wide }) {
                         : <span style={{ fontFamily: 'Bebas Neue', fontSize: '11px', color: BONE }}>{(sender?.full_name || '?')[0].toUpperCase()}</span>}
                     </span>
                   )}
-                  <div style={{ maxWidth: '78%', background: mine ? 'rgba(242,238,230,.07)' : CARD, border: `1px solid ${mine ? 'rgba(242,238,230,.14)' : HAIR}`, borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px' }}>
+                  <div style={{ maxWidth: '78%', background: mine ? 'rgba(var(--ink-rgb),.07)' : CARD, border: `1px solid ${mine ? 'rgba(var(--ink-rgb),.14)' : HAIR}`, borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px' }}>
                     {/* v12: en una sala con varias personas, el nombre sobre
                         cada mensaje es puerta a su mundo. Es EL sitio donde a
                         alguien le dan ganas de saber quién es el que habla, y
@@ -1255,7 +1256,7 @@ function Thread({ threadId, me, wide }) {
           the bar's runway begins and the messages scroll through the gap.
           112px tracks Layout's runway — if GlassNav's DOCK_BOTTOM moves, both
           move with it. */}
-      <div style={{ position: 'fixed', bottom: 'calc(98px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(10,10,13,.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
+      <div style={{ position: 'fixed', bottom: 'calc(98px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 9998, background: 'rgba(var(--void-rgb),.95)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', borderTop: `1px solid ${HAIR}`, padding: '10px 18px 12px' }}>
         <div style={{ maxWidth: wide ? '720px' : '430px', margin: '0 auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
           <input
             type="text" value={text} placeholder="Say something…" maxLength={2000}
@@ -1263,7 +1264,7 @@ function Thread({ threadId, me, wide }) {
             onKeyDown={(e) => e.key === 'Enter' && send()}
             style={{ flex: 1, background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '12px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '13px', outline: 'none' }} />
           <button className="pressable" onClick={send} disabled={!text.trim() || sending} aria-label="Send"
-            style={{ width: '42px', height: '42px', borderRadius: '50%', background: text.trim() ? BONE : 'rgba(242,238,230,.06)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>
+            style={{ width: '42px', height: '42px', borderRadius: '50%', background: text.trim() ? BONE : 'rgba(var(--ink-rgb),.06)', border: 'none', cursor: text.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', flexShrink: 0 }}>
             {sending
               ? <Loader2 size={14} style={{ color: text.trim() ? VOID : BONE_LOW, animation: 'spin 1s linear infinite' }} />
               : <Send size={14} style={{ color: text.trim() ? VOID : BONE_LOW }} />}

@@ -6,7 +6,7 @@
    stock pictograms (Ley 14 · D3). The word always rides beside it (Ley 5).
    ========================================================================= */
 
-const SILVER = '#C7C9D1'
+const SILVER = 'var(--silver)'
 
 export default function Mark({ type = 'ring', size = 14, color = SILVER, filled = false, style }) {
   const s = size, c = s / 2, r = s * 0.36, sw = Math.max(1, s * 0.085)

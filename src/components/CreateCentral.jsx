@@ -10,6 +10,7 @@ import Mark from '@/components/Mark'
 import { createWorldPost } from '@/lib/worldPosts'
 import { createListing, KINDS, priceLabel } from '@/lib/listings'
 import { socialReady, circleReady } from '@/lib/social'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    CREATE CENTRAL — the + at the center of the app (Ley 13; the Base44
@@ -29,12 +30,12 @@ import { socialReady, circleReady } from '@/lib/social'
    live behind it simply isn't there.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const VOID_2 = '#07080E'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const FAINT = '#4C4C57'                              // deck --faint (group sub-labels)
+const VOID = 'var(--bg)'
+const VOID_2 = 'var(--bg-deep)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const FAINT = 'var(--cream-ghost)'                              // deck --faint (group sub-labels)
 
 /* ---- the path chip's sky (v12) ----------------------------------------
    The three CREATE paths carry the same atmosphere the app's background
@@ -58,19 +59,19 @@ const FAINT = '#4C4C57'                              // deck --faint (group sub-
    perceive is a claim, not a feature. These are still points of light on
    near-black, which is the motif at its most literal. */
 const CHIP_STARS = [
-  'radial-gradient(1.2px 1.2px at 24% 28%, rgba(242,238,230,.85), transparent)',
-  'radial-gradient(1px 1px at 76% 22%, rgba(242,238,230,.55), transparent)',
-  'radial-gradient(1px 1px at 68% 76%, rgba(242,238,230,.42), transparent)',
-  'radial-gradient(1px 1px at 32% 70%, rgba(242,238,230,.3), transparent)',
+  'radial-gradient(1.2px 1.2px at 24% 28%, rgba(var(--ink-rgb),.85), transparent)',
+  'radial-gradient(1px 1px at 76% 22%, rgba(var(--ink-rgb),.55), transparent)',
+  'radial-gradient(1px 1px at 68% 76%, rgba(var(--ink-rgb),.42), transparent)',
+  'radial-gradient(1px 1px at 32% 70%, rgba(var(--ink-rgb),.3), transparent)',
 ].join(',')
-const CHIP_TEMP = 'radial-gradient(130% 130% at 22% 8%, rgba(122,146,190,.09), rgba(198,170,118,.045) 52%, rgba(0,0,0,0) 76%)'
+const CHIP_TEMP = 'radial-gradient(130% 130% at 22% 8%, rgba(122,146,190,.09), rgba(198,170,118,.045) 52%, rgba(var(--shadow-rgb),0) 76%)'
 const CHIP_SKY = `${CHIP_STARS}, ${CHIP_TEMP}`
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const MAX_POST_IMAGES = 4
@@ -127,11 +128,11 @@ export default function CreateCentral({ user, isMemberVerified, onClose, devForc
   const go = (path) => { onClose(); navigate(path) }
 
   const shell = wide
-    ? { position: 'relative', width: 'min(560px, 92vw)', maxHeight: '86vh', background: VOID_2, border: `1px solid ${HAIR_HI}`, borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 30px 90px rgba(0,0,0,.6)' }
+    ? { position: 'relative', width: 'min(560px, 92vw)', maxHeight: '86vh', background: VOID_2, border: `1px solid ${HAIR_HI}`, borderRadius: '18px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 30px 90px rgba(var(--shadow-rgb),.6)' }
     : { position: 'relative', width: '100%', maxWidth: '430px', maxHeight: '86dvh', background: VOID_2, borderTop: `1px solid ${HAIR_HI}`, borderRadius: '20px 20px 0 0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }
 
   return createPortal(
-    <div onClick={() => { if (!busyRef.current) onClose() }} className="overlay-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center' }}>
+    <div onClick={() => { if (!busyRef.current) onClose() }} className="overlay-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(var(--void-rgb),.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center' }}>
       <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" className={wide ? 'dialog-in' : 'sheet-up'} style={{ ...shell, outline: 'none' }}>
 
         {stage === 'menu' && (
@@ -295,13 +296,13 @@ function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, on
           <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '10px' }}>
             <span className="path-chip" aria-hidden style={{
               width: '30px', height: '30px', flexShrink: 0, borderRadius: '9px',
-              border: `1px solid rgba(${g.tint},.22)`,
+              border: `1px solid rgba(${tintChannel(g.tint)},.22)`,
               // the sky, then the path's own faint body tint underneath it
               backgroundImage: CHIP_SKY,
-              backgroundColor: `rgba(${g.tint},.045)`,
+              backgroundColor: `rgba(${tintChannel(g.tint)},.045)`,
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Mark type={g.mark} size={14} color={`rgb(${g.tint})`} />
+              <Mark type={g.mark} size={14} color={`rgb(${tintChannel(g.tint)})`} />
             </span>
             <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.24em', textTransform: 'uppercase' }}>{g.title}</span>
             <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: FAINT, letterSpacing: '.14em', textTransform: 'uppercase' }}>· {g.line}</span>
@@ -328,17 +329,17 @@ function ActionCard({ it, tint, wide }) {
     <button className="row-lead" data-testid={`create-action-${it.title.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={it.onGo}
       style={{
         display: 'flex', alignItems: 'center', gap: '13px', width: '100%', textAlign: 'left',
-        background: it.hero ? `rgba(${tint},.055)` : 'rgba(242,238,230,.022)',
-        border: `1px solid ${it.hero ? `rgba(${tint},.30)` : HAIR}`,
+        background: it.hero ? `rgba(${tintChannel(tint)},.055)` : 'rgba(var(--ink-rgb),.022)',
+        border: `1px solid ${it.hero ? `rgba(${tintChannel(tint)},.30)` : HAIR}`,
         borderRadius: '10px', padding: wide ? '14px 14px' : '13px 13px', cursor: 'pointer',
       }}>
       <span aria-hidden style={{
         width: '38px', height: '38px', flexShrink: 0, borderRadius: '9px',
-        border: `1px solid rgba(${tint},${it.hero ? .34 : .2})`,
-        background: `rgba(${tint},${it.hero ? .1 : .05})`,
+        border: `1px solid rgba(${tintChannel(tint)},${it.hero ? .34 : .2})`,
+        background: `rgba(${tintChannel(tint)},${it.hero ? .1 : .05})`,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <Icon size={17} strokeWidth={1.7} style={{ color: `rgb(${tint})` }} />
+        <Icon size={17} strokeWidth={1.7} style={{ color: `rgb(${tintChannel(tint)})` }} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE, letterSpacing: '.035em', lineHeight: 1 }}>{it.title}</span>
@@ -502,7 +503,7 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
     <div style={{ position: 'relative', padding: wide ? '26px 28px 24px' : '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))', overflowY: 'auto' }}>
       <ComposerTop onBack={onBack} onClose={onClose} busy={busy} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
-        <span aria-hidden style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '10px', border: '1px solid rgba(199,201,209,.28)', background: 'rgba(199,201,209,.07)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span aria-hidden style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '10px', border: '1px solid rgba(var(--silver-rgb),.28)', background: 'rgba(var(--silver-rgb),.07)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
           {/* Package, matching the menu's own swap — Tag was dropped from the
               imports when OFFER took the price-tag symbol, and this second
               usage was missed: it threw ReferenceError and unmounted the whole
@@ -595,7 +596,7 @@ function Thumbs({ files, busy, onRemove }) {
 function AddImages({ busy, dragOver, onPick, hint }) {
   return (
     <button className="pressable" onClick={onPick} disabled={busy}
-      style={{ width: '100%', background: dragOver ? 'rgba(199,201,209,.07)' : 'transparent', border: `1px dashed ${dragOver ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '16px 13px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', opacity: busy ? .6 : 1 }}>
+      style={{ width: '100%', background: dragOver ? 'rgba(var(--silver-rgb),.07)' : 'transparent', border: `1px dashed ${dragOver ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '16px 13px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', opacity: busy ? .6 : 1 }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><ImagePlus size={14} /> Add images</span>
       <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em' }}>{hint || 'tap · drag it in · or just paste'}</span>
     </button>

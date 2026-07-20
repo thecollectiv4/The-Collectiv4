@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { glassSurface } from '@/lib/glass'
 
@@ -26,9 +27,9 @@ import { glassSurface } from '@/lib/glass'
    navega con teclado no se quede tecleando detrás de un panel abierto.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_LOW = '#5B5952'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
+const BONE = 'var(--cream)'
+const BONE_LOW = 'var(--cream-dim)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
 
 export default function GlassSheet({ title, kicker, onClose, wide, children, maxWidth = '440px' }) {
   const panelRef = useRef(null)
@@ -47,11 +48,34 @@ export default function GlassSheet({ title, kicker, onClose, wide, children, max
     }
   }, [onClose])
 
-  return (
+  /* ⚠ EL PORTAL NO ES DECORATIVO — ES LO QUE HACE QUE ESTA HOJA SE VEA.
+
+     Regresión que atrapó Diego (v12.3): la hoja de Connect quedaba TAPADA por
+     la barra de navegación y su botón no se podía picar. La causa NO era el
+     auto-hide de la barra (ese se quitó a propósito en v11 porque mataba el
+     vidrio, y no volvió). La causa es el apilamiento:
+
+       · el wrapper de página de Layout es `position:relative; z-index:1`
+       · eso lo convierte en un CONTEXTO DE APILAMIENTO
+       · una hoja renderizada DENTRO de él vive en el z-index 1 del documento,
+         por más que ella misma diga z-index:10020 adentro
+       · la barra está a 9999 en el z-index del DOCUMENTO
+       · 9999 (documento) gana contra "10020 dentro de una isla que vale 1"
+
+     Medido: con la hoja dentro del wrapper, elementFromPoint sobre la barra
+     devolvía la barra, no la hoja. Portalear al <body> la saca de la isla y
+     su 10020 por fin compite en el plano del documento — que es exactamente
+     el truco que CreateCentral ya usaba y por eso ESE overlay nunca tuvo el
+     bug. GlassSheet simplemente nunca lo copió.
+
+     Beneficia a los tres consumidores de una vez (ConnectSheet, CraftsSheet,
+     PeopleSheet): los tres se montan dentro de una página y los tres tenían
+     la misma bomba, sólo que la de Connect fue la que cayó sobre la barra. */
+  return createPortal(
     <div role="presentation" onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 10020,
-        background: 'rgba(6,6,10,.62)',
+        background: 'rgba(var(--void-rgb),.62)',
         WebkitBackdropFilter: 'blur(3px)', backdropFilter: 'blur(3px)',
         display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center',
         padding: wide ? '24px' : '0',
@@ -88,7 +112,7 @@ export default function GlassSheet({ title, kicker, onClose, wide, children, max
           </div>
           <button className="pressable" onClick={onClose} aria-label="Close"
             style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '50%',
-              background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, color: BONE,
+              background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`, color: BONE,
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={14} />
           </button>
@@ -101,6 +125,7 @@ export default function GlassSheet({ title, kicker, onClose, wide, children, max
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -155,7 +155,7 @@ export default function Moderation() {
             platform like everyone else; this reopens the preview on purpose */}
         <button data-testid="show-seed-toggle" onClick={toggleSeed}
           title="Show the demo seed in Community's preview (this browser only)"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: seedVisible ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${seedVisible ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '5px 12px', color: seedVisible ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, filter .2s, transform .2s' }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: seedVisible ? 'rgba(var(--silver-rgb),.12)' : 'transparent', border: `1px solid ${seedVisible ? SILVER : HAIR_HI}`, borderRadius: '100px', padding: '5px 12px', color: seedVisible ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, filter .2s, transform .2s' }}>
           {seedVisible ? <Eye size={11} /> : <EyeOff size={11} />} show seed · {seedVisible ? 'on' : 'off'}
         </button>
         {/* v9 D3 (guardrail 3): purge the whole seed in one action — soft,
@@ -176,7 +176,7 @@ export default function Moderation() {
           const n = accounts.filter(f.test).length
           return (
             <button key={f.key} onClick={() => setFilter(f.key)}
-              style={{ borderRadius: '100px', padding: '5px 11px', cursor: 'pointer', border: `1px solid ${on ? SILVER : HAIR}`, background: on ? 'rgba(199,201,209,.1)' : 'transparent', color: on ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+              style={{ borderRadius: '100px', padding: '5px 11px', cursor: 'pointer', border: `1px solid ${on ? SILVER : HAIR}`, background: on ? 'rgba(var(--silver-rgb),.1)' : 'transparent', color: on ? BONE : BONE_LOW, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
               {f.label} {n > 0 && <span style={{ color: FAINT }}>{n}</span>}
             </button>
           )
@@ -207,7 +207,7 @@ export default function Moderation() {
           ].filter(Boolean).join(' · ')
           const purgedRow = !!a.deleted_at
           return (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${a.protected ? 'rgba(199,201,209,.28)' : HAIR}`, background: purgedRow ? 'rgba(214,120,120,.05)' : a.protected ? 'rgba(199,201,209,.05)' : CARD, opacity: purgedRow ? 0.72 : 1 }}>
+            <div key={a.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '11px 13px', borderRadius: '13px', border: `1px solid ${a.protected ? 'rgba(var(--silver-rgb),.28)' : HAIR}`, background: purgedRow ? 'rgba(214,120,120,.05)' : a.protected ? 'rgba(var(--silver-rgb),.05)' : CARD, opacity: purgedRow ? 0.72 : 1 }}>
               <div style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: VOID, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {avatar ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : <span style={{ fontFamily: FONT_DISPLAY, fontSize: '16px', ...chromeText }}>{name[0].toUpperCase()}</span>}

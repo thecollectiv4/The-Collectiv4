@@ -7,10 +7,10 @@
 
 import { supabase } from '@/api/supabase'
 
-const BONE = '#F2EEE6'
+const BONE = 'var(--cream)'
 // display chrome — the deck's exact liquid formula (v8 D3): one chrome
 // language across the whole universe, jewelry never paint
-export const CHROME_DISPLAY = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)'
+export const CHROME_DISPLAY = 'var(--chrome)'
 export const chromeDisplayText = { background: CHROME_DISPLAY, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 export function worldSafeUrl(raw) { const u = (raw || '').trim(); return /^https?:\/\//i.test(u) ? u : '' }

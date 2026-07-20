@@ -53,7 +53,7 @@ export default function ResetPassword() {
         <div style={{ fontFamily:'Bebas Neue', fontSize:'28px', color:'var(--cream)', letterSpacing:'.02em', marginBottom:'8px' }}>ESE ENLACE YA NO SIRVE</div>
         <div style={{ fontSize:'13px', color:'var(--cream-low)', lineHeight:1.6, marginBottom:'20px', maxWidth:'320px' }}>El enlace para restablecer tu contraseña expiró o ya se usó. Pide uno nuevo desde la pantalla de acceso.</div>
         <button className="pressable" onClick={() => navigate('/auth')}
-          style={{ background:'rgba(242,238,230,.06)', border:'1px solid rgba(242,238,230,.18)', borderRadius:'100px', padding:'10px 20px', color:'var(--cream-mid)', fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.12em', textTransform:'uppercase', cursor:'pointer' }}>
+          style={{ background:'rgba(var(--ink-rgb),.06)', border:'1px solid rgba(var(--ink-rgb),.18)', borderRadius:'100px', padding:'10px 20px', color:'var(--cream-mid)', fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.12em', textTransform:'uppercase', cursor:'pointer' }}>
           ← Acceder
         </button>
       </div>

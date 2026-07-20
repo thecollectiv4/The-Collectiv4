@@ -198,7 +198,7 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages, e
         )}
         {messages.map((m, i) => (
           <div key={i} className={i >= prevLen.current ? 'msg-in' : ''} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
-            <div style={{ fontFamily: FONT_SANS, fontSize: '13px', lineHeight: 1.55, color: m.error ? BONE_MID : BONE, background: m.role === 'user' ? 'rgba(199,201,209,.10)' : PANEL, border: `1px solid ${m.role === 'user' ? HAIR_HI : HAIR}`, borderRadius: '14px', padding: '11px 14px', whiteSpace: 'pre-wrap' }}>
+            <div style={{ fontFamily: FONT_SANS, fontSize: '13px', lineHeight: 1.55, color: m.error ? BONE_MID : BONE, background: m.role === 'user' ? 'rgba(var(--silver-rgb),.10)' : PANEL, border: `1px solid ${m.role === 'user' ? HAIR_HI : HAIR}`, borderRadius: '14px', padding: '11px 14px', whiteSpace: 'pre-wrap' }}>
               {m.content}
             </div>
             {/* integrity footnote — the server saw an action claim with zero tool
@@ -233,7 +233,7 @@ export default function Brain({ onSaveContent, onActed, messages, setMessages, e
           {speechSupported ? (
             <button onClick={toggleMic} aria-label={listening ? 'Stop listening' : 'Talk to the Brain'} title={listening ? 'Stop' : 'Tap to talk'}
               className={listening ? 'os-mic-live' : undefined}
-              style={{ flexShrink: 0, width: '42px', height: '42px', borderRadius: '12px', border: `1px solid ${listening ? 'rgba(242,238,230,.55)' : HAIR_HI}`, background: listening ? 'rgba(242,238,230,.1)' : 'transparent', color: listening ? BONE : BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              style={{ flexShrink: 0, width: '42px', height: '42px', borderRadius: '12px', border: `1px solid ${listening ? 'rgba(var(--ink-rgb),.55)' : HAIR_HI}`, background: listening ? 'rgba(var(--ink-rgb),.1)' : 'transparent', color: listening ? BONE : BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
               {listening ? <MicOff size={16} /> : <Mic size={16} />}
             </button>
           ) : (
@@ -264,7 +264,7 @@ function ActionChip({ a, busy, onRespond }) {
   if (a.type === 'calendar') {
     return (
       <a href={a.url} target="_blank" rel="noopener noreferrer"
-        style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(199,201,209,.1)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '7px 14px', color: BONE, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(var(--silver-rgb),.1)', border: `1px solid ${SILVER}`, borderRadius: '100px', padding: '7px 14px', color: BONE, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none' }}>
         <CalendarPlus size={12} /> Add to Google Calendar · {a.date} {a.time}
       </a>
     )
@@ -281,7 +281,7 @@ function ActionChip({ a, busy, onRespond }) {
       )
     }
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', border: '1px solid rgba(199,201,209,.35)', background: 'rgba(199,201,209,.05)', borderRadius: '100px', padding: '5px 6px 5px 12px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', border: '1px solid rgba(var(--silver-rgb),.35)', background: 'rgba(var(--silver-rgb),.05)', borderRadius: '100px', padding: '5px 6px 5px 12px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
         △ delete {a.kind}{a.title ? ` “${a.title}”` : ''}?
         <button onClick={() => !busy && onRespond?.('confirm')} disabled={busy}
           style={{ background: BONE, color: VOID, border: `1px solid ${BONE}`, borderRadius: '100px', padding: '5px 11px', fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1 }}>
@@ -302,7 +302,7 @@ function ActionChip({ a, busy, onRespond }) {
     : a.type === 'content_deleted' ? 'content deleted'
     : a.type
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(199,201,209,.35)', background: 'rgba(199,201,209,.07)', borderRadius: '100px', padding: '6px 12px', color: STAR, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid rgba(var(--silver-rgb),.35)', background: 'rgba(var(--silver-rgb),.07)', borderRadius: '100px', padding: '6px 12px', color: STAR, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
       <Check size={11} /> {label}{a.title ? ` · “${a.title}”` : ''}
     </span>
   )
@@ -325,7 +325,7 @@ function TodayRow({ label, items, empty }) {
 
 function MiniBtn({ onClick, icon: Icon, label, done }) {
   return (
-    <button onClick={done ? undefined : onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'transparent', border: `1px solid ${done ? 'rgba(199,201,209,.3)' : HAIR}`, color: done ? STAR : BONE_LOW, borderRadius: '100px', padding: '5px 11px', fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: done ? 'default' : 'pointer' }}>
+    <button onClick={done ? undefined : onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'transparent', border: `1px solid ${done ? 'rgba(var(--silver-rgb),.3)' : HAIR}`, color: done ? STAR : BONE_LOW, borderRadius: '100px', padding: '5px 11px', fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: done ? 'default' : 'pointer' }}>
       <Icon size={10} /> {label}
     </button>
   )

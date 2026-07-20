@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
 import VerifiedMark from './VerifiedMark'
-import { CARD_TINT, cardGlass } from '@/lib/glass'
+import { CARD_TINT, cardGlass, glassControl } from '@/lib/glass'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
 import SeedPill from '@/components/SeedMark'
+import { MoreChip } from '@/components/Chip'
 import { useCosmosOverride } from '@/components/Atmosphere'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
@@ -20,7 +21,7 @@ import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness, MODULES, normModules, defaultModulesFor, craftKindOf } from '@/lib/world'
 import { craftLine, saveProfileCrafts, categoryMeta, kindOfCrafts } from '@/lib/crafts'
 import { TASTE_DOMAINS } from '@/lib/tastes'
-import { EASE_HOUSE_ARR } from '@/lib/cosmos'
+import { EASE_HOUSE_ARR, tintChannel } from '@/lib/cosmos'
 
 // stable id for editable rows (secure-context safe, with a plain fallback)
 const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.random().toString(36).slice(2)}`)
@@ -39,19 +40,19 @@ const uid = () => (globalThis.crypto?.randomUUID?.() || `r${Date.now()}${Math.ra
    ========================================================================= */
 
 /* ---------- brand palette (void · bone · chrome) ---------- */
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'                                  // solid chrome for lines / marks
-const STAR = '#E8E9ED'
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'                                  // solid chrome for lines / marks
+const STAR = 'var(--star)'
 /* v11: translúcida, no opaca — el vidrio de los chips necesita algo
    vivo que muestrear, y la atmósfera de la app pasa por detrás. */
 const CARD = CARD_TINT
-const CARD_HI = '#14141A'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
+const CARD_HI = 'var(--card-hi-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const PAGE_BG = 'linear-gradient(180deg,var(--bg-top) 0%,var(--bg-deep-2) 55%,var(--bg-deep) 100%)'
 
 /* THE COVER DISSOLVE (v12). Two ramps that have to stay in register — they
    run over the same bleeding box, so a stop means the same pixel in both.
@@ -64,8 +65,8 @@ const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
 
    COVER_SCRIM is the legibility band (Ley 3): it peaks where the identity
    block lands and then releases to nothing. Ending it opaque is exactly what
-   drew the hard edge before. Both are near-void #07080E/#0A0A0D rather than
-   #08080D so the tail matches the page it dissolves into — three different
+   drew the hard edge before. Both are near-void var(--bg-deep)/var(--bg) rather than
+   var(--bg-deep-2) so the tail matches the page it dissolves into — three different
    blacks used to meet at that seam.
 
    ─── RECONCILIACIÓN v12: DOS ARREGLOS DISTINTOS, LOS DOS VIVOS ────────────
@@ -102,29 +103,76 @@ const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
 const coverFade = (bleed) => `linear-gradient(180deg,
   #000 0%,
   #000 calc(100% - ${bleed + 150}px),
-  rgba(0,0,0,.88) calc(100% - ${bleed + 96}px),
-  rgba(0,0,0,.62) calc(100% - ${bleed + 40}px),
-  rgba(0,0,0,.34) calc(100% - ${Math.round(bleed * 0.62)}px),
-  rgba(0,0,0,.14) calc(100% - ${Math.round(bleed * 0.30)}px),
-  rgba(0,0,0,0) 100%)`
+  rgba(var(--shadow-rgb),.88) calc(100% - ${bleed + 96}px),
+  rgba(var(--shadow-rgb),.62) calc(100% - ${bleed + 40}px),
+  rgba(var(--shadow-rgb),.34) calc(100% - ${Math.round(bleed * 0.62)}px),
+  rgba(var(--shadow-rgb),.14) calc(100% - ${Math.round(bleed * 0.30)}px),
+  rgba(var(--shadow-rgb),0) 100%)`
 
 /* las tres primeras paradas llevan el PISO de Pato (nunca soltar el velo
    arriba); de ahí para abajo manda el anclaje al borde inferior de Diego */
+/* Las TRES primeras paradas salen por variable — son el "velo de atmósfera"
+   y son las únicas que cambian de registro (index.css explica por qué). De la
+   cuarta para abajo son PROTECCIÓN DE TEXTO: ahí vive el bloque de identidad
+   y el velo tiene que pesar lo mismo en los dos temas o el nombre se pierde.
+   No se tocan. */
+/* v12.3 — LAS POSICIONES TAMBIÉN CAMBIAN POR TEMA, NO SÓLO LAS α.
+
+   Diego: "en light la portada difumina demasiado arriba; que baje más y
+   difumine mucho más abajo, idéntico a dark". Audité por qué no igualaba y
+   la respuesta es contraintuitiva: LAS PARADAS YA ERAN IDÉNTICAS en los dos
+   registros. El problema no era dónde empieza el velo sino CUÁNTO SE NOTA
+   que empieza.
+
+     dark:  el velo va de .34 a .62  → salto de .28 sobre una foto ya velada
+     light: el velo va de .12 a .62  → salto de .50 sobre una foto limpia
+
+   Al arreglar la neblina (v12.2) bajé el velo de arriba de light a .12, que
+   era correcto — pero eso volvió VISIBLE el arranque de la rampa. Con la
+   misma geometría, dark disuelve sin que notes dónde y light enseña una
+   línea. Números iguales, resultado distinto, porque el sustrato es distinto.
+
+   Medido en pantalla: la rampa arrancaba a 158px de un scrim de 668px, y el
+   primer texto (la línea de oficios) recién aparece a 311px. O sea ~150px de
+   velo puestos ENCIMA de nada. Esos 150px son exactamente lo que Diego ve.
+
+   Así que las posiciones salen por variable y en light la rampa empieza ~100
+   px más abajo: la foto se mantiene limpia hasta casi tocar el texto, y de
+   ahí el velo sube rápido pero SÓLO donde hace falta. El pico (.90/.88) no
+   se mueve — ahí vive el nombre y ésa es su protección. */
 const coverScrim = (bleed) => `linear-gradient(180deg,
-  rgba(7,8,14,.42) 0%,
-  rgba(7,8,14,.30) 22%,
-  rgba(7,8,14,.34) calc(100% - ${bleed + 300}px),
-  rgba(7,8,14,.62) calc(100% - ${bleed + 190}px),
-  rgba(8,8,13,.90) calc(100% - ${bleed + 96}px),
-  rgba(8,8,13,.88) calc(100% - ${bleed + 20}px),
-  rgba(9,9,14,.50) calc(100% - ${Math.round(bleed * 0.55)}px),
-  rgba(10,10,13,.14) calc(100% - ${Math.round(bleed * 0.22)}px),
-  rgba(10,10,13,0) 100%)`
+  rgba(var(--void-rgb),var(--cover-veil-top)) 0%,
+  rgba(var(--void-rgb),var(--cover-veil-hi)) 22%,
+  rgba(var(--void-rgb),var(--cover-veil-mid)) calc(100% - ${bleed}px - var(--cover-o1)),
+  rgba(var(--void-rgb),.62) calc(100% - ${bleed}px - var(--cover-o2)),
+  rgba(var(--void-rgb),.90) calc(100% - ${bleed + 96}px),
+  rgba(var(--void-rgb),.88) calc(100% - ${bleed + 20}px),
+  rgba(var(--void-rgb),.50) calc(100% - ${Math.round(bleed * 0.55)}px),
+  rgba(var(--void-rgb),.14) calc(100% - ${Math.round(bleed * 0.22)}px),
+  rgba(var(--void-rgb),0) 100%)`
 
 /* LA ZONA DE PORTADA. La foto llena de verdad la sección de arriba, y el
    sangrado crece con ella para que la disolución tenga por dónde correr —
    un fade largo necesita distancia, no sólo buenas paradas. */
-const HERO_H = { wide: 'clamp(420px, 52vh, 560px)', phone: 'clamp(460px, 72vh, 620px)' }
+/* v12.4 — LA PORTADA LLENA LA ZONA SUPERIOR EN CUALQUIER ALTO DE PANTALLA.
+
+   Bug de Diego en su iPhone 17: la foto se cortaba arriba y quedaba espacio
+   sin cubrir. La causa era el tope fijo del clamp — `clamp(460px, 72vh,
+   620px)`: en una pantalla más alta 72vh supera los 620px, el clamp lo
+   RECORTA a 620, y arriba de la foto queda una banda muerta. Un tope en px es
+   una apuesta sobre el alto máximo de un teléfono, y el iPhone 17 la perdió.
+
+   Se cambia por `dvh` sin tope. `dvh` (dynamic viewport height) es el alto
+   REAL de la ventana descontando la barra de Safari cuando está, así que la
+   portada sigue el viewport de verdad en cualquier aparato — 393px o el que
+   venga — en vez de adivinar. El piso de 460px se queda como red para una
+   ventana absurdamente corta (un teléfono de lado); el techo se va, porque un
+   techo era justo el problema.
+
+   Escritorio no cambia: ahí la portada NO debe comerse la pantalla (la obra
+   es el sujeto, no la foto — la nota de reconciliación de abajo lo explica),
+   así que conserva su clamp con tope. El bug era sólo de teléfono. */
+const HERO_H = { wide: 'clamp(420px, 52vh, 560px)', phone: 'max(460px, 82dvh)' }
 /* el sangrado de escritorio baja con el hero: 300px de disolución bajo un
    hero de 52vh se comería el arranque del museo, que es justo lo que Pato
    vino a destapar. */
@@ -132,11 +180,38 @@ const COVER_BLEED = { wide: 210, phone: 230 }
 
 /* el grado de Pato: la foto detrás del vidrio, no gritando. El contraste sube
    apenas para que no se vuelva lodo al oscurecerla — perder brillo sin
-   recuperar forma es lo que aplana una foto. */
-const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
+   recuperar forma es lo que aplana una foto.
+
+   ── REVISIÓN DE DIEGO (v12.1): "se ve plana/apagada, súbele — pero no tanto"
+   La clave para subirla SIN romper nada es que los tres controles no cuestan
+   lo mismo:
+
+     · saturación y contraste compran RIQUEZA y casi no tocan la legibilidad
+       del texto que va encima
+     · el brillo es el ÚNICO que de verdad la amenaza
+
+   Y hay algo que estaba haciendo doble trabajo: quien protege al texto no es
+   este grado, es coverScrim() — que llega al 88–90% de velo justo debajo del
+   bloque de identidad. O sea que el brillo al .62 estaba oscureciendo una
+   foto que el scrim ya iba a tapar de todos modos. Puro apagón sin beneficio.
+
+   Así que la saturación sube fuerte (.70 → 1.0, la foto vuelve a su color
+   real), el contraste un punto más (1.06 → 1.13, recupera forma), y el brillo
+   apenas se suelta (.62 → .74). Es un realce, no un filtro: nada pasa de 1.0
+   salvo el contraste, así que ningún color se inventa saturación que la foto
+   no traía. */
+/* v12.2 — el grado se mudó a index.css (`--cover-grade`) porque tiene que
+   cambiar por tema, y el tema vive allá.
+
+   `filter` admite var() y resuelve — medido, no supuesto. La regla de "sólo
+   literales" que documenta glass.js es de `backdrop-filter` (WebKit 289800),
+   que es OTRA propiedad y que aquí no se toca: ningún backdrop-filter de la
+   app pasó a variable. Si algún día alguien mueve uno, ése sí se rompe sólo
+   en Safari y sin avisar. */
+const COVER_GRADE = 'var(--cover-grade)'
 // desktop: misma receta, un paso más abajo — una portada ancha tira mucha más
 // luz total que la de un teléfono al mismo brillo por píxel (Ley 3).
-const COVER_GRADE_WIDE = 'saturate(.62) brightness(.52) contrast(1.08)'
+const COVER_GRADE_WIDE = 'var(--cover-grade-wide)'
 
 /* ── LA REJILLA VERTICAL (Pato) ──────────────────────────────────────────
    Cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,
@@ -148,8 +223,8 @@ const S = { xs: 4, sm: 8, md: 14, lg: 22, xl: 34 }
 /* ── ELEVACIÓN, NO BORDES (Pato) ─────────────────────────────────────────
    Dark-first: la profundidad se construye apilando capas de luz apenas
    distintas sobre el void, no dibujando contornos. */
-const ELEV_1 = 'rgba(242,238,230,.045)'   // superficie en reposo
-const ELEV_2 = 'rgba(242,238,230,.085)'   // superficie que invita a tocar
+const ELEV_1 = 'rgba(var(--ink-rgb),.045)'   // superficie en reposo
+const ELEV_2 = 'rgba(var(--ink-rgb),.085)'   // superficie que invita a tocar
 
 /* CHIPS ANCLADOS A UNA REJILLA (Pato): la cura es fijar la ALTURA, no el
    padding — así toda pastilla mide igual aunque cambie el icono o el idioma. */
@@ -162,7 +237,7 @@ const chipBase = {
   transition: 'background .2s, border-color .2s, color .2s, transform .2s',
 }
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 // --- only ever trust http(s) urls (no javascript:, data:, etc.) ---
@@ -230,7 +305,7 @@ const useReveal = () => {
 
 const inp = { width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '13px 15px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none', transition: 'border-color .2s' }
 const monoLabel = { fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }
-const onF = (e) => e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'
+const onF = (e) => e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.34)'
 const onB = (e) => e.currentTarget.style.borderColor = HAIR_HI
 
 // star-chart marks, one per movement
@@ -590,7 +665,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
      El helper se queda vivo — lo usa el EDITOR para proponer el default
      cuando abres a escribir. Lo que cambia es sólo qué se PINTA: tu texto o
      nada. El vacío aquí es void Cosmos, que es justo lo que queremos. */
-  const marqueeText = (data.marquee_text ?? '').trim()
+  /* v12.4 — `marqueeText` se quitó junto con el marquee del render (Diego lo
+     eliminó del perfil). El dato sigue en la fila (data.marquee_text) y en el
+     builder; sólo no se lee aquí. Si vuelve, se recompone en una línea. */
   const completeness = worldCompleteness(data)
   const displayName = data.full_name || 'Unnamed'
   const initial = displayName[0].toUpperCase()
@@ -846,8 +923,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {/* the sky behind this world is the app's shared atmosphere (v8 D1) —
           claimed above with this person's seed + craft temperature */}
 
-      {/* ============ MARQUEE — the world's welcome, once ============ */}
-      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
+      {/* v12.4 — EL MARQUEE SE ELIMINÓ (pedido de Diego, segunda pasada).
+          En v12.3 lo MOVÍ de encima de la portada al cuerpo; Diego lo vio ahí
+          y decidió que sobra en cualquier lado. Se va del render por completo.
+
+          NO se toca el dato: `marquee_text` sigue en la fila y en el builder,
+          por si algún día vuelve a tener un lugar — borrar la columna sería
+          destruir texto que la persona escribió para resolver un pedido de
+          layout, y esas dos cosas no se cruzan. Simplemente nada del perfil lo
+          pinta. Si Diego lo quiere de vuelta, es un componente y una línea. */}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
       {/* RECONCILIACIÓN — cada quien tenía razón EN SU PANTALLA.
@@ -895,7 +979,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             : (
               /* no cover → the open sky (the page's constellation) + monogram
                  (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
-              <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
+              <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(var(--silver-rgb),.06) 0%, transparent 55%)` }}>
                 <StarField seed={seed} wide={wide} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {/* LA INICIAL, CON JERARQUÍA DE LUJO. Estaba a 300/480px:
@@ -918,7 +1002,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           position: 'absolute', top: 0, left: 0, right: 0,
           bottom: cover ? `-${bleed}px` : 0,
           zIndex: 1, pointerEvents: 'none',
-          background: cover ? coverScrim(bleed) : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
+          background: cover ? coverScrim(bleed) : 'linear-gradient(180deg, rgba(var(--void-rgb),.10) 0%, rgba(var(--void-rgb),0) 26%, rgba(var(--void-rgb),.30) 48%, rgba(var(--void-rgb),.72) 72%, rgba(var(--void-rgb),.95) 92%, var(--bg-deep-2) 100%)',
         }} />
 
         {/* top bar (back / sign-out) floats over the cover */}
@@ -963,15 +1047,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                      Ahora es un aro de luz —hueso al 28% pegado al canto, más
                      un halo suave— o sea el mismo lenguaje especular del vidrio
                      de la barra. Elevación, no borde. */
-                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 1px rgba(242,238,230,.28), 0 6px 22px rgba(0,0,0,.55)' }} />
-                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, boxShadow: '0 0 0 1px rgba(242,238,230,.28), 0 6px 22px rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
+                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 1px rgba(var(--ink-rgb),.28), 0 6px 22px rgba(var(--shadow-rgb),.55)' }} />
+                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, boxShadow: '0 0 0 1px rgba(var(--ink-rgb),.28), 0 6px 22px rgba(var(--shadow-rgb),.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
                 {isOwner && (
                   <>
                     <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: CARD, border: `1px solid ${HAIR_HI}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Camera size={10} style={{ color: BONE_MID }} />
                     </div>
                     <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
-                    {uploading && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(7,8,14,.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 size={16} style={{ color: BONE_MID, animation: 'spin 1s linear infinite' }} /></div>}
+                    {uploading && <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(var(--void-rgb),.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Loader2 size={16} style={{ color: BONE_MID, animation: 'spin 1s linear infinite' }} /></div>}
                   </>
                 )}
               </div>
@@ -984,7 +1068,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   /* el oficio ACOMPAÑA al nombre, no compite: una zona, un
                      protagonista. .82 de opacidad lo manda al susurro sin
                      tocarle el color de categoría, que sí es información. */
-                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
+                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(var(--shadow-rgb),.5)', opacity: .82 }}>
                     {/* primary ALWAYS leads — regardless of the order the
                         set arrived in (fresh save vs DB read) */}
                     {/* v12: cada craft es una PUERTA — lleva a Community
@@ -1001,7 +1085,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                             aria-label={`See other ${c.name}s`}
                             style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                               fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', letterSpacing: '.3em', textTransform: 'uppercase',
-                              color: isP ? `rgb(${meta.tint})` : BONE_MID }}>
+                              color: isP ? `rgb(${tintChannel(meta.tint)})` : BONE_MID }}>
                             {c.name}
                           </button>
                         </span>
@@ -1010,18 +1094,12 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     {/* el +N deja de ser un dato que no se puede abrir: la app
                         te decía que había más y no te dejaba verlo */}
                     {crafts.length > 3 && (
-                      <button className="pressable" data-testid="hero-crafts-more"
-                        onClick={() => setCraftsOpen(true)}
-                        aria-label={`See all ${crafts.length} crafts`}
-                        style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px',
-                          padding: '2px 8px', cursor: 'pointer',
-                          fontFamily: 'DM Mono', fontSize: '8px', color: BONE_MID, letterSpacing: '.14em' }}>
-                        +{crafts.length - 3}
-                      </button>
+                      <MoreChip n={crafts.length - 3} onClick={() => setCraftsOpen(true)}
+                        label={`See all ${crafts.length} crafts`} />
                     )}
                   </div>
                 ) : data.discipline && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(var(--shadow-rgb),.5)', opacity: .82 }}>
                     {data.discipline}
                   </div>
                 )}
@@ -1034,14 +1112,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                       la foto ya atenuada, una sombra pesada deja de ser
                       legibilidad y se vuelve halo — y el halo es lo que se
                       lee como barato. */}
-                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(48px, 5.2vw, 76px)' : 'clamp(34px, 9.5vw, 46px)', letterSpacing: '.02em', lineHeight: 0.9, margin: 0, textShadow: '0 2px 16px rgba(0,0,0,.45)', ...displaySkin }}>{displayName}</h1>
+                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(48px, 5.2vw, 76px)' : 'clamp(34px, 9.5vw, 46px)', letterSpacing: '.02em', lineHeight: 0.9, margin: 0, textShadow: '0 2px 16px rgba(var(--shadow-rgb),.45)', ...displaySkin }}>{displayName}</h1>
                   {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: wide ? '10px' : '5px' }}><VerifiedMark size={wide ? 24 : 19} /></span>}
                   {/* guardrail 4: the museum itself — the destination of every
                       labeled card tap — carries the truth on its own hero */}
                   <span style={{ display: 'inline-flex', marginBottom: wide ? '12px' : '7px' }}><SeedPill is_demo={data.is_demo} size={8.5} /></span>
                 </div>
                 {(data.username || data.city || ticket) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 8px rgba(var(--shadow-rgb),.5)' }}>
                     {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
                     {/* City renders only when the user claimed one — no invented hometown. */}
                     {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -1049,8 +1127,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                       <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city}</span>
                     </span>}
                     {ticket && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(7,8,14,.45)', borderRadius: '100px', padding: '3px 10px', letterSpacing: '.1em' }}>
-                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(232,233,237,.7)` }} />
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(var(--void-rgb),.45)', borderRadius: '100px', padding: '3px 10px', letterSpacing: '.1em' }}>
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(var(--star-rgb),.7)` }} />
                         GOING{event?.editionNumber ? ` · ${event.editionNumber}` : ''}
                       </span>
                     )}
@@ -1067,7 +1145,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                  rather than an island. It is still an editorial judgment call
                  (see the handback) — the alternative is moving it under the
                  identity block entirely, which is Pato's taste to settle. */
-              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '420px', marginRight: 'clamp(0px, 7vw, 150px)', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '420px', marginRight: 'clamp(0px, 7vw, 150px)', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(var(--shadow-rgb),.7)' }}>
                 <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
               </p>
             )}
@@ -1131,7 +1209,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           <div style={{ display: 'flex', alignItems: 'center', gap: `${S.sm}px`, rowGap: `${S.sm}px`, flexWrap: 'wrap' }}>
             <button className="pressable" onClick={onFollowToggle} aria-pressed={social.iFollow}
               data-testid="follow-btn"
-              style={{ ...chipBase, background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', color: social.iFollow ? BONE : VOID }}>
+              style={{ ...chipBase, background: social.iFollow ? 'rgba(var(--silver-rgb),.1)' : BONE, border: social.iFollow ? `1px solid rgba(var(--silver-rgb),.4)` : '1px solid transparent', color: social.iFollow ? BONE : VOID }}>
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
               {/* v12: decía "CONNECTED" cuando quiere decir "ya lo sigues" —
                   la MISMA palabra que rotulaba el conteo de seguidores diez
@@ -1145,7 +1223,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
                   onClick={() => { if (window.confirm(VOCAB_PHRASE.removeConnection)) friendship.onRemove?.() }}
-                  style={{ ...chipBase, background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', color: BONE }}>
+                  style={{ ...chipBase, background: 'rgba(var(--silver-rgb),.1)', border: '1px solid rgba(var(--silver-rgb),.4)', color: BONE }}>
                   {VOCAB.connected} <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
@@ -1161,7 +1239,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
                   style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
-                  onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+                  onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.35)' }}
                   onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
                   {VOCAB.connectAction}
                 </button>
@@ -1169,7 +1247,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             )}
             <button className="pressable" onClick={onMessage} data-testid="message-btn"
               style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
-              onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+              onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.35)' }}
               onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
             </button>
@@ -1196,7 +1274,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               </span>
             )}
             {social.err && (
-              <span role="alert" style={{ flexBasis: '100%', fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {social.err}</span>
+              <span role="alert" style={{ flexBasis: '100%', fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)', letterSpacing: '.04em' }}>⚠ {social.err}</span>
             )}
           </div>
         )}
@@ -1224,7 +1302,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             {links.map((l, i) => (
               <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer" className="pressable"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'border-color .2s, color .2s, transform .2s' }}
-                onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(199,201,209,.5)'; e.currentTarget.style.color = BONE }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.5)'; e.currentTarget.style.color = BONE }}
                 onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
                 {l.label || hostOf(l.url)}
                 <ArrowUpRight size={10} style={{ color: SILVER }} />
@@ -1239,7 +1317,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             + add your links — IG, portfolio, sound
           </button>
         )}
-        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
+        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
           <div>
@@ -1249,9 +1327,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 behind their back (Ley 11). */}
             {craftsReady && crafts.length === 0 && (data.discipline || '').trim() && (
               <button data-testid="craft-migration" className="pressable" onClick={() => setBuilding(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'linear-gradient(150deg, rgba(199,201,209,.07), rgba(199,201,209,.015))', border: `1px solid rgba(199,201,209,.3)`, borderRadius: '13px', padding: '13px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
-                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.55)'}
-                onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.3)'}>
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.07), rgba(var(--silver-rgb),.015))', border: `1px solid rgba(var(--silver-rgb),.3)`, borderRadius: '13px', padding: '13px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
+                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.55)'}
+                onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.3)'}>
                 <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '13px', color: SILVER, flexShrink: 0 }}>◇</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '17px', color: BONE, letterSpacing: '.04em', lineHeight: 1 }}>THE UNIVERSE NOW SPEAKS CRAFT</span>
@@ -1268,8 +1346,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 quieter. tastes===null (still loading) never flashes it. */}
             {tastes !== null && tastes.length === 0 && crafts.length > 0 && (
               <button data-testid="taste-invite" className="pressable" onClick={() => setBuilding(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'rgba(199,201,209,.03)', border: `1px solid ${HAIR_HI}`, borderRadius: '13px', padding: '12px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
-                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(199,201,209,.4)'}
+                style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'rgba(var(--silver-rgb),.03)', border: `1px solid ${HAIR_HI}`, borderRadius: '13px', padding: '12px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
+                onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.4)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
                 <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '13px', color: SILVER, flexShrink: 0 }}>○</span>
                 <span style={{ flex: 1, minWidth: 0 }}>
@@ -1295,9 +1373,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               </div>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'background .2s, border-color .2s, transform .2s' }}
-                onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.11)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
-                onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+              <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'background .2s, border-color .2s, transform .2s' }}
+                onMouseOver={e => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.11)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.34)' }}
+                onMouseOut={e => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
                 <Edit3 size={12} /> {completeness.pct < 100 ? 'Build your world →' : 'Curate your world'}
               </button>
               {completeness.pct < 100 && (
@@ -1338,7 +1416,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   const active = theme === t.key
                   return (
                     <button key={t.key} onClick={() => setTheme(t.key)}
-                      style={{ flex: 1, background: active ? 'rgba(199,201,209,.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
+                      style={{ flex: 1, background: active ? 'rgba(var(--silver-rgb),.08)' : CARD, border: `1px solid ${active ? SILVER : HAIR_HI}`, borderRadius: '12px', padding: '14px 6px 10px', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', transition: 'background .2s, border-color .2s' }}>
                       <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', lineHeight: 1, ...nameSkin(t.key) }}>Aa</span>
                       <span style={{ fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', textTransform: 'uppercase', color: active ? BONE : BONE_LOW }}>{t.label}</span>
                     </button>
@@ -1358,10 +1436,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     <button onClick={() => moveGalRow(i, -1)} disabled={i === 0} aria-label="Move up" style={{ ...galBtn, opacity: i === 0 ? .3 : 1 }}><ArrowUp size={12} /></button>
                     <button onClick={() => moveGalRow(i, 1)} disabled={i === galRows.length - 1} aria-label="Move down" style={{ ...galBtn, opacity: i === galRows.length - 1 ? .3 : 1 }}><ArrowDown size={12} /></button>
                   </div>
-                  <button onClick={() => delGalRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#E5A0A0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+                  <button onClick={() => delGalRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: 'var(--warn)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                 </div>
               ))}
-              {galErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0' }}>{galErr}</div>}
+              {galErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)' }}>{galErr}</div>}
               <button onClick={() => galleryFileRef.current?.click()} disabled={galUploading > 0}
                 style={{ background: 'transparent', border: `1px dashed ${HAIR_HI}`, borderRadius: '12px', padding: '12px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'DM Sans', opacity: galUploading > 0 ? .6 : 1 }}>
                 {galUploading > 0 ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} /> : <ImagePlus size={14} />}
@@ -1377,10 +1455,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <div key={row.id} style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '12px', background: CARD }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                     <input style={{ ...inp, padding: '10px 13px' }} value={row.label} placeholder="Label (IG, Portfolio…)" onChange={e => setLinkRow(i, 'label', e.target.value)} onFocus={onF} onBlur={onB} />
-                    <button onClick={() => delLinkRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#E5A0A0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+                    <button onClick={() => delLinkRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: 'var(--warn)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                   </div>
                   <input style={{ ...inp, padding: '10px 13px' }} value={row.url} placeholder="https://…" onChange={e => setLinkRow(i, 'url', e.target.value)} onFocus={onF} onBlur={onB} />
-                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', marginTop: '6px' }}>Must start with http:// or https://</div>}
+                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)', marginTop: '6px' }}>Must start with http:// or https://</div>}
                 </div>
               ))}
               <button onClick={addLinkRow} style={{ background: 'transparent', border: `1px dashed ${HAIR_HI}`, borderRadius: '12px', padding: '12px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'DM Sans' }}>
@@ -1401,10 +1479,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <div key={row.id} style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '12px', background: CARD }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                     <input style={{ ...inp, padding: '10px 13px' }} value={row.title} placeholder="Title (optional)" onChange={e => setRow(i, 'title', e.target.value)} onFocus={onF} onBlur={onB} />
-                    <button onClick={() => delRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: '#E5A0A0', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
+                    <button onClick={() => delRow(i)} aria-label="Remove" style={{ background: 'rgba(229,160,160,.08)', border: '1px solid rgba(229,160,160,.2)', borderRadius: '8px', width: '38px', height: '38px', flexShrink: 0, color: 'var(--warn)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={14} /></button>
                   </div>
                   <input style={{ ...inp, padding: '10px 13px' }} value={row.url} placeholder="https://…" onChange={e => setRow(i, 'url', e.target.value)} onFocus={onF} onBlur={onB} />
-                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', marginTop: '6px' }}>Must start with http:// or https://</div>}
+                  {row.url && !safeUrl(row.url) && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)', marginTop: '6px' }}>Must start with http:// or https://</div>}
                 </div>
               ))}
               <button onClick={addRow} style={{ background: 'transparent', border: `1px dashed ${HAIR_HI}`, borderRadius: '12px', padding: '12px', color: BONE_MID, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'DM Sans' }}>
@@ -1428,7 +1506,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   </div>
                   <button className="pressable" data-testid={`room-toggle-${r.key}`} onClick={() => toggleRoom(r.key)} aria-pressed={r.on} aria-disabled={lastOn}
                     title={lastOn ? 'a world needs at least one open room' : undefined}
-                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(199,201,209,.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(199,201,209,.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: lastOn ? 'default' : 'pointer', flexShrink: 0, transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                    style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', border: `1px solid ${r.on ? 'rgba(var(--silver-rgb),.4)' : HAIR_HI}`, borderRadius: '100px', padding: '5px 13px', background: r.on ? 'rgba(var(--silver-rgb),.1)' : 'transparent', color: r.on ? BONE : BONE_LOW, cursor: lastOn ? 'default' : 'pointer', flexShrink: 0, transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
                     {r.on ? 'ON' : 'OFF'}
                   </button>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexShrink: 0 }}>
@@ -1451,11 +1529,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             </div>
           </Section>
 
-          {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: '#E5A0A0', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
+          {saveErr && <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--warn)', textAlign: 'center', marginTop: '-12px' }}>{saveErr}</div>}
           {/* both gates wait for in-flight gallery uploads — saving or cancelling
               mid-upload would drop the image and orphan its storage object */}
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={cancelEdit} disabled={galUploading > 0} style={{ flex: '0 0 auto', background: 'rgba(242,238,230,.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: galUploading > 0 ? 'default' : 'pointer', fontFamily: 'DM Sans', opacity: galUploading > 0 ? .5 : 1 }}>Cancel</button>
+            <button onClick={cancelEdit} disabled={galUploading > 0} style={{ flex: '0 0 auto', background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '14px 22px', color: BONE_MID, fontSize: '13px', cursor: galUploading > 0 ? 'default' : 'pointer', fontFamily: 'DM Sans', opacity: galUploading > 0 ? .5 : 1 }}>Cancel</button>
             <button onClick={save} disabled={saving || galUploading > 0} style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans', opacity: (saving || galUploading > 0) ? .6 : 1, transition: 'opacity .2s' }}>{saving ? 'Saving…' : galUploading > 0 ? 'Uploading…' : 'Save your world'}</button>
           </div>
         </div>
@@ -1528,7 +1606,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             /* the empty state OWNS its row on desktop — centered on the
                layout's axis, never a lone cell beside two-thirds of raw
                void (panel catch, Ley 4) */
-            <div style={{ marginTop: '44px', padding: wide ? '46px 40px' : '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', textAlign: 'center', maxWidth: wide ? '680px' : undefined, marginLeft: wide ? 'auto' : undefined, marginRight: wide ? 'auto' : undefined }}>
+            <div style={{ marginTop: '44px', padding: wide ? '46px 40px' : '34px 26px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.05), rgba(var(--silver-rgb),.01))', textAlign: 'center', maxWidth: wide ? '680px' : undefined, marginLeft: wide ? 'auto' : undefined, marginRight: wide ? 'auto' : undefined }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ world forming</span>
                 <SeedPill is_demo={data.is_demo} size={7} />
@@ -1587,7 +1665,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
       {/* ============ PUBLISHED — a sober moment, then back to the world ============ */}
       {celebrating && createPortal(
-        <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(199,201,209,.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
+        <div role="dialog" aria-label="Your world is live" style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(var(--silver-rgb),.09) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn .6s ease' }}>
           {/* void + type only — the app-wide grain varnishes this moment too;
               the person's starfield belongs to their hero, not fullscreen blobs */}
           {/* the ceremony stages in — the house .rise procession, exactly as
@@ -1647,7 +1725,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 }
 
 /* ---------- shared bits ---------- */
-const pill = { background: 'rgba(7,8,14,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
+/* v12.1 — este llevaba `blur(8px)` inventado aquí y un fondo al 60% de vacío,
+   que sobre una portada clara tapaba la foto en vez de dejarla ver. Ahora es
+   la receta compartida (glass.js): mismo material que el resto de los
+   controles sueltos de la app, y una sola línea que cambiar si se afina. */
+const pill = { ...glassControl(), borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
 const galBtn = { background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '7px', width: '26px', height: '25px', color: BONE_MID, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
 
 /* los conteos del vínculo: se ven igual que antes (nada de botón pintado —
@@ -1660,23 +1742,12 @@ const countBtn = {
   letterSpacing: '.12em', textTransform: 'uppercase',
 }
 
-/* WorldMarquee — the world's welcome line. ONE composed instance (Ley 8:
-   el marquee aparece UNA vez, jamás fila repetida). A quiet editorial strip
-   that reads once — the line is information, not wallpaper. */
-function WorldMarquee({ text, theme, wide }) {
-  const skin = theme === 'outline'
-    ? { color: 'transparent', WebkitTextStroke: `1px ${BONE_MID}` }
-    : { color: BONE }
-  return (
-    <div role="note" aria-label={text} style={{ position: 'relative', zIndex: 3, borderBottom: `1px solid ${HAIR}`, background: VOID }}>
-      <div style={{ maxWidth: wide ? '1440px' : undefined, margin: wide ? '0 auto' : undefined, padding: wide ? '9px clamp(40px, 5vw, 76px) 7px' : '9px 24px 7px', display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
-        <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '8px', color: SILVER, opacity: .55, flexShrink: 0 }}>✦</span>
-        <span style={{ fontFamily: 'Bebas Neue', fontSize: '13px', letterSpacing: '.2em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', opacity: .65, ...skin }}>{text.toUpperCase()}</span>
-        <span aria-hidden style={{ flex: 1, height: '1px', background: `linear-gradient(90deg, ${HAIR}, transparent)` }} />
-      </div>
-    </div>
-  )
-}
+/* v12.4 — WorldMarquee se eliminó junto con su único call site (Diego quitó
+   el marquee del perfil). Era la ÚNICA función que lo dibujaba, así que
+   dejarla definida sin llamar es código muerto que el próximo lector
+   interpreta como "esto todavía se usa". El dato (marquee_text) vive en la
+   fila; el componente que lo pintaba, no. Su CSS (.world-ticker / worldTicker
+   en index.css) tampoco se toca en otro lado — se quita allá también. */
 
 /* GalleryGrid — the wall. Mobile: first image leads full-bleed, the rest hang
    two-across. Wide: a salon wall — an asymmetric 12-column museum grid, rows
@@ -1723,7 +1794,7 @@ function GalleryPiece({ item, featured, span, fixedH, index }) {
     <a href={src} target="_blank" rel="noopener noreferrer" className={salon ? 'salon-piece' : undefined}
       style={{ display: 'block', textDecoration: 'none', ...(salon && { gridColumn: `span ${span}`, minWidth: 0 }) }}>
       <div
-        style={{ borderRadius: featured ? '16px' : '12px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(242,238,230,.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(0,0,0,.4)' : 'none' }}>
+        style={{ borderRadius: featured ? '16px' : '12px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(var(--ink-rgb),.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(var(--shadow-rgb),.4)' : 'none' }}>
         <img src={src} alt={item.caption || ''} loading="lazy" onError={() => setOk(false)}
           style={salon
             ? { width: '100%', height: fixedH, display: 'block', objectFit: 'cover' }
@@ -1779,8 +1850,8 @@ function Marker({ mark, n, label, kicker, wide }) {
 /* An empty movement, styled into the world — an invitation, never a barren shell. */
 function Invite({ children, icon: Icon }) {
   return (
-    <div style={{ marginTop: '4px', padding: '24px 22px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(199,201,209,.05), rgba(199,201,209,.01))', display: 'flex', gap: '16px', alignItems: 'flex-start', maxWidth: '480px' }}>
-      <div style={{ width: '38px', height: '38px', flexShrink: 0, borderRadius: '10px', border: `1px solid ${HAIR_HI}`, background: 'rgba(199,201,209,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ marginTop: '4px', padding: '24px 22px', borderRadius: '16px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.05), rgba(var(--silver-rgb),.01))', display: 'flex', gap: '16px', alignItems: 'flex-start', maxWidth: '480px' }}>
+      <div style={{ width: '38px', height: '38px', flexShrink: 0, borderRadius: '10px', border: `1px solid ${HAIR_HI}`, background: 'rgba(var(--silver-rgb),.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Icon size={17} style={{ color: SILVER }} strokeWidth={1.5} />
       </div>
       <p style={{ fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: 0, fontFamily: 'DM Sans' }}>{children}</p>
@@ -1898,18 +1969,18 @@ function PosterCard({ value, index, wide, big }) {
   const body = (img && imgOk) ? (
     <>
       <img src={img} alt={label} loading="lazy" onError={() => setImgOk(false)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.05) 40%, rgba(7,8,14,.88) 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),.05) 40%, rgba(var(--void-rgb),.88) 100%)' }} />
       {p.kind === 'video' && (
-        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(7,8,14,.55)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', top: '10px', right: '10px', width: '30px', height: '30px', borderRadius: '50%', background: 'rgba(var(--void-rgb),.55)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Play size={13} style={{ color: BONE, marginLeft: '2px' }} fill={BONE} />
         </div>
       )}
-      <div style={{ position: 'absolute', left: '12px', right: '12px', bottom: '12px', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.03em', lineHeight: 1.02, textShadow: '0 1px 10px rgba(0,0,0,.7)' }}>{label}</div>
+      <div style={{ position: 'absolute', left: '12px', right: '12px', bottom: '12px', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.03em', lineHeight: 1.02, textShadow: '0 1px 10px rgba(var(--shadow-rgb),.7)' }}>{label}</div>
     </>
   ) : (
     // typographic poster — no image, still a curated object in the void
     <>
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(199,201,209,.11) 0%, rgba(199,201,209,.02) 45%, #08080D 100%)' }} />
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, rgba(var(--silver-rgb),.11) 0%, rgba(var(--silver-rgb),.02) 45%, var(--bg-deep-2) 100%)' }} />
       <div style={{ position: 'absolute', top: '10px', left: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: SILVER, letterSpacing: '.16em' }}>{String(index).padStart(2, '0')}</div>
       <div style={{ position: 'absolute', top: '10px', right: '11px' }}><Mark type="diamond" size={9} color={SILVER} style={{ opacity: .5 }} /></div>
       <div style={{ position: 'absolute', bottom: '-10px', right: '-4px', fontFamily: 'Bebas Neue', fontSize: '120px', lineHeight: 1, opacity: .08, pointerEvents: 'none', color: BONE }}>{(label || '?')[0].toUpperCase()}</div>
@@ -1919,7 +1990,7 @@ function PosterCard({ value, index, wide, big }) {
 
   const card = (
     <div style={{ position: 'relative', flex: '0 0 auto', width: big ? '286px' : wide ? '196px' : '148px', height: big ? '410px' : wide ? '280px' : '212px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, scrollSnapAlign: 'start', transition: 'transform .25s ease, border-color .25s ease', cursor: href ? 'pointer' : 'default' }}
-      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)' }}
+      onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.34)' }}
       onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = HAIR_HI }}>
       {body}
     </div>
@@ -1967,7 +2038,7 @@ function MediaCard({ item, full, featured }) {
   const p = parseMedia(item.url)
   if (!p) return null
   const title = item.title || hostOf(item.url)
-  const cardStyle = { borderRadius: '16px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(242,238,230,.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(0,0,0,.4)' : 'none' }
+  const cardStyle = { borderRadius: '16px', overflow: 'hidden', border: `1px solid ${featured ? 'rgba(var(--ink-rgb),.16)' : HAIR_HI}`, background: CARD, boxShadow: featured ? '0 14px 44px rgba(var(--shadow-rgb),.4)' : 'none' }
 
   if (p.kind === 'video') {
     return (
@@ -1979,14 +2050,14 @@ function MediaCard({ item, full, featured }) {
             <button onClick={() => setPlay(true)} aria-label="Play" style={{ position: 'absolute', inset: 0, padding: 0, border: 'none', cursor: 'pointer', background: '#000' }}>
               {p.thumb && imgOk
                 ? <img src={p.thumb} alt="" onError={() => setImgOk(false)} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: .9 }} />
-                : <div style={{ width: '100%', height: '100%', background: `linear-gradient(150deg, rgba(199,201,209,.14), #08080D)` }} />}
-              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(7,8,14,.2)' }}>
+                : <div style={{ width: '100%', height: '100%', background: `linear-gradient(150deg, rgba(var(--silver-rgb),.14), var(--bg-deep-2))` }} />}
+              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(var(--void-rgb),.2)' }}>
                 {/* WebkitBackdropFilter was missing: Safari 17.6 and older
                     know only the prefixed property, so this circle lost its
                     blur entirely on exactly the phones the app is built for.
                     The inset highlight is the v11 edge treatment — the blur
                     is real here (its backdrop is the video's own thumbnail). */}
-                <div style={{ width: featured ? '62px' : '52px', height: featured ? '62px' : '52px', borderRadius: '50%', background: 'rgba(7,8,14,.5)', WebkitBackdropFilter: 'saturate(150%) blur(6px)', backdropFilter: 'saturate(150%) blur(6px)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,.4), 0 0 26px rgba(199,201,209,.3)' }}>
+                <div style={{ width: featured ? '62px' : '52px', height: featured ? '62px' : '52px', borderRadius: '50%', background: 'rgba(var(--void-rgb),.5)', WebkitBackdropFilter: 'saturate(150%) blur(6px)', backdropFilter: 'saturate(150%) blur(6px)', border: `1px solid ${SILVER}`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,.4), 0 0 26px rgba(var(--silver-rgb),.3)' }}>
                   <Play size={featured ? 24 : 20} style={{ color: BONE, marginLeft: '3px' }} fill={BONE} />
                 </div>
               </div>
@@ -2021,7 +2092,7 @@ function MediaCard({ item, full, featured }) {
   // link
   return (
     <a href={p.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px 18px', borderRadius: '14px', border: `1px solid ${HAIR_HI}`, background: CARD, textDecoration: 'none', transition: 'border-color .2s, transform .2s' }}
-      onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(242,238,230,.34)'; e.currentTarget.style.transform = 'translateX(3px)' }}
+      onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.34)'; e.currentTarget.style.transform = 'translateX(3px)' }}
       onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.transform = 'translateX(0)' }}>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: '13px', fontWeight: 600, color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.title || p.host}</div>

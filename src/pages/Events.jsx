@@ -6,7 +6,8 @@ import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
 import { normVibe, vibeMeta } from '@/lib/match'
 import FoundersLine from '@/components/FoundersLine'
-import { CARD_TINT, cardGlass } from '@/lib/glass'
+import { CARD_TINT, cardGlass, glassControl } from '@/lib/glass'
+import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
    EVENTS — the EVENT tab (D1, decisión de Pato): solo eventos, TODOS los
@@ -22,20 +23,20 @@ import { CARD_TINT, cardGlass } from '@/lib/glass'
    banner answers honestly. No invented rooms, no fake fullness.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
-// v12: was a flat opaque plate ('#0E0E13'), so Events was the one consumer
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
+// v12: was a flat opaque plate ('var(--card-solid)'), so Events was the one consumer
 // surface whose cards sat ON the constellation instead of sampling it, while
 // Community's identical card already used cardGlass(). Same frame, same card,
 // two materials — the exact drift glass.js exists to end.
 const CARD = CARD_TINT
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
@@ -142,9 +143,13 @@ export default function Events() {
           {/* the house door — the flagship world (D4): what a world IS,
               shown not explained */}
           <button className="pressable" data-testid="house-door" onClick={() => navigate('/c4')}
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color .2s, color .2s, transform .2s', marginBottom: '4px' }}
-            onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(242,238,230,.4)'; e.currentTarget.style.color = BONE }}
-            onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
+            /* v12.1 — vidrio de verdad. Estaba en `transparent` con un
+               filete: sobre el cielo eso es un contorno dibujado, no un
+               material. Flota directo sobre la página (sin cardGlass arriba),
+               así que puede llevar su propio backdrop-filter. */
+            style={{ ...glassControl(), marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color .2s, color .2s, transform .2s', marginBottom: '4px' }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.4)'; e.currentTarget.style.color = BONE }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),0.22)'; e.currentTarget.style.color = BONE_MID }}>
             ◇ the house world <ArrowUpRight size={11} />
           </button>
         </div>
@@ -152,11 +157,11 @@ export default function Events() {
         {/* Stripe cancel lands here — say it straight, no drama (Ley 11) */}
         {ticketStatus === 'cancelled' && (
           <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(229,160,160,.4)', borderRadius: '12px', padding: '14px 18px', background: 'rgba(229,160,160,.06)' }}>
-            <span style={{ color: '#E5A0A0', fontWeight: 500, fontSize: '13px', fontFamily: 'DM Sans' }}>Checkout cancelled. No charge was made.</span>
+            <span style={{ color: 'var(--warn)', fontWeight: 500, fontSize: '13px', fontFamily: 'DM Sans' }}>Checkout cancelled. No charge was made.</span>
           </div>
         )}
         {ticketStatus === 'success' && (
-          <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(242,238,230,.4)', borderRadius: '12px', padding: '14px 18px', background: 'rgba(242,238,230,.06)' }}>
+          <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid rgba(var(--ink-rgb),.4)', borderRadius: '12px', padding: '14px 18px', background: 'rgba(var(--ink-rgb),.06)' }}>
             <span style={{ color: SILVER, fontWeight: 500, fontSize: '13px', fontFamily: 'DM Sans' }}>You're in. Check your email for your ticket.</span>
           </div>
         )}
@@ -205,7 +210,7 @@ export default function Events() {
                 promise (Ley 9: the copy's invitation gets a real door). */}
             {!featured && upcoming.length === 0 && (
               <div style={{ marginTop: '22px', display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 5fr)', gap: '22px', alignItems: 'start' } : { flexDirection: 'column', gap: '14px' }) }}>
-                <div className={entered ? undefined : 'card-in'} style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(242,238,230,.05), rgba(242,238,230,.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', animationDelay: '0ms' }}>
+                <div className={entered ? undefined : 'card-in'} style={{ padding: wide ? '46px 40px' : '38px 24px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--ink-rgb),.05), rgba(var(--ink-rgb),.01))', position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', justifyContent: 'center', animationDelay: '0ms' }}>
                   <MiniStars seed="no-rooms" k={wide ? 0.3 : 0.6} />
                   <div style={{ position: 'relative' }}>
                     {/* bone, not chrome — the page title owns this screen's
@@ -216,7 +221,11 @@ export default function Events() {
                       The next one is being built. Stay close — the room always comes back.
                     </p>
                     <button className="pressable" onClick={() => navigate('/community')}
-                      style={{ marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: '1px solid rgba(242,238,230,.22)', borderRadius: '100px', padding: '10px 18px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                      /* la tarjeta que lo contiene es un degradado plano, no
+                         cardGlass — verificado antes de anidar: sin raíz de
+                         backdrop arriba, este control puede difuminar de
+                         verdad el cielo que se ve a través de la tarjeta. */
+                      style={{ ...glassControl(), marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '10px 18px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
                       meanwhile — find your people <ArrowUpRight size={12} />
                     </button>
                   </div>
@@ -280,20 +289,20 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
   return (
     <div className="pressable feat-room" onClick={onEnter} role="button" tabIndex={0} aria-label={`Enter ${e.title}`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEnter() } }}
-      style={{ marginTop: '18px', position: 'relative', borderRadius: '20px', overflow: 'hidden', border: `1px solid rgba(242,238,230,.16)`, background: CARD, cursor: 'pointer', boxShadow: '0 18px 60px rgba(0,0,0,.45)' }}>
+      style={{ marginTop: '18px', position: 'relative', borderRadius: '20px', overflow: 'hidden', border: `1px solid rgba(var(--ink-rgb),.16)`, background: CARD, cursor: 'pointer', boxShadow: '0 18px 60px rgba(var(--shadow-rgb),.45)' }}>
       {/* the banner — cover or the room's own sky */}
       <div className="disc-banner" style={{ position: 'relative', height: wide ? '340px' : '230px', overflow: 'hidden', background: VOID }}>
         {cover
           ? <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={e.slug || e.id} dense k={wide ? 0.3 : 0.6} />}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.05) 20%, rgba(7,8,14,.55) 62%, rgba(9,9,14,.96) 100%)' }} />
-        <span style={{ position: 'absolute', top: '14px', left: '14px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', color: BONE, border: `1px solid rgba(242,238,230,.35)`, borderRadius: '100px', padding: '4px 11px', background: 'rgba(7,8,14,.55)', textTransform: 'uppercase' }}>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),.05) 20%, rgba(var(--void-rgb),.55) 62%, rgba(var(--void-rgb),.96) 100%)' }} />
+        <span style={{ position: 'absolute', top: '14px', left: '14px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.2em', color: BONE, border: `1px solid rgba(var(--ink-rgb),.35)`, borderRadius: '100px', padding: '4px 11px', background: 'rgba(var(--void-rgb),.55)', textTransform: 'uppercase' }}>
           {e.edition || 'The next room'}
         </span>
         {/* identity block over a guaranteed scrim (Ley 3) */}
         <div style={{ position: 'absolute', left: wide ? '28px' : '18px', right: wide ? '28px' : '18px', bottom: wide ? '20px' : '14px' }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: '8px' }}>The Collectiv4 presents</div>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 84px)' : '44px', letterSpacing: '.01em', lineHeight: .88, color: BONE, textShadow: '0 2px 24px rgba(0,0,0,.6)' }}>{e.title}</div>
+          <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 84px)' : '44px', letterSpacing: '.01em', lineHeight: .88, color: BONE, textShadow: '0 2px 24px rgba(var(--shadow-rgb),.6)' }}>{e.title}</div>
         </div>
       </div>
 
@@ -309,8 +318,8 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
           {/* the room's declared character — its light, not decoration (Ley 14) */}
           {vMeta && (
             <span className={vMeta.pulse === 'warm' ? 'temp-warm' : vMeta.pulse === 'electric' ? 'temp-electric' : undefined}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', border: `1px solid rgba(${vMeta.tint},.4)`, background: `rgba(${vMeta.tint},.06)`, borderRadius: '100px', padding: '4px 12px' }}>
-              <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgb(${vMeta.tint})` }}>{vMeta.mark}</span>
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', border: `1px solid rgba(${tintChannel(vMeta.tint)},.4)`, background: `rgba(${tintChannel(vMeta.tint)},.06)`, borderRadius: '100px', padding: '4px 12px' }}>
+              <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: `rgb(${tintChannel(vMeta.tint)})` }}>{vMeta.mark}</span>
               <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.18em', textTransform: 'uppercase', color: BONE }}>{vMeta.label}</span>
               {vibe.sound.length > 0 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_MID, letterSpacing: '.08em' }}>{vibe.sound.slice(0, 3).join(' · ')}</span>}
             </span>
@@ -325,7 +334,7 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
                 {attendees.slice(0, wide ? 8 : 5).map((a, i) => {
                   const src = safeImg(a.avatar_url)
                   return (
-                    <span key={a.id || i} title={a.name || ''} style={{ width: '26px', height: '26px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(199,201,209,.5)`, background: CARD, marginLeft: i === 0 ? 0 : '-8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <span key={a.id || i} title={a.name || ''} style={{ width: '26px', height: '26px', borderRadius: '50%', overflow: 'hidden', border: `1px solid rgba(var(--silver-rgb),.5)`, background: CARD, marginLeft: i === 0 ? 0 : '-8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {src
                         ? <img src={src} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <span style={{ fontFamily: 'Bebas Neue', fontSize: '11px', color: BONE }}>{(a.name || '?')[0].toUpperCase()}</span>}
@@ -340,10 +349,10 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
           )}
 
           {/* the one clear door (DICE steal: one button, zero noise) */}
-          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '10px', background: BONE, borderRadius: '11px', padding: wide ? '13px 22px' : '12px 18px', color: VOID, boxShadow: '0 4px 20px rgba(242,238,230,.14)' }}>
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '10px', background: BONE, borderRadius: '11px', padding: wide ? '13px 22px' : '12px 18px', color: VOID, boxShadow: '0 4px 20px rgba(var(--ink-rgb),.14)' }}>
             <Ticket size={15} style={{ color: VOID }} />
             <span style={{ fontFamily: 'Bebas Neue', fontSize: '15px', letterSpacing: '.06em' }}>ENTER THE ROOM</span>
-            {fromPrice != null && <span style={{ fontSize: '11px', color: 'rgba(10,10,13,.55)', fontWeight: 500, fontFamily: 'DM Sans' }}>from ${fromPrice}</span>}
+            {fromPrice != null && <span style={{ fontSize: '11px', color: 'rgba(var(--void-rgb),.55)', fontWeight: 500, fontFamily: 'DM Sans' }}>from ${fromPrice}</span>}
             <ArrowRight size={13} style={{ color: VOID }} />
           </span>
         </div>
@@ -367,11 +376,11 @@ function RoomCard({ e, onOpen, pastRoom, wide }) {
           poster. Community already scales its equivalent (92 → 116). */}
       <div className="disc-banner" style={{ position: 'relative', height: pastRoom ? (wide ? '170px' : '148px') : (wide ? '150px' : '128px'), overflow: 'hidden', background: VOID }}>
         {cover ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MiniStars seed={e.slug || e.id} />}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.1) 30%, rgba(7,8,14,.9) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),.1) 30%, rgba(var(--void-rgb),.9) 100%)' }} />
         {pastRoom ? (
-          <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE_MID, border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(7,8,14,.5)', textTransform: 'uppercase' }}>in the archive</span>
+          <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE_MID, border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(var(--void-rgb),.5)', textTransform: 'uppercase' }}>in the archive</span>
         ) : e.edition && (
-          <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(7,8,14,.5)', textTransform: 'uppercase' }}>{e.edition}</span>
+          <span style={{ position: 'absolute', top: '12px', right: '12px', fontFamily: 'DM Mono', fontSize: '8px', letterSpacing: '.16em', color: BONE, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '3px 9px', background: 'rgba(var(--void-rgb),.5)', textTransform: 'uppercase' }}>{e.edition}</span>
         )}
         <div style={{ position: 'absolute', left: '16px', right: '16px', bottom: '13px' }}>
           <div style={{ fontFamily: 'Bebas Neue', fontSize: '26px', letterSpacing: '.02em', lineHeight: .9, color: BONE }}>{e.title}</div>
@@ -415,7 +424,7 @@ function MiniStars({ seed, dense, k = 1 }) {
   const rnd = mulberry32(hash(String(seed)) + 5)
   const stars = Array.from({ length: dense ? 34 : 20 }, () => ({ x: +(rnd() * 100).toFixed(1), y: +(rnd() * 100).toFixed(1), r: +(0.6 + rnd() * 1.3).toFixed(2), o: +(0.15 + rnd() * 0.55).toFixed(2) }))
   return (
-    <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(242,238,230,.08) 0%, transparent 60%), ${VOID}` }}>
+    <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 90% at 30% 0%, rgba(var(--ink-rgb),.08) 0%, transparent 60%), ${VOID}` }}>
       <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }} aria-hidden="true">
         {stars.map((s, i) => <circle key={i} cx={s.x} cy={s.y} r={(s.r / 2) * k} fill={STAR} opacity={s.o} />)}
       </svg>

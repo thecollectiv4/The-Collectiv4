@@ -14,14 +14,14 @@ import { KINDS, priceLabel } from '@/lib/listings'
    movements.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const CARD = '#0E0E13'
-const HAIR = 'rgba(242,238,230,0.08)'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const WARN = '#E5A0A0'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const CARD = 'var(--card-solid)'
+const HAIR = 'rgba(var(--ink-rgb),0.08)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const WARN = 'var(--warn)'
 
 const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) ? raw : '')
 
@@ -59,12 +59,12 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
     <div style={{ borderRadius: '16px', overflow: 'hidden', border: `1px solid ${live ? HAIR_HI : HAIR}`, background: CARD, opacity: live ? 1 : .62, display: 'flex', flexDirection: 'column', transition: 'opacity var(--dur-base) var(--ease-house), border-color var(--dur-base) var(--ease-house)' }}>
       {/* the piece — image when it has one; a typographic object when not */}
       {img ? (
-        <div style={{ position: 'relative', height: wide ? '210px' : '190px', overflow: 'hidden', background: '#08080D' }}>
+        <div style={{ position: 'relative', height: wide ? '210px' : '190px', overflow: 'hidden', background: 'var(--bg-deep-2)' }}>
           <img src={img} alt={l.title} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 55%, rgba(7,8,14,.72) 100%)' }} />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 55%, rgba(var(--void-rgb),.72) 100%)' }} />
         </div>
       ) : (
-        <div style={{ position: 'relative', height: wide ? '120px' : '104px', overflow: 'hidden', background: 'linear-gradient(160deg, rgba(199,201,209,.1) 0%, rgba(199,201,209,.02) 45%, #08080D 100%)' }}>
+        <div style={{ position: 'relative', height: wide ? '120px' : '104px', overflow: 'hidden', background: 'linear-gradient(160deg, rgba(var(--silver-rgb),.1) 0%, rgba(var(--silver-rgb),.02) 45%, var(--bg-deep-2) 100%)' }}>
           <span aria-hidden style={{ position: 'absolute', bottom: '-16px', right: '-4px', fontFamily: 'Bebas Neue', fontSize: '110px', lineHeight: 1, opacity: .08, color: BONE, pointerEvents: 'none' }}>{(l.title || '?')[0].toUpperCase()}</span>
           <KindIcon size={18} strokeWidth={1.5} style={{ position: 'absolute', top: '14px', left: '14px', color: SILVER, opacity: .8 }} />
         </div>
@@ -73,7 +73,7 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
       <div style={{ padding: '14px 16px 15px', display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
         {/* specimen label (Archive Dreams steal): kind · number · state */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.2em', border: '1px solid rgba(199,201,209,.25)', borderRadius: '100px', padding: '3px 9px' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.2em', border: '1px solid rgba(var(--silver-rgb),.25)', borderRadius: '100px', padding: '3px 9px' }}>
             <KindIcon size={9} /> {kind.label}
           </span>
           <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em' }}>{String(index + 1).padStart(2, '0')}</span>
@@ -93,9 +93,9 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
 
           {!isOwner && live && onDMSeller && (
             <button className="pressable" onClick={() => onDMSeller(l)}
-              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(242,238,230,.07)', border: `1px solid rgba(242,238,230,.24)`, borderRadius: '100px', padding: '8px 15px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(242,238,230,.13)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.45)' }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(242,238,230,.07)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.24)' }}>
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(var(--ink-rgb),.07)', border: `1px solid rgba(var(--ink-rgb),.24)`, borderRadius: '100px', padding: '8px 15px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.13)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.45)' }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.07)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.24)' }}>
               <MessageCircle size={11} /> {kind.cta}
             </button>
           )}

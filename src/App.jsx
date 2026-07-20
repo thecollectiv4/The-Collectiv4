@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider } from '@/lib/AuthContext'
+import { ThemeProvider } from '@/lib/theme'
 import { LiveEventProvider } from '@/lib/useLiveEvent'
 import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout'
@@ -22,6 +23,7 @@ import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
 import DoorScanner from '@/pages/DoorScanner'
 import HouseWorld from '@/pages/HouseWorld'
+import Settings from '@/pages/Settings'
 import { Terms, Privacy, Refunds } from '@/pages/Legal'
 
 // DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
@@ -66,6 +68,16 @@ function ScrollToTop() {
 export default function App() {
   return (
     <AuthProvider>
+      {/* v12 — EL TEMA VA POR ENCIMA DE TODO LO QUE PINTA.
+          Arriba de <Atmosphere/> a propósito: el cielo es el único consumidor
+          que no puede leer una variable CSS (canvas 2D toma literales), así
+          que se suscribe a `resolved` por hook y elige paleta en JS. Si este
+          proveedor colgara por debajo, el cielo se quedaría en el registro
+          equivocado hasta el siguiente re-render.
+          No renderiza DOM propio, así que la cadena que GlassNav necesita
+          —cero transform/opacity/filter entre el vidrio y la raíz— sigue
+          intacta (ver la nota de CosmosProvider abajo). */}
+      <ThemeProvider>
       <LiveEventProvider>
         <BrowserRouter>
         <ScrollToTop />
@@ -122,6 +134,7 @@ export default function App() {
             <Route path="messages" element={<Messages />} />{/* the conversations (0017) */}
             <Route path="messages/:id" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="settings" element={<Settings />} />{/* v12: el cuarto de máquinas — apariencia, cuenta, privacidad, sesión */}
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
             <Route path="artist/:slug" element={<ArtistRedirect />} />{/* D1: /artist is dead — resolve to the real world or clean gone */}
@@ -140,6 +153,7 @@ export default function App() {
         </CosmosProvider>
         </BrowserRouter>
       </LiveEventProvider>
+      </ThemeProvider>
       <Analytics />
     </AuthProvider>
   )

@@ -23,14 +23,14 @@ import { Loader2, ArrowRight, Check, Sparkles, RotateCcw } from 'lucide-react'
    with no tool call — forbidden. The check follows the row, never leads it.
    ========================================================================= */
 
-const VOID = '#0A0A0D'
-const BONE = '#F2EEE6'
-const BONE_MID = '#9B9891'
-const BONE_LOW = '#5B5952'
-const SILVER = '#C7C9D1'
-const STAR = '#E8E9ED'
-const HAIR_HI = 'rgba(242,238,230,0.15)'
-const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
+const VOID = 'var(--bg)'
+const BONE = 'var(--cream)'
+const BONE_MID = 'var(--cream-soft)'
+const BONE_LOW = 'var(--cream-dim)'
+const SILVER = 'var(--silver)'
+const STAR = 'var(--star)'
+const HAIR_HI = 'rgba(var(--ink-rgb),0.15)'
+const CHROME = 'var(--chrome)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
 
 const POLL_MS = 2000
@@ -149,7 +149,7 @@ export default function ClaimWorld() {
         <div style={{ position: 'relative', width: '52px', height: '52px', margin: '0 auto' }}>
           <svg width="52" height="52" viewBox="0 0 52 52" style={{ display: 'block', margin: '0 auto' }} aria-hidden>
             <circle className="ring-draw" cx="26" cy="26" r="25.5" fill="none" stroke={SILVER} strokeWidth="1"
-              transform="rotate(-90 26 26)" style={{ filter: 'drop-shadow(0 0 10px rgba(199,201,209,.25))' }} />
+              transform="rotate(-90 26 26)" style={{ filter: 'drop-shadow(0 0 10px rgba(var(--silver-rgb),.25))' }} />
           </svg>
           <Check size={22} className="rise" style={{ color: STAR, position: 'absolute', inset: 0, margin: 'auto', animationDelay: '450ms' }} />
         </div>
@@ -165,8 +165,8 @@ export default function ClaimWorld() {
       </div>
 
       {/* ticket chip — always present in this state (phase=confirmed ⇒ ticket exists) */}
-      <div className="rise rise-4" style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(199,201,209,.04)' }}>
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(232,233,237,.7)', flexShrink: 0 }} />
+      <div className="rise rise-4" style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(var(--silver-rgb),.04)' }}>
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(var(--star-rgb),.7)', flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em' }}>CONFIRMED</div>
           <div style={{ fontFamily: 'DM Mono', fontSize: '12px', color: BONE, letterSpacing: '.04em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.qr_code}</div>
@@ -208,5 +208,5 @@ const ctaStyle = {
   background: BONE, border: 'none', borderRadius: '12px', padding: '16px 28px', color: VOID,
   fontFamily: 'DM Sans', fontSize: '14px', fontWeight: 600, letterSpacing: '.01em', cursor: 'pointer', transition: 'transform .2s, box-shadow .2s',
 }
-const hoverIn = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(199,201,209,.18)' }
+const hoverIn = (e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 12px 30px rgba(var(--silver-rgb),.18)' }
 const hoverOut = (e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none' }

@@ -87,7 +87,7 @@ export default function Board({ tasks, profileId, owners, entrance, onCreate, on
     <div>
       {/* controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <button onClick={() => setMineOnly(v => !v)} style={{ background: mineOnly ? 'rgba(199,201,209,.12)' : 'transparent', border: `1px solid ${mineOnly ? SILVER : HAIR_HI}`, color: mineOnly ? BONE : BONE_MID, borderRadius: '100px', padding: '6px 13px', fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
+        <button onClick={() => setMineOnly(v => !v)} style={{ background: mineOnly ? 'rgba(var(--silver-rgb),.12)' : 'transparent', border: `1px solid ${mineOnly ? SILVER : HAIR_HI}`, color: mineOnly ? BONE : BONE_MID, borderRadius: '100px', padding: '6px 13px', fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: 'pointer' }}>
           {mineOnly ? '● Mine only' : '○ Mine only'}
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -220,13 +220,13 @@ function TaskRow({ task, owner, colKey, last, entrance, delay, members, assignOp
         <button data-testid={done ? 'board-reopen' : 'board-ship'}
           onClick={done ? onReopen : onShip}
           aria-label={done ? 'Reopen' : 'Ship it'} title={done ? 'Reopen' : 'Ship it'}
-          style={{ marginTop: '1px', width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', border: `1px solid ${done ? SILVER : HAIR_HI}`, background: done ? 'rgba(199,201,209,.14)' : 'transparent', color: done ? STAR : BONE_LOW, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'border-color .15s, background .15s, color .15s' }}
+          style={{ marginTop: '1px', width: '18px', height: '18px', flexShrink: 0, borderRadius: '50%', border: `1px solid ${done ? SILVER : HAIR_HI}`, background: done ? 'rgba(var(--silver-rgb),.14)' : 'transparent', color: done ? STAR : BONE_LOW, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'border-color .15s, background .15s, color .15s' }}
           onMouseOver={(e) => { if (!done) { e.currentTarget.style.borderColor = SILVER; e.currentTarget.style.color = STAR } }}
           onMouseOut={(e) => { if (!done) { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_LOW } }}>
           {done ? <RotateCcw size={9} /> : <Check size={11} />}
         </button>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: FONT_SANS, fontSize: '13.5px', color: done ? BONE_MID : BONE, lineHeight: 1.4, ...(done ? { textDecoration: 'line-through', textDecorationColor: 'rgba(199,201,209,.4)' } : {}) }}>{task.title}</div>
+          <div style={{ fontFamily: FONT_SANS, fontSize: '13.5px', color: done ? BONE_MID : BONE, lineHeight: 1.4, ...(done ? { textDecoration: 'line-through', textDecorationColor: 'rgba(var(--silver-rgb),.4)' } : {}) }}>{task.title}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '5px', minWidth: 0 }}>
             {/* ASSIGN — the owner chip is a control, not a caption */}
             <button ref={chipRef} data-testid="board-assign" onClick={onAssignToggle} title={ownerFull ? `Assign · ${ownerFull}` : 'Assign'}
@@ -275,14 +275,14 @@ function AssignMenu({ anchor, members, currentId, onPick, onClose }) {
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 10001 }} />
-      <div data-testid="board-owner-menu" role="menu" className="menu-in" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: '#0C0C11', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(0,0,0,.6)', transformOrigin: openUp ? 'left bottom' : 'left top' }}>
+      <div data-testid="board-owner-menu" role="menu" className="menu-in" style={{ position: 'fixed', ...pos, zIndex: 10002, width: `${MENU_W}px`, maxHeight: '260px', overflowY: 'auto', background: 'var(--menu-bg)', border: `1px solid ${HAIR_HI}`, borderRadius: '12px', padding: '6px', boxShadow: '0 18px 50px rgba(var(--shadow-rgb),.6)', transformOrigin: openUp ? 'left bottom' : 'left top' }}>
         {members.map(m => {
           const name = m.full_name || m.username
           const mine = m.id === currentId
           return (
             <button key={m.id} role="menuitem" onClick={() => onPick(m.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: mine ? 'rgba(199,201,209,.1)' : 'transparent', border: 'none', borderRadius: '8px', padding: '7px 9px', cursor: 'pointer' }}
-              onMouseOver={(e) => { if (!mine) e.currentTarget.style.background = 'rgba(242,238,230,.05)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '9px', width: '100%', textAlign: 'left', background: mine ? 'rgba(var(--silver-rgb),.1)' : 'transparent', border: 'none', borderRadius: '8px', padding: '7px 9px', cursor: 'pointer' }}
+              onMouseOver={(e) => { if (!mine) e.currentTarget.style.background = 'rgba(var(--ink-rgb),.05)' }}
               onMouseOut={(e) => { if (!mine) e.currentTarget.style.background = 'transparent' }}>
               <Face p={m} size={20} />
               <span style={{ flex: 1, minWidth: 0, fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
@@ -308,7 +308,7 @@ function AssignMenu({ anchor, members, currentId, onPick, onClose }) {
    just glyph (legibility > minimalism). Directional chevrons stay wordless. */
 function IconBtn({ children, onClick, disabled, label, text }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(131,131,143,.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}>
+    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(var(--ink-rgb),.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}>
       {children}
       {text && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{text}</span>}
     </button>

@@ -82,11 +82,11 @@ import { glassSurface, CHIP, BUBBLE, WELL, MARK_CHIP_RADIUS } from '@/lib/glass'
    never reflow under a thumb.
    ========================================================================= */
 
-const BONE = '#F2EEE6'
+const BONE = 'var(--cream)'
 /* la marca de una sala donde NO estás parado: gris frío, no hueso apagado.
    El mismo valor que usa la barra de escritorio, para que las dos digan
    "aquí no estás" con el mismo tono. */
-const DIM = '#83838F'
+const DIM = 'var(--cream-low)'
 
 const CHIP_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const CHIP_MS = 380
@@ -279,11 +279,11 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
         <div aria-hidden="true" style={{
           position:'absolute', inset:'1px 1px auto 1px', height:'52%',
           borderRadius:'33px 33px 40px 40px', pointerEvents:'none',
-          background:'linear-gradient(180deg, rgba(242,238,230,0.13) 0%, rgba(242,238,230,0.04) 40%, transparent 100%)',
+          background:'linear-gradient(180deg, rgba(var(--ink-rgb),0.13) 0%, rgba(var(--ink-rgb),0.04) 40%, transparent 100%)',
         }} />
         <div aria-hidden="true" style={{
           position:'absolute', top:0, left:'12%', right:'12%', height:'1px', pointerEvents:'none',
-          background:'linear-gradient(90deg, transparent, rgba(242,238,230,0.78), transparent)',
+          background:'linear-gradient(90deg, transparent, rgba(var(--ink-rgb),0.78), transparent)',
         }} />
 
         <div ref={rowRef} style={{ position:'relative', display:'flex', alignItems:'stretch' }}>
@@ -359,10 +359,10 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                   {slot.to === '/messages' && bellCount > 0 && (
                     <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
                       style={{ position:'absolute', top:'2px', right:'2px', minWidth:'14px', height:'14px',
-                        borderRadius:'100px', background: BONE, color:'#0A0A0D', fontFamily:'DM Mono',
+                        borderRadius:'100px', background: BONE, color:'var(--bg)', fontFamily:'DM Mono',
                         fontSize:'8.5px', fontWeight:700, lineHeight:'14px', textAlign:'center',
                         padding:'0 3px', letterSpacing:0,
-                        boxShadow:'0 0 0 2px rgba(12,12,17,0.55)' }}>
+                        boxShadow:'0 0 0 2px rgba(var(--void-rgb),0.55)' }}>
                       {bellCount > 9 ? '9+' : bellCount}
                     </span>
                   )}
