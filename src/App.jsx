@@ -47,6 +47,11 @@ const IconProposal = import.meta.env.DEV ? lazy(() => import('@/pages/__IconProp
 // `import.meta.env.DEV && <Route .../>` left the path string behind.
 const GatePreview = import.meta.env.DEV ? lazy(() => import('@/components/EarlyAccessGate')) : null
 
+// DEV-ONLY create-flow harness (/__create) — the modal normally hides behind
+// `createOpen && user`, which made the app's most important screen the hardest
+// one to look at on a phone. Statically excluded from prod.
+const CreateHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__CreateHarness')) : null
+
 // Route changes start at the top — without this, opening a world (or any
 // page) inherits the previous page's scroll position mid-museum.
 function ScrollToTop() {
@@ -104,6 +109,10 @@ export default function App() {
               nothing — the bar still ships ✕ ○ ◇ ●. */}
           {import.meta.env.DEV && IconProposal && (
             <Route path="/__icons" element={<Suspense fallback={null}><IconProposal /></Suspense>} />
+          )}
+          {/* DEV-ONLY (/__create): the create flow, mock session. See the const above. */}
+          {CreateHarness && (
+            <Route path="/__create" element={<Suspense fallback={null}><CreateHarness /></Suspense>} />
           )}
           <Route path="/" element={<Layout />}>
             <Route index element={<Events />} />{/* EVENT tab — every room on the platform */}
