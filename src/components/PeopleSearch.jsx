@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { searchPeople, requestFriend, respondFriend } from '@/lib/social'
+import { VOCAB } from '@/lib/socialVocab'
 import { isOwnerFounder } from '@/lib/osAccess'
 import SeedPill from '@/components/SeedMark'
 import { Search, Loader2, UserPlus, Check, Clock } from 'lucide-react'
@@ -9,7 +10,7 @@ import { Search, Loader2, UserPlus, Check, Clock } from 'lucide-react'
    (v9 D1). The send door on a world already works; this is the other half
    the spec names: "buscar gente, mandar solicitud… desde una superficie
    propia." Find anyone by name or @handle, and send from the result row —
-   the exact move behind the launch test, "agrega a Diego de amigo."
+   the exact move behind the launch test, "conecta con Diego."
 
    State without N+1: each result's bond is derived from the circle already
    loaded upstream ({friends, pending_in, pending_out}) — no per-row probe.
@@ -180,7 +181,7 @@ function BondButton({ bond, busy, onSend, onAccept, personId, changed }) {
   const inCls = changed ? ' bond-in' : ''
   if (bond === 'friends') return (
     <span className={changed ? 'bond-in' : undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', color: SILVER, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', flexShrink: 0, padding: '10px 6px' }}>
-      <Check size={12} /> amigos
+      <Check size={12} /> {VOCAB.connected}
     </span>
   )
   if (bond === 'out') return (
@@ -197,7 +198,7 @@ function BondButton({ bond, busy, onSend, onAccept, personId, changed }) {
   return (
     <button className={`pressable${inCls}`} data-testid={`people-add-${personId}`} disabled={busy} onClick={onSend}
       style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', minHeight: '40px', padding: '10px 16px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0 }}>
-      {busy ? '…' : <><UserPlus size={12} /> amigo</>}
+      {busy ? '…' : <><UserPlus size={12} /> {VOCAB.connectVerb}</>}
     </button>
   )
 }

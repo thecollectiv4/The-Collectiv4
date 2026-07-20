@@ -28,7 +28,7 @@ export default function UserProfile() {
   const [social, setSocial] = useState({ ready: false, followers: 0, following: 0, iFollow: false })
   const [socialErr, setSocialErr] = useState('')
   // v6 (D4): the TASTE movement's speakable rows (RLS filters to public),
-  // the SETS movement's upcoming rooms, and the amigo bond's pairwise state
+  // the SETS movement's upcoming rooms, and the CONNECTED bond's pairwise state
   // (null = unknown/pre-0023 — the museum renders no door on null)
   const [publicTastes, setPublicTastes] = useState([])
   const [upcomingSets, setUpcomingSets] = useState([])
@@ -56,7 +56,7 @@ export default function UserProfile() {
       // own visibility for both (and both resolve empty pre-migration).
       // Crafts ride the same read gate (0020's honesty-gated public read).
       // v6: the public taste rows + upcoming hosted rooms ride the same
-      // fan-out; the amigo state only asks when a session exists.
+      // fan-out; the CONNECTED state only asks when a session exists.
       const [wp, ls, ready, pc, pt, us, fs] = await Promise.all([
         fetchWorldPosts(id),
         fetchListings(id),
@@ -135,7 +135,7 @@ export default function UserProfile() {
     }
   }, [user, id, navigate])
 
-  // amigo — the mutual bond's three doors (0023), each optimistic with the
+  // CONNECTED — the mutual bond's three doors (0023), each optimistic with the
   // follow button's own discipline: rollback WITH a voice, never in silence.
   const onFriendRequest = useCallback(async () => {
     const was = friendState

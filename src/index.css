@@ -411,7 +411,7 @@ input, textarea, select,
 .chip-in { animation: menuIn 160ms var(--ease-exit); }
 /* el feed For You surface como uno solo — opacity, sin stagger por columnas */
 .feed-in { animation: fadeIn var(--dur-fast) var(--ease-house); }
-/* el chip de vínculo (amigo/solicitado) que cambia tras una acción */
+/* el chip de vínculo (CONNECTED/solicitado) que cambia tras una acción */
 .bond-in { animation: msgIn var(--dur-fast) var(--ease-house); }
 /* fila de nombres del auth: colapsa entre sign-in / create (interrumpible) */
 .row-collapse { transition: grid-template-rows var(--dur-base) var(--ease-house), opacity var(--dur-base) var(--ease-house); }

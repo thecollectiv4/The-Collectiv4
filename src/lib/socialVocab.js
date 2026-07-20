@@ -74,14 +74,24 @@ export const VOCAB = {
 
   // friendships — mutua, privada
   connected: 'CONNECTED',        // el vínculo aceptado (antes "amigos")
-  connectAction: '+ CONNECT',    // pedirlo
+  connectVerb: 'CONNECT',        // el verbo pelón, para botones que YA traen ícono +
   connectPending: 'REQUESTED',   // lo pediste, falta que acepten
   connectIncoming: 'ACCEPT?',    // te lo pidieron a ti
 }
 
+/* pedirlo, con el + escrito. Deriva del verbo en vez de repetirlo: si el
+   verbo cambia, esto cambia con él. Los botones que ya llevan un ícono de
+   "+" usan connectVerb y no esto — si no, sale un más doble. */
+VOCAB.connectAction = `+ ${VOCAB.connectVerb}`
+
 /* Las frases largas viven aquí también: si mañana "CONNECTED" se llama de
    otro modo, estas oraciones no se quedan hablando del mundo viejo. */
 export const VOCAB_PHRASE = {
+  /* el sustantivo en texto corrido. CONNECTED es la ETIQUETA (mayúsculas, un
+     estado); "connections" es cómo se nombra a esa gente dentro de una
+     oración. Antes esto era "amigos" en media docena de pantallas. */
+  connections: 'connections',
+  yourConnections: 'your connections',
   followersOf: (n) => `${n} ${VOCAB.followers.toLowerCase()}`,
   followingOf: (n) => `${n} ${VOCAB.following.toLowerCase()}`,
   ownFollowers: 'connected to your world',

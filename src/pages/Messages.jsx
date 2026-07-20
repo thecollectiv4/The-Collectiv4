@@ -23,7 +23,7 @@ import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRi
    two registers:
      /messages      → the inbox, in three segments:
                         SIGNALS — DMs + event rooms (the original inbox)
-                        CREWS   — your circle (amigos) + your group rooms
+                        CREWS   — your circle (connections) + your group rooms
                         PLANS   — the kickbacks: what/where/when, RSVP
      /messages/:id  → the thread: a DM pair, an event's room, a crew, or
                       a plan's room
@@ -207,7 +207,7 @@ function Inbox({ me, wide }) {
   }
 
   // curate close friends (0029) — the Instagram model: a subset WITHIN your
-  // amigos. Optimistic star, honest rollback with a voice (Ley 11).
+  // connections. Optimistic star, honest rollback with a voice (Ley 11).
   const toggleClose = async (person) => {
     if (closeBusy) return
     const isClose = closeSet.has(person.id)
@@ -330,7 +330,7 @@ function Inbox({ me, wide }) {
           {seg === 'crews' && (
             <>
               {/* the entry door from your own surface (v9 D1) — search anyone,
-                  send from the row; the world's + amigo is the other path */}
+                  send from the row; the world's + CONNECT is the other path */}
               <PeopleSearch me={me} circle={circleData} onCircleChange={setCircleData}
                 onOpenWorld={(uid) => navigate('/user/' + uid)} />
               <CircleBlock circle={circleData} busyId={reqBusy} onAnswer={answerRequest}
@@ -348,7 +348,7 @@ function Inbox({ me, wide }) {
               ) : (
                 <div style={{ marginTop: '20px', padding: '26px 24px', borderRadius: '16px', border: `1px solid ${HAIR}`, textAlign: 'center' }}>
                   <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.65, margin: 0, maxWidth: '320px', display: 'inline-block' }}>
-                    a crew is made of your people — find and add amigos above, or browse the community.
+                    a crew is made of your people — find and add connections above, or browse the community.
                   </p>
                   <div>
                     <button className="pressable" onClick={() => navigate('/community')} style={{ marginTop: '14px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', minHeight: '40px', padding: '11px 20px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
@@ -499,7 +499,7 @@ function SegRow({ seg, onSeg }) {
 }
 
 /* YOUR CIRCLE — requests waiting on you, then the real roster (v9 D1): who
-   your amigos ARE, each with craft + a tap to their world, and a star to
+   your connections ARE, each with craft + a tap to their world, and a star to
    curate close friends. The circle is intimate — nothing here is public. */
 function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleClose, craftsByFriend, onOpenWorld }) {
   const { friends, pending_in } = circle
@@ -571,7 +571,7 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
   )
 }
 
-/* one amigo in the roster: face + name + craft tap to their world; the
+/* one connection in the roster: face + name + craft tap to their world; the
    star curates close friends (Ley 14 — a lit star means something). */
 function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
   const name = f.name || (f.username ? '@' + f.username : 'Member')
@@ -825,7 +825,7 @@ function SheetTop({ kicker, busy, onClose }) {
 const sheetInput = { width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }
 const sheetLabel = { fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }
 
-/* who's coming — the checklist of YOUR amigos (the only people a crew or
+/* who's coming — the checklist of YOUR connections (the only people a crew or
    plan can be made of; the server enforces the same doctrine) */
 function FriendPick({ friends, sel, onToggle, testPrefix, busy }) {
   return (
@@ -880,7 +880,7 @@ function CrewSheet({ friends, onClose, onCreated, onGoCommunity }) {
       <div className="no-scrollbar" style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom, 0px))', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '27px', lineHeight: .95, color: BONE }}>YOUR PEOPLE, ONE ROOM</div>
         <p style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID, lineHeight: 1.55, margin: '8px 0 16px' }}>
-          A crew is a group chat that stays — name it and bring your amigos.
+          A crew is a group chat that stays — name it and bring your connections.
         </p>
         <label htmlFor="crew-title" style={sheetLabel}>THE NAME</label>
         <input id="crew-title" data-testid="crew-title-input" value={title} maxLength={60} disabled={busy}
@@ -889,13 +889,13 @@ function CrewSheet({ friends, onClose, onCreated, onGoCommunity }) {
           onKeyDown={(e) => { if (e.key === 'Enter' && canGo) create() }}
           style={sheetInput} />
         <div style={{ marginTop: '16px' }}>
-          <label style={sheetLabel}>WHO'S IN <span style={{ opacity: .6 }}>· your amigos</span></label>
+          <label style={sheetLabel}>WHO'S IN <span style={{ opacity: .6 }}>· your connections</span></label>
           {friends.length ? (
             <FriendPick friends={friends} sel={sel} onToggle={toggle} testPrefix="crew-friend" busy={busy} />
           ) : (
             <div style={{ padding: '14px 0 4px' }}>
               <p style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID, lineHeight: 1.6, margin: 0 }}>
-                a crew is made of your people — add amigos from their worlds first.
+                a crew is made of your people — add connections from their worlds first.
               </p>
               <button className="pressable" onClick={onGoCommunity}
                 style={{ marginTop: '12px', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', minHeight: '40px', padding: '10px 18px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
@@ -915,11 +915,11 @@ function CrewSheet({ friends, onClose, onCreated, onGoCommunity }) {
 }
 
 /* WHO CAN SEE IT — the three tiers of v7 D5, finally a control (v9 D2).
-   PÚBLICO / AMIGOS / CLOSE FRIENDS, default amigos. A lit star means close
+   PÚBLICO / CONNECTIONS / CLOSE FRIENDS, default connections. A lit star means close
    (Ley 14 — light with meaning). Reused at create and on the plan card. */
 const VIS_META = {
   public: { icon: Globe, sub: 'anyone can find it' },
-  friends: { icon: Users, sub: 'your amigos' },
+  friends: { icon: Users, sub: 'your connections' },
   close: { icon: Star, sub: 'your close friends only' },
 }
 function VisibilityPicker({ value, onChange, disabled, compact }) {
@@ -955,7 +955,7 @@ function PlanSheet({ friends, onClose, onCreated }) {
   const [when, setWhen] = useState('')
   const [detail, setDetail] = useState('')
   const [sel, setSel] = useState(() => new Set())
-  const [vis, setVis] = useState('friends')   // v9 D2 — default amigos (0029)
+  const [vis, setVis] = useState('friends')   // v9 D2 — default connections (0029)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const toggle = (id) => setSel((cur) => { const n = new Set(cur); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -985,7 +985,7 @@ function PlanSheet({ friends, onClose, onCreated }) {
       <div className="no-scrollbar" style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom, 0px))', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: '27px', lineHeight: .95, color: BONE }}>WHAT, WHERE, WHEN</div>
         <p style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID, lineHeight: 1.55, margin: '8px 0 16px' }}>
-          A kickback, a roadtrip, fucho on saturday — the plan gets its own room, your amigos get the door.
+          A kickback, a roadtrip, fucho on saturday — the plan gets its own room, your connections get the door.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -1014,12 +1014,12 @@ function PlanSheet({ friends, onClose, onCreated }) {
               style={{ ...sheetInput, resize: 'vertical', lineHeight: 1.6 }} />
           </div>
           <div>
-            <label style={sheetLabel}>WHO'S INVITED <span style={{ opacity: .6 }}>· your amigos</span></label>
+            <label style={sheetLabel}>WHO'S INVITED <span style={{ opacity: .6 }}>· your connections</span></label>
             {friends.length ? (
               <FriendPick friends={friends} sel={sel} onToggle={toggle} testPrefix="plan-friend" busy={busy} />
             ) : (
               <p style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID, lineHeight: 1.6, margin: '4px 0 0' }}>
-                your amigos will show here — add them from their worlds. the plan can start with just you.
+                your connections will show here — add them from their worlds. the plan can start with just you.
               </p>
             )}
           </div>

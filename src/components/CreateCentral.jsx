@@ -163,7 +163,7 @@ function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, 
       { icon: Sparkles, tint: '242,238,230', title: 'CURATE YOUR WORLD',  kicker: 'the museum',    line: 'Gallery, sound, marquee, skin — shape how the world walks in.', onGo: onCurate },
     ],
     gather: [
-      ...(planReady ? [{ mark: 'star', tint: '232,233,237', title: 'MAKE A PLAN', kicker: 'real life', line: 'A kickback, a roadtrip, real life — it gets a room, your amigos get the door.', onGo: onPlan }] : []),
+      ...(planReady ? [{ mark: 'star', tint: '232,233,237', title: 'MAKE A PLAN', kicker: 'real life', line: 'A kickback, a roadtrip, real life — it gets a room, your connections get the door.', onGo: onPlan }] : []),
       ...(verified ? [{ icon: CalendarPlus, tint: '232,233,237', title: 'HOST AN EVENT', kicker: 'your room', line: 'Create it, publish it, scan the door. Your event, on the platform.', onGo: onHost }] : []),
     ],
     offer: [

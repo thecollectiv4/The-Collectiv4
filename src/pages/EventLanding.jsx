@@ -32,7 +32,7 @@ export function EventShow({ live }) {
   const [checkingOut, setCheckingOut] = useState(false)
   const [ticketStatus, setTicketStatus] = useState(null) // 'success' | 'cancelled'
   const [guestsOpen, setGuestsOpen] = useState(false)    // the full guest list, inline
-  const [myVis, setMyVis] = useState(null)               // D5: who sees I'm going (default amigos, server-side)
+  const [myVis, setMyVis] = useState(null)               // D5: who sees I'm going (default connections, server-side)
   const [visBusy, setVisBusy] = useState(false)
   const [chatReady, setChatReady] = useState(false)      // room chat live in the DB (0017)
   const [chatBusy, setChatBusy] = useState(false)
@@ -476,7 +476,7 @@ export function EventShow({ live }) {
             <Users size={12}/><strong style={{color:'var(--cream-mid)'}}>{attendeeCount}</strong><span>confirmed</span>
           </div>
         )}
-        {/* D5: your call — who sees you're going. Default amigos; the wall
+        {/* D5: your call — who sees you're going. Default connections; the wall
             only shows a guest to those their tier admits (enforced server-side). */}
         {hasTicket && user && (
           <div style={{marginTop:'10px',padding:'12px 14px',border:'1px solid rgba(242,238,230,.1)',borderRadius:'12px'}}>

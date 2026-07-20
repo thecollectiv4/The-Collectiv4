@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useWide, useVeryWide } from '@/lib/useIsDesktop'
 import { fetchForYou, reasonsFor, eventReasonsFor } from '@/lib/forYou'
 import { socialReady, follow, unfollow } from '@/lib/social'
+import { VOCAB } from '@/lib/socialVocab'
 import { isOwnerFounder } from '@/lib/osAccess'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import { categoryMeta } from '@/lib/crafts'
@@ -235,7 +236,10 @@ function PersonCard({ p, flip, showSeed, following, canFollow, err, onOpen, onFo
             aria-label={following ? `Unfollow ${name}` : `Follow ${name}`}
             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: following ? 'rgba(199,201,209,.10)' : 'transparent', border: `1px solid ${following ? 'rgba(199,201,209,.45)' : HAIR_HI}`, borderRadius: '100px', padding: '6px 14px', color: following ? SILVER : BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
             {following ? <UserCheck size={10} /> : <Plus size={10} />}
-            {following ? 'Connected' : 'Follow'}
+            {/* v12: decía "Connected" queriendo decir "ya lo sigues" — la
+                misma colisión que el museo. El vínculo mutuo se llama
+                CONNECTED ahora, y esto es follows, que es direccional. */}
+            {following ? VOCAB.followingState : VOCAB.followAction}
           </button>
         )}
         {p.follows_me && !following && (

@@ -267,7 +267,7 @@ export default function MotionHarness() {
           </Row>
 
           <Row id="A-09" sev="MEDIUM" title="El chip de vínculo sube al cambiar" where="/community · buscar" note="bond-in · msgIn 200ms — sólo tras la acción, nunca al listar" onReplay={() => bump('a9')}>
-            <div key={k('a9')} className="bond-in" style={{ ...chip, color: SILVER }}>✓ amigos</div>
+            <div key={k('a9')} className="bond-in" style={{ ...chip, color: SILVER }}>✓ CONNECTED</div>
           </Row>
 
           <Row id="A-17" sev="MEDIUM" title="La estrella se enciende como estrella" where="/messages · CREWS" mode="toggle" note="fill-opacity + color + filter · 250ms (no checkbox)" onReplay={() => setStar(s => !s)}>

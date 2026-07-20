@@ -2,13 +2,18 @@ import { supabase } from '@/api/supabase'
 
 /* =========================================================================
    social — the connective tissue (migrations 0017 + 0023): follows +
-   threads (DMs, event rooms, crews, plan rooms) + the circle (amigos) +
+   threads (DMs, event rooms, crews, plan rooms) + the circle (CONNECTED,
+   antes "amigos" — ver socialVocab.js) +
    plans. The Base44 chat REBUILT native — nothing here touches the
    legacy conversations/messages/chat_messages tables.
 
-   DOCTRINE (0023): crews and plans are built FROM friendship — you bring
-   YOUR people. Friend lists are PRIVATE (only participants see the bond);
-   no public counts anywhere.
+   DOCTRINE (0023): crews and plans are built FROM the mutual bond — you
+   bring YOUR people. Connection lists are PRIVATE (only participants see
+   the bond); no public counts anywhere.
+
+   VOCABULARIO (v12, aprobado): FOLLOWING = tú lo sigues · FOLLOWERS =
+   quién te sigue · CONNECTED = el vínculo mutuo aceptado. Las etiquetas
+   viven en socialVocab.js y NO se escriben a mano en ninguna superficie.
 
    DEGRADES HONESTLY pre-migration (the worldPosts doctrine): a missing
    table resolves reads to empty and surfaces a human sentence on writes —
@@ -371,7 +376,7 @@ const ENVELOPE_HUMAN = {
   bad_target: "that world isn't reachable.",
   not_found: "that world isn't reachable.",
   no_request: 'that request is gone — it may have been withdrawn.',
-  not_your_friend: 'you can only bring your own amigos.',
+  not_your_friend: 'you can only bring your own connections.',
   group_full: 'the crew is full — 24 is the room.',
   not_a_group: "this room isn't a crew.",
   not_member: "you're not in this room.",
@@ -481,10 +486,11 @@ export async function searchPeople(query, meId, limit = 16) {
 
 /* --------------------- visibility tiers (D5) ---------------------
    PÚBLICO / AMIGOS / CLOSE FRIENDS — the Instagram Close Friends model, on
-   event attendance AND plans. Default amigos. Close friends is a curated
-   subset WITHIN your amigos (add_close_friend gates on are_friends). */
+   event attendance AND plans. Default connections. Close friends is a
+   curated subset WITHIN your connections (add_close_friend gates on
+   are_friends). */
 export const VIS_TIERS = ['public', 'friends', 'close']
-export const VIS_LABEL = { public: 'Public', friends: 'Friends', close: 'Close friends' }
+export const VIS_LABEL = { public: 'Public', friends: 'Connections', close: 'Close friends' }
 
 /* who can see you're going to this event → the chosen tier ('public'|'friends'|'close') */
 export async function setAttendanceVisibility(eventId, tier) {
@@ -498,7 +504,7 @@ export async function setPlanVisibility(planId, tier) {
   return data?.visibility
 }
 
-/* curate the close-friends list (must already be your amigo) */
+/* curate the close-friends list (must already be a connection) */
 export async function addCloseFriend(otherId) {
   await callDoor('add_close_friend', { p_other: otherId })
 }

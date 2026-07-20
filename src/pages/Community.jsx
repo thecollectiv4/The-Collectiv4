@@ -9,6 +9,7 @@ import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import CraftsSheet from '@/components/CraftsSheet'
+import { VOCAB } from '@/lib/socialVocab'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
 import VerifiedMark from '@/components/VerifiedMark'
@@ -267,7 +268,7 @@ export default function Community() {
         ) : (
         <>
         {/* find a specific person — name or @handle (v9 D1: no more luck-browse
-            a 200-grid; tap a result to their world, where + amigo lives) */}
+            a 200-grid; tap a result to their world, where + CONNECT lives) */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '16px', maxWidth: wide ? '440px' : undefined }}>
           <Search size={14} strokeWidth={1.6} style={{ position: 'absolute', left: '13px', color: BONE_LOW, pointerEvents: 'none' }} />
           <input value={nameQ} onChange={(e) => setNameQ(e.target.value)} data-testid="community-search"
@@ -305,7 +306,7 @@ export default function Community() {
                  relies on that stretch for its flex:1 body (equal-height rows) */
               <div key={c.id} className={entered ? undefined : 'card-in'}
                 style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
-                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)}
+                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} following={followingSet.has(c.id)}
                   onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo}
                   onPickCraft={setCraft}
                   onShowCrafts={() => setCraftsFor(c)} />
@@ -422,10 +423,13 @@ function CraftFilterRow({ value, onChange, options }) {
 }
 
 /* ---- a creative's world, as a card in the sky ----
-   `connected` — the viewer already follows this world: a quiet state
-   chip, information not decoration (Leyes 7, 14). `crafts` — the real
-   taxonomy line (primary lit), the legacy free text only as fallback. */
-function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed, onPickCraft, onShowCrafts }) {
+   `following` — the viewer already follows this world: a quiet state
+   chip, information not decoration (Leyes 7, 14). Se llamaba `connected`,
+   pero CONNECTED ahora nombra el vínculo MUTUO (socialVocab.js) y esto sale
+   de follows, que es direccional — el nombre de la prop mentía sobre qué
+   relación es. `crafts` — the real taxonomy line (primary lit), the legacy
+   free text only as fallback. */
+function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -467,9 +471,13 @@ function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed, onPickCr
       <div style={{ padding: '26px 13px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
           <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '22px' : '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
-          {connected && (
-            <span title="You're connected" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(199,201,209,.3)', borderRadius: '100px', padding: '2px 7px' }}>
-              <UserCheck size={8} /> IN
+          {/* v12: este chip sale de followingSet — o sea "TÚ LO SIGUES", que
+              es direccional. Decía "You're connected" y mostraba "IN", con
+              CONNECTED ya reservado para el vínculo mutuo: la misma palabra
+              en dos sentidos, que es justo lo que se vino a matar. */}
+          {following && (
+            <span title={`You follow ${name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(199,201,209,.3)', borderRadius: '100px', padding: '2px 7px' }}>
+              <UserCheck size={8} /> {VOCAB.followingState}
             </span>
           )}
         </div>

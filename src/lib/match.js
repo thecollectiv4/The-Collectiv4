@@ -58,22 +58,64 @@ export const foldText = (s) => (s || '')
 
 /* ---- lineup → worlds ----
    Returns Map(lineupIndex → { id, username, full_name, avatar_url }).
-   Matching is deliberately conservative: a handle equal to the entry's
-   slug (with/without dashes), or a full name that folds equal — and ONLY
-   against VERIFIED members. Names and handles are self-serve; without the
-   verified gate anyone could rename themselves after a headliner and wear
-   the lineup's door on a live event page (review catch, HIGH). */
+
+   DOS CAMINOS, EN ESTE ORDEN:
+
+   (1) `profile_id` EXPLÍCITO en el entry del lineup. Es la vía buena y gana
+       sobre todo lo demás. La puso un fundador en una migración, así que no
+       hay nada que adivinar ni superficie que suplantar.
+   (2) Cotejo por texto (handle / slug / nombre plegado), sólo para los
+       entries que NO traen id. Deliberadamente conservador y SÓLO contra
+       miembros VERIFICADOS: los nombres y handles son de autoservicio, y
+       sin esa reja cualquiera podría renombrarse como el headliner y
+       quedarse con su puerta en un evento en vivo (review catch, HIGH).
+
+   POR QUÉ HIZO FALTA (1) — el caso Madou: el entry dice handle "madou",
+   name "MADOU", ig "@natemadou"; el perfil real dice full_name "Nate" y
+   username NULL. CERO identificadores en común. Ningún cotejo por texto,
+   por listo que sea, puede unirlos — y un mapa de alias "madou"→uuid metido
+   en este archivo sería identidad de una persona escrita a mano dentro de
+   lógica compartida: no escala, exige deploy por artista, y se pudre en
+   cuanto alguien se cambia el nombre. El id vive con el dato.
+
+   Sobre la reja en (1): un id explícito NO exige `verified`, porque no hay
+   autoservicio que cerrar — lo escribió un fundador. Pero SÍ conserva el
+   piso de integridad (is_demo=false, deleted_at null): un mundo semilla o
+   purgado no se enlaza en público ni aunque alguien lo apunte a mano. */
 export async function resolveLineupWorlds(lineup = []) {
   const out = new Map()
   const entries = lineup
     .map((a, i) => ({
       i,
+      profileId: typeof a?.profile_id === 'string' ? a.profile_id.trim() : '',
       name: (a?.name || '').trim(),
       slug: (a?.slug || '').trim().toLowerCase(),
       handle: (a?.handle || '').replace(/^@/, '').trim().toLowerCase(),
     }))
-    .filter((e) => e.name || e.slug || e.handle)
+    .filter((e) => e.profileId || e.name || e.slug || e.handle)
   if (!entries.length) return out
+  try {
+    // (1) los ids explícitos, de una
+    const ids = [...new Set(entries.map((e) => e.profileId).filter(Boolean))]
+    if (ids.length) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, username, full_name, avatar_url, is_demo, verified')
+        .in('id', ids)
+        .eq('is_demo', false)
+        .is('deleted_at', null)
+      const byId = Object.fromEntries((data || []).map((p) => [p.id, p]))
+      entries.forEach((e) => { if (e.profileId && byId[e.profileId]) out.set(e.i, byId[e.profileId]) })
+    }
+    // (2) el cotejo por texto, sólo para lo que quedó sin resolver
+    const pending = entries.filter((e) => !out.has(e.i))
+    if (!pending.length) return out
+    return await resolveByText(pending, out)
+  } catch { return out }
+}
+
+/* el camino (2), aparte para que el (1) se lea de un vistazo */
+async function resolveByText(entries, out) {
   try {
     // one bounded query: candidate handles + candidate names (PostgREST
     // or-syntax; values with ()," or commas can't ride it — skip those)
