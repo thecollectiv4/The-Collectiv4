@@ -537,7 +537,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const links = normLinks(data.world_links)
   const worldTheme = THEMES.some(x => x.key === data.world_theme) ? data.world_theme : 'chrome'
   const displaySkin = nameSkin(worldTheme)
-  const marqueeText = marqueeOf(data.marquee_text)
+  /* EL MARQUEE SÓLO EXISTE SI ALGUIEN LO ESCRIBIÓ. `marqueeOf` devuelve el
+     texto POR DEFECTO cuando el campo viene vacío, así que 260 de 299 perfiles
+     mostraban exactamente la misma frase de bienvenida. Una frase que se
+     repite idéntica en todos los mundos no es una bienvenida: es relleno, y
+     delata que nadie la escribió.
+     El helper se queda vivo — lo usa el EDITOR para proponer el default
+     cuando abres a escribir. Lo que cambia es sólo qué se PINTA: tu texto o
+     nada. El vacío aquí es void Cosmos, que es justo lo que queremos. */
+  const marqueeText = (data.marquee_text ?? '').trim()
   const completeness = worldCompleteness(data)
   const displayName = data.full_name || 'Unnamed'
   const initial = displayName[0].toUpperCase()
@@ -558,21 +566,49 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   // OFFER: public sees it only when live pieces hang; the owner sees the
   // invitation only once the layer is live in the DB (honest pre-0017).
   const liveListings = listings.filter((l) => l.status === 'live')
+
+  /* ════ UN CUARTO SE MUESTRA SI TIENE ALGO DENTRO. PUNTO. ════
+
+     Antes cada llave llevaba `|| isOwner`, y eso tenía una consecuencia que
+     sólo se ve al abrir un perfil recién hecho: el dueño aterrizaba en OCHO
+     tarjetas de invitación seguidas, una por cuarto vacío, ~1,200px de "aún
+     no subes nada". Le pasaba a TODO el que llegaba, en el peor momento
+     posible — el primer segundo de su propio mundo. Ocho invitaciones no
+     invitan; abruman, y leen como formulario a medio llenar.
+
+     Ahora el gate es sólo contenido, para dueño y para público por igual, y
+     los cuartos vacíos se juntan MÁS ABAJO en UNA sola invitación compuesta
+     (ver `emptyRooms`). El público no nota diferencia: nunca vio invitaciones.
+     El dueño pasa de ocho paredes vacías a una puerta. */
   const show = {
-    gallery: gallery.length > 0 || isOwner,
-    moments: posts.length > 0 || isOwner,
-    offer: liveListings.length > 0 || (isOwner && (listings.length > 0 || !!social?.ready)),
-    sound: taste.music.length > 0 || isOwner,
-    screen: taste.films.length > 0 || isOwner,
-    influences: taste.influences.length > 0 || isOwner,
-    work: media.length > 0 || isOwner,
-    // TASTE: the public sees it only when something stepped into the light;
-    // the owner meets the invite only once the layer has LOADED (null = an
-    // unknown truth, never an invite flash)
-    taste: publicTasteItems.length > 0 || (isOwner && Array.isArray(publicTastes)),
+    gallery: gallery.length > 0,
+    moments: posts.length > 0,
+    offer: liveListings.length > 0,
+    sound: taste.music.length > 0,
+    screen: taste.films.length > 0,
+    influences: taste.influences.length > 0,
+    work: media.length > 0,
+    taste: publicTasteItems.length > 0,
     // SETS: hosting isn't universal — absence is honest silence, no invite
     sets: upcomingSets.length > 0,
   }
+
+  /* Los cuartos que el dueño todavía no llena, en el orden que él mismo
+     compuso. Dos leyes viejas se respetan aquí en vez de perderse con las
+     tarjetas que las cargaban:
+     · SETS nunca invita — no todo el mundo organiza, y su ausencia es
+       silencio honesto, no una tarea pendiente.
+     · OFFER y TASTE sólo invitan cuando su capa está VIVA y CARGADA. Invitar
+       a un cuarto que todavía no existe en la base es una puerta muerta
+       (Ley 9), y `publicTastes` en null es una verdad desconocida, no un
+       cuarto vacío. */
+  const roomReady = {
+    offer: listings.length > 0 || !!social?.ready,
+    taste: Array.isArray(publicTastes),
+  }
+  const emptyRooms = isOwner
+    ? moduleOrder.filter((k) => k !== 'sets' && !show[k] && (roomReady[k] ?? true))
+    : []
   // editorial catalog numbering, only across the movements actually rendered
   let counter = 0
   const num = {}
@@ -600,7 +636,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         posts arrive through CREATE central — Ley 13) */
     moments: (mt) => (
       <motion.div key="moments" {...reveal} style={{ marginTop: mt }}>
-        <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="the wall continues — dated" wide={wide} />
+        <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="posted, with a date" wide={wide} />
         {posts.length > 0
           ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
           : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
@@ -965,10 +1001,19 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
         ) : (isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: 0 }}>Add a line — what you're on, right now.</p>
+          /* ERA UN <p>: se veía clickeable y no hacía nada. Nada que parezca
+             interactivo puede estar muerto — es lo contrario del lujo. Ahora
+             abre el editor, que es a donde el texto ya prometía llevarte. */
+          <button className="pressable" onClick={startEdit} data-testid="add-tagline"
+            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
+            Add a line — what you're on, right now.
+          </button>
         )))}
         {wide && !data.tagline && isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '0' }}>Add a line — what you're on, right now.</p>
+          <button className="pressable" onClick={startEdit} data-testid="add-tagline-wide"
+            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
+            Add a line — what you're on, right now.
+          </button>
         )}
 
         {/* CONNECT — the social layer's face on the world (0017): follow +
@@ -1065,7 +1110,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           </div>
         )}
         {isOwner && !editing && links.length === 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>+ add your links — IG, portfolio, sound</div>
+          /* mismo caso que el de arriba: parecía botón, era un div */
+          <button className="pressable" onClick={startEdit} data-testid="add-links"
+            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>
+            + add your links — IG, portfolio, sound
+          </button>
         )}
         {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
 
@@ -1312,6 +1361,42 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             const std = wide ? '84px' : '58px'
             return MOVEMENTS[k]((k === 'gallery' && i === 0 && !data.bio) ? '44px' : std)
           })}
+
+          {/* ════ LOS CUARTOS QUE FALTAN — UNA PUERTA, NO OCHO ════
+
+              Esto reemplaza las ocho tarjetas de invitación que abrían todo
+              perfil nuevo. Mismo trabajo —decirle al dueño qué le falta y
+              llevarlo al builder— en una sola pieza que se lee en dos
+              segundos en vez de ~1,200px que se leían como abandono.
+
+              Por qué NOMBRA los cuartos en vez de sólo contarlos: "4 cuartos
+              a oscuras" sin decir cuáles obliga a bajar a buscarlos. El
+              nombre ES la invitación; el resto es aire.
+
+              Va al FINAL, después de lo que el mundo ya tiene: lo que
+              construiste manda, lo que falta susurra. Al revés sería un
+              formulario con un perfil abajo. */}
+          {isOwner && !editing && emptyRooms.length > 0 && (
+            <div style={{
+              marginTop: wide ? '72px' : '52px',
+              padding: wide ? '30px 32px' : '26px 22px',
+              borderRadius: '18px', background: ELEV_1,
+              border: `1px solid ${HAIR}`,
+              maxWidth: wide ? '620px' : undefined,
+            }}>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: BONE_LOW, textTransform: 'uppercase' }}>◇ your world</div>
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '25px', letterSpacing: '.03em', color: BONE, lineHeight: 1, marginTop: `${S.md}px` }}>
+                {emptyRooms.length} {emptyRooms.length === 1 ? 'ROOM' : 'ROOMS'} STILL DARK
+              </div>
+              <div style={{ fontFamily: 'DM Mono', fontSize: '9.5px', letterSpacing: '.16em', color: BONE_MID, textTransform: 'uppercase', marginTop: `${S.sm}px`, lineHeight: 1.9 }}>
+                {emptyRooms.map((k) => MODULES[k]?.label || k).join('  ·  ')}
+              </div>
+              <button className="pressable" data-testid="rooms-dark-build" onClick={() => setBuilding(true)}
+                style={{ ...chipBase, marginTop: `${S.lg}px`, background: BONE, border: '1px solid transparent', color: VOID }}>
+                BUILD YOUR WORLD →
+              </button>
+            </div>
+          )}
 
           {/* an EMPTY world visited by the public: one honest statement, not
               40% of raw void — the absence gets a voice (panel catch, Leyes
