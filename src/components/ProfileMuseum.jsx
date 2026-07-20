@@ -49,23 +49,61 @@ const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
 
-/* THE COVER DISSOLVE (v11). Two ramps that have to stay in register — they
-   run over the same bleeding box, so a percentage means the same pixel in
-   both.
+/* THE COVER DISSOLVE (v12). Two ramps that have to stay in register — they
+   run over the same bleeding box, so a stop means the same pixel in both.
 
-   COVER_FADE masks the photograph itself: solid through the top half, then a
-   long release to true transparency. Because it ends at alpha 0 rather than
+   COVER_FADE masks the photograph itself: solid through the whole hero, then
+   a long release to true transparency. Because it ends at alpha 0 rather than
    at a colour, the tail of the cover reveals the app's live atmosphere
    instead of a painted black slab — that is the whole difference between a
    cut and a dissolve.
 
-   COVER_SCRIM is the legibility band (Ley 3): it peaks around 70%, which is
-   where the identity block lands, and then releases to nothing. Ending it
-   opaque is exactly what drew the hard edge before. Both are near-void
-   #07080E/#0A0A0D rather than #08080D so the tail matches the page it
-   dissolves into — three different blacks used to meet at that seam. */
-const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.55) 80%, rgba(0,0,0,.22) 90%, rgba(0,0,0,.06) 96%, rgba(0,0,0,0) 100%)'
-const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.14) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.24) 50%, rgba(7,8,14,.60) 64%, rgba(8,8,13,.90) 74%, rgba(8,8,13,.88) 82%, rgba(9,9,14,.50) 91%, rgba(10,10,13,.14) 97%, rgba(10,10,13,0) 100%)'
+   COVER_SCRIM is the legibility band (Ley 3): it peaks where the identity
+   block lands and then releases to nothing. Ending it opaque is exactly what
+   drew the hard edge before. Both are near-void #07080E/#0A0A0D rather than
+   #08080D so the tail matches the page it dissolves into — three different
+   blacks used to meet at that seam.
+
+   ─── POR QUÉ SON FUNCIONES Y YA NO CONSTANTES ─────────────────────────────
+
+   Las paradas venían en PORCENTAJES fijos (sólido al 60%, pico al 74%) sobre
+   una caja cuya altura es hero + sangrado — dos valores que cambian con el
+   breakpoint. O sea el 74% caía en un píxel distinto en cada pantalla, y en
+   cuanto el hero creció, el degradado se despegó del nombre y la foto se
+   apagó ARRIBA de donde termina: exactamente lo que se marcó en las capturas.
+
+   Un porcentaje no puede decir "a 96px del borde de abajo". `calc(100% - Npx)`
+   sí. Ahora las dos rampas se anclan al BORDE INFERIOR y al SANGRADO, que es
+   lo que de verdad las gobierna, así que la disolución termina donde termina
+   la foto — en cualquier alto de hero, en cualquier pantalla. Si mañana el
+   hero cambia otra vez, esto sigue estando bien solo. */
+const coverFade = (bleed) => `linear-gradient(180deg,
+  #000 0%,
+  #000 calc(100% - ${bleed + 150}px),
+  rgba(0,0,0,.88) calc(100% - ${bleed + 96}px),
+  rgba(0,0,0,.62) calc(100% - ${bleed + 40}px),
+  rgba(0,0,0,.34) calc(100% - ${Math.round(bleed * 0.62)}px),
+  rgba(0,0,0,.14) calc(100% - ${Math.round(bleed * 0.30)}px),
+  rgba(0,0,0,0) 100%)`
+
+const coverScrim = (bleed) => `linear-gradient(180deg,
+  rgba(7,8,14,.16) 0%,
+  rgba(7,8,14,0) 22%,
+  rgba(7,8,14,.18) calc(100% - ${bleed + 300}px),
+  rgba(7,8,14,.52) calc(100% - ${bleed + 190}px),
+  rgba(8,8,13,.86) calc(100% - ${bleed + 96}px),
+  rgba(8,8,13,.84) calc(100% - ${bleed + 20}px),
+  rgba(9,9,14,.46) calc(100% - ${Math.round(bleed * 0.55)}px),
+  rgba(10,10,13,.12) calc(100% - ${Math.round(bleed * 0.22)}px),
+  rgba(10,10,13,0) 100%)`
+
+/* LA ZONA DE PORTADA (v12). La foto crece para llenar de verdad la sección
+   de arriba, y el sangrado crece con ella para que la disolución tenga por
+   dónde correr — un fade largo necesita distancia, no sólo buenas paradas.
+   El sangrado ES la longitud de la disolución: la foto llega sólida hasta el
+   pie del hero y se apaga a lo largo de todo el sangrado. */
+const HERO_H = { wide: 'clamp(520px, 74vh, 780px)', phone: 'clamp(460px, 72vh, 620px)' }
+const COVER_BLEED = { wide: 300, phone: 230 }
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
@@ -488,6 +526,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const initial = displayName[0].toUpperCase()
   const avatar = safeImg(data.avatar_url)
   const cover = safeImg(data.cover_url)
+  // cuánto sangra la portada por debajo del hero = cuánta distancia tiene la
+  // disolución para correr. Las dos rampas (máscara y scrim) se anclan a él.
+  const bleed = wide ? COVER_BLEED.wide : COVER_BLEED.phone
 
   // the world's COMPOSITION (v6, 0024): the owner's saved order, or the
   // kind-default — the craft decides what leads. A module missing from the
@@ -701,7 +742,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(480px, 66vh, 680px)' : 'clamp(400px, 62vh, 500px)', background: 'transparent' }}>
+      <div style={{ position: 'relative', height: wide ? HERO_H.wide : HERO_H.phone, background: 'transparent' }}>
         {/* THE ART LAYER (v11). It used to be flush with the hero and buried
             under a scrim that went fully opaque at the bottom — a hard cut
             painted over the photo. Now it BLEEDS past the hero and DISSOLVES:
@@ -719,9 +760,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               clickable. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
+          bottom: cover ? `-${bleed}px` : 0,
           overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
-          ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
+          ...(cover ? { maskImage: coverFade(bleed), WebkitMaskImage: coverFade(bleed) } : null),
         }}>
           {cover
             ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -743,9 +784,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             register; ending it opaque is what used to draw the seam. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
+          bottom: cover ? `-${bleed}px` : 0,
           zIndex: 1, pointerEvents: 'none',
-          background: cover ? COVER_SCRIM : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
+          background: cover ? coverScrim(bleed) : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
         }} />
 
         {/* top bar (back / sign-out) floats over the cover */}
