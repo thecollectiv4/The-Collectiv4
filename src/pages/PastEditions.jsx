@@ -1,6 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWide } from '@/lib/useIsDesktop'
-import { ArrowLeft, MapPin, Clock, Calendar, Users, Music } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Calendar, Users, Music, ArrowUpRight } from 'lucide-react'
+import { resolveLineupWorlds } from '@/lib/match'
+import { NATE, PATO } from '@/lib/houseWorlds'
 
 const EDITIONS = [
   {
@@ -10,7 +13,20 @@ const EDITIONS = [
     date: 'April 4, 2026',
     time: '10PM — 2AM',
     attendees: '~220',
-    lineup: ['Madou', 'Pato', 'Mellizos', 'CLTV4 Experience'],
+    /* v12 — LA REGLA PERMANENTE (ver src/lib/houseWorlds.js):
+       nombre CON perfil real = puerta · nombre SIN perfil = texto normal.
+       Esto era un arreglo de strings pelones, o sea TODO texto muerto por
+       construcción: sin forma de objeto no había dónde colgar un id, ni
+       siquiera para la gente que sí existe. Ahora es forma de objeto, y sólo
+       quien trae profile_id se vuelve puerta. Mellizos y CLTV4 Experience se
+       quedan como texto a propósito — no hay perfil detrás, y no se inventa
+       ninguno. */
+    lineup: [
+      { name: 'Madou', profile_id: NATE },
+      { name: 'Pato', profile_id: PATO },
+      { name: 'Mellizos' },
+      { name: 'CLTV4 Experience' },
+    ],
     sponsors: ['Stained Vase', 'Arlo Espresso Club', 'RedBull', 'Bazaar'],
     vibe: 'The one that started it all. Raw energy, packed room, art on every wall. Houston showed up.',
   }
@@ -19,6 +35,17 @@ const EDITIONS = [
 export default function PastEditions() {
   const navigate = useNavigate()
   const wide = useWide()
+
+  /* Sólo hay una edición, pero se resuelve por índice como en cualquier otro
+     lineup para no inventar un segundo camino. El resolvedor conserva el piso
+     de integridad (is_demo=false, no purgado), así que si alguno de esos
+     mundos se apagara, el nombre cae solo a texto normal. */
+  const [worlds, setWorlds] = useState(new Map())
+  useEffect(() => {
+    let alive = true
+    resolveLineupWorlds(EDITIONS[0].lineup).then((m) => { if (alive) setWorlds(m) })
+    return () => { alive = false }
+  }, [])
 
   /* v12 — LA COMPOSICIÓN EN ESCRITORIO.
 
@@ -104,9 +131,19 @@ export default function PastEditions() {
 
               <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.15em',color:'var(--cream)',marginBottom:'10px'}}>LINEUP</div>
               <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'24px'}}>
-                {ed.lineup.map((dj,i)=>(
-                  <span key={i} style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',padding:'5px 14px',borderRadius:'100px'}}>{dj}</span>
-                ))}
+                {ed.lineup.map((dj,i)=>{
+                  const world = worlds.get(i)
+                  const chip = {fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',padding:'5px 14px',borderRadius:'100px'}
+                  return world ? (
+                    <button key={i} className="pressable" onClick={()=>navigate('/user/'+world.id)}
+                      aria-label={`Open ${dj.name}'s world`}
+                      style={{...chip,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'5px'}}>
+                      {dj.name} <ArrowUpRight size={10} style={{color:'var(--silver)'}} />
+                    </button>
+                  ) : (
+                    <span key={i} style={chip}>{dj.name}</span>
+                  )
+                })}
               </div>
 
               <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.15em',color:'var(--cream)',marginBottom:'10px'}}>POWERED BY</div>

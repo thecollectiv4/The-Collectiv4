@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
 import { resolveLineupWorlds } from '@/lib/match'
+import { PATO, DIEGO } from '@/lib/houseWorlds'
 import { ArrowLeft, Ticket, Paintbrush, Frame, Shirt, Layers, ArrowUpRight } from 'lucide-react'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
@@ -29,8 +30,8 @@ const EXPERIENCES = {
     artists:[
       { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C7C9D1', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
       { name:'Drecol', slug:'drecol', color:'#F2EEE6', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
-      { name:'Pato Durán', slug:'pato-duran', color:'#4A7AFF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
-      { name:'Diego Villaseñor', slug:'diego-villasenor', color:'#C7C9D1', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
+      { name:'Pato Durán', slug:'pato-duran', profile_id:PATO, color:'#4A7AFF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
+      { name:'Diego Villaseñor', slug:'diego-villasenor', profile_id:DIEGO, color:'#C7C9D1', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
     ],
   },
   'fashion': {

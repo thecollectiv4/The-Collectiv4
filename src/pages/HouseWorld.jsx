@@ -6,6 +6,7 @@ import Mark from '@/components/Mark'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { normListings, priceLabel, KINDS } from '@/lib/listings'
 import { Calendar, MapPin, ArrowUpRight, ArrowRight, BadgeCheck, Loader2 } from 'lucide-react'
+import FoundersLine from '@/components/FoundersLine'
 
 /* =========================================================================
    THE HOUSE WORLD — /c4 (D4, the flagship).
@@ -283,7 +284,7 @@ export default function HouseWorld() {
           <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
           <Mark type="diamond" size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />
           <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', color: BONE_LOW, textTransform: 'uppercase', textAlign: 'center' }}>
-            Pato Durán & Diego Villaseñor · Founders
+            <FoundersLine />
           </span>
           <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: SILVER }}>4</span>
           <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />
