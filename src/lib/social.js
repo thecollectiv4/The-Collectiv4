@@ -2,13 +2,18 @@ import { supabase } from '@/api/supabase'
 
 /* =========================================================================
    social — the connective tissue (migrations 0017 + 0023): follows +
-   threads (DMs, event rooms, crews, plan rooms) + the circle (amigos) +
+   threads (DMs, event rooms, crews, plan rooms) + the circle (CONNECTED,
+   antes "amigos" — ver socialVocab.js) +
    plans. The Base44 chat REBUILT native — nothing here touches the
    legacy conversations/messages/chat_messages tables.
 
-   DOCTRINE (0023): crews and plans are built FROM friendship — you bring
-   YOUR people. Friend lists are PRIVATE (only participants see the bond);
-   no public counts anywhere.
+   DOCTRINE (0023): crews and plans are built FROM the mutual bond — you
+   bring YOUR people. Connection lists are PRIVATE (only participants see
+   the bond); no public counts anywhere.
+
+   VOCABULARIO (v12, aprobado): FOLLOWING = tú lo sigues · FOLLOWERS =
+   quién te sigue · CONNECTED = el vínculo mutuo aceptado. Las etiquetas
+   viven en socialVocab.js y NO se escriben a mano en ninguna superficie.
 
    DEGRADES HONESTLY pre-migration (the worldPosts doctrine): a missing
    table resolves reads to empty and surfaces a human sentence on writes —
@@ -107,6 +112,52 @@ export async function unfollow(viewerId, profileId) {
   const { error } = await supabase.from('follows').delete().eq('follower_id', viewerId).eq('followee_id', profileId)
   if (error) throw new Error(error.message || "couldn't unfollow")
 }
+
+/* ---- las LISTAS detrás de los conteos (v12) ----
+   El museo mostraba "3 FOLLOWERS · 2 FOLLOWING" como texto muerto. Ahora se
+   pican y abren a la gente.
+
+   POR QUÉ SE PUEDE, Y POR QUÉ SÓLO ESTAS DOS: la RLS de `follows` (0034) le
+   entrega la arista a un tercero cuando AMBOS mundos son públicos y ninguno
+   está purgado, así que estas listas son legítimamente públicas y el piso de
+   honestidad lo pone el SERVIDOR, no este archivo — a un miembro normal el
+   seed sencillamente no le llega. La lista de CONNECTED (friendships) NO
+   tiene equivalente y no lo va a tener: su política no tiene rama pública a
+   propósito ("a friend list is nobody's directory", 0023). Ver socialVocab.js.
+
+   Dos pasos y no un join: pedir `follows` y luego `profiles` es el mismo
+   patrón que fetchInbox, y evita adivinar el nombre de la FK — un embed con
+   el alias equivocado tumba la consulta entera en vez de degradar. is_demo
+   viaja con la identidad (guardrail 4) para que la lista pueda etiquetar
+   seed si un fundador lo está viendo. */
+async function followList(column, matchColumn, profileId, limit = 200) {
+  if (!profileId) return []
+  try {
+    const { data: edges, error } = await supabase
+      .from('follows')
+      .select(column)
+      .eq(matchColumn, profileId)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (error || !edges?.length) return []
+    const ids = [...new Set(edges.map((e) => e[column]).filter(Boolean))]
+    if (!ids.length) return []
+    const { data: profiles, error: pErr } = await supabase
+      .from('profiles')
+      .select('id,full_name,username,avatar_url,verified,city,discipline,is_demo')
+      .in('id', ids)
+    if (pErr) return []
+    // se respeta el orden de las aristas (más reciente primero); un perfil
+    // que la RLS no entregó simplemente no aparece, sin hueco ni error
+    const byId = Object.fromEntries((profiles || []).map((p) => [p.id, p]))
+    return ids.map((id) => byId[id]).filter(Boolean)
+  } catch { return [] }
+}
+
+/* quién sigue a esta persona */
+export const fetchFollowers = (profileId) => followList('follower_id', 'followee_id', profileId)
+/* a quién sigue esta persona */
+export const fetchFollowing = (profileId) => followList('followee_id', 'follower_id', profileId)
 
 /* Which of these profiles does the viewer follow? → Set of ids (for
    Community cards). Empty set on any failure — never a crash. */
@@ -325,7 +376,7 @@ const ENVELOPE_HUMAN = {
   bad_target: "that world isn't reachable.",
   not_found: "that world isn't reachable.",
   no_request: 'that request is gone — it may have been withdrawn.',
-  not_your_friend: 'you can only bring your own amigos.',
+  not_your_friend: 'you can only bring your own connections.',
   group_full: 'the crew is full — 24 is the room.',
   not_a_group: "this room isn't a crew.",
   not_member: "you're not in this room.",
@@ -435,10 +486,11 @@ export async function searchPeople(query, meId, limit = 16) {
 
 /* --------------------- visibility tiers (D5) ---------------------
    PÚBLICO / AMIGOS / CLOSE FRIENDS — the Instagram Close Friends model, on
-   event attendance AND plans. Default amigos. Close friends is a curated
-   subset WITHIN your amigos (add_close_friend gates on are_friends). */
+   event attendance AND plans. Default connections. Close friends is a
+   curated subset WITHIN your connections (add_close_friend gates on
+   are_friends). */
 export const VIS_TIERS = ['public', 'friends', 'close']
-export const VIS_LABEL = { public: 'Public', friends: 'Friends', close: 'Close friends' }
+export const VIS_LABEL = { public: 'Public', friends: 'Connections', close: 'Close friends' }
 
 /* who can see you're going to this event → the chosen tier ('public'|'friends'|'close') */
 export async function setAttendanceVisibility(eventId, tier) {
@@ -452,7 +504,7 @@ export async function setPlanVisibility(planId, tier) {
   return data?.visibility
 }
 
-/* curate the close-friends list (must already be your amigo) */
+/* curate the close-friends list (must already be a connection) */
 export async function addCloseFriend(otherId) {
   await callDoor('add_close_friend', { p_other: otherId })
 }

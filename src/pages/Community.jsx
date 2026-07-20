@@ -8,6 +8,8 @@ import ForYou from '@/components/ForYou'
 import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
+import CraftsSheet from '@/components/CraftsSheet'
+import { VOCAB } from '@/lib/socialVocab'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
 import VerifiedMark from '@/components/VerifiedMark'
@@ -100,6 +102,9 @@ export default function Community() {
   // worlds, killing the luck-browse. Client-side is exact at this scale
   // (<200 total, all loaded); it upgrades to a server search when it grows.
   const [nameQ, setNameQ] = useState('')
+  // v12: el perfil cuyo "+N" se está mirando (null = ninguno). Los crafts ya
+  // están cargados en craftsByProfile, así que abrirlo no pide nada a la red.
+  const [craftsFor, setCraftsFor] = useState(null)
 
   // discovery cascades ONCE — the first data landing staggers; every refilter
   // after that crossfades as one grid, never a per-card re-dance (plan 009).
@@ -263,7 +268,7 @@ export default function Community() {
         ) : (
         <>
         {/* find a specific person — name or @handle (v9 D1: no more luck-browse
-            a 200-grid; tap a result to their world, where + amigo lives) */}
+            a 200-grid; tap a result to their world, where + CONNECT lives) */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '16px', maxWidth: wide ? '440px' : undefined }}>
           <Search size={14} strokeWidth={1.6} style={{ position: 'absolute', left: '13px', color: BONE_LOW, pointerEvents: 'none' }} />
           <input value={nameQ} onChange={(e) => setNameQ(e.target.value)} data-testid="community-search"
@@ -301,7 +306,10 @@ export default function Community() {
                  relies on that stretch for its flex:1 body (equal-height rows) */
               <div key={c.id} className={entered ? undefined : 'card-in'}
                 style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
-                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} connected={followingSet.has(c.id)} onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo} />
+                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} following={followingSet.has(c.id)}
+                  onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo}
+                  onPickCraft={setCraft}
+                  onShowCrafts={() => setCraftsFor(c)} />
               </div>
             ))}
             {/* a filtered list CLOSES — the void under the last card gets a
@@ -352,6 +360,15 @@ export default function Community() {
           invitation, never "welcome back" to someone who's never been here */}
       {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)}
         signinTitle="SEE WHO SHARES YOUR TASTE" signinKicker="sign in to meet your people" />}
+
+      {/* el +N de una tarjeta, abierto: los crafts completos de esa persona,
+          cada uno una puerta al filtro correspondiente */}
+      {craftsFor && (
+        <CraftsSheet wide={wide} name={craftsFor.full_name || craftsFor.username}
+          crafts={craftsByProfile.get(craftsFor.id) || []}
+          onPickCraft={(slug) => { setCraftsFor(null); setCraft(slug) }}
+          onClose={() => setCraftsFor(null)} />
+      )}
 
       {/* grain lives in the app-wide varnish now (v8: one grain, 5%, over all) */}
     </div>
@@ -420,10 +437,13 @@ function CraftFilterRow({ value, onChange, options, wide }) {
 }
 
 /* ---- a creative's world, as a card in the sky ----
-   `connected` — the viewer already follows this world: a quiet state
-   chip, information not decoration (Leyes 7, 14). `crafts` — the real
-   taxonomy line (primary lit), the legacy free text only as fallback. */
-function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed }) {
+   `following` — the viewer already follows this world: a quiet state
+   chip, information not decoration (Leyes 7, 14). Se llamaba `connected`,
+   pero CONNECTED ahora nombra el vínculo MUTUO (socialVocab.js) y esto sale
+   de follows, que es direccional — el nombre de la prop mentía sobre qué
+   relación es. `crafts` — the real taxonomy line (primary lit), the legacy
+   free text only as fallback. */
+function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -467,18 +487,38 @@ function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed }) {
       <div style={{ padding: '26px 13px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
           <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '22px' : '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
-          {connected && (
-            <span title="You're connected" style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(199,201,209,.3)', borderRadius: '100px', padding: '2px 7px' }}>
-              <UserCheck size={8} /> IN
+          {/* v12: este chip sale de followingSet — o sea "TÚ LO SIGUES", que
+              es direccional. Decía "You're connected" y mostraba "IN", con
+              CONNECTED ya reservado para el vínculo mutuo: la misma palabra
+              en dos sentidos, que es justo lo que se vino a matar. */}
+          {following && (
+            <span title={`You follow ${name}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', flexShrink: 0, fontFamily: 'DM Mono', fontSize: '7.5px', color: SILVER, letterSpacing: '.12em', border: '1px solid rgba(199,201,209,.3)', borderRadius: '100px', padding: '2px 7px' }}>
+              <UserCheck size={8} /> {VOCAB.followingState}
             </span>
           )}
         </div>
+        {/* v12: el craft y el +N se pican POR SEPARADO de la tarjeta. Toda la
+            tarjeta navega al mundo, así que estos dos tienen que parar la
+            propagación — sin eso el click subiría y abriría el perfil en vez
+            de hacer lo suyo. El +N despliega la lista completa; el craft
+            filtra Community por él (la gente que comparte ese oficio). */}
         {crafts.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px', minWidth: 0, overflow: 'hidden' }}>
             {(() => { const meta = categoryMeta(crafts[0].category); return (
-              <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${meta.tint})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</span>
+              <button className="pressable" data-testid={`card-craft-${crafts[0].slug}`}
+                onClick={(e) => { e.stopPropagation(); onPickCraft?.(crafts[0].slug) }}
+                aria-label={`See other ${crafts[0].name}s`}
+                style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0,
+                  fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${meta.tint})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</button>
             ) })()}
-            {crafts.length > 1 && <span style={{ fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.1em', flexShrink: 0 }}>+{crafts.length - 1}</span>}
+            {crafts.length > 1 && (
+              <button className="pressable" data-testid="card-crafts-more"
+                onClick={(e) => { e.stopPropagation(); onShowCrafts?.() }}
+                aria-label={`See all ${crafts.length} crafts`}
+                style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR}`, borderRadius: '100px',
+                  padding: '1px 6px', cursor: 'pointer', flexShrink: 0,
+                  fontFamily: 'DM Mono', fontSize: '7.5px', color: BONE_LOW, letterSpacing: '.1em' }}>+{crafts.length - 1}</button>
+            )}
           </div>
         ) : c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
         {c.tagline && (

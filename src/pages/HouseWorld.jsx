@@ -6,6 +6,7 @@ import Mark from '@/components/Mark'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { normListings, priceLabel, KINDS } from '@/lib/listings'
 import { Calendar, MapPin, ArrowUpRight, ArrowRight, BadgeCheck, Loader2 } from 'lucide-react'
+import FoundersLine from '@/components/FoundersLine'
 
 /* =========================================================================
    THE HOUSE WORLD — /c4 (D4, the flagship).
@@ -240,7 +241,12 @@ export default function HouseWorld() {
                   {offer.map((l) => {
                     const img = safeImg(l.images?.[0]?.url)
                     return (
-                      <div key={l.id} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${l.title}`}
+                      /* la tarjeta SIEMPRE llevó al mundo de quien vende, pero
+                         se anunciaba con el título de la pieza — a un lector de
+                         pantalla le prometía abrir la pieza y abría a la
+                         persona. Se nombra lo que de verdad hace (Ley 9). */
+                      <div key={l.id} className="disc-card pressable" role="button" tabIndex={0}
+                        aria-label={l.seller ? `Open ${l.seller}'s world — ${l.title}` : `Open the world behind ${l.title}`}
                         onClick={() => navigate('/user/' + l.profile_id)}
                         onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate('/user/' + l.profile_id) } }}
                         style={{ flexShrink: 0, minWidth: wide ? 0 : '186px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
@@ -278,7 +284,7 @@ export default function HouseWorld() {
           <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
           <Mark type="diamond" size={9} color={SILVER} style={{ opacity: .8, flexShrink: 0 }} />
           <span style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', color: BONE_LOW, textTransform: 'uppercase', textAlign: 'center' }}>
-            Pato Durán & Diego Villaseñor · Founders
+            <FoundersLine />
           </span>
           <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: SILVER }}>4</span>
           <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />

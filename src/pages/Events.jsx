@@ -5,6 +5,7 @@ import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
 import { normVibe, vibeMeta } from '@/lib/match'
+import FoundersLine from '@/components/FoundersLine'
 import { CARD_TINT, cardGlass } from '@/lib/glass'
 
 /* =========================================================================
@@ -248,7 +249,7 @@ export default function Events() {
             <div style={{ marginTop: wide ? '54px' : '38px', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(90deg,transparent,${HAIR_HI})` }} />
               <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                Pato Durán & Diego Villaseñor · Founders
+                <FoundersLine />
               </span>
               <span style={{ fontFamily: 'Bebas Neue', fontSize: '15px', color: SILVER }}>4</span>
               <div style={{ height: '1px', flex: 1, background: `linear-gradient(270deg,transparent,${HAIR_HI})` }} />

@@ -12,6 +12,10 @@ import SeedPill from '@/components/SeedMark'
 import { useCosmosOverride } from '@/components/Atmosphere'
 import CraftPicker from '@/components/CraftPicker'
 import Mark from '@/components/Mark'
+import PeopleSheet from '@/components/PeopleSheet'
+import CraftsSheet from '@/components/CraftsSheet'
+import { VOCAB, VOCAB_PHRASE } from '@/lib/socialVocab'
+import { fetchFollowers, fetchFollowing } from '@/lib/social'
 import { useWide } from '@/lib/useIsDesktop'
 import { THEMES, nameSkin, DEFAULT_MARQUEE, marqueeOf, normGallery, normLinks, worldCompleteness, MODULES, normModules, defaultModulesFor, craftKindOf } from '@/lib/world'
 import { craftLine, saveProfileCrafts, categoryMeta, kindOfCrafts } from '@/lib/crafts'
@@ -49,74 +53,106 @@ const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
 
-/* THE COVER DISSOLVE (v11). Two ramps that have to stay in register — they
-   run over the same bleeding box, so a percentage means the same pixel in
-   both.
+/* THE COVER DISSOLVE (v12). Two ramps that have to stay in register — they
+   run over the same bleeding box, so a stop means the same pixel in both.
 
-   COVER_FADE masks the photograph itself: solid through the top half, then a
-   long release to true transparency. Because it ends at alpha 0 rather than
+   COVER_FADE masks the photograph itself: solid through the whole hero, then
+   a long release to true transparency. Because it ends at alpha 0 rather than
    at a colour, the tail of the cover reveals the app's live atmosphere
    instead of a painted black slab — that is the whole difference between a
    cut and a dissolve.
 
-   COVER_SCRIM is the legibility band (Ley 3): it peaks around 70%, which is
-   where the identity block lands, and then releases to nothing. Ending it
-   opaque is exactly what drew the hard edge before. Both are near-void
-   #07080E/#0A0A0D rather than #08080D so the tail matches the page it
-   dissolves into — three different blacks used to meet at that seam. */
-const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.55) 80%, rgba(0,0,0,.22) 90%, rgba(0,0,0,.06) 96%, rgba(0,0,0,0) 100%)'
-/* El velo tenía un AGUJERO: caía a alpha 0 en el 26%, así que la franja alta
-   de la portada corría a fuerza completa y era justo la que gritaba. Ahora
-   nunca suelta el piso atmosférico (~.30) — la foto vive detrás del vidrio de
-   la galería de arriba a abajo — y sólo se cierra donde tiene que cerrarse:
-   la banda de legibilidad del nombre. La cola (91%→100%) se queda intacta:
-   ésa es la disolución que ganó v11 y no se toca. */
-const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.42) 0%, rgba(7,8,14,.30) 22%, rgba(7,8,14,.34) 44%, rgba(7,8,14,.62) 62%, rgba(8,8,13,.90) 74%, rgba(8,8,13,.88) 82%, rgba(9,9,14,.50) 91%, rgba(10,10,13,.14) 97%, rgba(10,10,13,0) 100%)'
+   COVER_SCRIM is the legibility band (Ley 3): it peaks where the identity
+   block lands and then releases to nothing. Ending it opaque is exactly what
+   drew the hard edge before. Both are near-void #07080E/#0A0A0D rather than
+   #08080D so the tail matches the page it dissolves into — three different
+   blacks used to meet at that seam.
 
-/* LA PORTADA ES ATMÓSFERA, NO PROTAGONISTA (Ley del Lujo Inmersivo).
-   Antes la foto entraba a saturación y brillo completos y peleaba con el
-   nombre por la misma atención — eso es exactamente lo que se leía como
-   "naco": dos cosas gritando en la misma zona.
-   Bajarle la saturación y el brillo NO es esconder la obra: es ponerla
-   detrás del vidrio, como un cuadro iluminado por debajo en una galería.
-   El texto manda, la foto susurra.
-   El contraste sube apenas para que la imagen no se vuelva lodo al oscurecerla
-   — perder brillo sin recuperar forma es lo que aplana una foto. */
+   ─── RECONCILIACIÓN v12: DOS ARREGLOS DISTINTOS, LOS DOS VIVOS ────────────
+
+   Las dos ramas rehicieron esta portada al mismo tiempo, cada una arreglando
+   un defecto REAL Y DISTINTO. No se pisan porque no hablan de lo mismo:
+
+   · GEOMETRÍA (Diego) — DÓNDE ocurre la disolución. Las paradas venían en
+     porcentajes fijos sobre una caja cuya altura es hero + sangrado, o sea
+     el 74% caía en un píxel distinto en cada pantalla y el degradado se
+     despegaba del nombre. Ahora son FUNCIONES ancladas con calc() al BORDE
+     INFERIOR, así la foto se apaga donde de verdad termina, en cualquier
+     alto de hero. Y la foto crece para llenar su sección.
+
+   · PISO DEL VELO (Pato) — el scrim tenía un AGUJERO: caía a alpha 0 en el
+     22-26%, así que la franja alta corría a fuerza completa y era justo la
+     que gritaba. Ahora nunca suelta el piso atmosférico (~.30).
+
+   · GRADO (Pato) — CUÁNTO grita la foto. Entraba a saturación y brillo
+     completos y peleaba con el nombre por la misma atención. Bajarle
+     saturación y brillo no es esconder la obra: es ponerla detrás del vidrio
+     de una galería. El texto manda, la foto susurra.
+
+   Uno dice dónde se apaga, el otro cuánto suena, el tercero tapa un hueco.
+   Los tres se aplican juntos. El piso de Pato quedó plegado DENTRO de la
+   función de Diego (las tres primeras paradas), que es lo único que había
+   que coser a mano.
+
+   ⚠ PENDIENTE DE OJO DE DIEGO: la única tensión estética real de todo el
+   merge. "Más grande y presente" (Diego) y "más callada" (Pato) tiran en
+   direcciones opuestas sobre la MISMA foto. Mecánicamente conviven; si al
+   verla la portada se siente demasiado apagada, subir COVER_GRADE es una
+   línea. Nadie más que Diego puede decidir eso mirándola. */
+const coverFade = (bleed) => `linear-gradient(180deg,
+  #000 0%,
+  #000 calc(100% - ${bleed + 150}px),
+  rgba(0,0,0,.88) calc(100% - ${bleed + 96}px),
+  rgba(0,0,0,.62) calc(100% - ${bleed + 40}px),
+  rgba(0,0,0,.34) calc(100% - ${Math.round(bleed * 0.62)}px),
+  rgba(0,0,0,.14) calc(100% - ${Math.round(bleed * 0.30)}px),
+  rgba(0,0,0,0) 100%)`
+
+/* las tres primeras paradas llevan el PISO de Pato (nunca soltar el velo
+   arriba); de ahí para abajo manda el anclaje al borde inferior de Diego */
+const coverScrim = (bleed) => `linear-gradient(180deg,
+  rgba(7,8,14,.42) 0%,
+  rgba(7,8,14,.30) 22%,
+  rgba(7,8,14,.34) calc(100% - ${bleed + 300}px),
+  rgba(7,8,14,.62) calc(100% - ${bleed + 190}px),
+  rgba(8,8,13,.90) calc(100% - ${bleed + 96}px),
+  rgba(8,8,13,.88) calc(100% - ${bleed + 20}px),
+  rgba(9,9,14,.50) calc(100% - ${Math.round(bleed * 0.55)}px),
+  rgba(10,10,13,.14) calc(100% - ${Math.round(bleed * 0.22)}px),
+  rgba(10,10,13,0) 100%)`
+
+/* LA ZONA DE PORTADA. La foto llena de verdad la sección de arriba, y el
+   sangrado crece con ella para que la disolución tenga por dónde correr —
+   un fade largo necesita distancia, no sólo buenas paradas. */
+const HERO_H = { wide: 'clamp(420px, 52vh, 560px)', phone: 'clamp(460px, 72vh, 620px)' }
+/* el sangrado de escritorio baja con el hero: 300px de disolución bajo un
+   hero de 52vh se comería el arranque del museo, que es justo lo que Pato
+   vino a destapar. */
+const COVER_BLEED = { wide: 210, phone: 230 }
+
+/* el grado de Pato: la foto detrás del vidrio, no gritando. El contraste sube
+   apenas para que no se vuelva lodo al oscurecerla — perder brillo sin
+   recuperar forma es lo que aplana una foto. */
 const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
-// v12 desktop: same recipe, one stop further down — a wide cover throws far
-// more total light than a phone's at the same per-pixel brightness, and the
-// identity block has to stay the thing that commands (Ley 3).
+// desktop: misma receta, un paso más abajo — una portada ancha tira mucha más
+// luz total que la de un teléfono al mismo brillo por píxel (Ley 3).
 const COVER_GRADE_WIDE = 'saturate(.62) brightness(.52) contrast(1.08)'
 
-/* CHIPS ANCLADOS A UNA REJILLA (Ley del Lujo Inmersivo).
-   Las pastillas de la tira de identidad —FOLLOW, amigo, MESSAGE— venían cada
-   una con su propio padding (9px 20px, 9px 18px, 8px 16px). Con paddings
-   distintos y iconos de distinto alto, cada pastilla terminaba con una altura
-   ligeramente distinta: la fila flotaba en vez de asentarse. Es un defecto
-   chiquito que el ojo sí registra, y lee como descuido.
-   La cura es fijar la ALTURA, no el padding: con height fija y padding sólo
-   horizontal, toda pastilla mide exactamente lo mismo aunque cambie el icono,
-   el texto o el idioma. Una sola fuente, ningún sitio donde volver a divergir. */
-/* ── LA REJILLA VERTICAL ─────────────────────────────────────────────────
-   El defecto de fondo del perfil no era ninguna pieza en particular: era que
-   cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,
-   20px…). Siete valores distintos apilados leen exactamente como lo que
-   eran, mejoras sueltas puestas una encima de otra, y el ojo lo registra
-   como descuido aunque no sepa nombrarlo.
-
-   Un solo compás, en múltiplos de 4. Y —más importante que la escala— el
-   ritmo se aplica desde el CONTENEDOR con un `gap`, no repartiendo márgenes
-   por hijo: así ninguna franja futura puede inventarse su propio espaciado
-   sin que se note. La rejilla deja de ser disciplina y pasa a ser estructura. */
+/* ── LA REJILLA VERTICAL (Pato) ──────────────────────────────────────────
+   Cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,
+   20px…). Un solo compás en múltiplos de 4, aplicado desde el CONTENEDOR con
+   `gap` y no repartiendo márgenes por hijo: así ninguna franja futura puede
+   inventarse su propio espaciado sin que se note. */
 const S = { xs: 4, sm: 8, md: 14, lg: 22, xl: 34 }
 
-/* ── ELEVACIÓN, NO BORDES ────────────────────────────────────────────────
+/* ── ELEVACIÓN, NO BORDES (Pato) ─────────────────────────────────────────
    Dark-first: la profundidad se construye apilando capas de luz apenas
-   distintas sobre el void, no dibujando contornos. Un borde marcado sobre
-   negro lee como caja de CSS; una superficie 4% más clara lee como material. */
+   distintas sobre el void, no dibujando contornos. */
 const ELEV_1 = 'rgba(242,238,230,.045)'   // superficie en reposo
 const ELEV_2 = 'rgba(242,238,230,.085)'   // superficie que invita a tocar
 
+/* CHIPS ANCLADOS A UNA REJILLA (Pato): la cura es fijar la ALTURA, no el
+   padding — así toda pastilla mide igual aunque cambie el icono o el idioma. */
 const CHIP_H = 38
 const chipBase = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -237,6 +273,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const [uploading, setUploading] = useState(false)
   const [coverUploading, setCoverUploading] = useState(false)
   const [upErr, setUpErr] = useState(null)
+  // v12 — lo que antes era texto muerto y ahora se abre:
+  //   peopleSheet: 'followers' | 'following' | null
+  //   craftsOpen:  la lista completa detrás del +N
+  const [peopleSheet, setPeopleSheet] = useState(null)
+  const [craftsOpen, setCraftsOpen] = useState(false)
   const fileRef = useRef(null)
   const coverRef = useRef(null)
   const galleryFileRef = useRef(null)
@@ -555,6 +596,19 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
   const initial = displayName[0].toUpperCase()
   const avatar = safeImg(data.avatar_url)
   const cover = safeImg(data.cover_url)
+  // cuánto sangra la portada por debajo del hero = cuánta distancia tiene la
+  // disolución para correr. Las dos rampas (máscara y scrim) se anclan a él.
+  const bleed = wide ? COVER_BLEED.wide : COVER_BLEED.phone
+
+  /* Un craft es una puerta al RESTO de la gente que lo comparte. Vive aquí y
+     no como prop porque siempre significa exactamente lo mismo — pasarlo
+     desde fuera sólo abriría la puerta a que dos pantallas lo interpretaran
+     distinto. Community ya lee ?craft= del URL (0020/D2): esto se cuelga de
+     la columna de descubrimiento que ya existe, no inventa una paralela. */
+  const openCraft = (slug) => {
+    setCraftsOpen(false)
+    navigate(`/community?craft=${encodeURIComponent(slug)}`)
+  }
 
   // the world's COMPOSITION (v6, 0024): the owner's saved order, or the
   // kind-default — the craft decides what leads. A module missing from the
@@ -796,14 +850,21 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
-      {/* v12 DESKTOP: the hero was 66vh + a 180px bleed, so opening a world on
-          a laptop showed a photograph and nothing else — you had to scroll to
-          learn the person makes anything. On a phone the same ratio leaves the
-          first works peeking, which is why it read correctly there and wrong
-          here. 52vh puts the top of the museum inside the first screen while
-          the portrait still commands it. The photo is atmosphere; the work is
-          the subject (Ley del Lujo Inmersivo). */}
-      <div style={{ position: 'relative', height: wide ? 'clamp(420px, 52vh, 560px)' : 'clamp(400px, 62vh, 500px)', background: 'transparent' }}>
+      {/* RECONCILIACIÓN — cada quien tenía razón EN SU PANTALLA.
+
+          Diego marcó capturas de TELÉFONO: ahí la portada se quedaba corta y
+          la disolución moría antes de tiempo → su alto de teléfono gana
+          (62vh→72vh, tope 500→620).
+
+          Pato observó ESCRITORIO: a 66vh + 180px de sangrado, abrir un mundo
+          en laptop mostraba una fotografía y nada más — había que hacer
+          scroll para enterarte de que la persona HACE algo. En teléfono la
+          misma proporción deja asomar las primeras obras, que es por qué se
+          leía bien ahí y mal aquí → su alto de escritorio gana (52vh).
+
+          No es un punto medio: es que hablaban de dos pantallas distintas.
+          La foto es atmósfera; la obra es el sujeto (Ley del Lujo Inmersivo). */}
+      <div style={{ position: 'relative', height: wide ? HERO_H.wide : HERO_H.phone, background: 'transparent' }}>
         {/* THE ART LAYER (v11). It used to be flush with the hero and buried
             under a scrim that went fully opaque at the bottom — a hard cut
             painted over the photo. Now it BLEEDS past the hero and DISSOLVES:
@@ -821,9 +882,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               clickable. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
+          bottom: cover ? `-${bleed}px` : 0,
           overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
-          ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
+          ...(cover ? { maskImage: coverFade(bleed), WebkitMaskImage: coverFade(bleed) } : null),
         }}>
           {cover
             /* v12: a touch further down on wide. The grade is a per-pixel
@@ -855,9 +916,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             register; ending it opaque is what used to draw the seam. */}
         <div aria-hidden="true" style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          bottom: cover ? (wide ? '-180px' : '-130px') : 0,
+          bottom: cover ? `-${bleed}px` : 0,
           zIndex: 1, pointerEvents: 'none',
-          background: cover ? COVER_SCRIM : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
+          background: cover ? coverScrim(bleed) : 'linear-gradient(180deg, rgba(7,8,14,.10) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.30) 48%, rgba(7,8,14,.72) 72%, rgba(9,9,14,.95) 92%, #08080D 100%)',
         }} />
 
         {/* top bar (back / sign-out) floats over the cover */}
@@ -926,17 +987,38 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
                     {/* primary ALWAYS leads — regardless of the order the
                         set arrived in (fresh save vs DB read) */}
+                    {/* v12: cada craft es una PUERTA — lleva a Community
+                        filtrado por él, o sea a las otras personas que lo
+                        comparten. Antes eran etiquetas muertas. */}
                     {[...crafts].sort((a, b) => (b.isPrimary === true) - (a.isPrimary === true)).slice(0, 3).map((c, i) => {
                       const meta = categoryMeta(c.category)
                       const isP = c.isPrimary || (i === 0 && !crafts.some(x => x.isPrimary))
                       return (
                         <span key={c.slug} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '9px' }}>
                           {i > 0 && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '7px', color: BONE_LOW }}>◆</span>}
-                          <span style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', letterSpacing: '.3em', textTransform: 'uppercase', color: isP ? `rgb(${meta.tint})` : BONE_MID }}>{c.name}</span>
+                          <button className="pressable" data-testid={`hero-craft-${c.slug}`}
+                            onClick={() => openCraft(c.slug)}
+                            aria-label={`See other ${c.name}s`}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                              fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', letterSpacing: '.3em', textTransform: 'uppercase',
+                              color: isP ? `rgb(${meta.tint})` : BONE_MID }}>
+                            {c.name}
+                          </button>
                         </span>
                       )
                     })}
-                    {crafts.length > 3 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em' }}>+{crafts.length - 3}</span>}
+                    {/* el +N deja de ser un dato que no se puede abrir: la app
+                        te decía que había más y no te dejaba verlo */}
+                    {crafts.length > 3 && (
+                      <button className="pressable" data-testid="hero-crafts-more"
+                        onClick={() => setCraftsOpen(true)}
+                        aria-label={`See all ${crafts.length} crafts`}
+                        style={{ background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px',
+                          padding: '2px 8px', cursor: 'pointer',
+                          fontFamily: 'DM Mono', fontSize: '8px', color: BONE_MID, letterSpacing: '.14em' }}>
+                        +{crafts.length - 3}
+                      </button>
+                    )}
                   </div>
                 ) : data.discipline && (
                   <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
@@ -1051,7 +1133,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               data-testid="follow-btn"
               style={{ ...chipBase, background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', color: social.iFollow ? BONE : VOID }}>
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
-              {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
+              {/* v12: decía "CONNECTED" cuando quiere decir "ya lo sigues" —
+                  la MISMA palabra que rotulaba el conteo de seguidores diez
+                  píxeles más allá. Las etiquetas viven en socialVocab.js. */}
+              {social.iFollow ? VOCAB.followingState : VOCAB.followAction}
             </button>
             {/* AMIGO (0023) — the mutual bond's door, in the same chip
                 grammar. No friendship prop = no door (pre-migration or a
@@ -1059,26 +1144,26 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             {friendship && (
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
-                  onClick={() => { if (window.confirm('¿deshacer amistad?')) friendship.onRemove?.() }}
+                  onClick={() => { if (window.confirm(VOCAB_PHRASE.removeConnection)) friendship.onRemove?.() }}
                   style={{ ...chipBase, background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', color: BONE }}>
-                  amigos <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
+                  {VOCAB.connected} <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
                   style={{ ...chipBase, background: BONE, border: '1px solid transparent', color: VOID }}>
-                  accept amigo?
+                  {VOCAB.connectIncoming}
                 </button>
               ) : friendship.state === 'out' ? (
                 <button className="pressable" data-testid="friend-btn" aria-disabled
                   style={{ ...chipBase, background: 'transparent', border: `1px solid ${HAIR_HI}`, color: BONE_LOW, cursor: 'default' }}>
-                  pending
+                  {VOCAB.connectPending}
                 </button>
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
                   style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
                   onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
                   onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
-                  + amigo
+                  {VOCAB.connectAction}
                 </button>
               )
             )}
@@ -1088,13 +1173,26 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
             </button>
+            {/* v12: los conteos se PICAN y abren a la gente. Eran el dato más
+                obviamente vivo de la pantalla y no llevaban a ningún lado.
+                Se puede porque la RLS de follows entrega la arista cuando los
+                dos mundos son públicos (0034) — ver social.js. */}
             {(social.followers > 0 || social.following > 0) && (
-              /* la misma altura que las pastillas: el conteo pertenece a la
-                 fila, no flota junto a ella (alignItems:baseline lo dejaba
-                 colgado medio pixel arriba de todo lo demás) */
-              <span style={{ display: 'inline-flex', alignItems: 'center', height: `${CHIP_H}px`, gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
-                {social.followers > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected</span>}
-                {social.following > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> following</span>}
+              /* la misma altura que las pastillas (Pato): el conteo pertenece a
+                 la fila, no flota junto a ella. Y se pica (Diego). */
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: `${CHIP_H}px`, gap: '4px' }}>
+                {social.followers > 0 && (
+                  <button className="pressable" data-testid="followers-count" onClick={() => setPeopleSheet('followers')}
+                    style={countBtn}>
+                    <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> {VOCAB.followers}
+                  </button>
+                )}
+                {social.following > 0 && (
+                  <button className="pressable" data-testid="following-count" onClick={() => setPeopleSheet('following')}
+                    style={countBtn}>
+                    <span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> {VOCAB.following}
+                  </button>
+                )}
               </span>
             )}
             {social.err && (
@@ -1110,11 +1208,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             ◇ this is your world — curate it →
           </button>
         )}
-        {/* the owner's own count — one honest line, never a vanity wall */}
+        {/* the owner's own count — one honest line, never a vanity wall.
+            v12: también se pica; tu propia gente es lo primero que quieres
+            poder abrir. */}
         {!editing && social?.ready && isOwner && social.followers > 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
-            <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected to your world
-          </div>
+          <button className="pressable" data-testid="owner-followers-count" onClick={() => setPeopleSheet('followers')}
+            style={{ ...countBtn, marginTop: wide ? '6px' : '14px', padding: '4px 0' }}>
+            <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> {VOCAB_PHRASE.ownFollowers}
+          </button>
         )}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
@@ -1514,6 +1615,33 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
         </div>,
         document.body
       )}
+
+      {/* ── lo que antes era texto muerto (v12) ──────────────────────────
+          Van por PORTAL a document.body por la misma razón que la ceremonia
+          de arriba: el museo tiene ancestros con `transform` (la intro de la
+          portada, las revelaciones al hacer scroll), y un transform vivo se
+          vuelve el bloque contenedor de todo `position:fixed` que cuelgue de
+          él — la hoja se anclaría al documento en vez de a la pantalla. Ya
+          pasó una vez con la hoja del builder y quedó anotado arriba. */}
+      {peopleSheet && createPortal(
+        <PeopleSheet
+          wide={wide}
+          title={peopleSheet === 'followers' ? VOCAB.followers : VOCAB.following}
+          kicker={`◇ ${displayName}`}
+          loadKey={`${peopleSheet}:${data.id}`}
+          load={peopleSheet === 'followers'
+            ? () => fetchFollowers(data.id)
+            : () => fetchFollowing(data.id)}
+          onOpenPerson={(id) => { setPeopleSheet(null); navigate(`/user/${id}`) }}
+          onClose={() => setPeopleSheet(null)}
+        />,
+        document.body
+      )}
+      {craftsOpen && createPortal(
+        <CraftsSheet wide={wide} name={displayName} crafts={crafts}
+          onPickCraft={openCraft} onClose={() => setCraftsOpen(false)} />,
+        document.body
+      )}
     </div>
   )
 }
@@ -1521,6 +1649,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 /* ---------- shared bits ---------- */
 const pill = { background: 'rgba(7,8,14,.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
 const galBtn = { background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '7px', width: '26px', height: '25px', color: BONE_MID, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
+
+/* los conteos del vínculo: se ven igual que antes (nada de botón pintado —
+   siguen siendo dato, no decoración) pero ahora son botones de verdad. Sin
+   `border:none` explícito el user-agent les mete su propio borde y la línea
+   se ensucia. */
+const countBtn = {
+  background: 'none', border: 'none', padding: '4px 6px', cursor: 'pointer',
+  fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW,
+  letterSpacing: '.12em', textTransform: 'uppercase',
+}
 
 /* WorldMarquee — the world's welcome line. ONE composed instance (Ley 8:
    el marquee aparece UNA vez, jamás fila repetida). A quiet editorial strip

@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import Mark from './Mark'
-import { glassSurface, CHIP, BUBBLE } from '@/lib/glass'
+/* v12 reconciliación: la losa usa glassSurface() (receta de Pato, que subió
+   la especular para que el vidrio lea sobre el vacío), y los chips de cada
+   ranura usan WELL/BUBBLE en círculo (MARK_CHIP_RADIUS, de Diego). Las dos
+   cosas son del mismo material y no se estorban: una es la losa, otros son
+   los chips encima. */
+import { glassSurface, CHIP, BUBBLE, WELL, MARK_CHIP_RADIUS } from '@/lib/glass'
 
 /* =========================================================================
    GlassNav (v11) — the bottom tab bar as an Apple-style liquid-glass slab.
@@ -78,6 +83,10 @@ import { glassSurface, CHIP, BUBBLE } from '@/lib/glass'
    ========================================================================= */
 
 const BONE = '#F2EEE6'
+/* la marca de una sala donde NO estás parado: gris frío, no hueso apagado.
+   El mismo valor que usa la barra de escritorio, para que las dos digan
+   "aquí no estás" con el mismo tono. */
+const DIM = '#83838F'
 
 const CHIP_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const CHIP_MS = 380
@@ -308,13 +317,13 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
 
             if (slot.create) {
               return (
-                <button key="create" type="button" className="pressable glass-nav-slot" onClick={onCreate} aria-label="Create"
+                <button key="create" type="button" className="pressable glass-tap glass-nav-slot" onClick={onCreate} aria-label="Create"
                   style={{ flex:1, minWidth:0, background:'transparent', border:'none', font:'inherit', cursor:'pointer',
                     display:'flex', flexDirection:'column', alignItems:'center', gap:'5px', padding:'4px 2px',
                     WebkitTapHighlightColor:'transparent', color: BONE,
                     position:'relative', zIndex:1 }}>
-                  <span aria-hidden="true" style={{
-                    width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`, borderRadius:'13px',
+                  <span aria-hidden="true" className="glass-chip" style={{
+                    width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`, borderRadius: MARK_CHIP_RADIUS,
                     display:'flex', alignItems:'center', justifyContent:'center',
                     ...BUBBLE, ...lift,
                   }}>
@@ -331,18 +340,22 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                  interactive elements, and a div's tap dies on finger drift.
                  onClick stays for mouse and keyboard; on touch the scrub
                  commits first and swallows the click that follows. */
-              <button key={slot.to} type="button" className="pressable glass-nav-slot" onClick={() => onTab(slot)}
+              <button key={slot.to} type="button" className="pressable glass-tap glass-nav-slot" onClick={() => onTab(slot)}
                 aria-current={active ? 'page' : undefined}
                 style={{ flex:1, minWidth:0, cursor:'pointer', display:'flex', flexDirection:'column',
                   alignItems:'center', gap:'5px', padding:'4px 2px',
                   background:'transparent', border:'none', font:'inherit',
                   WebkitTapHighlightColor:'transparent', position:'relative', zIndex:1,
-                  /* opacity is the active/inactive signal (1 vs .42); a held
-                     slot reads full even if you are not standing in it yet */
-                  color: BONE, opacity: (active || held) ? 1 : 0.42 }}>
-                <span style={{ position:'relative', display:'flex', alignItems:'center',
-                  justifyContent:'center', width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`, ...lift }}>
-                  <Mark type={slot.mark} size={ICON} filled={active} color={BONE} />
+                  /* v12: la opacidad ya no baja a .42. Con el vidrio puesto,
+                     atenuar la ranura entera atenuaba también su círculo — y
+                     un vidrio al 42% vuelve a leerse como dibujo. Quien manda
+                     ahora es el CHIP que viaja; la marca apagada lo dice con
+                     color, no borrándose. */
+                  color: BONE, opacity: 1 }}>
+                <span className="glass-chip" style={{ position:'relative', display:'flex', alignItems:'center',
+                  justifyContent:'center', width:`${SLOT_BOX}px`, height:`${SLOT_BOX}px`,
+                  borderRadius: MARK_CHIP_RADIUS, ...WELL, ...lift }}>
+                  <Mark type={slot.mark} size={ICON} filled={active} color={(active || held) ? BONE : DIM} />
                   {slot.to === '/messages' && bellCount > 0 && (
                     <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
                       style={{ position:'absolute', top:'2px', right:'2px', minWidth:'14px', height:'14px',

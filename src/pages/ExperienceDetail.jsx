@@ -1,6 +1,10 @@
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveEvent } from '@/lib/useLiveEvent'
-import { ArrowLeft, Ticket, Paintbrush, Frame, Shirt, Layers } from 'lucide-react'
+import { useWide } from '@/lib/useIsDesktop'
+import { resolveLineupWorlds } from '@/lib/match'
+import { PATO, DIEGO } from '@/lib/houseWorlds'
+import { ArrowLeft, Ticket, Paintbrush, Frame, Shirt, Layers, ArrowUpRight } from 'lucide-react'
 
 const ICON_MAP = { Paintbrush, Frame, Shirt, Layers }
 
@@ -26,8 +30,8 @@ const EXPERIENCES = {
     artists:[
       { name:'Isaac Lagarda', slug:'isaac-lagarda', color:'#C7C9D1', role:'Painter · Featured Artist', desc:'Visual storyteller bringing raw emotion to canvas. His work anchors the gallery for Edition 002.' },
       { name:'Drecol', slug:'drecol', color:'#F2EEE6', role:'Painter · Featured Artist', desc:'Live painter and visual artist. His pieces capture the energy of the night in real time — raw, unfiltered, alive.' },
-      { name:'Pato Durán', slug:'pato-duran', color:'#4A7AFF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
-      { name:'Diego Villaseñor', slug:'diego-villasenor', color:'#C7C9D1', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
+      { name:'Pato Durán', slug:'pato-duran', profile_id:PATO, color:'#4A7AFF', role:'Founder · DJ · Creative Director', desc:'Founder of The Collectiv4. Curating the visual identity and spatial design of the gallery experience.' },
+      { name:'Diego Villaseñor', slug:'diego-villasenor', profile_id:DIEGO, color:'#C7C9D1', role:'Founder · Artist · Creative Director', desc:'Founder of The Collectiv4. Visual artist and creative director shaping the collective\'s identity and experience.' },
     ],
   },
   'fashion': {
@@ -60,7 +64,32 @@ export default function ExperienceDetail() {
   const { slug } = useParams()
   const navigate = useNavigate()
   const live = useLiveEvent()
+  const wide = useWide()
   const exp = EXPERIENCES[slug]
+
+  /* v12 — LOS NOMBRES SON PUERTAS, PERO SÓLO LAS QUE ABREN.
+     Estas tarjetas eran texto muerto A PROPÓSITO, y la razón estaba anotada
+     abajo: "un nombre no es puerta si no resuelve un mundo real — nunca un
+     callejón /artist". La regla era buena; lo que faltaba era resolver.
+
+     Así que se resuelve, con el MISMO resolvedor que usa el lineup de un
+     evento (resolveLineupWorlds): coteja slug/handle/nombre contra perfiles
+     VERIFICADOS y no-demo. El que resuelve se vuelve puerta; el que no, se
+     queda exactamente como estaba. Nadie se topa con un callejón, y la regla
+     de verificado impide que alguien se renombre como un artista de la casa
+     para quedarse con su puerta (el mismo riesgo que ya cubría el lineup).
+
+     El hook va ANTES del early return de arriba — la ley de los hooks no
+     admite que una pantalla "no encontrada" cambie cuántos se ejecutan. */
+  const [worlds, setWorlds] = useState(new Map())
+  useEffect(() => {
+    let alive = true
+    const artists = exp?.artists || []
+    if (!artists.length) { setWorlds(new Map()); return undefined }
+    resolveLineupWorlds(artists).then((m) => { if (alive) setWorlds(m) })
+    return () => { alive = false }
+  }, [exp])
+
   if (!exp) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}><div style={{fontSize:'13px',color:'var(--cream-low)'}}>Not found</div></div>
 
   const IconComp = ICON_MAP[exp.iconName]
@@ -69,7 +98,14 @@ export default function ExperienceDetail() {
     <div style={{background:`linear-gradient(180deg, ${exp.accent}0A 0%, ${exp.accent}05 15%, ${exp.accent}03 30%, #0A0A0D 50%, #0A0A0D 100%)`,minHeight:'100vh',position:'relative'}}>
       {/* Ambient color orb that extends far down */}
       <div style={{position:'absolute',top:'0',left:'0',width:'100%',height:'800px',background:`radial-gradient(ellipse at 30% 15%, ${exp.accent}0C 0%, transparent 50%)`,pointerEvents:'none'}} />
-      <div style={{position:'relative',paddingTop:'60px',paddingBottom:'40px',padding:'60px 28px 40px'}}>
+      {/* v12 — la medida en escritorio. Antes esta página se quedaba en el
+          marco de 430px bajo un encabezado de 1440: un teléfono varado en
+          medio del monitor. Ahora respira, PERO NO SE ESTIRA — el texto
+          corrido a 1440px de ancho es ilegible; el ancho extra se gasta en
+          aire, que es lo que compone. */}
+      <div style={{position:'relative',
+        padding: wide ? '72px clamp(32px, 5vw, 64px) 64px' : '60px 28px 40px',
+        maxWidth: wide ? '860px' : undefined, margin: wide ? '0 auto' : undefined}}>
         <div style={{position:'absolute',top:'40px',right:'-30px',width:'200px',height:'200px',borderRadius:'50%',background:`radial-gradient(circle,${exp.accent}10 0%,transparent 70%)`,filter:'blur(60px)'}} />
         <button className="pressable" onClick={()=>navigate('/')} style={{position:'relative',zIndex:5,background:'rgba(10,10,13,.5)',backdropFilter:'blur(8px)',border:'1px solid var(--border-hi)',borderRadius:'8px',padding:'7px 14px',color:'var(--cream-mid)',fontSize:'12px',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontFamily:'DM Sans',marginBottom:'40px',width:'fit-content',transition:'border-color .2s, color .2s, transform .2s'}}
           onMouseOver={e=>{e.currentTarget.style.borderColor='var(--cream-low)';e.currentTarget.style.color='var(--cream)'}}
@@ -87,7 +123,13 @@ export default function ExperienceDetail() {
         </div>
       </div>
 
-      <div style={{padding:'0 28px 120px',position:'relative',zIndex:2}}>
+      {/* el cuerpo comparte EXACTAMENTE la medida del hero: son dos
+          envoltorios hermanos, y si sólo se compone uno, el título queda
+          centrado sobre un texto que corre de canto a canto — que fue el
+          primer intento, visto en pantalla y corregido */}
+      <div style={{padding: wide ? '0 clamp(32px, 5vw, 64px) 140px' : '0 28px 120px',
+        maxWidth: wide ? '860px' : undefined, margin: wide ? '0 auto' : undefined,
+        position:'relative',zIndex:2}}>
         <p style={{fontSize:'15px',color:'var(--cream-mid)',lineHeight:1.75,marginBottom:'28px'}}>{exp.fullDesc}</p>
         <div style={{height:'1px',background:'var(--border)',marginBottom:'28px'}}/>
 
@@ -104,21 +146,44 @@ export default function ExperienceDetail() {
         {exp.artists && (
           <>
             <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.2em',color:'var(--cream-low)',textTransform:'uppercase',marginBottom:'16px'}}>FEATURED ARTISTS</div>
-            <div style={{display:'flex',flexDirection:'column',gap:'12px',marginBottom:'32px'}}>
+            {/* en ancho, los artistas se acomodan en dos columnas: son
+                tarjetas cortas, y apiladas en una sola fila de 860px dejaban
+                una escalera de aire muerto a la derecha */}
+            <div style={{display: wide ? 'grid' : 'flex', gridTemplateColumns: wide ? 'repeat(2, 1fr)' : undefined,
+              flexDirection:'column',gap:'12px',marginBottom:'32px'}}>
               {exp.artists.map((a,i)=>{
                 const c = a.color || exp.accent
-                return (
-                <div key={i} style={{padding:'16px',border:`1px solid ${c}20`,borderRadius:'12px',background:`${c}08`}}>{/* D1: a name is not a door unless a real world resolves — static cards stay dead text, never a /artist dead-end */}
+                /* D1 sigue en pie: un nombre no es puerta si no resuelve un
+                   mundo real. La diferencia es que ahora SÍ preguntamos. */
+                const world = worlds.get(i)
+                const head = (
                   <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'8px'}}>
-                    <div style={{width:'36px',height:'36px',borderRadius:'50%',background:`${c}12`,border:`1px solid ${c}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'15px',color:c}}>{a.name[0]}</div>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)'}}>{a.name}</div>
+                    <div style={{width:'36px',height:'36px',borderRadius:'50%',background:`${c}12`,border:`1px solid ${c}25`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'15px',color:c,flexShrink:0,overflow:'hidden'}}>
+                      {world?.avatar_url
+                        ? <img src={world.avatar_url} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} />
+                        : a.name[0]}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:'14px',fontWeight:600,color:'var(--cream)',display:'flex',alignItems:'center',gap:'6px'}}>
+                        {a.name}
+                        {world && <ArrowUpRight size={12} style={{color:c,flexShrink:0}} />}
+                      </div>
                       <div style={{fontFamily:'DM Mono',fontSize:'9px',color:c,letterSpacing:'.04em',marginTop:'1px'}}>{a.role}</div>
                     </div>
                   </div>
-                  <div style={{fontSize:'12px',color:'var(--cream-mid)',lineHeight:1.5}}>{a.desc}</div>
-                </div>
-              )})}
+                )
+                const body = <div style={{fontSize:'12px',color:'var(--cream-mid)',lineHeight:1.5}}>{a.desc}</div>
+                const box = {padding:'16px',border:`1px solid ${c}20`,borderRadius:'12px',background:`${c}08`}
+                return world ? (
+                  <button key={i} className="pressable" onClick={()=>navigate('/user/'+world.id)}
+                    aria-label={`Open ${a.name}'s world`}
+                    style={{...box,width:'100%',textAlign:'left',cursor:'pointer',font:'inherit',display:'block'}}>
+                    {head}{body}
+                  </button>
+                ) : (
+                  <div key={i} style={box}>{head}{body}</div>
+                )
+              })}
             </div>
           </>
         )}

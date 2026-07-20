@@ -1,5 +1,9 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, MapPin, Clock, Calendar, Users, Music } from 'lucide-react'
+import { useWide } from '@/lib/useIsDesktop'
+import { ArrowLeft, MapPin, Clock, Calendar, Users, Music, ArrowUpRight } from 'lucide-react'
+import { resolveLineupWorlds } from '@/lib/match'
+import { NATE, PATO } from '@/lib/houseWorlds'
 
 const EDITIONS = [
   {
@@ -9,7 +13,20 @@ const EDITIONS = [
     date: 'April 4, 2026',
     time: '10PM — 2AM',
     attendees: '~220',
-    lineup: ['Madou', 'Pato', 'Mellizos', 'CLTV4 Experience'],
+    /* v12 — LA REGLA PERMANENTE (ver src/lib/houseWorlds.js):
+       nombre CON perfil real = puerta · nombre SIN perfil = texto normal.
+       Esto era un arreglo de strings pelones, o sea TODO texto muerto por
+       construcción: sin forma de objeto no había dónde colgar un id, ni
+       siquiera para la gente que sí existe. Ahora es forma de objeto, y sólo
+       quien trae profile_id se vuelve puerta. Mellizos y CLTV4 Experience se
+       quedan como texto a propósito — no hay perfil detrás, y no se inventa
+       ninguno. */
+    lineup: [
+      { name: 'Madou', profile_id: NATE },
+      { name: 'Pato', profile_id: PATO },
+      { name: 'Mellizos' },
+      { name: 'CLTV4 Experience' },
+    ],
     sponsors: ['Stained Vase', 'Arlo Espresso Club', 'RedBull', 'Bazaar'],
     vibe: 'The one that started it all. Raw energy, packed room, art on every wall. Houston showed up.',
   }
@@ -17,11 +34,39 @@ const EDITIONS = [
 
 export default function PastEditions() {
   const navigate = useNavigate()
+  const wide = useWide()
+
+  /* Sólo hay una edición, pero se resuelve por índice como en cualquier otro
+     lineup para no inventar un segundo camino. El resolvedor conserva el piso
+     de integridad (is_demo=false, no purgado), así que si alguno de esos
+     mundos se apagara, el nombre cae solo a texto normal. */
+  const [worlds, setWorlds] = useState(new Map())
+  useEffect(() => {
+    let alive = true
+    resolveLineupWorlds(EDITIONS[0].lineup).then((m) => { if (alive) setWorlds(m) })
+    return () => { alive = false }
+  }, [])
+
+  /* v12 — LA COMPOSICIÓN EN ESCRITORIO.
+
+     Un boleto NO se estira a 1440px. Es un objeto, y un objeto se compone
+     dándole aire alrededor, no inflándolo hasta que el borde toque los dos
+     cantos de la pantalla — eso es exactamente lo que hace que una app se
+     vea como una página web estirada. Se centra a una medida de objeto y el
+     resto del ancho pasa a ser negro con aire, que es lo que le da presencia
+     (Cosmos: espacio negativo generoso, alto contraste, editorial).
+
+     Si algún día hay varias ediciones, ESTA es la línea que se convierte en
+     reja; con una sola, una reja de una celda sería una reja fingida. */
+  const stack = wide
+    ? { maxWidth: '620px', margin: '0 auto', padding: '56px 32px 120px' }
+    : { padding: '24px 28px 100px' }
 
   return (
     <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh'}}>
-      {/* Header matching Event page */}
-      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
+      {/* Header matching Event page. En escritorio la barra global ya vive
+          arriba (56px), así que ésta se pega DEBAJO en vez de encima. */}
+      <div style={{position:'sticky',top: wide ? '56px' : 0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding: wide ? '12px clamp(24px, 4vw, 56px)' : '12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button className="pressable" onClick={()=>navigate('/')} style={{background:'none',border:'none',color:'var(--cream-mid)',cursor:'pointer',display:'flex',alignItems:'center',transition:'color var(--dur-fast) var(--ease-house)'}}
           onMouseOver={e=>{e.currentTarget.style.color='var(--cream)'}}
           onMouseOut={e=>{e.currentTarget.style.color='var(--cream-mid)'}}>
@@ -30,7 +75,7 @@ export default function PastEditions() {
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PAST EDITIONS</div>
       </div>
 
-      <div style={{padding:'24px 28px 100px'}}>
+      <div style={stack}>
         {EDITIONS.map(ed => (
           <div key={ed.id} style={{
             borderRadius:'20px',
@@ -86,9 +131,19 @@ export default function PastEditions() {
 
               <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.15em',color:'var(--cream)',marginBottom:'10px'}}>LINEUP</div>
               <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'24px'}}>
-                {ed.lineup.map((dj,i)=>(
-                  <span key={i} style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',padding:'5px 14px',borderRadius:'100px'}}>{dj}</span>
-                ))}
+                {ed.lineup.map((dj,i)=>{
+                  const world = worlds.get(i)
+                  const chip = {fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream)',background:'rgba(255,255,255,.06)',border:'1px solid rgba(255,255,255,.12)',padding:'5px 14px',borderRadius:'100px'}
+                  return world ? (
+                    <button key={i} className="pressable" onClick={()=>navigate('/user/'+world.id)}
+                      aria-label={`Open ${dj.name}'s world`}
+                      style={{...chip,cursor:'pointer',display:'inline-flex',alignItems:'center',gap:'5px'}}>
+                      {dj.name} <ArrowUpRight size={10} style={{color:'var(--silver)'}} />
+                    </button>
+                  ) : (
+                    <span key={i} style={chip}>{dj.name}</span>
+                  )
+                })}
               </div>
 
               <div style={{fontFamily:'DM Mono',fontSize:'9px',letterSpacing:'.15em',color:'var(--cream)',marginBottom:'10px'}}>POWERED BY</div>
