@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
-import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText } from '@/lib/cosmos'
+// VOID dropped in v12 — the page is transparent now, the shared sky paints it.
+import { BONE, BONE_MID, BONE_LOW, FAINT, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText } from '@/lib/cosmos'
 
 /* =========================================================================
    LEGAL — Terms, Privacy, and Refunds. Standalone cosmos pages (rendered
