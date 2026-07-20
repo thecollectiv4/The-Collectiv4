@@ -1,11 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { humanizeAuthError } from '@/lib/authErrors'
+import { fetchGateEnabled, humanizeGateError } from '@/lib/earlyAccess'
+import EarlyAccessGate from '@/components/EarlyAccessGate'
 import { ArrowLeft } from 'lucide-react'
 
 export default function Auth() {
-  const [mode, setMode] = useState('signup')
+  /* Default to SIGN IN whenever we were sent here from somewhere (?next=…).
+     That path is overwhelmingly someone who already has an account and lost
+     their session — most sharply the ticket buyer bounced from /claim. They
+     already paid; "NOT FOR ALL PEOPLE" is the wrong first thing to show them.
+     A cold visit to /auth still opens on signup. */
+  const [mode, setMode] = useState(() =>
+    new URLSearchParams(window.location.search).get('next') ? 'signin' : 'signup')
+  /* v12 — LA PUERTA. The gate stands in front of SIGNUP only; sign-in is
+     never gated (see EarlyAccessGate). `gate` is undefined until the flag
+     resolves, so we render nothing rather than flashing the open signup
+     form and then yanking it away. fetchGateEnabled fails OPEN. */
+  const [gate, setGate] = useState(undefined)
+  const [inviteCode, setInviteCode] = useState('')
+  useEffect(() => { let ok = true; fetchGateEnabled().then(v => { if (ok) setGate(v) }); return () => { ok = false } }, [])
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [email, setEmail] = useState('')
@@ -32,9 +47,18 @@ export default function Auth() {
       if (mode==='signin') { const {error}=await signIn(email,password); if(error)throw error; navigate(next) }
       else {
         const fullName = `${firstName.trim()} ${lastName.trim()}`
-        const {error}=await signUp(email,password,fullName,{first_name:firstName.trim(),last_name:lastName.trim()}); if(error)throw error; navigate(next)
+        // inviteCode rides to the before_user_created hook via user metadata
+        const {error}=await signUp(email,password,fullName,{first_name:firstName.trim(),last_name:lastName.trim()},inviteCode); if(error)throw error; navigate(next)
       }
-    } catch(e){ setError(humanizeAuthError(e)) } finally{ setLoading(false) }
+    } catch(e){
+      const gateMsg = humanizeGateError(e)
+      // The hook refused the code (it can fail open past the client oracle, or
+      // the code was revoked between check and submit). Send them BACK to the
+      // door — otherwise they are staring at "check your code" on a screen with
+      // no code field, and every resubmit fails the same way forever.
+      if (gateMsg) setInviteCode('')
+      setError(gateMsg || humanizeAuthError(e))
+    } finally{ setLoading(false) }
   }
 
   // D3: forgot password — send the reset link. Anti-enumeration: the same
@@ -48,8 +72,29 @@ export default function Auth() {
     } catch(e){ setError(humanizeAuthError(e)) } finally{ setLoading(false) }
   }
 
+  /* Flag still resolving — hold ONLY the signup form. Sign-in and password
+     recovery are never gated, so they must never wait on this RPC: holding
+     the whole page meant an existing member on bad signal got a blank 100vh
+     div where sign-in used to be, with no Back button (this route renders
+     outside Layout). fetchGateEnabled also times out at 2s now. */
+  if (gate === undefined && mode === 'signup') return <div style={{ minHeight: '100vh' }} />
+
+  /* Gate ON + the visitor hasn't presented a code yet → la puerta.
+     `mode` is the escape hatch: switching to sign-in walks straight past
+     this, because an existing member is not a new signup. */
+  if (gate && !inviteCode && mode === 'signup') {
+    return (
+      <EarlyAccessGate
+        onAccepted={(c) => { setInviteCode(c); setError('') }}
+        onSignIn={() => setMode('signin')}
+      />
+    )
+  }
+
   return (
-    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)'}}>
+    // v12: transparent + zIndex 1 — the shared sky (App.jsx) now paints
+    // behind this page. It used to hand-roll a flat void gradient.
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',justifyContent:'center',padding:'2rem 28px',background:'transparent',position:'relative',zIndex:1}}>
       <button onClick={()=>navigate('/')} style={{position:'absolute',top:'20px',left:'20px',background:'none',border:'none',color:'var(--cream-low)',cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',fontSize:'12px',fontFamily:'DM Sans'}}>
         <ArrowLeft size={14}/> Back
       </button>

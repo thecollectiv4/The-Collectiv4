@@ -77,8 +77,13 @@ export default function VerifiedMark({ size = 16, style }) {
       aria-hidden="true" focusable="false"
       style={{
         /* un halo apenas: confirma que la marca emite luz propia sin
-           convertirla en un botón de neón */
-        filter: 'drop-shadow(0 0 6px rgba(242,238,230,.34))',
+           convertirla en un botón de neón.
+           v12 — el radio ESCALA con el tamaño. Estaba fijo en 6px, así que
+           en un badge de 14px el halo era casi la mitad del glifo y en el
+           de 24px del héroe apenas se notaba: el resplandor se leía MÁS
+           fuerte en las marcas chicas que en la grande. Al revés de la
+           intención. 0.28 × size reproduce los 6px originales a size 21. */
+        filter: `drop-shadow(0 0 ${(size * 0.28).toFixed(1)}px rgba(242,238,230,.34))`,
         display: 'block', flexShrink: 0, overflow: 'visible', ...style,
       }}
     >

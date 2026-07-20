@@ -5,6 +5,7 @@ import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
 import { normVibe, vibeMeta } from '@/lib/match'
+import { CARD_TINT, cardGlass } from '@/lib/glass'
 
 /* =========================================================================
    EVENTS — the EVENT tab (D1, decisión de Pato): solo eventos, TODOS los
@@ -26,7 +27,11 @@ const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
 const SILVER = '#C7C9D1'
 const STAR = '#E8E9ED'
-const CARD = '#0E0E13'
+// v12: was a flat opaque plate ('#0E0E13'), so Events was the one consumer
+// surface whose cards sat ON the constellation instead of sampling it, while
+// Community's identical card already used cardGlass(). Same frame, same card,
+// two materials — the exact drift glass.js exists to end.
+const CARD = CARD_TINT
 const HAIR = 'rgba(242,238,230,0.08)'
 const HAIR_HI = 'rgba(242,238,230,0.15)'
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
@@ -180,13 +185,13 @@ export default function Events() {
             {upcoming.length > 0 && (
               <div style={{ marginTop: featured ? (wide ? '44px' : '32px') : '22px' }}>
                 <RowMarker label="MORE ROOMS" kicker="on the platform" />
-                <div style={{ display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' } : { flexDirection: 'column' }), gap: wide ? '18px' : '14px' }}>
+                <div style={{ display: wide ? 'grid' : 'flex', ...(wide ? { gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' } : { flexDirection: 'column' }), gap: wide ? '18px' : '14px' }}>
                   {upcoming.map((e, i) => (
                     /* display:grid so the RoomCard child stretches to the row's
                        height in the wide grid (the wrapper is now the grid item) */
                     <div key={e.id} className={entered ? undefined : 'card-in'}
                       style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50 + 100}ms` }}>
-                      <RoomCard e={e} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
+                      <RoomCard e={e} wide={wide} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
                     </div>
                   ))}
                 </div>
@@ -219,7 +224,7 @@ export default function Events() {
                 {lastRoom && (
                   <div className={entered ? undefined : 'card-in'} style={{ animationDelay: '100ms' }}>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase', marginBottom: '9px' }}>the last room</div>
-                    <RoomCard e={lastRoom} pastRoom onOpen={() => navigate(lastRoom.slug ? `/e/${lastRoom.slug}` : '/editions')} />
+                    <RoomCard e={lastRoom} pastRoom wide={wide} onOpen={() => navigate(lastRoom.slug ? `/e/${lastRoom.slug}` : '/editions')} />
                   </div>
                 )}
               </div>
@@ -347,13 +352,19 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
 }
 
 /* ---- a room in the directory (pastRoom: the archive's face) ---- */
-function RoomCard({ e, onOpen, pastRoom }) {
+function RoomCard({ e, onOpen, pastRoom, wide }) {
   const cover = safeImg(e.cover_url)
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${e.title}`}
       onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
-      style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>
-      <div className="disc-banner" style={{ position: 'relative', height: pastRoom ? '148px' : '128px', overflow: 'hidden', background: VOID }}>
+      /* v12: real glass on the OUTER card only — never nested (glass.js).
+         The sky now reads through the room cards the way it does through the
+         people cards. */
+      style={{ ...cardGlass(), position: 'relative', borderRadius: '16px', overflow: 'hidden', cursor: 'pointer' }}>
+      {/* v12: the banner scaled with nothing. In a 4-col grid at 1440 a card is
+          ~330px wide, so a 128px banner is a 2.6:1 letterbox of someone's
+          poster. Community already scales its equivalent (92 → 116). */}
+      <div className="disc-banner" style={{ position: 'relative', height: pastRoom ? (wide ? '170px' : '148px') : (wide ? '150px' : '128px'), overflow: 'hidden', background: VOID }}>
         {cover ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <MiniStars seed={e.slug || e.id} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,.1) 30%, rgba(7,8,14,.9) 100%)' }} />
         {pastRoom ? (

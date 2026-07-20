@@ -278,8 +278,8 @@ export default function Community() {
         </div>
         {/* filters — data-driven, honest: city from claimed cities, craft
             from the community's REAL crafts (the matching column, D2) */}
-        {cityOptions.length > 0 && <FilterRow label="CITY" value={city} onChange={setCity} options={cityOptions} />}
-        {craftOptions.length > 0 && <CraftFilterRow value={craft} onChange={setCraft} options={craftOptions} />}
+        {cityOptions.length > 0 && <FilterRow label="CITY" value={city} onChange={setCity} options={cityOptions} wide={wide} />}
+        {craftOptions.length > 0 && <CraftFilterRow value={craft} onChange={setCraft} options={craftOptions} wide={wide} />}
 
         {!loading && (
           <div aria-hidden style={{ margin: '16px 0 12px', height: '1px', background: `linear-gradient(90deg,${HAIR_HI},transparent)` }} />
@@ -359,12 +359,21 @@ export default function Community() {
 }
 
 /* ---- filter chips ---- */
-function FilterRow({ label, value, onChange, options }) {
+function FilterRow({ label, value, onChange, options, wide }) {
   const all = ['all', ...options]
   return (
     <div style={{ marginTop: '10px' }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', marginBottom: '9px' }}>{label}</div>
-      <div className="no-scrollbar edge-fade-r" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
+      {/* v12 desktop: WRAP, don't rail. The horizontal scroll + edge fade is
+          the right pattern on a phone, but on a 1440 row it masks chips that
+          would all fit behind a gesture that does not exist there — and the
+          scrollbar is killed globally, so there is no affordance at all. The
+          taxonomy is the discovery spine; on desktop it should be a visible
+          set. Mobile keeps the rail exactly as it was. */}
+      <div className={wide ? undefined : 'no-scrollbar edge-fade-r'}
+        style={wide
+          ? { display: 'flex', gap: '8px', flexWrap: 'wrap', paddingBottom: '2px' }
+          : { display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         {all.map(opt => {
           const on = value === opt
           return (
@@ -382,11 +391,16 @@ function FilterRow({ label, value, onChange, options }) {
    The category mark lights ONLY on the active chip (an idle ✕ category
    mark reads as a remove button it isn't — panel catch, Ley 9); the
    active chip carries a REAL × that clears it. */
-function CraftFilterRow({ value, onChange, options }) {
+function CraftFilterRow({ value, onChange, options, wide }) {
   return (
     <div style={{ marginTop: '10px' }}>
       <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', marginBottom: '9px' }}>CRAFT</div>
-      <div className="no-scrollbar edge-fade-r" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
+      {/* same rail→set change as FilterRow above; this is the row that was
+          visibly clipping "Illustrator" mid-word at 1440 */}
+      <div className={wide ? undefined : 'no-scrollbar edge-fade-r'}
+        style={wide
+          ? { display: 'flex', gap: '8px', flexWrap: 'wrap', paddingBottom: '2px' }
+          : { display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '2px' }}>
         {[{ slug: 'all', name: 'All' }, ...options].map(opt => {
           const on = value === opt.slug
           const meta = opt.slug === 'all' ? { tint: '199,201,209', mark: '◇' } : categoryMeta(opt.category)
@@ -432,7 +446,9 @@ function WorldCard({ c, crafts = [], connected, onOpen, wide, showSeed }) {
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={c.id || c.username || name} />}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(7,8,14,0) 30%, #0E0E13 100%)' }} />
-        {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={16} /></span>}
+        {/* v12: 16px was frozen at phone scale inside a card that is ~50%
+            wider on desktop — the membership mark read as a speck there. */}
+        {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={wide ? 20 : 16} /></span>}
         {/* guardrail 4: the label rides is_demo itself (the ONE shared pill) —
             the query already hides seed when SHOW SEED is off, so a rendered
             seed row is always a labeled seed row */}

@@ -10,8 +10,9 @@ import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 import GlassNav from './GlassNav'
 import Mark from './Mark'
-import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
-import { BUBBLE, WELL, BONE_GLOW } from '@/lib/glass'
+/* v12: Atmosphere/Grain/CosmosProvider moved to App.jsx (one sky, mounted
+   above <Routes> so every route gets it — not just Layout's children). */
+import { BUBBLE, WELL, BONE_GLOW, glassSurface } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
@@ -153,25 +154,44 @@ export default function Layout() {
   }, [wideFull])
 
   return (
-    <CosmosProvider>
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100vh' }}>
 
-      {/* v8: THE atmosphere — one sky behind every room (D1). The page div
-          below carries zIndex 1, so content always reads above it. Density
-          and temperature resolve per route inside; a world can claim its
-          own sky via useCosmosOverride. The grain rides at the very top of
-          the stack — film over the whole lens, modals included. */}
-      <Atmosphere />
-      <Grain />
+      {/* v12: the sky MOVED UP — <Atmosphere/> + <Grain/> + <CosmosProvider>
+          now live in App.jsx, mounted above <Routes> so the six routes that
+          render OUTSIDE this Layout (/auth, /claim, /reset-password, /terms,
+          /privacy, /refunds) finally get the same universe. They had been
+          hand-rolling static void gradients with no stars — the auth flow and
+          the whole post-purchase ceremony were the only rooms with no sky.
+          Still ONE sky for the whole app; it just hangs one level higher.
+          The zIndex contract is unchanged: sky 0, page 1 (see below). */}
 
       {/* Wide header — the desktop navigation (fixed spans the viewport; the
           body frame doesn't constrain position:fixed). Bebas mark as the door
           home, DM Mono tabs, hairline below. One instrument, editorial. */}
       {consumerWide && (
-        <header style={{
+        /* v12 — THE DESKTOP HEADER FINALLY USES THE HOUSE GLASS.
+           It was rgba(10,10,13,.92) + blur(14px): 92% opaque, so there was
+           nothing to see THROUGH — which is why "the glass doesn't work on
+           desktop". glassSurface() had exactly one call site app-wide
+           (GlassNav), and GlassNav never mounts at >=1024px, so the app's
+           flagship material rendered at ZERO desktop widths. v11 unified the
+           buttons and left the container behind; this is that drift closed.
+           The two projected drop shadows are dropped — they are sized for a
+           floating pill and read as a skirt under a top-flush bar — and the
+           three insets stay, because the specular top edge is the thing that
+           makes it read as glass rather than as a tint. */
+        <header className="glass-header" style={{
+          ...glassSurface({
+            border: 'none',
+            borderBottom: '1px solid rgba(242,238,230,0.14)',
+            borderRadius: 0,
+            boxShadow: [
+              'inset 0 1.5px 0 rgba(242,238,230,0.30)',
+              'inset 0 -1px 0 rgba(7,8,14,0.55)',
+              'inset 0 30px 44px -30px rgba(242,238,230,0.26)',
+            ].join(', '),
+          }),
           position:'fixed', top:0, left:0, right:0, zIndex:9999, height:'56px',
-          background:'rgba(10,10,13,.92)', backdropFilter:'blur(14px)', WebkitBackdropFilter:'blur(14px)',
-          borderBottom:'1px solid rgba(242,238,230,.08)',
           display:'flex', alignItems:'center', justifyContent:'space-between',
           padding:'0 clamp(24px, 4vw, 56px)',
         }}>
@@ -272,6 +292,5 @@ export default function Layout() {
         <CreateCentral user={user} isMemberVerified={osState === 'granted'} onClose={()=>setCreateOpen(false)} />
       )}
     </div>
-    </CosmosProvider>
   )
 }

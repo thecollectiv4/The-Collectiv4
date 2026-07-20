@@ -56,12 +56,49 @@ const STARS_2 = [
 /* ---- density registers (D2) — the deck numbers, then restraint ----
    k scales the deck's node formula; linkA is the deck's link ceiling;
    starsO scales the two CSS tile layers. quiet kills links and the
-   pointer entirely: grain, a few far stars, drift you can barely see. */
+   pointer entirely: grain, a few far stars, drift you can barely see.
+
+   v12 adds `sky`: the STATIC depth multiplier (nebula + river + dust).
+   It rides the rasterized layer, so it scales the sky's BEAUTY without
+   touching the per-frame cost — quiet surfaces get a dimmer deep field,
+   not a cheaper one. */
 const PRESETS = {
-  dense:  { k: 1,    linkA: 0.14, mouse: true,  starsO: [0.5, 0.35] },
-  medium: { k: 0.62, linkA: 0.09, mouse: true,  starsO: [0.3, 0.2] },
-  quiet:  { k: 0,    linkA: 0,    mouse: false, starsO: [0.14, 0.1], fixedCount: 5 },
+  dense:  { k: 1,    linkA: 0.14, mouse: true,  starsO: [0.5, 0.35], sky: 1 },
+  medium: { k: 0.62, linkA: 0.09, mouse: true,  starsO: [0.3, 0.2],  sky: 0.72 },
+  quiet:  { k: 0,    linkA: 0,    mouse: false, starsO: [0.14, 0.1], sky: 0.4, fixedCount: 5 },
 }
+
+/* =========================================================================
+   V12 — EL RÍO DE ESTRELLAS. The sky stops being "void + dots" and becomes
+   deep space: nebula, a current of light, and real star dust.
+
+   THE LAW THIS OBEYS (Ley 8 + La Ley del Lujo Inmersivo): the constellation
+   is a surgical accent, NEVER wallpaper. So "más cabrón" is bought with
+   DEPTH, not density — more layers, lower opacity, better placement. Every
+   value below is deliberately under the threshold where it competes with
+   the content. A sky that screams is a screensaver.
+
+   THE PERFORMANCE THESIS: depth is STATIC, motion is SPARSE. The nebula,
+   the river and the ~420 dust stars are painted ONCE into the cached
+   background raster and blitted as a single bitmap per frame — they cost
+   nothing to animate because they don't. Only the 14–40 constellation
+   nodes move. The sky gets richer; the iPhone's frame budget does not.
+
+   THE PALETTE IS TEMPERATURE, NOT COLOR: Cosmos forbids color gradients,
+   so the "aurora dorada-azul" of the brief lands at 2–4% alpha, where it
+   reads as depth and warmth-of-distance, never as a hue. Desaturated on
+   purpose — museum, not circus.
+   ========================================================================= */
+
+// nebula tints — cold silver-blue with ONE restrained gold, the aurora of
+// the brief held at a whisper. Never saturated: these are near-greys that
+// merely lean. [r,g,b, peak alpha]
+const NEBULA = [
+  [122, 146, 190, 0.088],   // cold blue — the deep field
+  [186, 198, 222, 0.058],   // silver — the diffuse middle
+  [198, 170, 118, 0.048],   // gold — the aurora, the single warm note
+  [96, 118, 158, 0.068],    // far blue — the depth behind everything
+]
 
 /* route → surface register. Overrides (a world's own sky) win over this. */
 function presetForPath(path) {
@@ -72,6 +109,14 @@ function presetForPath(path) {
   if (path.startsWith('/experience') || path.startsWith('/editions')) return { density: 'medium', tint: '242,238,230', seed: 'the-archive' }
   if (path.startsWith('/messages')) return { density: 'quiet', tint: '232,233,237', seed: 'the-conversations' }
   if (path.startsWith('/os')) return { density: 'quiet', tint: '232,233,237', seed: 'the-instrument' }
+  /* v12 — the rooms that never had a sky. /auth and /claim are ceremony:
+     the door you're being let through, and the night you just bought. They
+     get a live register. The legal pages are paperwork — grain and a far
+     star, nothing that competes with a wall of text. */
+  if (path.startsWith('/auth') || path.startsWith('/__gate')) return { density: 'medium', tint: '199,201,209', seed: 'la-puerta' }
+  if (path.startsWith('/claim')) return { density: 'medium', tint: '242,238,230', seed: 'your-first-night' }
+  if (path.startsWith('/reset-password')) return { density: 'quiet', tint: '199,201,209', seed: 'the-way-back' }
+  if (path.startsWith('/terms') || path.startsWith('/privacy') || path.startsWith('/refunds')) return { density: 'quiet', tint: '199,201,209', seed: 'the-paperwork' }
   return { density: 'quiet', tint: '199,201,209', seed: 'c4' }
 }
 
@@ -135,7 +180,14 @@ export default function Atmosphere() {
     // frameMs=0 let draw() run at display rate, review HIGH), ~30 on touch,
     // and the QUIET register idles at ~15fps: five bare stars drifting
     // 0.16px/frame need nothing more (review catch)
-    const frameMs = preset.fixedCount ? 66 : (finePointer ? 15 : 31)
+    // v12 desktop: the 60fps decision was made for a phone and never
+    // reconsidered against AREA. A full-canvas blit at 2560x1440@66fps is
+    // ~974 Mpx/s against ~42 Mpx/s on a 390px phone — 23x, for a background.
+    // Above ~2.2 Mpx of viewport the sky drops to ~30fps; the drift is
+    // 0.16px/frame and the parallax is a lean, both of which read identically
+    // at 30. Nobody can see the difference; the laptop fan can.
+    const bigViewport = window.innerWidth * window.innerHeight > 2.2e6
+    const frameMs = preset.fixedCount ? 66 : (finePointer && !bigViewport ? 15 : 31)
 
     let nodes = []
     let raf = 0
@@ -144,6 +196,23 @@ export default function Atmosphere() {
     let resizeT = 0
     let mx = -9999, my = -9999
     let fadeT = 0
+    let clock = 0   // v12: seconds-ish, advanced by the loop — drives twinkle
+    // v12: the bloom, baked once. Alpha rides on globalAlpha at draw time, so
+    // one white sprite serves every brightness and every twinkle phase.
+    let haloSprite = null
+    const buildHalo = () => {
+      const S = 64
+      const cv = document.createElement('canvas')
+      cv.width = S; cv.height = S
+      const g2 = cv.getContext('2d')
+      if (!g2) return null
+      const g = g2.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2)
+      g.addColorStop(0, 'rgba(232,236,246,1)')
+      g.addColorStop(1, 'rgba(232,236,246,0)')
+      g2.fillStyle = g
+      g2.fillRect(0, 0, S, S)
+      return cv
+    }
     let holdBuild = false   // true while the OLD sky fades out — the loop
                             // must neither rebuild nor repaint over it
 
@@ -162,17 +231,41 @@ export default function Atmosphere() {
         canvas.style.height = `${h}px`
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      if (!haloSprite) haloSprite = buildHalo()
       const rnd = mulberry32(hash(cfg.seed) + 77)
       // the deck's own count: min(40, max(14, w/34)) — scaled by register.
       // quiet surfaces hold a fixed handful: a far star, not a chart.
-      const n = preset.fixedCount ?? Math.round(Math.min(40, Math.max(14, Math.floor(w / 34))) * preset.k)
-      nodes = Array.from({ length: n }, () => ({
-        x: rnd() * w,
-        y: rnd() * h,
-        vx: (rnd() - 0.5) * 0.16,          // deck drift: px/frame @60 — barely there
-        vy: (rnd() - 0.5) * 0.16,
-        r: rnd() * 1.3 + 0.5,              // deck radius: .5–1.8
-      }))
+      /* v12 desktop density. The old formula scaled by WIDTH, so the sky got
+         thinner the bigger the screen: ~42 nodes per megapixel on a phone,
+         ~11 per megapixel at 2560 — the same field stretched over 4x the
+         area, which is why desktop reads empty. Scaling by sqrt(area) keeps
+         the designed density. The 72 ceiling is non-negotiable: links are
+         O(n²), and 72 nodes is already 2,556 distance checks per frame. */
+      const n = preset.fixedCount ?? Math.round(Math.min(72, Math.max(14, Math.sqrt(w * h) / 26)) * preset.k)
+      // v12 — the node count is UNCHANGED (the frame budget v10 tuned stays
+      // exactly where it was). What changes is that each node now has a
+      // MAGNITUDE and a twinkle phase, so the foreground reads as a star
+      // field with depth instead of 40 identical dots. Plus a shared current:
+      // the drift is no longer pure noise, it flows, so the sky breathes in
+      // one direction the way weather does.
+      const cur = (rnd() - 0.5) * 0.06                      // the current's bias
+      const curY = (rnd() - 0.5) * 0.04
+      nodes = Array.from({ length: n }, () => {
+        const m = rnd()                                     // magnitude roll
+        const bright = m > 0.92                             // ~3 per sky
+        const mid = !bright && m > 0.62
+        return {
+          x: rnd() * w,
+          y: rnd() * h,
+          vx: (rnd() - 0.5) * 0.16 + cur,   // deck drift: px/frame @60 — barely there
+          vy: (rnd() - 0.5) * 0.16 + curY,
+          r: bright ? 1.5 + rnd() * 0.6 : mid ? 0.9 + rnd() * 0.5 : 0.5 + rnd() * 0.35,
+          a: bright ? 0.92 : mid ? 0.66 : 0.42,             // was a flat 0.7 for all
+          halo: bright,                                     // only the brightest earn one
+          ph: rnd() * 6.28,                                 // twinkle phase
+          tw: 0.6 + rnd() * 0.9,                            // twinkle speed
+        }
+      })
     }
 
     const buildBg = (w, h) => {
@@ -182,10 +275,30 @@ export default function Atmosphere() {
       // Cached per size|tint across cfg changes: returning to a room with
       // the same temperature never repays the raster (review catch).
       if (w < 1 || h < 1) { bgCanvas = null; return }
-      const key = `${w}x${h}|${TINT}`
+      // v12: seed + sky join the cache key — two worlds at the same size no
+      // longer share one bitmap now that the deep field is per-seed.
+      const key = `${w}x${h}|${TINT}|${cfg.seed}|${preset.sky}`
+      // LRU, not FIFO. v12 added the SEED to this key, and seeds are per-entity
+      // (a profile id, an event slug), so the number of distinct keys is now
+      // unbounded where it used to be a handful of tints. Under plain FIFO a
+      // re-read never refreshed position, so the hot home sky was evicted by
+      // one-shot profile skies. Touch on hit = the skies you actually revisit
+      // are the ones that survive.
       const hit = bgCache.current.get(key)
-      if (hit) { bgCanvas = hit; return }
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      if (hit) {
+        bgCache.current.delete(key); bgCache.current.set(key, hit)
+        bgCanvas = hit; return
+      }
+      /* The BACKGROUND raster is capped at 1.5x on desktop, not 2x. Everything
+         painted into it is low-frequency — a void gradient, four nebula clouds,
+         one soft river — plus sub-pixel dust. None of it carries an edge that
+         2x resolves and 1.5x does not; it is the one layer in the app where
+         the extra samples buy literally nothing visible. It buys 44% of the
+         memory back on the machine with the biggest canvas. The MOVING stars
+         still draw at full DPR (that clamp is untouched, above) — those DO
+         have edges. Phones keep 2x: there the raster is small and cheap. */
+      const bigView = w * h > 1.0e6
+      const dpr = Math.min(bigView ? 1.5 : 2, window.devicePixelRatio || 1)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
       bgCanvas.height = Math.round(h * dpr)
@@ -202,8 +315,94 @@ export default function Atmosphere() {
       glow.addColorStop(1, `rgba(${TINT},0)`)
       b.fillStyle = glow
       b.fillRect(0, 0, w, h)
-      // small, bounded: a handful of size|tint pairs ever exist per session
-      if (bgCache.current.size > 8) bgCache.current.delete(bgCache.current.keys().next().value)
+
+      /* ---- v12 deep field: everything below is painted ONCE, right here ----
+         Same random stream as the nodes (seeded), so a world's nebula, its
+         river and its stars are one composition rather than three accidents. */
+      const sky = preset.sky ?? 1
+      const srnd = mulberry32(hash(cfg.seed) + 913)
+      const diag = Math.hypot(w, h)
+
+      // 1. THE NEBULA — four soft clouds, screen-blended so they add light
+      // instead of muddying the void. Placement is seeded but biased to the
+      // upper field and the corners: clouds behind the content, never a
+      // bloom under the middle of the page where text lives (Ley 3).
+      b.globalCompositeOperation = 'screen'
+      for (let i = 0; i < NEBULA.length; i++) {
+        const [r, gg, bb, a] = NEBULA[i]
+        const cx = w * (0.12 + srnd() * 0.78)
+        // keep the mass out of the reading band: top third or bottom sixth
+        const cy = srnd() < 0.7 ? h * (0.02 + srnd() * 0.32) : h * (0.82 + srnd() * 0.2)
+        const rad = diag * (0.34 + srnd() * 0.36)
+        const cloud = b.createRadialGradient(cx, cy, 0, cx, cy, rad)
+        const peak = a * sky
+        cloud.addColorStop(0, `rgba(${r},${gg},${bb},${peak})`)
+        cloud.addColorStop(0.42, `rgba(${r},${gg},${bb},${peak * 0.38})`)
+        cloud.addColorStop(1, `rgba(${r},${gg},${bb},0)`)
+        b.fillStyle = cloud
+        b.fillRect(0, 0, w, h)
+      }
+
+      // 2. THE RIVER — the current of light the brief asked for. A soft band
+      // raked across the field at a seeded angle: the Milky Way read as a
+      // gesture, not a stripe. Drawn as a long, very low-alpha capsule so it
+      // has a bright spine and no edges.
+      const ang = (-0.62 + srnd() * 0.34)              // roughly lower-left → upper-right
+      const rcx = w * (0.3 + srnd() * 0.4)
+      const rcy = h * (0.34 + srnd() * 0.36)
+      b.save()
+      b.translate(rcx, rcy)
+      b.rotate(ang)
+      const band = b.createLinearGradient(0, -diag * 0.16, 0, diag * 0.16)
+      band.addColorStop(0, 'rgba(150,172,208,0)')
+      band.addColorStop(0.42, `rgba(150,172,208,${0.044 * sky})`)
+      band.addColorStop(0.5, `rgba(214,222,238,${0.070 * sky})`)   // the spine
+      band.addColorStop(0.58, `rgba(150,172,208,${0.044 * sky})`)
+      band.addColorStop(1, 'rgba(150,172,208,0)')
+      b.fillStyle = band
+      b.fillRect(-diag, -diag * 0.16, diag * 2, diag * 0.32)
+      b.restore()
+
+      // 3. THE DUST — the depth that makes it read as SPACE and not as a
+      // gradient. ~420 sub-pixel stars, denser along the river (that is what
+      // a galactic band IS), all static. This is the single biggest visual
+      // win in the file and it costs exactly one bitmap.
+      const dustN = Math.round(Math.min(520, Math.max(160, (w * h) / 2600)) * sky)
+      const sinA = Math.sin(ang), cosA = Math.cos(ang)
+      for (let i = 0; i < dustN; i++) {
+        let x = srnd() * w
+        let y = srnd() * h
+        // 55% of the dust is pulled toward the river's spine — the band gets
+        // its density from stars, the way a real one does.
+        if (srnd() < 0.55) {
+          const along = (srnd() - 0.5) * diag * 1.6
+          const across = (srnd() + srnd() + srnd() - 1.5) * diag * 0.075   // ~gaussian
+          x = rcx + along * cosA - across * sinA
+          y = rcy + along * sinA + across * cosA
+          if (x < 0 || x > w || y < 0 || y > h) continue
+        }
+        const m = srnd()                       // magnitude roll
+        const rr = m > 0.985 ? 1.25 : m > 0.9 ? 0.85 : 0.55
+        const aa = (m > 0.985 ? 0.62 : m > 0.9 ? 0.4 : 0.22) * sky
+        b.globalAlpha = aa
+        b.fillStyle = m > 0.96 ? '#DCE4F2' : BONE   // the brightest lean blue-white
+        b.beginPath(); b.arc(x, y, rr, 0, 6.3); b.fill()
+      }
+      b.globalAlpha = 1
+      b.globalCompositeOperation = 'source-over'
+
+      /* v12 desktop: the cap was reasoned from a PHONE (~5MB/entry). At
+         2560x1440 DPR2 one entry is 5120x2880x4B = 59 MB, so the same cap
+         meant ~295 MB of backing store for decoration on a laptop. The cap is
+         now sized by area, and `>=` not `>` — the check runs BEFORE the
+         insert, so `> 4` actually kept FIVE resident. Off-by-one, mine. */
+      // 1.0e6 ≈ anything bigger than ~1000x1000, i.e. every real desktop.
+      // A 1440x900 laptop is 1.296e6 and its raster is 20.7 MB per entry —
+      // four of those is 83 MB of decoration. Phones (390x844 = 0.33e6) keep 4.
+      const maxEntries = (w * h > 1.0e6) ? 2 : 4
+      while (bgCache.current.size >= maxEntries) {
+        bgCache.current.delete(bgCache.current.keys().next().value)
+      }
       bgCache.current.set(key, bgCanvas)
     }
 
@@ -214,6 +413,15 @@ export default function Atmosphere() {
       if (!bgCanvas) return
       ctx.drawImage(bgCanvas, 0, 0, w, h)
       const linkA = preset.linkA
+      /* v12 desktop: the link and pointer radii were fixed pixel constants
+         tuned on a phone. At 2560 the stars sit far enough apart that a 120px
+         reach connects almost nothing — the constellation stops drawing its
+         own lines, which is the whole thesis, and the desktop-only pointer
+         link mostly finds no node at all. Both now scale with the diagonal
+         and stay clamped so a phone is untouched. */
+      const diagN = Math.hypot(w, h)
+      const LINK_R = Math.max(120, Math.min(260, diagN * 0.085))
+      const MOUSE_R = Math.max(150, Math.min(320, diagN * 0.105))
       for (let i = 0; i < nodes.length; i++) {
         const p = nodes[i]
         if (!reduced) {
@@ -227,9 +435,9 @@ export default function Atmosphere() {
             const q = nodes[j]
             const dx = p.x - q.x, dy = p.y - q.y
             const d = Math.sqrt(dx * dx + dy * dy)
-            if (d < 120) {
-              // the deck link law: alpha (1-d/120) × register ceiling
-              ctx.globalAlpha = (1 - d / 120) * linkA
+            if (d < LINK_R) {
+              // the deck link law: alpha (1 - d/R) × register ceiling
+              ctx.globalAlpha = (1 - d / LINK_R) * linkA
               ctx.strokeStyle = `rgb(${TINT})`
               ctx.lineWidth = 0.6
               ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke()
@@ -239,16 +447,30 @@ export default function Atmosphere() {
         if (preset.mouse && !reduced) {
           const mdx = p.x - mx, mdy = p.y - my
           const md = Math.sqrt(mdx * mdx + mdy * mdy)
-          if (md < 150) {
+          if (md < MOUSE_R) {
             // the sky reacts to whoever is looking at it (D4)
-            ctx.globalAlpha = (1 - md / 150) * 0.4
+            ctx.globalAlpha = (1 - md / MOUSE_R) * 0.4
             ctx.strokeStyle = BONE
             ctx.lineWidth = 0.7
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mx, my); ctx.stroke()
           }
         }
-        ctx.globalAlpha = 0.7
-        ctx.fillStyle = BONE
+        // v12 — magnitude + twinkle. Under reduced-motion the star holds its
+        // base alpha: the twinkle is motion and motion is off, full stop.
+        const tw = reduced ? 1 : 0.78 + 0.22 * Math.sin(clock * p.tw + p.ph)
+        if (p.halo && haloSprite) {
+          // the brightest few get a soft bloom — this is what sells "star"
+          // over "dot". The gradient is baked ONCE into a 64px sprite at
+          // build time and blitted here: createRadialGradient in the draw
+          // loop would allocate a gradient object per bright star per frame
+          // (~90/sec on a phone) purely to throw it away. Same picture, no
+          // per-frame garbage.
+          const hr = p.r * 5
+          ctx.globalAlpha = 0.20 * tw
+          ctx.drawImage(haloSprite, p.x - hr, p.y - hr, hr * 2, hr * 2)
+        }
+        ctx.globalAlpha = p.a * tw
+        ctx.fillStyle = p.halo ? '#EDF1FA' : BONE
         ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.3); ctx.fill()
       }
       ctx.globalAlpha = 1
@@ -262,6 +484,7 @@ export default function Atmosphere() {
       if (!nodes.length && window.innerWidth > 0 && window.innerHeight > 0) build()
       const dtFrames = last ? Math.min(3, (t - last) / 16.67) : 1
       last = t
+      clock += dtFrames * 0.0167   // frames → seconds, clamped by dtFrames
       draw(dtFrames)
     }
 

@@ -4,6 +4,7 @@ import { AuthProvider } from '@/lib/AuthContext'
 import { LiveEventProvider } from '@/lib/useLiveEvent'
 import { Analytics } from '@vercel/analytics/react'
 import Layout from '@/components/Layout'
+import Atmosphere, { CosmosProvider, Grain } from '@/components/Atmosphere'
 import Events from '@/pages/Events'
 import Community from '@/pages/Community'
 import Messages from '@/pages/Messages'
@@ -36,6 +37,21 @@ const OSHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__OSHarness')
 // in every build that doesn't set it, so route + chunk are excluded from prod.
 const MotionHarness = import.meta.env.VITE_MOTION_HARNESS === '1' ? lazy(() => import('@/pages/__MotionHarness')) : null
 
+// DEV-ONLY nav-mark proposal (/__icons) — statically excluded from prod.
+const IconProposal = import.meta.env.DEV ? lazy(() => import('@/pages/__IconProposal')) : null
+
+// DEV-ONLY preview of la puerta (/__gate), so the door can be judged on a real
+// phone without pushing migration 0046 or flipping the flag on the live project.
+// Lazy + null-const is the house pattern (see above): it is what actually gets
+// the route AND its chunk eliminated from the prod bundle — a bare
+// `import.meta.env.DEV && <Route .../>` left the path string behind.
+const GatePreview = import.meta.env.DEV ? lazy(() => import('@/components/EarlyAccessGate')) : null
+
+// DEV-ONLY create-flow harness (/__create) — the modal normally hides behind
+// `createOpen && user`, which made the app's most important screen the hardest
+// one to look at on a phone. Statically excluded from prod.
+const CreateHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__CreateHarness')) : null
+
 // Route changes start at the top — without this, opening a world (or any
 // page) inherits the previous page's scroll position mid-museum.
 function ScrollToTop() {
@@ -53,6 +69,24 @@ export default function App() {
       <LiveEventProvider>
         <BrowserRouter>
         <ScrollToTop />
+        {/* v12 — ONE SKY, ABOVE THE ROUTER.
+            The atmosphere used to mount inside Layout, which meant the six
+            routes rendered outside Layout (/auth, /claim, /reset-password and
+            the three legal pages) had no sky at all — they hand-rolled static
+            void gradients. The auth flow and the post-purchase ceremony, the
+            two most emotional moments in the product, were the flattest.
+
+            It must live INSIDE BrowserRouter (presetForPath reads useLocation)
+            and it must stay a plain SIBLING of <Routes>. That second part is
+            load-bearing, not style: GlassNav's backdrop-filter breaks if any
+            ancestor between it and the document root carries transform,
+            opacity<1, filter or will-change (it becomes a backdrop root and
+            the glass samples its parent instead of the page — the documented
+            v11 failure). CosmosProvider renders no DOM of its own, so the
+            chain stays clean. NEVER wrap this in a styled "stage" div. */}
+        <CosmosProvider>
+        <Atmosphere />
+        <Grain />
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />{/* D3: recovery link lands here (top-level, before the catch-all) */}
@@ -66,6 +100,19 @@ export default function App() {
           )}
           {MotionHarness && (
             <Route path="/__motion" element={<Suspense fallback={null}><MotionHarness /></Suspense>} />
+          )}
+          {/* DEV-ONLY (/__gate): la puerta, standalone. See the const above. */}
+          {GatePreview && (
+            <Route path="/__gate" element={<Suspense fallback={null}><GatePreview onAccepted={() => {}} onSignIn={() => {}} /></Suspense>} />
+          )}
+          {/* DEV-ONLY (/__icons): the nav-mark proposal, side by side. Changes
+              nothing — the bar still ships ✕ ○ ◇ ●. */}
+          {import.meta.env.DEV && IconProposal && (
+            <Route path="/__icons" element={<Suspense fallback={null}><IconProposal /></Suspense>} />
+          )}
+          {/* DEV-ONLY (/__create): the create flow, mock session. See the const above. */}
+          {CreateHarness && (
+            <Route path="/__create" element={<Suspense fallback={null}><CreateHarness /></Suspense>} />
           )}
           <Route path="/" element={<Layout />}>
             <Route index element={<Events />} />{/* EVENT tab — every room on the platform */}
@@ -90,6 +137,7 @@ export default function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        </CosmosProvider>
         </BrowserRouter>
       </LiveEventProvider>
       <Analytics />
