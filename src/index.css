@@ -502,8 +502,12 @@ input, textarea, select,
   /* La barra no se repliega al hacer scroll: un elemento grande que entra y
      sale solo es justo el tipo de movimiento que marea. El hook ya se apaga
      solo con esta preferencia; esto es el cinturón por si el estado quedara
-     encendido de antes. */
-  .glass-nav-dock { transition: none !important; transform: none !important; opacity: 1 !important; }
+     encendido de antes.
+     OJO: el repliegue viaja en `bottom`, NO en transform/opacity — ésas están
+     prohibidas en toda la cadena de ancestros del vidrio (ver GlassNav.jsx).
+     Así que aquí sólo se mata la transición; no se declara transform ni
+     opacity para no sugerir que el dock los usa. */
+  .glass-nav-dock { transition: none !important; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
   .os-slide-in-right, .os-slide-in-left { animation:none; }
   .os-settle, .msg-in { animation: none; }

@@ -65,7 +65,42 @@ const PAGE_BG = 'linear-gradient(180deg,#0B0B10 0%,#08080D 55%,#07080E 100%)'
    #07080E/#0A0A0D rather than #08080D so the tail matches the page it
    dissolves into — three different blacks used to meet at that seam. */
 const COVER_FADE = 'linear-gradient(180deg, #000 0%, #000 60%, rgba(0,0,0,.88) 70%, rgba(0,0,0,.55) 80%, rgba(0,0,0,.22) 90%, rgba(0,0,0,.06) 96%, rgba(0,0,0,0) 100%)'
-const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.14) 0%, rgba(7,8,14,0) 26%, rgba(7,8,14,.24) 50%, rgba(7,8,14,.60) 64%, rgba(8,8,13,.90) 74%, rgba(8,8,13,.88) 82%, rgba(9,9,14,.50) 91%, rgba(10,10,13,.14) 97%, rgba(10,10,13,0) 100%)'
+/* El velo tenía un AGUJERO: caía a alpha 0 en el 26%, así que la franja alta
+   de la portada corría a fuerza completa y era justo la que gritaba. Ahora
+   nunca suelta el piso atmosférico (~.30) — la foto vive detrás del vidrio de
+   la galería de arriba a abajo — y sólo se cierra donde tiene que cerrarse:
+   la banda de legibilidad del nombre. La cola (91%→100%) se queda intacta:
+   ésa es la disolución que ganó v11 y no se toca. */
+const COVER_SCRIM = 'linear-gradient(180deg, rgba(7,8,14,.42) 0%, rgba(7,8,14,.30) 22%, rgba(7,8,14,.34) 44%, rgba(7,8,14,.62) 62%, rgba(8,8,13,.90) 74%, rgba(8,8,13,.88) 82%, rgba(9,9,14,.50) 91%, rgba(10,10,13,.14) 97%, rgba(10,10,13,0) 100%)'
+
+/* LA PORTADA ES ATMÓSFERA, NO PROTAGONISTA (Ley del Lujo Inmersivo).
+   Antes la foto entraba a saturación y brillo completos y peleaba con el
+   nombre por la misma atención — eso es exactamente lo que se leía como
+   "naco": dos cosas gritando en la misma zona.
+   Bajarle la saturación y el brillo NO es esconder la obra: es ponerla
+   detrás del vidrio, como un cuadro iluminado por debajo en una galería.
+   El texto manda, la foto susurra.
+   El contraste sube apenas para que la imagen no se vuelva lodo al oscurecerla
+   — perder brillo sin recuperar forma es lo que aplana una foto. */
+const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
+
+/* CHIPS ANCLADOS A UNA REJILLA (Ley del Lujo Inmersivo).
+   Las pastillas de la tira de identidad —FOLLOW, amigo, MESSAGE— venían cada
+   una con su propio padding (9px 20px, 9px 18px, 8px 16px). Con paddings
+   distintos y iconos de distinto alto, cada pastilla terminaba con una altura
+   ligeramente distinta: la fila flotaba en vez de asentarse. Es un defecto
+   chiquito que el ojo sí registra, y lee como descuido.
+   La cura es fijar la ALTURA, no el padding: con height fija y padding sólo
+   horizontal, toda pastilla mide exactamente lo mismo aunque cambie el icono,
+   el texto o el idioma. Una sola fuente, ningún sitio donde volver a divergir. */
+const CHIP_H = 38
+const chipBase = {
+  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+  height: `${CHIP_H}px`, padding: '0 18px', borderRadius: '100px',
+  fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, letterSpacing: '.02em',
+  whiteSpace: 'nowrap', cursor: 'pointer',
+  transition: 'background .2s, border-color .2s, color .2s, transform .2s',
+}
 // liquid-chrome / brushed-metal gradient — clipped to text on display words only
 const CHROME = 'linear-gradient(100deg,#F6F6FA 0%,#A6ABBA 26%,#FCFCFE 50%,#8E94A6 73%,#EFEFF4 100%)' // deck formula — jewelry, one moment per screen (v8 D3)
 const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroundClip: 'text', WebkitTextFillColor: 'transparent', color: 'transparent' }
@@ -711,7 +746,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             Three things this layer has to keep doing:
             · overflow:hidden stays HERE (not on the hero) — the 2s
               scale(1.12)→scale(1) intro needs something to clip against,
-              and the no-cover monogram is 300-480px tall.
+              and the no-cover monogram is 176-300px tall.
             · zIndex 0 keeps it behind the identity block (3) and behind every
               section below (all transparent at 3), so the dissolve passes
               BEHIND the tagline instead of colliding with it.
@@ -724,14 +759,20 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           ...(cover ? { maskImage: COVER_FADE, WebkitMaskImage: COVER_FADE } : null),
         }}>
           {cover
-            ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ? <motion.img src={cover} alt="" initial={{ transform: reducedMotion ? 'scale(1)' : 'scale(1.12)' }} animate={{ transform: 'scale(1)' }} transition={{ duration: 2, ease: 'easeOut' }} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: COVER_GRADE }} />
             : (
               /* no cover → the open sky (the page's constellation) + monogram
                  (monogram in BONE — the name owns the screen's one chrome, Ley 8) */
               <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(120% 88% at 50% 4%, rgba(199,201,209,.06) 0%, transparent 55%)` }}>
                 <StarField seed={seed} wide={wide} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '480px' : '300px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.055, color: BONE }}>{initial}</span>
+                  {/* LA INICIAL, CON JERARQUÍA DE LUJO. Estaba a 300/480px:
+                      a ese tamaño deja de ser una marca de agua y se vuelve
+                      una valla publicitaria detrás de la cara. Bajarla no le
+                      quita presencia — se la da, porque ahora acompaña al
+                      nombre en vez de competir con él. El vacío alrededor es
+                      el lujo; la letra sólo lo firma. */}
+                  <span style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '300px' : '176px', lineHeight: 1, transform: 'translateY(-6%)', userSelect: 'none', opacity: 0.05, color: BONE }}>{initial}</span>
                 </div>
               </div>
             )}
@@ -792,7 +833,10 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     the legacy free-text line only when they don't (Ley 3:
                     identity always legible, never invented) */}
                 {crafts.length > 0 ? (
-                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                  /* el oficio ACOMPAÑA al nombre, no compite: una zona, un
+                     protagonista. .82 de opacidad lo manda al susurro sin
+                     tocarle el color de categoría, que sí es información. */
+                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
                     {/* primary ALWAYS leads — regardless of the order the
                         set arrived in (fresh save vs DB read) */}
                     {[...crafts].sort((a, b) => (b.isPrimary === true) - (a.isPrimary === true)).slice(0, 3).map((c, i) => {
@@ -808,19 +852,27 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     {crafts.length > 3 && <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.14em' }}>+{crafts.length - 3}</span>}
                   </div>
                 ) : data.discipline && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(0,0,0,.5)', opacity: .82 }}>
                     {data.discipline}
                   </div>
                 )}
                 <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '14px' : '10px', flexWrap: 'wrap' }}>
-                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(54px, 6vw, 88px)' : 'clamp(38px, 11vw, 52px)', letterSpacing: '.01em', lineHeight: 0.88, margin: 0, textShadow: '0 2px 24px rgba(0,0,0,.6)', ...displaySkin }}>{displayName}</h1>
+                  {/* EL NOMBRE MANDA — pero por jerarquía, no por tamaño.
+                      Bajó de 52→46px (móvil) y ganó tracking: a la escala
+                      anterior competía con la portada a gritos; a ésta la
+                      gana en silencio, porque ya nada más en la zona pesa lo
+                      mismo. La sombra también bajó (24px/.6 → 16px/.45): con
+                      la foto ya atenuada, una sombra pesada deja de ser
+                      legibilidad y se vuelve halo — y el halo es lo que se
+                      lee como barato. */}
+                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(48px, 5.2vw, 76px)' : 'clamp(34px, 9.5vw, 46px)', letterSpacing: '.02em', lineHeight: 0.9, margin: 0, textShadow: '0 2px 16px rgba(0,0,0,.45)', ...displaySkin }}>{displayName}</h1>
                   {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: wide ? '10px' : '5px' }}><VerifiedMark size={wide ? 24 : 19} /></span>}
                   {/* guardrail 4: the museum itself — the destination of every
                       labeled card tap — carries the truth on its own hero */}
                   <span style={{ display: 'inline-flex', marginBottom: wide ? '12px' : '7px' }}><SeedPill is_demo={data.is_demo} size={8.5} /></span>
                 </div>
                 {(data.username || data.city || ticket) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 10px rgba(0,0,0,.7)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 8px rgba(0,0,0,.5)' }}>
                     {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
                     {/* City renders only when the user claimed one — no invented hometown. */}
                     {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -872,10 +924,13 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             in the DB (Ley 9: no dead doors) and never for the owner's own
             world (you don't follow yourself — you see your count). */}
         {!editing && social?.ready && !isOwner && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: wide ? '6px' : '16px' }}>
+          /* rowGap explícito: al envolverse, la segunda fila tiene que caer
+             en el mismo ritmo que la primera — si no, la tira se desalinea
+             justo en los teléfonos angostos, que es donde más se nota. */
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', rowGap: '10px', flexWrap: 'wrap', marginTop: wide ? '6px' : '18px' }}>
             <button className="pressable" onClick={onFollowToggle} aria-pressed={social.iFollow}
               data-testid="follow-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', borderRadius: '100px', padding: '9px 20px', color: social.iFollow ? BONE : VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+              style={{ ...chipBase, background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', color: social.iFollow ? BONE : VOID }}>
               {social.iFollow ? <UserCheck size={13} /> : <UserPlus size={13} />}
               {social.iFollow ? 'CONNECTED' : 'FOLLOW'}
             </button>
@@ -886,22 +941,22 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
                   onClick={() => { if (window.confirm('¿deshacer amistad?')) friendship.onRemove?.() }}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                  style={{ ...chipBase, background: 'rgba(199,201,209,.1)', border: '1px solid rgba(199,201,209,.4)', color: BONE }}>
                   amigos <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: '1px solid transparent', borderRadius: '100px', padding: '9px 18px', color: VOID, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                  style={{ ...chipBase, background: BONE, border: '1px solid transparent', color: VOID }}>
                   accept amigo?
                 </button>
               ) : friendship.state === 'out' ? (
                 <button className="pressable" data-testid="friend-btn" aria-disabled
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE_LOW, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'default', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}>
+                  style={{ ...chipBase, background: 'transparent', border: `1px solid ${HAIR_HI}`, color: BONE_LOW, cursor: 'default' }}>
                   pending
                 </button>
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, color .2s, transform .2s' }}
+                  style={{ ...chipBase, background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, color: BONE }}
                   onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
                   onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
                   + amigo
@@ -909,13 +964,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               )
             )}
             <button className="pressable" onClick={onMessage} data-testid="message-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 18px', color: BONE, fontFamily: 'DM Sans', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
+              style={{ ...chipBase, background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, color: BONE }}
               onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
               onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
             </button>
             {(social.followers > 0 || social.following > 0) && (
-              <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+              /* la misma altura que las pastillas: el conteo pertenece a la
+                 fila, no flota junto a ella (alignItems:baseline lo dejaba
+                 colgado medio pixel arriba de todo lo demás) */
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: `${CHIP_H}px`, gap: '12px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
                 {social.followers > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected</span>}
                 {social.following > 0 && <span><span style={{ color: SILVER, fontSize: '11px' }}>{social.following}</span> following</span>}
               </span>

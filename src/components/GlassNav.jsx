@@ -34,11 +34,10 @@ import { GLASS_FILTER, CHIP, BUBBLE } from '@/lib/glass'
 
    ─── the rest ─────────────────────────────────────────────────────────
 
-   RETRACT ON SCROLL rides on the DOCK, never on the slab: `transform` is not
-   a backdrop-root trigger (that list is filter, opacity<1, mask, clip-path,
-   mix-blend-mode and the root element), so moving the wrapper leaves the
-   glass sampling the page. Transforming the backdrop-filtered element itself
-   is the variant with open WebKit bugs.
+   RETRACT ON SCROLL MOVES `bottom`, NOT `transform` — and that is the whole
+   fix for the glass that kept dying (see the long note on the dock below).
+   Nothing anywhere between this bar's backdrop-filter and the document root
+   is allowed to carry transform, opacity<1 or will-change, in ANY state.
 
    THE CHIP GLIDE IS 380ms. Measured: React writes the new position 27ms
    after the finger lands and the node is reused. The old 620ms was still
@@ -66,6 +65,11 @@ const GLASS = GLASS_FILTER
    state, so this constant IS the whole clearance. Layout's runway, the
    Messages composer and the Drops button all derive from it. */
 const DOCK_BOTTOM = 'calc(14px + env(safe-area-inset-bottom, 0px))'
+
+/* Where the bar parks while retracted. A flat negative is deliberate and is
+   enough regardless of the home indicator: the slab is ~78px tall, so at
+   bottom:-130px its TOP edge already sits ~52px below the viewport floor. */
+const DOCK_HIDDEN = '-130px'
 
 const ICON = 22
 const SLOT_BOX = 36
@@ -241,25 +245,56 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
   return (
     <div className="glass-nav-dock" style={{
       position:'fixed', left:0, right:0, zIndex:9999,
-      bottom: DOCK_BOTTOM,
       display:'flex', justifyContent:'center', padding:'0 16px',
       pointerEvents:'none',
-      transformOrigin:'bottom center',
-      /* EL VIDRIO QUE SE APAGABA. Esto era `transform: translateY(0) scale(1)`
-         SIEMPRE, más `will-change: transform` — o sea el dock quedaba promovido
-         a su propia capa de compositor de forma PERMANENTE. En iOS eso hace que
-         el backdrop-filter del hijo muestree sólo dentro de esa capa en vez de
-         la página: pinta bien una vez y luego queda plano.
-         En reposo ahora es `none`, así que no hay capa, no hay containing block
-         y el vidrio muestrea la página de verdad. El transform y el will-change
-         sólo existen mientras la barra se está replegando, que es cuando
-         realmente hacen falta y cuando la barra se va de todos modos. */
-      transform: retracted ? 'translateY(calc(100% + 36px)) scale(0.88)' : 'none',
-      opacity: retracted ? 0 : 1,
-      transition: armed
-        ? `transform ${RETRACT_MS}ms ${HOUSE_EASE}, opacity ${Math.round(RETRACT_MS * 0.7)}ms ${HOUSE_EASE}`
-        : 'none',
-      willChange: retracted ? 'transform' : 'auto',
+      /* ════ EL VIDRIO QUE SE APAGABA — SEGUNDO INTENTO, AHORA ESTRUCTURAL ════
+
+         El primer intento quitó la promoción PERMANENTE del dock (antes tenía
+         transform + will-change siempre encendidos) y no bastó: en el iPhone
+         real el vidrio seguía muriendo. La razón es que el estado en reposo
+         nunca fue el problema — el problema es el TRANSITORIO.
+
+         Mientras la barra se replegaba, este mismo dock — que es el PADRE del
+         elemento con backdrop-filter — cargaba las tres cosas a la vez:
+
+           · transform      → containing block + capa de compositor propia
+           · opacity < 1    → esto por especificación (CSS Filter Effects L2)
+                              convierte al dock en BACKDROP ROOT: el hijo pasa
+                              a muestrear el contenido del padre, no la página
+           · will-change    → promoción explícita, por si faltara algo
+
+         O sea: en CADA scroll hacia abajo la raíz de muestreo del vidrio se
+         mudaba del documento al dock. WebKit de iOS no vuelve a enganchar el
+         muestreo a la página cuando esas propiedades se quitan — se queda con
+         el backdrop colapsado. Eso es el apagón, y es permanente hasta un
+         repintado completo (navegar o recargar). Encaja exactamente con el
+         síntoma: se ve bien al cargar, muere después del primer scroll.
+
+         LA REGLA AHORA: entre este backdrop-filter y el root no puede existir
+         transform, opacity<1 ni will-change en NINGÚN estado — ni en reposo ni
+         a mitad de animación. Por eso el repliegue viaja en `bottom`:
+
+           · `bottom` sobre un position:fixed no crea stacking context, ni
+             containing block, ni capa, ni backdrop root. Nunca.
+           · sin opacity: la barra se va deslizándose fuera de pantalla en vez
+             de disolverse. Además es lo que hace iOS con sus propias barras.
+
+         EL COSTO, dicho de frente: `bottom` se anima en layout, no en el
+         compositor, así que estos 420ms no van por GPU. Es un solo elemento
+         fuera de flujo con cinco hijos y nada del documento se re-acomoda con
+         él — es barato. Y una barra que se mueve un pelo menos suave es
+         estrictamente mejor que una barra cuyo vidrio se muere para siempre
+         al primer scroll.
+
+         NO PUDE REPRODUCIR NI VERIFICAR ESTO EN ESCRITORIO, y hay que decirlo:
+         en el WebKit de escritorio la pestaña corre con visibilityState
+         'hidden', ahí requestAnimationFrame no dispara nunca, `armed` jamás
+         se pone en true y TODO el camino del repliegue es código muerto. El
+         bug no se puede provocar ahí. Por eso este arreglo no se apoya en una
+         prueba: se apoya en que las propiedades culpables ya no existen en la
+         cadena. Lo prueba Diego en su teléfono. */
+      bottom: retracted ? DOCK_HIDDEN : DOCK_BOTTOM,
+      transition: armed ? `bottom ${RETRACT_MS}ms ${HOUSE_EASE}` : 'none',
     }}>
       {/* zIndex STAYS 9999: every overlay that must cover the bar sits at
           10000 (AuthModal, WorldBuilder, the OS sheet) or above, and
