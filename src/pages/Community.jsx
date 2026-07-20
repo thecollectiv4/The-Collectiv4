@@ -11,6 +11,9 @@ import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import CraftsSheet from '@/components/CraftsSheet'
 import { VOCAB } from '@/lib/socialVocab'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
+import Mark from '@/components/Mark'
+import ConnectSheet from '@/components/ConnectSheet'
+import { follow as followProfile, unfollow as unfollowProfile, startDM } from '@/lib/social'
 import { Loader2, MapPin, ArrowUpRight, Eye, UserCheck, Search, X } from 'lucide-react'
 import VerifiedMark from '@/components/VerifiedMark'
 import { CARD_TINT, cardGlass } from '@/lib/glass'
@@ -106,6 +109,42 @@ export default function Community() {
   // v12: el perfil cuyo "+N" se está mirando (null = ninguno). Los crafts ya
   // están cargados en craftsByProfile, así que abrirlo no pide nada a la red.
   const [craftsFor, setCraftsFor] = useState(null)
+  // v12.3 — la persona con la que se está abriendo la interfaz de conexión
+  const [connectFor, setConnectFor] = useState(null)
+
+  /* LAS TRES ACCIONES DE LA TARJETA.
+     Anónimo no rebota contra un botón muerto: cae en la puerta de auth, que
+     es la misma regla que ya usa el resto de la app (Ley 9 — una invitación,
+     nunca un muro sin explicación).
+
+     FOLLOW es optimista (se pinta antes de que el servidor conteste y se
+     revierte si falla): es un gesto de un toque y esperar 300ms a que se
+     encienda lo hace sentir roto. CONNECT no es optimista — abre una hoja y
+     ahí el estado real se lee del servidor. */
+  const onToggleFollow = async (c) => {
+    if (!user) { setShowAuth(true); return }
+    const was = followingSet.has(c.id)
+    setFollowingSet((s) => { const n = new Set(s); was ? n.delete(c.id) : n.add(c.id); return n })
+    try {
+      if (was) await unfollowProfile(user.id, c.id)
+      else await followProfile(user.id, c.id)
+    } catch {
+      setFollowingSet((s) => { const n = new Set(s); was ? n.add(c.id) : n.delete(c.id); return n })
+    }
+  }
+
+  /* MESSAGE = SÓLO abrir el chat directo (decisión de Diego: message y
+     connect son dos cosas distintas). Sin intención, sin hoja: el hilo. */
+  const onMessage = async (c) => {
+    if (!user) { setShowAuth(true); return }
+    try { navigate(`/messages/${await startDM(c.id)}`) }
+    catch { navigate('/messages') }   // el hilo no se pudo abrir → la bandeja, nunca una pantalla muerta
+  }
+
+  const onConnect = (c) => {
+    if (!user) { setShowAuth(true); return }
+    setConnectFor(c)
+  }
 
   // discovery cascades ONCE — the first data landing staggers; every refilter
   // after that crossfades as one grid, never a per-card re-dance (plan 009).
@@ -310,7 +349,10 @@ export default function Community() {
                 <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} following={followingSet.has(c.id)}
                   onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo}
                   onPickCraft={setCraft}
-                  onShowCrafts={() => setCraftsFor(c)} />
+                  onShowCrafts={() => setCraftsFor(c)}
+                  onFollow={() => onToggleFollow(c)}
+                  onMessage={() => onMessage(c)}
+                  onConnect={() => onConnect(c)} />
               </div>
             ))}
             {/* a filtered list CLOSES — the void under the last card gets a
@@ -369,6 +411,14 @@ export default function Community() {
           crafts={craftsByProfile.get(craftsFor.id) || []}
           onPickCraft={(slug) => { setCraftsFor(null); setCraft(slug) }}
           onClose={() => setCraftsFor(null)} />
+      )}
+
+      {/* LA INTERFAZ DE CONEXIÓN (v12.3). Manda el vínculo mutuo Y abre el
+          hilo con la intención adentro, así que Messages queda sincronizado
+          por construcción — ver la nota larga en ConnectSheet.jsx. */}
+      {connectFor && user && (
+        <ConnectSheet me={user} person={connectFor} wide={wide}
+          onClose={() => setConnectFor(null)} />
       )}
 
       {/* grain lives in the app-wide varnish now (v8: one grain, 5%, over all) */}
@@ -492,14 +542,12 @@ const CARD_COVER_MASK = `linear-gradient(180deg,
   rgba(0,0,0,.36) 74%,
   rgba(0,0,0,.12) 82%,
   transparent 88%)`
-const CARD_COVER_SCRIM = `linear-gradient(180deg,
-  rgba(var(--void-rgb),.06) 0%,
-  rgba(var(--void-rgb),.18) 38%,
-  rgba(var(--void-rgb),.46) 58%,
-  rgba(var(--void-rgb),.68) 76%,
-  rgba(var(--void-rgb),.74) 100%)`
+/* El velo vive en index.css porque sus α NO son simétricas entre registros —
+   la razón larga (oscurecer siempre ayuda, aclarar tiene que garantizar) está
+   escrita ahí junto a los valores. */
+const CARD_COVER_SCRIM = 'var(--card-cover-scrim)'
 
-function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts }) {
+function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts, onFollow, onMessage, onConnect }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -608,17 +656,72 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
             the same meter band — real stats, or the honest forming state —
             ANCHORED to the card's floor, so a shorter card in a mixed row
             never ends in a dead stretch above its own baseline. */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', paddingTop: '10px', borderTop: `1px solid ${HAIR}` }}>
-          {tc > 0 && <Stat n={tc} label="taste" />}
-          {wc > 0 && <Stat n={wc} label="work" />}
-          {tc === 0 && wc === 0 && (
-            <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase' }}>◇ world forming</span>
-          )}
+        {/* v12.3 — LAS TRES ACCIONES REEMPLAZAN A LOS CONTADORES.
+            "01 TASTE · 01 WORK" era información sobre la persona en el sitio
+            donde uno quiere HACER algo con la persona. Y era información
+            floja: un 01 no dice nada que la tarjeta no diga ya mejor con la
+            foto y el oficio. Ahora el pie de la tarjeta es lo que se puede
+            hacer — seguir, escribir, conectar.
+
+            Cada una para la propagación: la tarjeta entera navega al mundo,
+            así que sin stopPropagation cualquier toque aquí abriría el perfil
+            en vez de hacer lo suyo (misma razón que ya tenían los chips de
+            oficio unas líneas arriba). */}
+        <div style={{ display: 'flex', gap: '7px', marginTop: 'auto', paddingTop: '11px', borderTop: `1px solid ${HAIR}` }}>
+          {/* Los `type` son los de Mark.jsx (plus / bubble / people), NO los
+              nombres de la acción: pasé "follow"/"message"/"connect" en el
+              primer intento y Mark cayó a su rombo por defecto en los TRES —
+              tres íconos idénticos que no significaban nada. Un `else` que no
+              avisa es un error silencioso; queda escrito para que nadie
+              repita el atajo.
+              Las palabras salen de VOCAB, que es la única fuente de cómo se
+              nombra cada vínculo (followAction / connectVerb). */}
+          <CardAction type="plus" label={following ? VOCAB.followingState : VOCAB.followAction} active={following}
+            onClick={(e) => { e.stopPropagation(); onFollow?.() }} />
+          <CardAction type="bubble" label="Message"
+            onClick={(e) => { e.stopPropagation(); onMessage?.() }} />
+          <CardAction type="people" label={VOCAB.connectVerb}
+            onClick={(e) => { e.stopPropagation(); onConnect?.() }} />
         </div>
       </div>
     </div>
   )
 }
+/* UNA ACCIÓN DE TARJETA. Ícono arriba, palabra abajo — la palabra NO es
+   opcional: un ícono solo obliga a adivinar, y la casa ya decidió hace rato
+   que cada destino lleva su marca Y su palabra (Leyes 5 y 13, es la misma
+   regla de la barra de navegación).
+
+   Las tres marcas salen de Mark.jsx y no de una librería suelta:
+     plus   → seguir (sumar a los tuyos)
+     bubble → mensaje (el glifo universal de "algo se dijo")
+     people → conectar (dos círculos que se encuentran; el solape ES la tesis)
+   Mismo trazo, mismo envolvente, mismo peso: se leen como un SET porque
+   están dibujadas por la misma mano.
+
+   ⚠ `bubble` y `people` estaban marcadas en Mark.jsx como propuesta que
+   "nada renderiza hasta que un fundador lo diga". Diego pidió estos íconos
+   en el grammar de la casa, así que aquí empiezan a renderizarse — fuera de
+   la barra, que sigue intacta. Queda anotado para Pato. */
+function CardAction({ type, label, active, onClick }) {
+  return (
+    <button type="button" onClick={onClick} className="pressable" aria-label={label} title={label}
+      style={{
+        flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px',
+        padding: '8px 4px 6px', borderRadius: '9px', cursor: 'pointer',
+        background: active ? 'rgba(var(--ink-rgb),.07)' : 'transparent',
+        border: `1px solid ${active ? 'rgba(var(--ink-rgb),.24)' : 'transparent'}`,
+        transition: 'background 180ms var(--ease-house), border-color 180ms var(--ease-house)',
+      }}>
+      <Mark type={type} size={15} color={active ? BONE : SILVER} />
+      <span style={{
+        fontFamily: 'DM Mono', fontSize: '7.5px', letterSpacing: '.13em', textTransform: 'uppercase',
+        color: active ? BONE : BONE_LOW, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%',
+      }}>{label}</span>
+    </button>
+  )
+}
+
 function Stat({ n, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>

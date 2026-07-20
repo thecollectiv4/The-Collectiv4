@@ -115,11 +115,35 @@ const coverFade = (bleed) => `linear-gradient(180deg,
    cuarta para abajo son PROTECCIÓN DE TEXTO: ahí vive el bloque de identidad
    y el velo tiene que pesar lo mismo en los dos temas o el nombre se pierde.
    No se tocan. */
+/* v12.3 — LAS POSICIONES TAMBIÉN CAMBIAN POR TEMA, NO SÓLO LAS α.
+
+   Diego: "en light la portada difumina demasiado arriba; que baje más y
+   difumine mucho más abajo, idéntico a dark". Audité por qué no igualaba y
+   la respuesta es contraintuitiva: LAS PARADAS YA ERAN IDÉNTICAS en los dos
+   registros. El problema no era dónde empieza el velo sino CUÁNTO SE NOTA
+   que empieza.
+
+     dark:  el velo va de .34 a .62  → salto de .28 sobre una foto ya velada
+     light: el velo va de .12 a .62  → salto de .50 sobre una foto limpia
+
+   Al arreglar la neblina (v12.2) bajé el velo de arriba de light a .12, que
+   era correcto — pero eso volvió VISIBLE el arranque de la rampa. Con la
+   misma geometría, dark disuelve sin que notes dónde y light enseña una
+   línea. Números iguales, resultado distinto, porque el sustrato es distinto.
+
+   Medido en pantalla: la rampa arrancaba a 158px de un scrim de 668px, y el
+   primer texto (la línea de oficios) recién aparece a 311px. O sea ~150px de
+   velo puestos ENCIMA de nada. Esos 150px son exactamente lo que Diego ve.
+
+   Así que las posiciones salen por variable y en light la rampa empieza ~100
+   px más abajo: la foto se mantiene limpia hasta casi tocar el texto, y de
+   ahí el velo sube rápido pero SÓLO donde hace falta. El pico (.90/.88) no
+   se mueve — ahí vive el nombre y ésa es su protección. */
 const coverScrim = (bleed) => `linear-gradient(180deg,
   rgba(var(--void-rgb),var(--cover-veil-top)) 0%,
   rgba(var(--void-rgb),var(--cover-veil-hi)) 22%,
-  rgba(var(--void-rgb),var(--cover-veil-mid)) calc(100% - ${bleed + 300}px),
-  rgba(var(--void-rgb),.62) calc(100% - ${bleed + 190}px),
+  rgba(var(--void-rgb),var(--cover-veil-mid)) calc(100% - ${bleed}px - var(--cover-o1)),
+  rgba(var(--void-rgb),.62) calc(100% - ${bleed}px - var(--cover-o2)),
   rgba(var(--void-rgb),.90) calc(100% - ${bleed + 96}px),
   rgba(var(--void-rgb),.88) calc(100% - ${bleed + 20}px),
   rgba(var(--void-rgb),.50) calc(100% - ${Math.round(bleed * 0.55)}px),
@@ -878,8 +902,18 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       {/* the sky behind this world is the app's shared atmosphere (v8 D1) —
           claimed above with this person's seed + craft temperature */}
 
-      {/* ============ MARQUEE — the world's welcome, once ============ */}
-      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
+      {/* v12.3 — EL MARQUEE SE FUE DE AQUÍ ARRIBA (pedido de Diego).
+          Era una franja de texto ENCIMA de la portada, así que la foto nunca
+          empezaba en el borde: arrancaba debajo de un letrero. La portada
+          ahora sale desde el píxel cero y esa es toda la diferencia entre
+          "una foto en una página" y una portada de revista.
+
+          NO SE BORRA, SE MUDA. La frase la escribe la persona (marquee_text,
+          80 caracteres, editable en el builder) — es contenido suyo, no
+          decoración nuestra, y tirarlo habría sido resolver el encargo
+          destruyendo lo que el encargo no pidió tocar. Baja al cuerpo, justo
+          debajo de la identidad: la portada es la cara, la frase es la voz,
+          y después viene la obra. Ver la nota en el cuerpo. */}
 
       {/* ============ HERO — cover as a magazine cover, in the void ============ */}
       {/* RECONCILIACIÓN — cada quien tenía razón EN SU PANTALLA.
@@ -1106,6 +1140,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           </div>
         </div>
       </div>
+
+      {/* ============ LA VOZ — el marquee, reubicado (v12.3) ============
+          Bajó de encima de la portada a aquí (ver la nota arriba del héroe).
+          Este sitio es mejor que el que tenía, no sólo distinto: arriba
+          competía con la foto por la primera mirada y encima empujaba toda la
+          composición 40px; aquí llega DESPUÉS de saber quién es la persona,
+          que es cuando su frase significa algo. Sigue apareciendo una sola
+          vez y sólo si alguien la escribió. */}
+      {marqueeText && <WorldMarquee text={marqueeText} theme={worldTheme} wide={wide} />}
 
       {/* ============ BYLINE — the doors + the owner's tools ============
           Identity (face, name, craft, handle) lives in the hero block now;

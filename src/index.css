@@ -112,6 +112,27 @@
   --cover-veil-top:   .42;
   --cover-veil-hi:    .30;
   --cover-veil-mid:   .34;
+  /* dónde arranca la rampa, medido desde abajo (más chico = más abajo).
+     Estos son los valores históricos de dark y no se tocan: es el registro
+     que Diego aprobó y el que light tiene que igualar EN APARIENCIA. */
+  --cover-o1:         300px;
+  --cover-o2:         190px;
+
+  /* EL VELO DE LA TARJETA DE COMMUNITY — y por qué NO es simétrico.
+     En vacío el velo OSCURECE y el texto es hueso: oscurecer siempre ayuda,
+     así que cualquier α razonable basta y la foto se puede dejar ver mucho.
+     De día el velo tiene que ACLARAR lo suficiente como para garantizar
+     fondo claro bajo texto oscuro — y una foto puede ser tan oscura como
+     quiera. Medido contra la peor foto (un rgb(18,20,16)): al .46 que tenía,
+     el contraste caía a 4.08:1, por debajo de AA para el texto chico de la
+     tarjeta. Ése es el "difícil de leer" que reportó Diego, y por eso el
+     registro claro necesita α MÁS ALTAS y no las mismas. */
+  --card-cover-scrim: linear-gradient(180deg,
+    rgba(var(--void-rgb),.06) 0%,
+    rgba(var(--void-rgb),.18) 38%,
+    rgba(var(--void-rgb),.46) 58%,
+    rgba(var(--void-rgb),.68) 76%,
+    rgba(var(--void-rgb),.74) 100%);
 
   /* ---- LAS TEMPERATURAS (Ley 14) ----
      Cada oficio, cada vibra y cada pestaña del OS lleva una "temperatura":
@@ -260,7 +281,33 @@
   --cover-grade-wide: saturate(1.06) brightness(.96) contrast(1.08);
   --cover-veil-top:   .10;
   --cover-veil-hi:    .05;
-  --cover-veil-mid:   .12;
+  /* .12 → .20: el arranque deja de ser un salto de medio punto de alfa y la
+     transición se lee como transición, no como línea */
+  --cover-veil-mid:   .20;
+  /* ~100px más abajo que dark. No es "distinto por gusto": es lo que hace
+     falta para que la foto se vea limpia igual de lejos en los dos registros
+     (ver la nota larga en ProfileMuseum). El pico no se mueve. */
+  --cover-o1:         200px;
+  --cover-o2:         150px;
+
+  /* SEGUNDA PASADA — el contraste numérico no alcanzaba.
+     Con .62 en la banda del texto el número daba AA, y aun así el nombre
+     sobre la pintura de Pato seguía costando. La razón es que el contraste
+     mide UN par de colores y una foto no es un color: es un campo con ruido,
+     y un texto sobre un fondo agitado se lee mal aunque el promedio pase.
+     Contra ruido no se gana subiendo un poco — se gana quitando el ruido.
+
+     Así que el reparto de la tarjeta se vuelve explícito: la mitad de ARRIBA
+     es de la foto (velo casi nulo, se ve entera y nítida), la de ABAJO es del
+     texto (velo alto y parejo, la foto ya sólo se insinúa). Un corte limpio
+     lee mejor que un degradado tibio que no termina de ser ninguna de las
+     dos cosas — y de paso es más editorial: imagen arriba, pie abajo. */
+  --card-cover-scrim: linear-gradient(180deg,
+    rgba(var(--void-rgb),.04) 0%,
+    rgba(var(--void-rgb),.14) 34%,
+    rgba(var(--void-rgb),.74) 54%,
+    rgba(var(--void-rgb),.90) 68%,
+    rgba(var(--void-rgb),.94) 100%);
 
   /* EL VIDRIO DE DÍA. Se invierte la lógica del material: la losa se ACLARA
      (luz atrapada en el vidrio, no oscuridad) y el filete de arriba se vuelve
