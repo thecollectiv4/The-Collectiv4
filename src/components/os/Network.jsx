@@ -124,7 +124,7 @@ export default function Network() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <span style={{ fontFamily: FONT_SANS, fontSize: '14px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                  {u.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} />}
+                  {u.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' }} />}
                   {u.is_demo && <Tag>demo</Tag>}
                   {!u.has_profile && <Tag>no world yet</Tag>}
                 </div>

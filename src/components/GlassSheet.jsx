@@ -51,7 +51,7 @@ export default function GlassSheet({ title, kicker, onClose, wide, children, max
     <div role="presentation" onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 10020,
-        background: 'rgba(6,6,10,.62)',
+        background: 'rgba(var(--void-rgb),.62)',
         WebkitBackdropFilter: 'blur(3px)', backdropFilter: 'blur(3px)',
         display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center',
         padding: wide ? '24px' : '0',

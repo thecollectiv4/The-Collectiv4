@@ -77,7 +77,7 @@ export default function PeopleSheet({ title, kicker, load, loadKey, onOpenPerson
                 }}>
                 <span style={{
                   width: '40px', height: '40px', flexShrink: 0, borderRadius: '50%', overflow: 'hidden',
-                  border: `1px solid ${SILVER}`, background: 'rgba(20,20,26,.8)',
+                  border: `1px solid ${SILVER}`, background: 'rgba(var(--void-rgb),.8)',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   {avatar

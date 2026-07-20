@@ -132,10 +132,10 @@ export default function MotionHarness() {
 
           <Row id="A-16" sev="MEDIUM" title="Mark all read se funde, no teletransporta" where="/messages · Bell" mode="toggle" note="background + border-color + opacity · 250ms — necesita señales sin leer" onReplay={() => setRead(r => !r)}>
             {[0, 1].map(i => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 6px', borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: !read ? 'rgba(232,233,237,.03)' : 'transparent', transition: 'background-color var(--dur-base) var(--ease-house)' }}>
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '11px', padding: '11px 6px', borderTop: i > 0 ? `1px solid ${HAIR}` : 'none', background: !read ? 'rgba(var(--star-rgb),.03)' : 'transparent', transition: 'background-color var(--dur-base) var(--ease-house)' }}>
                 <div style={{ width: '34px', height: '34px', borderRadius: '50%', border: `1px solid ${!read ? SILVER : HAIR_HI}`, background: CARD, transition: 'border-color var(--dur-base) var(--ease-house)', flexShrink: 0 }} />
                 <div style={{ flex: 1, ...sans, fontSize: '13px', fontWeight: !read ? 700 : 500, color: !read ? BONE : BONE_MID }}>señal {i + 1}</div>
-                <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(232,233,237,.6)', opacity: !read ? 1 : 0, transition: 'opacity var(--dur-base) var(--ease-house)' }} />
+                <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 6px rgba(var(--star-rgb),.6)', opacity: !read ? 1 : 0, transition: 'opacity var(--dur-base) var(--ease-house)' }} />
               </div>
             ))}
             <div style={{ ...mono, fontSize: '9px', color: FAINT, marginTop: '10px' }}>estado: {read ? 'leídas' : 'sin leer'} · ojo al hueco que el punto reserva cuando está leído</div>
@@ -272,7 +272,7 @@ export default function MotionHarness() {
 
           <Row id="A-17" sev="MEDIUM" title="La estrella se enciende como estrella" where="/messages · CREWS" mode="toggle" note="fill-opacity + color + filter · 250ms (no checkbox)" onReplay={() => setStar(s => !s)}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill={STAR} strokeWidth="1.6" stroke="currentColor"
-              style={{ fillOpacity: star ? 1 : 0, color: star ? STAR : BONE_LOW, filter: star ? 'drop-shadow(0 0 6px rgba(232,233,237,.5))' : 'drop-shadow(0 0 0 rgba(232,233,237,0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }}>
+              style={{ fillOpacity: star ? 1 : 0, color: star ? STAR : BONE_LOW, filter: star ? 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' : 'drop-shadow(0 0 0 rgba(var(--star-rgb),0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }}>
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
           </Row>

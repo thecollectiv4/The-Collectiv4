@@ -335,7 +335,7 @@ export function OSInstrument({ profile, isOwner = false, tasks, content, activit
     // like a presence, not a footnote (silver ring, star mark, steady glow)
     <button onClick={() => setDockOpen(v => !v)} aria-label="Toggle the Brain dock (B)" title="The Brain — press B"
       style={{ background: dockOpen ? 'rgba(var(--silver-rgb),.12)' : 'rgba(var(--silver-rgb),.04)', border: `1px solid ${dockOpen ? SILVER : 'rgba(var(--silver-rgb),.3)'}`, borderRadius: '100px', padding: '6px 14px', color: dockOpen ? BONE : BONE_MID, fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
-      <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 7px rgba(232,233,237,.6)' }} />
+      <span aria-hidden style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: '0 0 7px rgba(var(--star-rgb),.6)' }} />
       The Brain{desktop ? ' · B' : ''}
     </button>
   )

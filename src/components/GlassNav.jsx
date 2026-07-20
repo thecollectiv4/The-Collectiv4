@@ -362,7 +362,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                         borderRadius:'100px', background: BONE, color:'var(--bg)', fontFamily:'DM Mono',
                         fontSize:'8.5px', fontWeight:700, lineHeight:'14px', textAlign:'center',
                         padding:'0 3px', letterSpacing:0,
-                        boxShadow:'0 0 0 2px rgba(12,12,17,0.55)' }}>
+                        boxShadow:'0 0 0 2px rgba(var(--void-rgb),0.55)' }}>
                       {bellCount > 9 ? '9+' : bellCount}
                     </span>
                   )}

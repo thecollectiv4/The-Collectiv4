@@ -4,6 +4,7 @@ import { Loader2, Plus, ScanLine, Trash2, Pencil, ArrowLeft, ImagePlus, X } from
 import { supabase } from '@/api/supabase'
 import { useAuth } from '@/lib/AuthContext'
 import { useIsDesktop } from '@/lib/useIsDesktop'
+import { glassControl } from '@/lib/glass'
 import { VOID, BONE, BONE_MID, BONE_LOW, FAINT, SILVER, WARN, PANEL, HAIR, HAIR_HI, FONT_DISPLAY, FONT_MONO, FONT_SANS, safeImg, tintChannel } from '@/lib/cosmos'
 import { Field, Input, Textarea, Select, Btn } from '@/components/os/ui'
 import { uploadWorldImage, validateImage } from '@/lib/worldStorage'
@@ -451,7 +452,9 @@ export default function EventsAdmin({ isOwner = false, startNew = false, onConsu
    world images: writes only under auth.uid()). Replaces the raw "Cover image
    URL" input; stores the resulting PUBLIC url in form.cover_url. A legacy URL
    already on an event row still renders and is replaceable. */
-const pillBtn = { display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(var(--void-rgb),.7)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 11px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }
+/* v12.1 — mismo caso que el `pill` del museo: blur de 6px inventado aquí.
+   Unificado a la receta de glass.js. */
+const pillBtn = { ...glassControl(), display: 'inline-flex', alignItems: 'center', gap: '5px', borderRadius: '100px', padding: '6px 11px', color: BONE_MID, fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase', cursor: 'pointer' }
 
 function CoverUpload({ user, value, onChange }) {
   const inputRef = useRef(null)

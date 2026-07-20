@@ -308,7 +308,7 @@ function AssignMenu({ anchor, members, currentId, onPick, onClose }) {
    just glyph (legibility > minimalism). Directional chevrons stay wordless. */
 function IconBtn({ children, onClick, disabled, label, text }) {
   return (
-    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(131,131,143,.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}>
+    <button onClick={onClick} disabled={disabled} aria-label={label} title={label} style={{ background: 'transparent', border: 'none', color: disabled ? 'rgba(var(--ink-rgb),.3)' : BONE_LOW, cursor: disabled ? 'default' : 'pointer', padding: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px', borderRadius: '5px' }}>
       {children}
       {text && <span style={{ fontFamily: FONT_MONO, fontSize: '8px', letterSpacing: '.1em', textTransform: 'uppercase' }}>{text}</span>}
     </button>

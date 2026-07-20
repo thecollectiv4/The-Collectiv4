@@ -444,6 +444,51 @@ function CraftFilterRow({ value, onChange, options, wide }) {
    de follows, que es direccional — el nombre de la prop mentía sobre qué
    relación es. `crafts` — the real taxonomy line (primary lit), the legacy
    free text only as fallback. */
+/* ═══════════════════════════════════════════════════════════════════════
+   LA PORTADA DE LA TARJETA (v12.1) — y por qué esto no había cambiado.
+
+   Diego pidió esto una ronda antes y no pasó nada. La causa no fue un CSS
+   que ganara ni un rebase perdido: los tres commits que arreglaron la
+   portada —7be4507 "la portada llena su sección y se disuelve hasta el
+   borde de abajo", 1457663 "portada como atmósfera", 2f2512f "disolución de
+   portada"— tocaron ProfileMuseum.jsx y NADA MÁS. Community nunca importó
+   ese componente: dibuja su propia <WorldCard/> aquí abajo, con su propia
+   franja de 92px y su propio degradado de una sola parada.
+
+   O sea: el tratamiento de portada nunca fue una pieza compartida, así que
+   mejorarlo en un lado no podía llegar al otro. Se arregló el museo tres
+   veces y la tarjeta cero. Es duplicación, no un bug.
+
+   Lo que se hace aquí es portar el tratamiento, escalado a la tarjeta:
+
+   · LA FOTO CUBRE MÁS. Deja de ser una franja de 92px y pasa a ser una capa
+     de ~172/210px que corre POR DETRÁS del nombre y del oficio. La tarjeta
+     no crece ni un píxel: la franja sigue existiendo como compás (bandH),
+     sólo que ahora es espacio reservado y no el recorte de la foto.
+   · SE DISUELVE DE VERDAD. Máscara + velo, no un degradado a color sólido.
+     La máscara hace que la foto se DESVANEZCA hacia el vidrio de la tarjeta
+     en vez de quedar tapada por un rectángulo opaco — sin costura, y deja
+     ver el vidrio (y el cielo) por debajo, que es lo que la tarjeta es.
+   · El velo por encima es el que protege al nombre, igual que coverScrim()
+     en el museo: la máscara disuelve, el velo da contraste. Dos trabajos,
+     dos capas.
+
+   ⚠ LA CLASE `disc-banner` VIAJA CON LA FOTO, NO CON LA FRANJA. index.css
+   cuelga de `.disc-banner img/svg` la animación de respiración del hover; si
+   la imagen sale de ese contenedor, la tarjeta deja de respirar en hover y
+   nadie relaciona el síntoma con este archivo. */
+const cardCoverH = (wide) => (wide ? 210 : 172)
+const CARD_COVER_MASK = `linear-gradient(180deg,
+  #000 0%, #000 46%,
+  rgba(0,0,0,.72) 66%,
+  rgba(0,0,0,.34) 84%,
+  transparent 100%)`
+const CARD_COVER_SCRIM = `linear-gradient(180deg,
+  rgba(var(--void-rgb),.06) 0%,
+  rgba(var(--void-rgb),.20) 45%,
+  rgba(var(--void-rgb),.52) 68%,
+  rgba(var(--void-rgb),.74) 100%)`
+
 function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
@@ -462,11 +507,25 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
          sky where extra radius buys nothing and costs a re-raster per card
          per frame. */
       style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', border: `1px solid ${c.is_demo ? SEED_BORDER : HAIR_HI}`, cursor: 'pointer', display: 'flex', flexDirection: 'column', ...cardGlass() }}>
-      <div className="disc-banner" style={{ position: 'relative', height: wide ? '116px' : '92px', overflow: 'hidden', background: VOID }}>
+      {/* LA PORTADA — capa suelta, más alta que la franja, disuelta hacia
+          abajo. `disc-banner` va AQUÍ porque la respiración del hover cuelga
+          de `.disc-banner img` (ver la nota larga arriba). */}
+      <div className="disc-banner" aria-hidden="true" style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: `${cardCoverH(wide)}px`,
+        overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
+        WebkitMaskImage: CARD_COVER_MASK, maskImage: CARD_COVER_MASK,
+      }}>
         {cover
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <MiniStars seed={c.id || c.username || name} />}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 30%, var(--card-solid) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: CARD_COVER_SCRIM }} />
+      </div>
+
+      {/* EL COMPÁS — la franja sigue midiendo lo mismo que antes (el avatar y
+          todo el bloque de abajo se posicionan contra ella), pero ya no
+          recorta la foto: ahora es espacio reservado. Los sellos viven aquí
+          y no en la capa de portada, que es aria-hidden y no recibe toques. */}
+      <div style={{ position: 'relative', height: wide ? '116px' : '92px', zIndex: 2 }}>
         {/* v12: 16px was frozen at phone scale inside a card that is ~50%
             wider on desktop — the membership mark read as a speck there. */}
         {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={wide ? 20 : 16} /></span>}
@@ -485,7 +544,11 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
           : <span style={{ fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE }}>{initial}</span>}
       </div>
 
-      <div style={{ padding: '26px 13px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+      {/* position+zIndex son OBLIGATORIOS aquí, no decorativos: la portada de
+          arriba es `position:absolute`, y un elemento posicionado pinta por
+          ENCIMA de un hermano estático posterior aunque vaya antes en el DOM.
+          Sin esto el nombre y el oficio quedan debajo de la foto. */}
+      <div style={{ position: 'relative', zIndex: 1, padding: '26px 13px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
           <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '22px' : '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
           {/* v12: este chip sale de followingSet — o sea "TÚ LO SIGUES", que

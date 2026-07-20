@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
 import VerifiedMark from './VerifiedMark'
-import { CARD_TINT, cardGlass } from '@/lib/glass'
+import { CARD_TINT, cardGlass, glassControl } from '@/lib/glass'
 import WorldBuilder from '@/components/WorldBuilder'
 import WorldMoments from '@/components/WorldMoments'
 import WorldOffer from '@/components/WorldOffer'
@@ -115,8 +115,8 @@ const coverScrim = (bleed) => `linear-gradient(180deg,
   rgba(var(--void-rgb),.30) 22%,
   rgba(var(--void-rgb),.34) calc(100% - ${bleed + 300}px),
   rgba(var(--void-rgb),.62) calc(100% - ${bleed + 190}px),
-  rgba(8,8,13,.90) calc(100% - ${bleed + 96}px),
-  rgba(8,8,13,.88) calc(100% - ${bleed + 20}px),
+  rgba(var(--void-rgb),.90) calc(100% - ${bleed + 96}px),
+  rgba(var(--void-rgb),.88) calc(100% - ${bleed + 20}px),
   rgba(var(--void-rgb),.50) calc(100% - ${Math.round(bleed * 0.55)}px),
   rgba(var(--void-rgb),.14) calc(100% - ${Math.round(bleed * 0.22)}px),
   rgba(var(--void-rgb),0) 100%)`
@@ -132,11 +132,30 @@ const COVER_BLEED = { wide: 210, phone: 230 }
 
 /* el grado de Pato: la foto detrás del vidrio, no gritando. El contraste sube
    apenas para que no se vuelva lodo al oscurecerla — perder brillo sin
-   recuperar forma es lo que aplana una foto. */
-const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
+   recuperar forma es lo que aplana una foto.
+
+   ── REVISIÓN DE DIEGO (v12.1): "se ve plana/apagada, súbele — pero no tanto"
+   La clave para subirla SIN romper nada es que los tres controles no cuestan
+   lo mismo:
+
+     · saturación y contraste compran RIQUEZA y casi no tocan la legibilidad
+       del texto que va encima
+     · el brillo es el ÚNICO que de verdad la amenaza
+
+   Y hay algo que estaba haciendo doble trabajo: quien protege al texto no es
+   este grado, es coverScrim() — que llega al 88–90% de velo justo debajo del
+   bloque de identidad. O sea que el brillo al .62 estaba oscureciendo una
+   foto que el scrim ya iba a tapar de todos modos. Puro apagón sin beneficio.
+
+   Así que la saturación sube fuerte (.70 → 1.0, la foto vuelve a su color
+   real), el contraste un punto más (1.06 → 1.13, recupera forma), y el brillo
+   apenas se suelta (.62 → .74). Es un realce, no un filtro: nada pasa de 1.0
+   salvo el contraste, así que ningún color se inventa saturación que la foto
+   no traía. */
+const COVER_GRADE = 'saturate(1.0) brightness(.74) contrast(1.13)'
 // desktop: misma receta, un paso más abajo — una portada ancha tira mucha más
 // luz total que la de un teléfono al mismo brillo por píxel (Ley 3).
-const COVER_GRADE_WIDE = 'saturate(.62) brightness(.52) contrast(1.08)'
+const COVER_GRADE_WIDE = 'saturate(.94) brightness(.65) contrast(1.15)'
 
 /* ── LA REJILLA VERTICAL (Pato) ──────────────────────────────────────────
    Cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,
@@ -1050,7 +1069,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     </span>}
                     {ticket && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(var(--void-rgb),.45)', borderRadius: '100px', padding: '3px 10px', letterSpacing: '.1em' }}>
-                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(232,233,237,.7)` }} />
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(var(--star-rgb),.7)` }} />
                         GOING{event?.editionNumber ? ` · ${event.editionNumber}` : ''}
                       </span>
                     )}
@@ -1647,7 +1666,11 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 }
 
 /* ---------- shared bits ---------- */
-const pill = { background: 'rgba(var(--void-rgb),.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
+/* v12.1 — este llevaba `blur(8px)` inventado aquí y un fondo al 60% de vacío,
+   que sobre una portada clara tapaba la foto en vez de dejarla ver. Ahora es
+   la receta compartida (glass.js): mismo material que el resto de los
+   controles sueltos de la app, y una sola línea que cambiar si se afina. */
+const pill = { ...glassControl(), borderRadius: '100px', padding: '6px 12px', color: BONE, fontSize: '10px', fontFamily: 'DM Sans', cursor: 'pointer' }
 const galBtn = { background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '7px', width: '26px', height: '25px', color: BONE_MID, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }
 
 /* los conteos del vínculo: se ven igual que antes (nada de botón pintado —

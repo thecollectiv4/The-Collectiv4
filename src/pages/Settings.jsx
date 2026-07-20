@@ -6,7 +6,7 @@ import { supabase } from '@/api/supabase'
 import { useWide } from '@/lib/useIsDesktop'
 import AuthResolving from '@/components/AuthResolving'
 import SeedPill from '@/components/SeedMark'
-import { cardGlass } from '@/lib/glass'
+import { cardGlass, glassControl } from '@/lib/glass'
 import { BONE, BONE_LOW, BONE_MID, FAINT, SILVER, HAIR, HAIR_HI, CHROME, FONT_DISPLAY, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
 import { Copy, Check, ChevronRight, LogOut, MapPin } from 'lucide-react'
 
@@ -437,15 +437,20 @@ export default function Settings() {
           <button
             onClick={async () => { await signOut(); navigate('/') }}
             className="pressable"
+            /* Vidrio de verdad: este botón vive SUELTO en la sección, fuera
+               de cualquier <Panel/>. Los controles de adentro (el "Allow" de
+               ubicación, las pastillas de tema) NO lo llevan a propósito —
+               ahí arriba hay un cardGlass() que ya es raíz de backdrop, y
+               anidar vidrio da el parche gris que glass.js documenta. */
             style={{
+              ...glassControl(),
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
               padding: '15px', borderRadius: '10px', cursor: 'pointer',
-              background: 'rgba(var(--ink-rgb),.03)', border: `1px solid ${HAIR_HI}`,
               fontFamily: FONT_MONO, fontSize: '11px', color: SILVER, letterSpacing: '.16em', textTransform: 'uppercase',
               transition: 'border-color .2s var(--ease-house)',
             }}
             onMouseOver={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.45)' }}
-            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.15)' }}
+            onMouseOut={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),0.22)' }}
           >
             <LogOut size={13} /> Sign out
           </button>

@@ -15,6 +15,7 @@ import { fetchProfileCrafts } from '@/lib/crafts'
 import { fetchMyTastes } from '@/lib/tastes'
 import { fetchUpcomingSets } from '@/lib/world'
 import { isOwnerFounder } from '@/lib/osAccess'
+import { glassControl } from '@/lib/glass'
 
 export default function Profile() {
   // signOut ya no se desestructura aquí: se fue con el botón a /settings.
@@ -246,9 +247,12 @@ export default function Profile() {
       <span />
       {/* ghost silver, same register as the Cover pill — the palette admits
           no salmon, not even as "danger" (panel catch, Ley 14) */}
+      {/* v12.1 — receta compartida en vez del blur(8px) de la casa de al
+          lado. Flota sobre la portada, así que el vidrio de verdad es
+          justamente lo que hace que la foto se siga viendo detrás. */}
       <button onClick={() => navigate('/settings')} aria-label="Settings"
-        style={{ background: 'rgba(var(--void-rgb),.6)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', border: '1px solid rgba(var(--silver-rgb),.22)', borderRadius: '100px', padding: '6px 14px', color: 'var(--silver)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'border-color .2s' }}
-        onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.45)'} onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.22)'}>
+        style={{ ...glassControl(), borderRadius: '100px', padding: '6px 14px', color: 'var(--silver)', fontSize: '11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Sans', transition: 'border-color .2s' }}
+        onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.45)'} onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),0.22)'}>
         <SlidersHorizontal size={11} /> Settings
       </button>
     </>

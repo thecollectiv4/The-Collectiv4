@@ -166,7 +166,7 @@ export default function ClaimWorld() {
 
       {/* ticket chip — always present in this state (phase=confirmed ⇒ ticket exists) */}
       <div className="rise rise-4" style={{ marginTop: '26px', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: 'rgba(var(--silver-rgb),.04)' }}>
-        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(232,233,237,.7)', flexShrink: 0 }} />
+        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: STAR, boxShadow: '0 0 8px rgba(var(--star-rgb),.7)', flexShrink: 0 }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.2em' }}>CONFIRMED</div>
           <div style={{ fontFamily: 'DM Mono', fontSize: '12px', color: BONE, letterSpacing: '.04em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.qr_code}</div>

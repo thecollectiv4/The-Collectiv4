@@ -203,7 +203,7 @@ export default function HouseWorld() {
                         <div style={{ minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
                             <span className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                            <BadgeCheck size={13} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 5px rgba(232,233,237,.5))' }} />
+                            <BadgeCheck size={13} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 5px rgba(var(--star-rgb),.5))' }} />
                           </div>
                           {/* the craft is identity — it clamps to two lines,
                               never dies mid-word (panel catch, Ley 5) */}
@@ -255,7 +255,7 @@ export default function HouseWorld() {
                           {img
                             ? <img src={img} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             : <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.1), transparent)' }} />}
-                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 40%, rgba(14,14,19,.92) 100%)' }} />
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),0) 40%, rgba(var(--void-rgb),.92) 100%)' }} />
                           <span style={{ position: 'absolute', top: '9px', left: '10px', fontFamily: 'DM Mono', fontSize: '7px', letterSpacing: '.18em', color: BONE_MID, border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 8px', background: 'rgba(var(--void-rgb),.5)', textTransform: 'uppercase' }}>{KINDS[l.kind]?.label || 'PIECE'}</span>
                         </div>
                         <div style={{ padding: '11px 13px' }}>

@@ -145,23 +145,53 @@ const SKY = {
     spike: '226,232,244', aSpike: 0.13,
     glow: null,                 // el glow superior usa el TINT de la ruta
   },
+  /* ── REVISIÓN DE DIEGO: "muy blanco, no parece galaxy" ──────────────────
+     Tenía razón y la causa era medible, no de gusto. Tres cosas la
+     aplanaban, en orden de culpa:
+
+     1. EL LAVADO BLANCO AL 0.5. Un resplandor blanco cubriendo el 70% del
+        radio superior sobre un fondo que ya era casi blanco: en la práctica
+        borraba el recorrido vertical del degradado y dejaba una hoja lisa.
+        La luz de día tiene que INSINUARSE (0.14), no inundar.
+     2. EL DEGRADADO BASE NO RECORRÍA NADA. #F3F1EC → #E4E2DA son 15 puntos
+        de luminancia: sin viaje de arriba a abajo no hay espacio, hay papel.
+        Ahora abre a ~34 puntos y el fondo tiene fondo.
+     3. LAS α DE `multiply` COPIADAS DE LA INTUICIÓN. Multiplicar sobre un
+        sustrato claro rinde MUCHO menos que `screen` sobre uno oscuro; las
+        subí ~1.5x en el primer intento y seguía corto. Van ~2.4x sobre el
+        original y recién ahí la nebulosa se lee como nebulosa.
+
+     Se suma una VIÑETA que el registro oscuro no necesita: en el vacío los
+     bordes ya caen a negro solos, en papel no cae nada y la pantalla lee
+     como una hoja pegada. Oscurecer las esquinas es lo que convierte la
+     hoja en una bóveda. Es la única capa que existe en un registro y no en
+     el otro, y por eso está comentada.
+     Todo esto vive en el raster cacheado: cero costo por frame. */
   light: {
-    grad: ['#F3F1EC', '#EDEBE6', '#E4E2DA'],
+    grad: ['#F7F5F1', '#EAE8E1', '#D9D6CD'],
     blend: 'multiply',
     nebula: [
-      [96, 122, 170, 0.130],
-      [138, 152, 180, 0.085],
-      [172, 142, 86, 0.070],
-      [74, 96, 138, 0.105],
+      [78, 108, 164, 0.240],   // azul frío — el campo profundo
+      [120, 138, 172, 0.150],  // plata — el medio difuso
+      [166, 132, 74, 0.130],   // oro — la aurora, la única nota cálida
+      [58, 84, 132, 0.195],    // azul lejano — la profundidad de atrás
     ],
-    river: { edge: '120,142,180', spine: '78,92,120', aEdge: 0.058, aSpine: 0.105 },
-    dust: { base: '#4A4C57', bright: '#23252B', aFar: 0.26, aMid: 0.44, aNear: 0.66 },
-    micro: '#6B7285', aMicro: 0.13,
-    node: '#33353D', nodeHi: '#1C1E25',
-    halo: '46,48,58',
-    haloA: 0.16,
-    spike: '58,60,70', aSpike: 0.11,
-    glow: '255,255,255',        // de día la luz entra por arriba: un lavado
+    /* El río baja de 0.185 a 0.115 A PROPÓSITO, y no es un retroceso: al
+       0.185 la banda leía como un manchón gris cruzando la pantalla —
+       barrido pintado, no cielo. En una placa real la Vía Láctea es densa
+       porque tiene MÁS ESTRELLAS, no porque alguien pasó un pincel. Así que
+       la presencia se mueve de la pintura al polvo: menos banda, 1.7x más
+       puntos (dustMul). Mismo peso visual, y ahora resiste que te acerques. */
+    river: { edge: '104,128,172', spine: '62,78,110', aEdge: 0.072, aSpine: 0.115 },
+    dust: { base: '#3E4150', bright: '#1A1C24', aFar: 0.34, aMid: 0.55, aNear: 0.78 },
+    dustMul: 1.7,
+    micro: '#5A6072', aMicro: 0.20,
+    node: '#2B2D36', nodeHi: '#15171E',
+    halo: '38,40,52',
+    haloA: 0.20,
+    spike: '48,50,62', aSpike: 0.15,
+    glow: '255,255,255',        // luz de ventana — insinuada, no inundando
+    vignette: '108,104,116',    // la bóveda: sólo de día (ver la nota arriba)
   },
 }
 
@@ -411,7 +441,9 @@ export default function Atmosphere() {
       // por arriba; de día es luz de ventana — blanca, no teñida, porque un
       // tinte claro sobre papel claro es una mancha y no una fuente.
       const glowRGB = PAL.glow || TINT
-      const glowA = theme === 'light' ? 0.5 : 0.055
+      // 0.14, no 0.5 — ver la nota (1) en SKY.light. Media docena de puntos
+      // de más aquí y el cielo entero vuelve a ser una hoja.
+      const glowA = theme === 'light' ? 0.14 : 0.055
       const glow = b.createRadialGradient(w * 0.5, h * 0.04, 0, w * 0.5, h * 0.04, Math.max(w, h) * 0.7)
       glow.addColorStop(0, `rgba(${glowRGB},${glowA})`)
       glow.addColorStop(1, `rgba(${glowRGB},0)`)
@@ -492,7 +524,10 @@ export default function Atmosphere() {
       // a galactic band IS), all static. This is the single biggest visual
       // win in the file and it costs exactly one bitmap.
       const DU = PAL.dust
-      const dustN = Math.round(Math.min(520, Math.max(160, (w * h) / 2600)) * sky)
+      // dustMul: el registro claro compra su densidad con estrellas en vez de
+      // con banda pintada (ver la nota junto a `river` en SKY.light). Sigue
+      // siendo raster estático — más puntos aquí no cuestan un solo frame.
+      const dustN = Math.round(Math.min(520, Math.max(160, (w * h) / 2600)) * sky * (PAL.dustMul || 1))
       const sinA = Math.sin(ang), cosA = Math.cos(ang)
       // los pocos más brillantes se guardan para las púas de abajo
       const anchors = []
@@ -560,6 +595,26 @@ export default function Atmosphere() {
 
       b.globalAlpha = 1
       b.globalCompositeOperation = 'source-over'
+
+      /* LA BÓVEDA (sólo de día). En el vacío los bordes caen a negro por su
+         cuenta y no hace falta nada; en papel no cae nada, y una pantalla
+         claro-uniforme de borde a borde lee como una hoja pegada al vidrio,
+         no como un espacio con fondo. Un oscurecimiento muy bajo en las
+         esquinas es lo que le da bóveda — el mismo truco que usa una copia
+         de galería para que la vista caiga al centro.
+         Va al FINAL y en source-over, encima del campo profundo: la viñeta
+         tiene que abrazar la nebulosa y el polvo, no quedar debajo de ellos.
+         El centro se queda intacto (parada 0.5 todavía en alpha 0), así que
+         no le roba contraste a nada de lo que se lee. */
+      if (PAL.vignette) {
+        const vg = b.createRadialGradient(w * 0.5, h * 0.46, 0, w * 0.5, h * 0.46, Math.hypot(w, h) * 0.72)
+        vg.addColorStop(0, `rgba(${PAL.vignette},0)`)
+        vg.addColorStop(0.5, `rgba(${PAL.vignette},0)`)
+        vg.addColorStop(0.78, `rgba(${PAL.vignette},${0.085 * sky})`)
+        vg.addColorStop(1, `rgba(${PAL.vignette},${0.20 * sky})`)
+        b.fillStyle = vg
+        b.fillRect(0, 0, w, h)
+      }
 
       /* v12 desktop: the cap was reasoned from a PHONE (~5MB/entry). At
          2560x1440 DPR2 one entry is 5120x2880x4B = 59 MB, so the same cap

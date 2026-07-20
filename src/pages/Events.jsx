@@ -6,7 +6,7 @@ import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
 import { normVibe, vibeMeta } from '@/lib/match'
 import FoundersLine from '@/components/FoundersLine'
-import { CARD_TINT, cardGlass } from '@/lib/glass'
+import { CARD_TINT, cardGlass, glassControl } from '@/lib/glass'
 import { tintChannel } from '@/lib/cosmos'
 
 /* =========================================================================
@@ -143,9 +143,13 @@ export default function Events() {
           {/* the house door — the flagship world (D4): what a world IS,
               shown not explained */}
           <button className="pressable" data-testid="house-door" onClick={() => navigate('/c4')}
-            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color .2s, color .2s, transform .2s', marginBottom: '4px' }}
+            /* v12.1 — vidrio de verdad. Estaba en `transparent` con un
+               filete: sobre el cielo eso es un contorno dibujado, no un
+               material. Flota directo sobre la página (sin cardGlass arriba),
+               así que puede llevar su propio backdrop-filter. */
+            style={{ ...glassControl(), marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '7px 14px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer', transition: 'border-color .2s, color .2s, transform .2s', marginBottom: '4px' }}
             onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.4)'; e.currentTarget.style.color = BONE }}
-            onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),0.22)'; e.currentTarget.style.color = BONE_MID }}>
             ◇ the house world <ArrowUpRight size={11} />
           </button>
         </div>
@@ -217,7 +221,11 @@ export default function Events() {
                       The next one is being built. Stay close — the room always comes back.
                     </p>
                     <button className="pressable" onClick={() => navigate('/community')}
-                      style={{ marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(var(--ink-rgb),.06)', border: '1px solid rgba(var(--ink-rgb),.22)', borderRadius: '100px', padding: '10px 18px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
+                      /* la tarjeta que lo contiene es un degradado plano, no
+                         cardGlass — verificado antes de anidar: sin raíz de
+                         backdrop arriba, este control puede difuminar de
+                         verdad el cielo que se ve a través de la tarjeta. */
+                      style={{ ...glassControl(), marginTop: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px', borderRadius: '100px', padding: '10px 18px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
                       meanwhile — find your people <ArrowUpRight size={12} />
                     </button>
                   </div>

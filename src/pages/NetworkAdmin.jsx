@@ -163,7 +163,7 @@ export default function NetworkAdmin() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span style={{ fontFamily: 'DM Sans', fontSize: '14px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>
-                      {r.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(232,233,237,.5))' }} />}
+                      {r.verified && <BadgeCheck size={14} style={{ color: STAR, flexShrink: 0, filter: 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' }} />}
                       {r.is_demo && <span style={{ fontFamily: 'DM Mono', fontSize: '7px', color: BONE_LOW, letterSpacing: '.1em', border: `1px solid ${HAIR}`, borderRadius: '4px', padding: '1px 5px', flexShrink: 0 }}>DEMO</span>}
                     </div>
                     <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

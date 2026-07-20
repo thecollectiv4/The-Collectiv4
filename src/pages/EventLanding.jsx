@@ -347,9 +347,9 @@ export function EventShow({ live }) {
             {chatReady && hasTicket && (
               <>
                 <button className="pressable" onClick={enterRoomChat} disabled={chatBusy}
-                  style={{marginTop:'10px',width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'rgba(232,233,237,.05)',border:'1px solid rgba(232,233,237,.2)',borderRadius:'12px',padding:'14px 16px',cursor:chatBusy?'default':'pointer',transition:'border-color .2s, background .2s',textAlign:'left'}}
-                  onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.4)';e.currentTarget.style.background='rgba(232,233,237,.09)'}}
-                  onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.2)';e.currentTarget.style.background='rgba(232,233,237,.05)'}}>
+                  style={{marginTop:'10px',width:'100%',display:'flex',alignItems:'center',gap:'12px',background:'rgba(var(--star-rgb),.05)',border:'1px solid rgba(var(--star-rgb),.2)',borderRadius:'12px',padding:'14px 16px',cursor:chatBusy?'default':'pointer',transition:'border-color .2s, background .2s',textAlign:'left'}}
+                  onMouseOver={e=>{e.currentTarget.style.borderColor='rgba(var(--star-rgb),.4)';e.currentTarget.style.background='rgba(var(--star-rgb),.09)'}}
+                  onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(var(--star-rgb),.2)';e.currentTarget.style.background='rgba(var(--star-rgb),.05)'}}>
                   {chatBusy
                     ? <Loader2 size={16} style={{color:'var(--star)',animation:'spin 1s linear infinite',flexShrink:0}} />
                     : <MessagesSquare size={16} strokeWidth={1.6} style={{color:'var(--star)',flexShrink:0}} />}
@@ -553,9 +553,9 @@ export function EventShow({ live }) {
             const avatar = world && (/^https?:\/\//i.test((world.avatar_url||'').trim()) || (world.avatar_url||'').startsWith('data:image/')) ? world.avatar_url : ''
             return (
             <div key={i} className={world ? 'pressable' : undefined} data-testid={world ? 'lineup-world' : 'lineup-artist'} onClick={world ? ()=>navigate('/user/'+world.id) : undefined}
-              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(var(--ink-rgb),.04)',border:`1px solid ${world?'rgba(232,233,237,.22)':'rgba(var(--ink-rgb),.1)'}`,cursor:world?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
-              onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.3)';e.currentTarget.style.background='rgba(var(--ink-rgb),.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(232,233,237,.22)';e.currentTarget.style.background='rgba(var(--ink-rgb),.04)'}):undefined}>
-              <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(var(--ink-rgb),.1)',border:`2px solid ${world?'rgba(232,233,237,.55)':'rgba(var(--ink-rgb),.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',flexShrink:0,boxShadow:world?'0 0 14px rgba(232,233,237,.18)':'none'}}>
+              style={{display:'flex',alignItems:'center',gap:'16px',padding:'13px 16px',borderRadius:'12px',background:'rgba(var(--ink-rgb),.04)',border:`1px solid ${world?'rgba(var(--star-rgb),.22)':'rgba(var(--ink-rgb),.1)'}`,cursor:world?'pointer':'default',transition:'background .2s, border-color .2s, transform .2s'}}
+              onMouseOver={world?(e=>{e.currentTarget.style.borderColor='rgba(var(--ink-rgb),.3)';e.currentTarget.style.background='rgba(var(--ink-rgb),.08)'}):undefined} onMouseOut={world?(e=>{e.currentTarget.style.borderColor='rgba(var(--star-rgb),.22)';e.currentTarget.style.background='rgba(var(--ink-rgb),.04)'}):undefined}>
+              <div style={{width:'50px',height:'50px',borderRadius:'50%',overflow:'hidden',background:'rgba(var(--ink-rgb),.1)',border:`2px solid ${world?'rgba(var(--star-rgb),.55)':'rgba(var(--ink-rgb),.35)'}`,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:'Bebas Neue',fontSize:'22px',color:'var(--cream)',flexShrink:0,boxShadow:world?'0 0 14px rgba(var(--star-rgb),.18)':'none'}}>
                 {avatar ? <img src={avatar} alt="" loading="lazy" style={{width:'100%',height:'100%',objectFit:'cover'}} /> : a.name[0]}
               </div>
               <div style={{flex:1,minWidth:0}}>
@@ -563,7 +563,7 @@ export function EventShow({ live }) {
                 <div style={{fontFamily:'DM Mono',fontSize:'10px',color:'var(--cream-mid)',marginTop:'3px',letterSpacing:'.04em'}}>{a.tag} · {a.ig}</div>
                 {world && (
                   <div style={{display:'inline-flex',alignItems:'center',gap:'6px',marginTop:'6px',fontFamily:'DM Mono',fontSize:'8px',color:'var(--star)',letterSpacing:'.16em',textTransform:'uppercase'}}>
-                    <span aria-hidden style={{width:'4px',height:'4px',borderRadius:'50%',background:'var(--star)',boxShadow:'0 0 6px rgba(232,233,237,.7)'}} />
+                    <span aria-hidden style={{width:'4px',height:'4px',borderRadius:'50%',background:'var(--star)',boxShadow:'0 0 6px rgba(var(--star-rgb),.7)'}} />
                     their world is open →
                   </div>
                 )}

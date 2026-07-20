@@ -82,6 +82,46 @@ export const glassSurface = (extra = {}) => ({
   ...extra,
 })
 
+/* ── CONTROLES SUELTOS (v12.1) ───────────────────────────────────────────
+   EL VIDRIO QUE FALTABA, Y DÓNDE FALTABA.
+
+   La app tenía dos clases de vidrio resueltas —la losa (glassSurface) y la
+   tarjeta (cardGlass)— y una tercera sin resolver: el CONTROL SUELTO. La
+   píldora que flota sola sobre el cielo ("◇ THE HOUSE WORLD", el botón de
+   ajustes sobre la portada, los chips de un panel). Ésos llevaban borde y
+   un tinte del 6% y NADA detrás: leían como contorno dibujado, no como
+   material, porque no difuminaban nada.
+
+   Media docena además se había hecho su propio blur a mano —6px, 8px, 12px,
+   16px, cada uno inventado en su archivo— que es exactamente la deriva que
+   este módulo existe para matar. Una receta, todos los llamadores.
+
+   ⚠ CUÁNDO **NO** USAR ESTO — LA REGLA DE NO ANIDAR, QUE SIGUE VIVA.
+   Sólo para controles que flotan DIRECTAMENTE sobre la página. Un elemento
+   con backdrop-filter es él mismo una raíz de backdrop: metido dentro de una
+   tarjeta con cardGlass() o dentro de la barra, vuelve a difuminar la salida
+   de su padre en vez de la página y da un parche gris lodo. Adentro de otro
+   vidrio van CHIP / WELL / BUBBLE, que son gradientes y no vuelven a
+   difuminar. Si dudás: ¿hay un cardGlass o un glassSurface arriba? Entonces
+   no es esto.
+
+   El blur es 12px, no los 20 de la barra: un control es chico, se dibujan
+   muchos por vista, y el kernel corre en píxeles de DISPOSITIVO (12 CSS px
+   son 36 en un iPhone 3x). Más radio aquí no se ve y sí se paga. */
+export const CONTROL_FILTER = 'saturate(150%) brightness(1.04) blur(12px)'
+
+export const glassControl = (extra = {}) => ({
+  WebkitBackdropFilter: CONTROL_FILTER,
+  backdropFilter: CONTROL_FILTER,
+  background: 'linear-gradient(180deg, rgba(var(--ink-rgb),0.10), rgba(var(--ink-rgb),0.035))',
+  border: '1px solid rgba(var(--ink-rgb),0.22)',
+  // mismas tres señales de profundidad que WELL, un paso más bajas: filo
+  // especular arriba, piso oscuro debajo, sombra proyectada. Quitá una y el
+  // volumen se cae por más opacidad que le pongas (ver la nota de WELL).
+  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.30), inset 0 -4px 8px -5px rgba(var(--shadow-rgb),0.42), 0 2px 8px rgba(var(--shadow-rgb),0.24)',
+  ...extra,
+})
+
 /* CHIP — the pane of brighter glass that marks the active thing. Gradient
    only (see the no-nesting rule). Reads as a lit facet resting ON the slab. */
 /* EL ACTIVO SE INVIERTE, Y ESO ES CORRECTO. En el vacío "activo" es MÁS LUZ:

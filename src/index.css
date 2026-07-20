@@ -71,6 +71,11 @@
   --ink-rgb:    242,238,230;   /* el frente: hueso sobre vacío */
   --void-rgb:   10,10,13;      /* el fondo: para velos que oscurecen */
   --silver-rgb: 199,201,209;
+  /* STAR como canal. Se me escapó en la primera pasada: 35 usos en glows,
+     bordes y tintes que son ACENTO DEL FRENTE — o sea, la misma familia que
+     --ink-rgb, sólo que un punto más fría. Sin esto, de día un resplandor de
+     estrella sobre papel es un borrón blanco invisible. */
+  --star-rgb:   232,233,237;
   /* Sobre vacío una sombra negra es profundidad; sobre papel es suciedad.
      El CANAL cambia de registro y las α escritas a mano se quedan donde
      están — igual que con --ink-rgb. */
@@ -199,6 +204,7 @@
   --ink-rgb:    10,10,13;
   --void-rgb:   237,235,230;
   --silver-rgb: 74,76,85;
+  --star-rgb:   42,44,51;
   /* La sombra deja de ser negra. Las α están escritas a mano por toda la app
      (.3 … .7) y no se pueden reescalar desde aquí, así que el CANAL absorbe
      el trabajo: un gris-tierra medio que ni al .7 de un scrim lee como
@@ -482,9 +488,9 @@ input, textarea, select,
   50%     { opacity:1;   box-shadow:0 0 18px rgba(var(--ink-rgb),.28); }
 }
 @keyframes tempElectric {
-  0%,100% { opacity:.92; box-shadow:0 0 5px rgba(232,233,237,.18); }
+  0%,100% { opacity:.92; box-shadow:0 0 5px rgba(var(--star-rgb),.18); }
   6%      { opacity:.6; }
-  11%     { opacity:1;   box-shadow:0 0 20px rgba(232,233,237,.4); }
+  11%     { opacity:1;   box-shadow:0 0 20px rgba(var(--star-rgb),.4); }
   54%     { opacity:.85; }
   60%     { opacity:1; }
 }
@@ -516,7 +522,7 @@ input, textarea, select,
 .os-slide-in-left { animation: osSlideInLeft var(--dur-fast) var(--ease-house); }
 
 /* "now" marker on the roadmap strip */
-@keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(232,233,237,.35); } 50% { box-shadow:0 0 0 5px rgba(232,233,237,0); } }
+@keyframes osNowPulse { 0%,100% { box-shadow:0 0 0 0 rgba(var(--star-rgb),.35); } 50% { box-shadow:0 0 0 5px rgba(var(--star-rgb),0); } }
 .os-now-dot { animation: osNowPulse 2.4s ease-in-out infinite; }
 
 /* hover-reveal card actions (always visible on touch devices) */
