@@ -1,5 +1,14 @@
 -- =====================================================================
--- 0046 — MADOU ES NATE: el entry del lineup apunta a un perfil REAL.
+-- 0047 — MADOU ES NATE: el entry del lineup apunta a un perfil REAL.
+--
+-- RENUMERADA DE 0046 → 0047 AL RECONCILIAR RAMAS (jul 2026). Tres cosas
+-- pelearon por el número 0046 al mismo tiempo:
+--   · 0046 = 'diego_fundador' — YA aplicado en la DB, sin archivo en el repo
+--   · 0046_la_puerta.sql — la migración de Pato, mergeada a main
+--   · 0046_lineup_profile_id.sql — ésta
+-- El archivo de Pato se queda con el 0046 del repo (llegó a main primero);
+-- ésta pasa a 0047. Su SQL YA CORRIÓ en producción y está verificado
+-- (el lineup trae profile_id), sólo cambia el número del archivo.
 -- The Collectiv4 platform. Reparación de dato puntual, idempotente.
 --
 -- WHY -----------------------------------------------------------------

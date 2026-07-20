@@ -1,7 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { X, ImagePlus, Loader2, ArrowLeft, Tag, Handshake, CalendarPlus, Sparkles, Camera } from 'lucide-react'
+// v12: Sparkles → LayoutGrid (curate = arranging a gallery, not "magic"),
+// Mark 'star' → Users (a plan is people). ArrowLeft is still used by the
+// composers' Back; Sparkles is gone from this file entirely.
+import { X, ImagePlus, Loader2, ArrowLeft, Package, Handshake, CalendarPlus, LayoutGrid, Users, Camera } from 'lucide-react'
 import { useWide } from '@/lib/useIsDesktop'
 import Mark from '@/components/Mark'
 import { createWorldPost } from '@/lib/worldPosts'
@@ -31,6 +34,37 @@ const VOID_2 = '#07080E'
 const BONE = '#F2EEE6'
 const BONE_MID = '#9B9891'
 const BONE_LOW = '#5B5952'
+const FAINT = '#4C4C57'                              // deck --faint (group sub-labels)
+
+/* ---- the path chip's sky (v12) ----------------------------------------
+   The three CREATE paths carry the same atmosphere the app's background
+   got in v12 — a few stars and the gold/blue temperature — so they read as
+   part of the universe instead of flat UI. Held deliberately to a whisper:
+
+   • ONE treatment for all three. The paths differ by SHAPE, never by
+     colour. A colour per icon is borrowed meaning and reads as circus;
+     one temperature across the set reads as a system (Ley del Lujo
+     Inmersivo — less, better placed).
+   • Blue ~9%, gold ~4.5%: the same 3–5% register as the real sky. At this
+     level it lands as TEMPERATURE, not as hue. Museum, not circus.
+   • Pure CSS gradients — no canvas, no extra DOM, nothing per frame. The
+     chips are static until you touch them.
+   • ONLY the three path chips get this. The six action chips stay quiet:
+     three lit moments on the screen, not nine. That restraint is the
+     whole difference between "alive" and "loud". */
+/* Star opacities are higher than the real sky's on purpose: a 30px chip
+   holds four 1px points, and at the background's own 20–35% they simply
+   do not exist on a phone at arm's length. An atmosphere nobody can
+   perceive is a claim, not a feature. These are still points of light on
+   near-black, which is the motif at its most literal. */
+const CHIP_STARS = [
+  'radial-gradient(1.2px 1.2px at 24% 28%, rgba(242,238,230,.85), transparent)',
+  'radial-gradient(1px 1px at 76% 22%, rgba(242,238,230,.55), transparent)',
+  'radial-gradient(1px 1px at 68% 76%, rgba(242,238,230,.42), transparent)',
+  'radial-gradient(1px 1px at 32% 70%, rgba(242,238,230,.3), transparent)',
+].join(',')
+const CHIP_TEMP = 'radial-gradient(130% 130% at 22% 8%, rgba(122,146,190,.09), rgba(198,170,118,.045) 52%, rgba(0,0,0,0) 76%)'
+const CHIP_SKY = `${CHIP_STARS}, ${CHIP_TEMP}`
 const SILVER = '#C7C9D1'
 const CARD = '#0E0E13'
 const HAIR = 'rgba(242,238,230,0.08)'
@@ -42,7 +76,7 @@ const chromeText = { background: CHROME, WebkitBackgroundClip: 'text', backgroun
 const MAX_POST_IMAGES = 4
 const MAX_LISTING_IMAGES = 4
 
-export default function CreateCentral({ user, isMemberVerified, onClose }) {
+export default function CreateCentral({ user, isMemberVerified, onClose, devForceReady = false }) {
   const navigate = useNavigate()
   const wide = useWide()
   // menu (the doors) | share | gather | offer (a door open) | post | posted | sell | listed
@@ -52,10 +86,20 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
   // pre-migration they're honestly absent, never a full composer that
   // hits a wall at publish (panel + review catch, Leyes 9/11)
   const [marketReady, setMarketReady] = useState(false)
-  useEffect(() => { let on = true; socialReady().then((r) => { if (on) setMarketReady(r) }); return () => { on = false } }, [])
+  // devForceReady: the /__create harness has no real session, so the probes
+  // below answer false and the menu renders a shape no real member sees.
+  // import.meta.env.DEV is statically false in prod — this branch does not ship.
+  const forced = import.meta.env.DEV && devForceReady
+  useEffect(() => {
+    if (forced) { setMarketReady(true); return undefined }
+    let on = true; socialReady().then((r) => { if (on) setMarketReady(r) }); return () => { on = false }
+  }, [forced])
   // same doctrine for the plan door: it renders only once 0023 is live
   const [planReady, setPlanReady] = useState(false)
-  useEffect(() => { let on = true; circleReady().then((r) => { if (on) setPlanReady(r) }); return () => { on = false } }, [])
+  useEffect(() => {
+    if (forced) { setPlanReady(true); return undefined }
+    let on = true; circleReady().then((r) => { if (on) setPlanReady(r) }); return () => { on = false }
+  }, [forced])
   // while a write is in flight, neither Esc nor the backdrop may abandon it
   const busyRef = useRef(false)
   const dialogRef = useRef(null)
@@ -90,8 +134,8 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
     <div onClick={() => { if (!busyRef.current) onClose() }} className="overlay-backdrop" style={{ position: 'fixed', inset: 0, zIndex: 10005, background: 'rgba(7,8,14,.8)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: wide ? 'center' : 'flex-end', justifyContent: 'center' }}>
       <div onClick={(e) => e.stopPropagation()} ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create" className={wide ? 'dialog-in' : 'sheet-up'} style={{ ...shell, outline: 'none' }}>
 
-        {(stage === 'menu' || stage === 'share' || stage === 'gather' || stage === 'offer') && (
-          <CreateDoors wide={wide} stage={stage} setStage={setStage}
+        {stage === 'menu' && (
+          <CreateMenu wide={wide}
             verified={isMemberVerified} marketReady={marketReady} planReady={planReady} onClose={onClose}
             onPost={() => setStage('post')}
             onPlan={() => go('/messages?seg=plans&new=1')}
@@ -100,7 +144,10 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
             onCurate={() => go('/profile')} />
         )}
         {stage === 'post' && (
-          <PostComposer wide={wide} user={user} onBack={() => setStage('share')} onClose={onClose}
+          // v12: back goes to 'menu' — the intermediate 'share'/'offer' stages
+          // no longer exist now that the menu is one screen. Left pointing at
+          // a dead stage, Back would have rendered nothing.
+          <PostComposer wide={wide} user={user} onBack={() => setStage('menu')} onClose={onClose}
             onBusy={(b) => { busyRef.current = b }}
             onPosted={() => { busyRef.current = false; setStage('posted') }} />
         )}
@@ -111,7 +158,7 @@ export default function CreateCentral({ user, isMemberVerified, onClose }) {
             cta="SEE IT IN YOUR WORLD" onCta={() => go('/profile')} onClose={onClose} />
         )}
         {stage === 'sell' && (
-          <ListingComposer wide={wide} user={user} kind={sellKind} onBack={() => setStage('offer')} onClose={onClose}
+          <ListingComposer wide={wide} user={user} kind={sellKind} onBack={() => setStage('menu')} onClose={onClose}
             onBusy={(b) => { busyRef.current = b }}
             onListed={() => { busyRef.current = false; setStage('listed') }} />
         )}
@@ -151,112 +198,153 @@ function Done({ kicker, title, line, cta, onCta, onClose }) {
   )
 }
 
-/* ---------- the three doors + the rooms behind them (v8 adición A) ----------
-   'menu' shows the doors; tapping one opens its intentions in place.
-   Doors and intentions are both catalog rows — the house's own marks,
-   temperature per door (Ley 14), the word always beside the mark (Ley 5). */
-function CreateDoors({ wide, stage, setStage, verified, marketReady, planReady, onPost, onPlan, onSell, onHost, onCurate, onClose }) {
-  // each intention exists only when its layer is LIVE (Leyes 9/11)
-  const INTENTS = {
-    share: [
-      { icon: Camera,   tint: '242,238,230', title: 'POST TO YOUR WORLD', kicker: 'a dated piece', line: 'Images and a line — it hangs in your museum, today’s date on the label.', onGo: onPost },
-      { icon: Sparkles, tint: '242,238,230', title: 'CURATE YOUR WORLD',  kicker: 'the museum',    line: 'Gallery, sound, marquee, skin — shape how the world walks in.', onGo: onCurate },
-    ],
-    gather: [
-      ...(planReady ? [{ mark: 'star', tint: '232,233,237', title: 'MAKE A PLAN', kicker: 'real life', line: 'A kickback, a roadtrip, real life — it gets a room, your connections get the door.', onGo: onPlan }] : []),
-      ...(verified ? [{ icon: CalendarPlus, tint: '232,233,237', title: 'HOST AN EVENT', kicker: 'your room', line: 'Create it, publish it, scan the door. Your event, on the platform.', onGo: onHost }] : []),
-    ],
-    offer: [
-      ...(marketReady ? [
-        { icon: Handshake, tint: '199,201,209', title: 'OFFER A SERVICE', kicker: 'your craft',   line: 'Shoots, sets, design — put your rate on the wall, get booked by DM.', onGo: () => onSell('service') },
-        { icon: Tag,       tint: '199,201,209', title: 'SELL A PIECE',    kicker: 'with a price', line: 'Clothing, prints, archive — name it, price it, the world DMs you.', onGo: () => onSell('piece') },
-      ] : []),
-    ],
-  }
-  // a door with nothing live behind it isn't there (honest absence)
-  const DOORS = [
-    { key: 'share',  mark: 'ring',     tint: '242,238,230', title: 'SHARE',  line: 'your world speaks' },
-    { key: 'gather', mark: 'diamond',  tint: '232,233,237', title: 'GATHER', line: 'real life, planned' },
-    { key: 'offer',  mark: 'triangle', tint: '199,201,209', title: 'OFFER',  line: 'your craft, priced' },
-  ].filter((d) => INTENTS[d.key].length > 0)
+/* ---------- THE CREATE MENU (v12 rewrite of the v8 doors) ----------
 
-  const open = stage !== 'menu' ? DOORS.find((d) => d.key === stage) : null
-  const rows = open ? INTENTS[open.key] : []
+   WHAT CHANGED AND WHY. v8 put three DOORS on this screen (SHARE / GATHER /
+   OFFER) and hid the six real actions behind them. Observed in production:
+   a first-timer opens CREATE and cannot tell what any door does without
+   reading, then has to guess which one holds the thing they came for. At
+   the single most important moment in the product — creating — the member
+   hesitates. Hesitation kills the action.
+
+   Three specific defects, all visible in the shipped screen:
+   1. TWO TAPS TO THE MOST COMMON ACTION. "I want to post something" — the
+      overwhelmingly common intent — was menu → door → action.
+   2. THE SUB-ACTIONS READ AS A CAPTION, NOT AS BUTTONS. They were rendered
+      as INTENTS[key].map(t => t.toLowerCase()).join(' · ') — one lowercase
+      DM Mono string. It looked like a description of the door, because
+      typographically that is exactly what it was.
+   3. THE DOOR MARKS SAID NOTHING. ○ ◇ △ for SHARE / GATHER / OFFER, while
+      the actions BEHIND them already used legible pictograms (Camera, Tag,
+      Handshake). The house had already conceded legibility one layer down.
+
+   THE FIX IS ONE SCREEN. Every action is visible and pressable immediately,
+   GROUPED under its intention rather than hidden behind it. This keeps the
+   v8 insight that made doors worth building — grouping is what lets this
+   scale past six items — and drops the cost, which was concealment.
+
+   The group marks (○ ◇ △) survive as SECTION MARKERS, which is the job the
+   design system actually locks them to. Function is carried by the action
+   icons. Same hand, correct division of labour.
+
+   Cards, not list rows: each action is a bordered object with its own fill.
+   The v8 rows were borderless with a hairline divider — typographically a
+   LIST. A border is what makes a thing read as pressable, and the reference
+   posters in the brand deck already speak in outlined capsules.
+   ------------------------------------------------------------------- */
+function CreateMenu({ wide, verified, marketReady, planReady, onPost, onPlan, onSell, onHost, onCurate, onClose }) {
+  /* Each action exists only when its layer is LIVE (Leyes 9/11).
+     ICON CHANGES (function over decoration, Ley 5 / Ley 14):
+       CURATE  Sparkles → LayoutGrid. "Sparkles" reads as AI/magic in every
+               other product on the member's phone; this action arranges a
+               gallery, so it should look like arranging a gallery.
+       PLAN    Mark 'star' → Users. A plan is PEOPLE. The star said nothing,
+               and it also collided with the star used as a section marker.
+       Camera / CalendarPlus / Handshake / Tag were already legible — kept.
+     COPY: one line each, cut to the shortest true sentence. The v8 rows
+     carried a title, an uppercase kicker AND a full sentence — three text
+     elements competing inside one button. */
+  const GROUPS = [
+    {
+      key: 'share', mark: 'publish', tint: '242,238,230',
+      title: 'SHARE', line: 'your world speaks',
+      items: [
+        { icon: Camera,     title: 'POST TO YOUR WORLD', line: 'Images and a line — dated in your museum.', onGo: onPost, hero: true },
+        { icon: LayoutGrid, title: 'CURATE YOUR WORLD',  line: 'Shape the gallery, sound and marquee.', onGo: onCurate },
+      ],
+    },
+    {
+      key: 'gather', mark: 'converge', tint: '232,233,237',
+      title: 'GATHER', line: 'real life, planned',
+      items: [
+        ...(planReady ? [{ icon: Users, title: 'MAKE A PLAN', line: 'A kickback, a roadtrip, real life.', onGo: onPlan }] : []),
+        ...(verified ? [{ icon: CalendarPlus, title: 'HOST AN EVENT', line: 'Publish it, sell it, scan the door.', onGo: onHost }] : []),
+      ],
+    },
+    {
+      key: 'offer', mark: 'pricetag', tint: '199,201,209',
+      title: 'OFFER', line: 'your craft, priced',
+      items: marketReady ? [
+        { icon: Handshake, title: 'OFFER A SERVICE', line: 'Shoots, sets, design — with your rate.', onGo: () => onSell('service') },
+        // Package, not Tag: the OFFER path's own symbol is now a price tag,
+        // and the group glyph must not be the same glyph as one of its
+        // children. The piece is the OBJECT; the tag is the pricing.
+        { icon: Package,   title: 'SELL A PIECE',    line: 'Clothing, prints, archive — name it, price it.', onGo: () => onSell('piece') },
+      ] : [],
+    },
+  ].filter((g) => g.items.length > 0)   // a group with nothing live isn't there
 
   return (
-    <div style={{ position: 'relative', padding: wide ? '26px 28px 24px' : '20px 20px calc(20px + env(safe-area-inset-bottom, 0px))', overflowY: 'auto' }}>
+    <div style={{ position: 'relative', padding: wide ? '24px 26px 24px' : '18px 18px calc(18px + env(safe-area-inset-bottom, 0px))', overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        {open ? (
-          <button onClick={() => setStage('menu')} style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.18em', textTransform: 'uppercase', cursor: 'pointer', padding: 0 }}>
-            <ArrowLeft size={12} /> create
-          </button>
-        ) : (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ create</div>
-        )}
+        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ create</div>
         <button onClick={onClose} aria-label="Close" style={{ background: 'transparent', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px', display: 'inline-flex' }}><X size={16} /></button>
       </div>
 
-      {open ? (
-        <>
-          {/* the door, open: its mark + name lead, its rooms follow */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
-            <Mark type={open.mark} size={18} color={`rgb(${open.tint})`} />
-            <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, ...chromeText }}>{open.title}</div>
-            <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase', paddingTop: '6px' }}>{open.line}</span>
+      <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '34px' : '30px', lineHeight: .95, marginTop: '8px', ...chromeText }}>
+        PUT SOMETHING<br />INTO THE WORLD
+      </div>
+
+      {GROUPS.map((g) => (
+        /* testid stays on the group so the v8 walkthrough's visibility
+           assertions keep meaning something after the flow changed */
+        <div key={g.key} className="create-group" data-testid={`create-door-${g.key}`} style={{ marginTop: '20px' }}>
+          {/* THE PATH: a legible symbol in a lit chip. These three are the
+              only lit surfaces on the screen — the atmosphere lives here and
+              nowhere else, so the sky reads as an accent and not a wallpaper. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px', marginBottom: '10px' }}>
+            <span className="path-chip" aria-hidden style={{
+              width: '30px', height: '30px', flexShrink: 0, borderRadius: '9px',
+              border: `1px solid rgba(${g.tint},.22)`,
+              // the sky, then the path's own faint body tint underneath it
+              backgroundImage: CHIP_SKY,
+              backgroundColor: `rgba(${g.tint},.045)`,
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Mark type={g.mark} size={14} color={`rgb(${g.tint})`} />
+            </span>
+            <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.24em', textTransform: 'uppercase' }}>{g.title}</span>
+            <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: FAINT, letterSpacing: '.14em', textTransform: 'uppercase' }}>· {g.line}</span>
+            <span style={{ flex: 1, height: '1px', background: HAIR }} />
           </div>
-          <div style={{ marginTop: '14px' }}>
-            {rows.map((r, i) => <IntentRow key={r.title} r={r} last={i === rows.length - 1} wide={wide} />)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {g.items.map((it) => <ActionCard key={it.title} it={it} tint={g.tint} wide={wide} />)}
           </div>
-        </>
-      ) : (
-        <>
-          <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '38px' : '32px', lineHeight: .95, marginTop: '10px', ...chromeText }}>PUT SOMETHING<br />INTO THE WORLD</div>
-          <div style={{ marginTop: '16px' }}>
-            {DOORS.map((d, i) => (
-              <button key={d.key} className="row-lead" data-testid={`create-door-${d.key}`} onClick={() => setStage(d.key)}
-                style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: i === DOORS.length - 1 ? 'none' : `1px solid ${HAIR}`, padding: wide ? '19px 2px' : '17px 2px', cursor: 'pointer' }}>
-                <span aria-hidden style={{ width: '46px', height: '46px', flexShrink: 0, borderRadius: '13px', border: `1px solid rgba(${d.tint},.28)`, background: `rgba(${d.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${d.tint},.08)` }}>
-                  <Mark type={d.mark} size={18} color={`rgb(${d.tint})`} />
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
-                    <span style={{ fontFamily: 'Bebas Neue', fontSize: '25px', color: BONE, letterSpacing: '.04em', lineHeight: 1 }}>{d.title}</span>
-                    <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>{d.line}</span>
-                  </span>
-                  {/* what's inside, legible before opening (Ley 5) */}
-                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '9.5px', color: BONE_MID, letterSpacing: '.06em', marginTop: '5px', textTransform: 'lowercase' }}>
-                    {INTENTS[d.key].map((r) => r.title.toLowerCase()).join(' · ')}
-                  </span>
-                </span>
-                <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+        </div>
+      ))}
     </div>
   )
 }
 
-/* one intention — the same catalog row language as always */
-function IntentRow({ r, last, wide }) {
-  const Icon = r.icon
+/* one action — a bordered, obviously pressable object.
+   `hero` marks the fastest path (POST): brighter border and a lit icon, so
+   "I just want to post something" is the thing the eye lands on first. */
+function ActionCard({ it, tint, wide }) {
+  const Icon = it.icon
   return (
-    <button className="row-lead" onClick={r.onGo}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: wide ? '15px 2px' : '13px 2px', cursor: 'pointer' }}>
-      <span aria-hidden style={{ width: '40px', height: '40px', flexShrink: 0, borderRadius: '11px', border: `1px solid rgba(${r.tint},.28)`, background: `rgba(${r.tint},.07)`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 0 14px rgba(${r.tint},.08)` }}>
-        {r.mark
-          ? <Mark type={r.mark} size={16} color={`rgb(${r.tint})`} />
-          : <Icon size={17} strokeWidth={1.6} style={{ color: `rgb(${r.tint})` }} />}
+    // row-lead ONLY — index.css: "Includes the press settle, so it REPLACES
+    // .pressable at these sites (never stack both — the transforms would
+    // collide)". The previous v12 push stacked them; this unstacks them.
+    <button className="row-lead" data-testid={`create-action-${it.title.toLowerCase().replace(/[^a-z]+/g, '-')}`} onClick={it.onGo}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '13px', width: '100%', textAlign: 'left',
+        background: it.hero ? `rgba(${tint},.055)` : 'rgba(242,238,230,.022)',
+        border: `1px solid ${it.hero ? `rgba(${tint},.30)` : HAIR}`,
+        borderRadius: '10px', padding: wide ? '14px 14px' : '13px 13px', cursor: 'pointer',
+      }}>
+      <span aria-hidden style={{
+        width: '38px', height: '38px', flexShrink: 0, borderRadius: '9px',
+        border: `1px solid rgba(${tint},${it.hero ? .34 : .2})`,
+        background: `rgba(${tint},${it.hero ? .1 : .05})`,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={17} strokeWidth={1.7} style={{ color: `rgb(${tint})` }} />
       </span>
       <span style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ display: 'flex', alignItems: 'baseline', gap: '10px', flexWrap: 'wrap' }}>
-          <span style={{ fontFamily: 'Bebas Neue', fontSize: '21px', color: BONE, letterSpacing: '.03em', lineHeight: 1 }}>{r.title}</span>
-          <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>{r.kicker}</span>
-        </span>
-        <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: '12px', color: BONE_MID, lineHeight: 1.45, marginTop: '4px' }}>{r.line}</span>
+        <span style={{ display: 'block', fontFamily: 'Bebas Neue', fontSize: '20px', color: BONE, letterSpacing: '.035em', lineHeight: 1 }}>{it.title}</span>
+        <span style={{ display: 'block', fontFamily: 'DM Sans', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.4, marginTop: '3px' }}>{it.line}</span>
       </span>
-      <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
+      <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: it.hero ? BONE : SILVER, flexShrink: 0 }}>→</span>
     </button>
   )
 }
@@ -415,7 +503,11 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
       <ComposerTop onBack={onBack} onClose={onClose} busy={busy} />
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '10px' }}>
         <span aria-hidden style={{ width: '34px', height: '34px', flexShrink: 0, borderRadius: '10px', border: '1px solid rgba(199,201,209,.28)', background: 'rgba(199,201,209,.07)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-          {service ? <Handshake size={15} strokeWidth={1.6} style={{ color: SILVER }} /> : <Tag size={15} strokeWidth={1.6} style={{ color: SILVER }} />}
+          {/* Package, matching the menu's own swap — Tag was dropped from the
+              imports when OFFER took the price-tag symbol, and this second
+              usage was missed: it threw ReferenceError and unmounted the whole
+              composer. Caught by audit, not by the build (runtime-only). */}
+          {service ? <Handshake size={15} strokeWidth={1.6} style={{ color: SILVER }} /> : <Package size={15} strokeWidth={1.6} style={{ color: SILVER }} />}
         </span>
         <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', lineHeight: .95, color: BONE }}>{heading}</div>
       </div>

@@ -195,6 +195,32 @@ input, textarea, select,
 }
 .row-lead:not(:disabled):active { transform: translateY(1px) scale(.99); }
 
+/* CREATE's three path chips (v12) — the sky, awake for a moment.
+   The chip is static at rest; it only lights when the group's cards are
+   being touched. Movement that CONFIRMS, never movement that decorates
+   (Ley 1: remove the effect and if nothing is lost, it was never needed —
+   remove this and you lose the "I am on this path" feedback).
+   Glow only: no transform, so nothing can collide with .row-lead's own
+   press settle, and no layout is touched. */
+.path-chip {
+  transition: box-shadow var(--dur-base) var(--ease-house),
+              border-color var(--dur-base) var(--ease-house);
+}
+@media (hover: hover) and (pointer: fine) {
+  .create-group:hover .path-chip {
+    border-color: rgba(242,238,230,.32);
+    box-shadow: inset 0 0 14px rgba(242,238,230,.07), 0 0 12px rgba(122,146,190,.10);
+  }
+}
+/* the press bloom — a touch of the gold that lives in the real nebula */
+.create-group:active .path-chip {
+  border-color: rgba(242,238,230,.40);
+  box-shadow: inset 0 0 18px rgba(242,238,230,.11), 0 0 14px rgba(198,170,118,.13);
+}
+@media (prefers-reduced-motion: reduce) {
+  .path-chip { transition: none; }
+}
+
 /* ============================================================
    OVERLAY GRAMMAR — everything arrives from somewhere (Ley 13).
    Sheets rise from the bottom edge; docked panels arrive from
@@ -365,10 +391,21 @@ input, textarea, select,
    brighten. Hover styles live HERE (not inline) so :hover
    composes with the breathe animation.
    ============================================================ */
-.disc-card { transition: transform var(--dur-slow) var(--ease-house), border-color var(--dur-slow) ease; }
-.disc-card:hover {
-  transform: translateY(-5px);
-  border-color: rgba(242,238,230,.34) !important;
+/* v12 — THE LIFT IS GONE, AND IT HAD TO GO. This is the one card in the app
+   carrying real cardGlass() (Community.jsx: the same node holds .disc-card
+   AND the backdrop-filter). glass.js documents that WebKit never re-attaches
+   backdrop sampling once a transform is applied to and removed from a
+   backdrop-filter element — the glass is dead for the rest of the session.
+   The old rule was also an unfenced :hover, so it only ever fired on desktop
+   with a fine pointer: the glass broke on Mac and nowhere else, which is
+   exactly the bug being chased. Depth now comes from the border and the
+   shadow, which cost nothing and cannot poison the compositor. */
+.disc-card { transition: box-shadow var(--dur-slow) var(--ease-house), border-color var(--dur-slow) ease; }
+@media (hover: hover) and (pointer: fine) {
+  .disc-card:hover {
+    border-color: rgba(242,238,230,.34) !important;
+    box-shadow: 0 26px 54px rgba(0,0,0,.52), 0 8px 20px rgba(0,0,0,.38), inset 0 1.5px 0 rgba(242,238,230,.34);
+  }
 }
 /* the banner breathes — slow, alive, never busy */
 @keyframes discBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.045); } }
@@ -427,6 +464,49 @@ input, textarea, select,
   .feat-room:hover { border-color: rgba(242,238,230,.34); }
   .feat-room:hover .disc-banner img, .feat-room:hover .disc-banner svg { animation-play-state: running; }
 }
+
+/* EL COMPÁS VERTICAL DE LA TIRA DE IDENTIDAD (perfil).
+   `> * + *` — un margen ENTRE hermanos, nunca sobre el primero, así que la
+   franja de arriba nunca empuja de más. Se hace con clase y no con flex+gap
+   a propósito: aquí conviven bandas de ancho completo y pastillas que se
+   encogen, y un flex column obliga a elegir uno de los dos (ver la nota en
+   ProfileMuseum.jsx). El bloque normal ya trata bien a los dos; esto sólo le
+   pone el compás encima. El valor entra por variable desde el componente,
+   que es quien sabe si está en móvil o ancho. */
+.byline-rhythm > * + * { margin-top: var(--byline-gap, 22px); }
+
+/* ============================================================
+   EL SELLO DE ÓRBITA C4 + LA ENTRADA DE LA IDENTIDAD (v11).
+   Las dos únicas piezas de movimiento del perfil. Cada una sirve
+   uno de los tres trabajos legítimos (guiar / confirmar / deleitar);
+   nada más en esta pantalla se mueve solo porque sí.
+   ============================================================ */
+/* DELEITAR — el satélite del badge. 14s por vuelta: lo ves si lo
+   miras, no te estorba si no. Es el ÚNICO movimiento continuo de la
+   pantalla; por eso significa algo cuando lo notas. */
+@keyframes c4Orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.c4-orbit { animation: c4Orbit 14s linear infinite; }
+
+/* GUIAR — la identidad llega en vez de aparecer de golpe.
+
+   ⚠ AQUÍ SE ROMPIÓ UNA LEY Y SE TUVO QUE DESHACER. La primera versión
+   animaba `opacity: .001 → 1` razonando que, sin `forwards` y con el
+   estado base correcto, si la animación no corría no pasaba nada.
+   ES FALSO, y quedó MEDIDO: una animación que existe pero no avanza
+   —pestaña en segundo plano, modo de bajo consumo, motor saturado—
+   pinta su PRIMER fotograma. Medí opacity 0.001 sobre el bloque de
+   identidad en un navegador real. O sea: el nombre desaparecido.
+
+   Por eso la ley original de este archivo decía "identity must never
+   depend on an animation firing". Tenía razón.
+
+   La cura no es quitar el movimiento: es quitarle la OPACIDAD. Ahora
+   sólo viaja el transform, así que el peor caso posible es el nombre
+   7px más abajo de su sitio — perfectamente legible, nadie lo nota.
+   Un fallo que degrada a "ligeramente corrido" es aceptable; uno que
+   degrada a "invisible" nunca lo es, y menos en la identidad. */
+@keyframes identityIn { from { transform: translateY(7px); } to { transform: none; } }
+.identity-in { animation: identityIn 620ms var(--ease-house); }
 
 /* ============================================================
    GLASS NAV (v11) — la barra inferior de vidrio. El componente
@@ -522,7 +602,11 @@ input, textarea, select,
    en tierra de nadie — un blur a medias sobre texto es lo que rompe
    la legibilidad, no el blur completo. */
 @media (prefers-reduced-transparency: reduce) {
-  .glass-nav {
+  /* .glass-header (v12) rides along: the desktop header now carries the same
+     material as the bar, so it must carry the same accessibility floor. It
+     had NO fallback before, because it had no class and no real glass —
+     desktop users of these settings simply got nothing. */
+  .glass-nav, .glass-header {
     background: #121218 !important;
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
@@ -537,20 +621,26 @@ input, textarea, select,
 
 /* Alto contraste: bordes definidos, fondo casi opaco. */
 @media (prefers-contrast: more) {
-  .glass-nav { background: #0E0E13 !important; border-color: rgba(242,238,230,.42) !important; }
+  .glass-nav, .glass-header { background: #0E0E13 !important; border-color: rgba(242,238,230,.42) !important; }
   .glass-nav-slot { opacity: 1 !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .temp-warm, .temp-electric { animation:none; }
+  /* el satélite se estaciona y la identidad simplemente está ahí — el
+     estado base de ambas ya es el correcto, así que apagarlas no
+     esconde nada (ver la nota junto a los keyframes) */
+  .c4-orbit, .identity-in { animation: none; }
   /* v11: el chip no se desliza — aparece donde toca. La opacidad se
      queda (es comprensión, no movimiento vestibular). */
   .glass-nav-chip { transition: opacity 200ms ease !important; }
-  /* La barra no se repliega al hacer scroll: un elemento grande que entra y
-     sale solo es justo el tipo de movimiento que marea. El hook ya se apaga
-     solo con esta preferencia; esto es el cinturón por si el estado quedara
-     encendido de antes. */
-  .glass-nav-dock { transition: none !important; transform: none !important; opacity: 1 !important; }
+  /* La barra ya no se repliega para NADIE — se quitó el repliegue por
+     completo (la razón larga está en GlassNav.jsx). Así que aquí no queda
+     nada que apagar por movimiento reducido.
+     Esta línea se queda como CINTURÓN, no como arreglo: si alguien vuelve a
+     ponerle una transición al dock, reintroduce el bug del vidrio, y esto al
+     menos lo mata para quien pidió menos movimiento. */
+  .glass-nav-dock { transition: none !important; }
   .os-reveal, .os-reveal-fast { animation:none; opacity:1; }
   .os-slide-in-right, .os-slide-in-left { animation:none; }
   .os-settle, .msg-in { animation: none; }

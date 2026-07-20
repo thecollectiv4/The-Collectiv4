@@ -24,7 +24,8 @@ export default function ResetPassword() {
   const navigate = useNavigate()
 
   const inp = { width:'100%', background:'var(--bg-card)', border:'1px solid var(--border-hi)', borderRadius:'10px', padding:'14px 16px', color:'var(--cream)', fontFamily:'DM Sans', fontSize:'14px', outline:'none' }
-  const wrap = { minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', padding:'2rem 28px', textAlign:'center', background:'#0A0A0D' }
+  // v12: transparent + zIndex 1 — the shared sky paints behind (App.jsx).
+  const wrap = { minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', padding:'2rem 28px', textAlign:'center', background:'transparent', position:'relative', zIndex:1 }
 
   const submit = async () => {
     if (password.length < 6) { setError('La contraseña debe tener al menos 6 caracteres.'); return }
@@ -69,7 +70,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'2rem 28px', background:'#0A0A0D' }}>
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', justifyContent:'center', padding:'2rem 28px', background:'transparent', position:'relative', zIndex:1 }}>
       <button onClick={() => navigate('/auth')} style={{ position:'absolute', top:'20px', left:'20px', background:'none', border:'none', color:'var(--cream-low)', cursor:'pointer', display:'flex', alignItems:'center', gap:'6px', fontSize:'12px', fontFamily:'DM Sans' }}>
         <ArrowLeft size={14}/> Acceder
       </button>

@@ -327,7 +327,16 @@ export default function Profile() {
                   <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cream)' }}>{e.title}{e.venue ? ` — ${e.venue}` : ''}</div>
                   <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', marginTop: '2px' }}>{e.event_date ? fmtEvDate(e.event_date) : ''}</div>
                 </div>
-                <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#C7C9D1', letterSpacing: '.08em' }}>✕</span>
+                {/* AQUÍ VIVÍA UN ✕ INERTE. Era la marca de la casa para
+                    "la noche" (el mismo glifo de la pestaña EVENT), pero
+                    puesto al final de una fila y alineado a la derecha —
+                    exactamente donde vive un botón de borrar — leía como un
+                    control que te quita el evento al que fuiste. Un control
+                    muerto que además parece destructivo es lo peor de los dos
+                    mundos: confunde y asusta.
+                    No se sustituye por nada: la fila ya dice el evento, el
+                    lugar y la fecha. Hacerlo funcional sería darle ruta, y
+                    esta pasada es limpieza visual, no rutas nuevas. */}
               </div>
             ))}
           </div>

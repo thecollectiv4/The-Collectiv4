@@ -92,6 +92,12 @@ test('C · sign up, open CREATE: three doors, honest per member', async ({ page 
   const email = `c4-qa-v8-${ts}@example.com`
   const password = `QaV8!${ts}`
   await page.goto('/auth')
+  /* ⚠ THIS TEST SIGNS UP A REAL ACCOUNT. When the v12 early-access gate is
+     switched on (app_flags.invite_gate = true, migration 0046), open signup
+     stops existing and this whole spec fails at this line — correctly, that
+     is the gate working. Before flipping the flag: either mint a QA invite
+     code and fill it here, or skip this spec. Do not "fix" it by weakening
+     the gate. */
   await page.getByPlaceholder('First name').fill('Cosmos')
   await page.getByPlaceholder('Last name').fill(`QA${ts}`)
   await page.getByPlaceholder('Email').fill(email)
@@ -104,24 +110,34 @@ test('C · sign up, open CREATE: three doors, honest per member', async ({ page 
 
   await page.goto('/')
   await page.getByRole('button', { name: 'Create' }).first().click()
-  // the three doors — the whole business map in one modal
+
+  /* v12 — ONE SCREEN. The v8 flow was menu → door → action; this section
+     used to click into each door. The doors are now GROUPS whose actions are
+     all visible immediately, so the assertions moved from "the door opens"
+     to "the action is reachable without opening anything". The create-door-*
+     testids survive on the group wrappers, so the grouping is still proven. */
   await expect(page.getByTestId('create-door-share')).toBeVisible({ timeout: 10000 })
   await expect(page.getByTestId('create-door-gather')).toBeVisible()
   await expect(page.getByTestId('create-door-offer')).toBeVisible()
-  await page.screenshot({ path: path.join(SHOTS, 'c-create-doors.png') })
+  await page.screenshot({ path: path.join(SHOTS, 'c-create-menu.png') })
 
-  // GATHER for a non-verified member: plan yes, host NO (honest absence)
-  await page.getByTestId('create-door-gather').click()
-  await expect(page.getByText('MAKE A PLAN')).toBeVisible()
-  await expect(page.getByText('HOST AN EVENT')).toHaveCount(0)
+  // every action is on screen at once — no door to open first
+  await expect(page.getByTestId('create-action-post-to-your-world')).toBeVisible()
+  await expect(page.getByTestId('create-action-curate-your-world')).toBeVisible()
+  await expect(page.getByTestId('create-action-make-a-plan')).toBeVisible()
 
-  // back to the doors, into SHARE: post + curate (the back arrow lives
-  // INSIDE the dialog — the header's Create button sits behind the backdrop)
+  // a non-verified member still does NOT get HOST AN EVENT (honest absence,
+  // Leyes 9/11) — unchanged by the redesign, and the reason it is asserted here
+  await expect(page.getByTestId('create-action-host-an-event')).toHaveCount(0)
+
+  // and the fastest path is one tap: CREATE → the composer
+  await page.getByTestId('create-action-post-to-your-world').click()
+  await expect(page.getByPlaceholder(/what is this moment/i)).toBeVisible()
+  // Back returns to the menu (v12 rewired this: the intermediate 'share'
+  // stage no longer exists, and Back pointed at it)
   await page.getByRole('dialog', { name: 'Create' }).getByRole('button', { name: /create/i }).first().click()
-  await page.getByTestId('create-door-share').click()
-  await expect(page.getByText('POST TO YOUR WORLD')).toBeVisible()
-  await expect(page.getByText('CURATE YOUR WORLD')).toBeVisible()
-  await page.screenshot({ path: path.join(SHOTS, 'c-share-open.png') })
+  await expect(page.getByTestId('create-action-post-to-your-world')).toBeVisible()
+  await page.screenshot({ path: path.join(SHOTS, 'c-create-menu-back.png') })
 })
 
 /* ---------------- D · the seed is invisible (0033) ----------------

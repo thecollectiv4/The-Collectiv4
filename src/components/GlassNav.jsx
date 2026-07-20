@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { Plus } from 'lucide-react'
 import Mark from './Mark'
-import { GLASS_FILTER, CHIP, BUBBLE, WELL, MARK_CHIP_RADIUS } from '@/lib/glass'
+/* v12 reconciliación: la losa usa glassSurface() (receta de Pato, que subió
+   la especular para que el vidrio lea sobre el vacío), y los chips de cada
+   ranura usan WELL/BUBBLE en círculo (MARK_CHIP_RADIUS, de Diego). Las dos
+   cosas son del mismo material y no se estorban: una es la losa, otros son
+   los chips encima. */
+import { glassSurface, CHIP, BUBBLE, WELL, MARK_CHIP_RADIUS } from '@/lib/glass'
 
 /* =========================================================================
    GlassNav (v11) — the bottom tab bar as an Apple-style liquid-glass slab.
@@ -34,11 +39,39 @@ import { GLASS_FILTER, CHIP, BUBBLE, WELL, MARK_CHIP_RADIUS } from '@/lib/glass'
 
    ─── the rest ─────────────────────────────────────────────────────────
 
-   RETRACT ON SCROLL rides on the DOCK, never on the slab: `transform` is not
-   a backdrop-root trigger (that list is filter, opacity<1, mask, clip-path,
-   mix-blend-mode and the root element), so moving the wrapper leaves the
-   glass sampling the page. Transforming the backdrop-filtered element itself
-   is the variant with open WebKit bugs.
+   ─── LA BARRA YA NO SE REPLIEGA. DECISIÓN DE DISEÑO ───────────────────
+
+   Tres versiones de esto fracasaron, cada una por una razón distinta, y las
+   tres eran la misma pregunta mal planteada:
+
+     v1  transform + will-change permanentes → el vidrio nacía muerto
+     v2  transform + opacity sólo al replegarse → el vidrio moría al primer
+         scroll (opacity<1 en el padre = backdrop root por especificación)
+     v3  `bottom` → el vidrio sobrevivía, pero `bottom` anima en LAYOUT y el
+         movimiento se sentía barato. Pato lo reportó como "movimiento feo",
+         y tenía razón.
+
+   No hay cuarta opción buena, y vale la pena decir por qué: para que algo
+   se mueva suave tiene que animarse en el compositor, y las únicas
+   propiedades que lo hacen son transform y opacity — que son exactamente
+   las dos prohibidas en la cadena de ancestros de este vidrio. Es un
+   callejón cerrado por física del motor, no por falta de ingenio.
+
+   Entonces la pregunta correcta no era "¿cómo lo muevo suave?" sino
+   "¿POR QUÉ SE MUEVE?". Y la Ley del movimiento (guiar / confirmar /
+   deleitar) contesta sola: replegarse no guía —esconde la navegación
+   mientras lees—, no confirma nada que hayas hecho, y deleita cero. Se
+   movía sólo por moverse. Y la Ley dice que eso va fuera.
+
+   La barra se queda quieta. Es lo que hacen iOS y el feed de Instagram, y
+   de paso vuelve esta cadena PERMANENTEMENTE estática: no hay estado que
+   cambie, así que no hay nada que WebKit pueda colapsar. Es la garantía más
+   fuerte posible contra el bug del vidrio — más fuerte que cualquier
+   arreglo, porque ya no hay animación que arreglar.
+
+   LA REGLA QUE QUEDA: nada entre este backdrop-filter y la raíz del
+   documento puede cargar transform, opacity<1, filter ni will-change. En
+   ningún estado. Si algún día vuelve el repliegue, vuelve el bug.
 
    THE CHIP GLIDE IS 380ms. Measured: React writes the new position 27ms
    after the finger lands and the node is reused. The old 620ms was still
@@ -58,13 +91,10 @@ const DIM = '#83838F'
 const CHIP_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 const CHIP_MS = 380
 const HOUSE_EASE = 'cubic-bezier(.2, .7, .2, 1)'
-const RETRACT_MS = 420
 
 /* While a finger is down the chip must not lag behind it — a preview that
    arrives late reads as broken. Short and house-curved. */
 const SCRUB_MS = 190
-
-const GLASS = GLASS_FILTER
 
 /* Clearance over iOS Safari's collapsed-toolbar band. env() reports 0 in that
    state, so this constant IS the whole clearance. Layout's runway, the
@@ -75,47 +105,6 @@ const ICON = 22
 const SLOT_BOX = 36
 
 const CREATE_SLOT = { create: true }
-
-/* ── retract-on-scroll ─────────────────────────────────────────────────── */
-function useRetractOnScroll(enabled) {
-  const [retracted, setRetracted] = useState(false)
-
-  useEffect(() => {
-    if (!enabled) { setRetracted(false); return undefined }
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined
-
-    const THRESHOLD = 10   // px of honest travel before it counts as a direction
-    const FLOOR = 72       // never fold away near the top of a page
-    const IDLE_MS = 1400   // stopping counts as "come back"
-
-    let last = window.scrollY
-    let ticking = false
-    let idle
-
-    const onScroll = () => {
-      if (ticking) return
-      ticking = true
-      requestAnimationFrame(() => {
-        ticking = false
-        const max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
-        // iOS rubber-band runs scrollY negative at the top and past the max at
-        // the bottom; raw deltas there flip sign and would strobe the bar.
-        const y = Math.min(Math.max(window.scrollY, 0), max)
-        const dy = y - last
-        if (Math.abs(dy) < THRESHOLD) return
-        last = y
-        setRetracted(dy > 0 && y > FLOOR)
-        clearTimeout(idle)
-        idle = setTimeout(() => setRetracted(false), IDLE_MS)
-      })
-    }
-
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => { window.removeEventListener('scroll', onScroll); clearTimeout(idle) }
-  }, [enabled])
-
-  return retracted
-}
 
 /* ── the scrub ───────────────────────────────────────────────────────────
    press → magnify · drag → hand off · release → go.
@@ -136,7 +125,7 @@ function useBarScrub(navRef, rowRef, n, { onPreview, onCommit, enabled }) {
     let vivo = false, guard = 0, actual = -1
 
     /* Which slot the finger is over. Derived from the ROW's live box, so it
-       stays correct through the retract scale and any viewport change — a
+       stays correct through any viewport change — a
        cached slot width would drift the moment the bar transformed. */
     const slotEn = (clientX) => {
       const row = rowRef.current
@@ -217,8 +206,6 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
     return () => cancelAnimationFrame(id)
   }, [])
 
-  const retracted = useRetractOnScroll(armed)
-
   /* The slot under the finger right now. While it is set it OVERRIDES the
      route for everything visual — that is what makes the drag a preview
      instead of a commit. */
@@ -227,7 +214,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
   const navRef = useRef(null)
   const rowRef = useRef(null)
   useBarScrub(navRef, rowRef, n, {
-    enabled: armed && !retracted,
+    enabled: armed,
     onPreview: setScrub,
     onCommit: (i) => {
       const slot = slots[i]
@@ -245,47 +232,47 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
   return (
     <div className="glass-nav-dock" style={{
       position:'fixed', left:0, right:0, zIndex:9999,
-      bottom: DOCK_BOTTOM,
       display:'flex', justifyContent:'center', padding:'0 16px',
       pointerEvents:'none',
-      transformOrigin:'bottom center',
-      /* EL VIDRIO QUE SE APAGABA. Esto era `transform: translateY(0) scale(1)`
-         SIEMPRE, más `will-change: transform` — o sea el dock quedaba promovido
-         a su propia capa de compositor de forma PERMANENTE. En iOS eso hace que
-         el backdrop-filter del hijo muestree sólo dentro de esa capa en vez de
-         la página: pinta bien una vez y luego queda plano.
-         En reposo ahora es `none`, así que no hay capa, no hay containing block
-         y el vidrio muestrea la página de verdad. El transform y el will-change
-         sólo existen mientras la barra se está replegando, que es cuando
-         realmente hacen falta y cuando la barra se va de todos modos. */
-      transform: retracted ? 'translateY(calc(100% + 36px)) scale(0.88)' : 'none',
-      opacity: retracted ? 0 : 1,
-      transition: armed
-        ? `transform ${RETRACT_MS}ms ${HOUSE_EASE}, opacity ${Math.round(RETRACT_MS * 0.7)}ms ${HOUSE_EASE}`
-        : 'none',
-      willChange: retracted ? 'transform' : 'auto',
+      /* ════ LA CADENA DEL VIDRIO — ESTÁTICA POR DISEÑO ════
+
+         Este dock es el PADRE directo del elemento con backdrop-filter, así
+         que es el punto donde el bug nacía y muere. Historia corta de por qué
+         está tan desnudo (la larga vive arriba, en la cabecera del archivo):
+
+           · un `transform` aquí le da al hijo un containing block y una capa
+             de compositor propia
+           · un `opacity < 1` aquí convierte a este dock en BACKDROP ROOT por
+             especificación (CSS Filter Effects L2): el vidrio deja de
+             muestrear la página y pasa a muestrear a su padre
+           · un `will-change` aquí promueve la capa explícitamente
+
+         WebKit de iOS no vuelve a enganchar el muestreo a la página cuando
+         esas propiedades se quitan — se queda con el backdrop colapsado hasta
+         un repintado completo. Por eso "se veía bien al cargar y moría al
+         primer scroll": el repliegue las encendía y apagaba en cada scroll.
+
+         Ahora no hay repliegue, así que aquí no hay NINGÚN estado que cambie:
+         ni transform, ni opacity, ni will-change, ni transición. La cadena es
+         estática de por vida, que es la única garantía real contra este bug.
+
+         SI ALGUIEN VUELVE A ANIMAR ESTE ELEMENTO, VUELVE EL BUG. */
+      bottom: DOCK_BOTTOM,
     }}>
       {/* zIndex STAYS 9999: every overlay that must cover the bar sits at
           10000 (AuthModal, WorldBuilder, the OS sheet) or above, and
           AuthModal is NOT portaled — it renders earlier in Layout's tree, so
           at an equal z-index the bar would paint OVER the sign-in modal. */}
-      <nav className="glass-nav" ref={navRef} aria-hidden={retracted || undefined} style={{
-        pointerEvents: retracted ? 'none' : 'auto',
+      <nav className="glass-nav" ref={navRef} style={{
+        pointerEvents:'auto',
         position:'relative', width:'100%', maxWidth:'344px',
         borderRadius:'34px', padding:'10px 8px 12px', overflow:'visible',
-        background:'linear-gradient(180deg, rgba(30,31,40,0.42) 0%, rgba(12,12,17,0.56) 100%)',
-        WebkitBackdropFilter: GLASS,
-        backdropFilter: GLASS,
-        /* the lit top facet over a dark inner floor — this pair, not the
-           blur radius, is what the eye reads as thickness */
-        border:'1px solid rgba(242,238,230,0.12)',
-        boxShadow:[
-          '0 26px 54px rgba(0,0,0,0.60)',
-          '0 8px 20px rgba(0,0,0,0.45)',
-          'inset 0 1.5px 0 rgba(242,238,230,0.22)',
-          'inset 0 -1px 0 rgba(7,8,14,0.55)',
-          'inset 0 26px 36px -26px rgba(242,238,230,0.22)',
-        ].join(', '),
+        /* LA RECETA VIENE DE glass.js, NO DE AQUÍ. Estas cinco líneas estaban
+           copiadas a mano y eran byte por byte lo mismo que glassSurface() —
+           o sea el defecto exacto que ese módulo se creó para matar. Afinar el
+           filo en un lado y no en el otro es cómo la barra y el header
+           volvieron a divergir la vez pasada. Una fuente, dos consumidores. */
+        ...glassSurface(),
       }}>
         {/* inner top sheen — pure gradient. A backdrop-filter here would make
             it a backdrop root over its own parent and sever the blur. */}
