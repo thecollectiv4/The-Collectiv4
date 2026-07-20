@@ -91,6 +91,28 @@
   --cream-dim:    #5B5952;   /* etiqueta terciaria — decorativa en ambos */
   --cream-soft:   #9B9891;   /* secundaria legible */
 
+  /* ---- LA PORTADA DE PERFIL, POR REGISTRO (v12.2) ----
+     Diego: "en light la portada se ve neblinosa y pierde color; en dark se
+     ve bien". No es percepción, es una asimetría real del compositing:
+
+       oscurecer una foto CONSERVA el croma (los colores se hacen profundos)
+       aclararla hacia blanco lo MATA (todo converge al mismo punto)
+
+     El velo de arriba es el mismo .42 en los dos temas, pero en vacío es
+     negro al 42% —atmósfera— y en papel es hueso al 42% sobre la foto, que
+     es literalmente niebla. Y encima el grado bajaba el brillo a .74, así
+     que la foto se oscurecía Y se blanqueaba a la vez: lodo.
+
+     De día entonces: el velo de arriba casi desaparece (ahí no hay texto que
+     proteger — el bloque de identidad está abajo, y esas paradas no se
+     tocan), el brillo deja de recortarse, y la saturación sube POR ENCIMA de
+     1 para compensar lo que el blanqueo se lleva. */
+  --cover-grade:      saturate(1.0) brightness(.74) contrast(1.13);
+  --cover-grade-wide: saturate(.94) brightness(.65) contrast(1.15);
+  --cover-veil-top:   .42;
+  --cover-veil-hi:    .30;
+  --cover-veil-mid:   .34;
+
   /* ---- LAS TEMPERATURAS (Ley 14) ----
      Cada oficio, cada vibra y cada pestaña del OS lleva una "temperatura":
      un triplete RGB crudo guardado en DATOS (crafts.js, match.js, OS.jsx…) y
@@ -125,7 +147,9 @@
   --card-hi:      rgba(20,20,26,0.74);
   --card-lo:      rgba(12,12,17,0.82);
   --card-tint:    rgba(14,14,19,0.76);
-  --card-edge:    rgba(242,238,230,0.10);
+  --card-edge:    rgba(242,238,230,0.16);   /* .10 leía como línea, no como filo */
+  --card-bloom:   rgba(242,238,230,0.13);   /* la luz que entra por el canto */
+  --card-underglow: rgba(0,0,0,0.42);       /* el cuerpo proyectando sobre su base */
   /* Las proyectadas del vidrio van COMPLETAS, no por canal+α: son los
      valores más afinados del sistema (glass.js documenta por qué .60→.52 y
      .45→.38) y en día no se re-tiñen, se REESCALAN. Una sombra de vacío con
@@ -229,6 +253,15 @@
   --tint-silver: 74,76,85;
   --tint-star:   42,44,51;
 
+  /* la portada de día: sin recorte de brillo, saturación por encima de 1
+     para recuperar lo que el velo claro se lleva, y el velo de arriba casi
+     retirado (ver la nota larga en :root) */
+  --cover-grade:      saturate(1.12) brightness(1) contrast(1.06);
+  --cover-grade-wide: saturate(1.06) brightness(.96) contrast(1.08);
+  --cover-veil-top:   .10;
+  --cover-veil-hi:    .05;
+  --cover-veil-mid:   .12;
+
   /* EL VIDRIO DE DÍA. Se invierte la lógica del material: la losa se ACLARA
      (luz atrapada en el vidrio, no oscuridad) y el filete de arriba se vuelve
      blanco casi puro. El borde tiene que SUBIR de .14 a .16 de tinta porque
@@ -246,7 +279,11 @@
   --card-hi:      rgba(255,255,255,0.74);
   --card-lo:      rgba(246,244,238,0.84);
   --card-tint:    rgba(250,249,245,0.82);
-  --card-edge:    rgba(255,255,255,0.85);
+  --card-edge:    rgba(255,255,255,0.92);
+  --card-bloom:   rgba(255,255,255,0.75);
+  /* de día la sombra interna es tierra, no negro: sobre papel el negro lee
+     como mugre en el canto (misma razón que --shadow-rgb) */
+  --card-underglow: rgba(60,56,48,0.16);
   /* Reescaladas, no re-teñidas: mismo gesto de profundidad, un tercio del
      peso. En papel la elevación la da la LUZ del canto, no la oscuridad. */
   --glass-cast:   0 18px 40px rgba(60,56,48,0.11), 0 6px 16px rgba(60,56,48,0.08);

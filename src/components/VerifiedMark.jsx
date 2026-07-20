@@ -43,8 +43,23 @@
    no se decide nada.
    ========================================================================= */
 
-const BONE = 'var(--cream)'
-const SILVER = 'var(--silver)'
+import { badgeColor, BADGE_DEFAULT } from '@/lib/badgeColors'
+
+/* ─── v12.2: EL SELLO YA TRAE COLOR (decisión de Diego) ───────────────────
+   El párrafo de arriba ("por qué NO trae color") es de Pato y NO se borra:
+   es su argumento y sigue en pie como argumento. Lo que cambió es quién
+   decide. Diego —el fundador cuyo azul se revirtió— vuelve a pedir color y
+   elige un dorado apagado en vez del azul prestado, que era la objeción de
+   fondo: no "un color", sino un color de OTRA plataforma.
+
+   El oro sale de badgeColors.js y es la misma nota cálida que ya vive en la
+   nebulosa, así que no abre una excepción nueva a Cosmos: reusa la única que
+   ya estaba aprobada. Simetría con la nota de arriba: esto no se mergea sin
+   el visto bueno de Pato.
+
+   El color es SÓLO presentación, igual que antes. Quién está verificado lo
+   sigue decidiendo el servidor (columna `verified` + trigger lock_verified,
+   que impide que un cliente se la ponga). Aquí no se decide nada. */
 
 /* La chispa de cuatro puntas. Lados CÓNCAVOS (curvas, no rectas): una
    estrella de cuatro puntas rectas lee como asterisco o como juguete; la
@@ -60,7 +75,8 @@ const SPARK = 'M12 7.5C12.255 10.245 13.755 11.745 16.5 12C13.755 12.255 12.255 
 
 const ORBIT_R = 10.4
 
-export default function VerifiedMark({ size = 16, style }) {
+export default function VerifiedMark({ size = 16, style, color = BADGE_DEFAULT }) {
+  const C = badgeColor(color)
   /* Esto se dibuja a 19px (móvil) y 24px (escritorio) — nunca grande. A esa
      escala un trazo de 0.9 sobre un viewBox de 24 aterriza en ~0.7px reales y
      la órbita simplemente no está. El aro engorda y se ilumina en tamaños
@@ -83,15 +99,15 @@ export default function VerifiedMark({ size = 16, style }) {
            de 24px del héroe apenas se notaba: el resplandor se leía MÁS
            fuerte en las marcas chicas que en la grande. Al revés de la
            intención. 0.28 × size reproduce los 6px originales a size 21. */
-        filter: `drop-shadow(0 0 ${(size * 0.28).toFixed(1)}px rgba(var(--ink-rgb),.34))`,
+        filter: `drop-shadow(0 0 ${(size * 0.28).toFixed(1)}px rgba(${C.glowRgb},.34))`,
         display: 'block', flexShrink: 0, overflow: 'visible', ...style,
       }}
     >
       {/* la órbita: hairline, nunca un aro grueso. Es el camino, no el sujeto. */}
-      <circle cx="12" cy="12" r={ORBIT_R} fill="none" stroke={SILVER} strokeWidth={ringW} opacity={ringO} />
+      <circle cx="12" cy="12" r={ORBIT_R} fill="none" stroke={C.ring} strokeWidth={ringW} opacity={ringO} />
 
       {/* el 4 de la casa */}
-      <path d={SPARK} fill={BONE} />
+      <path d={SPARK} fill={C.spark} />
 
       {/* El satélite. `transformBox: view-box` es lo que hace que un
           transform-origin en px signifique coordenadas del viewBox y no de la
@@ -101,7 +117,7 @@ export default function VerifiedMark({ size = 16, style }) {
           apagarse bajo prefers-reduced-motion, y eso no se puede desde un
           estilo inline. */}
       <g className="c4-orbit" style={{ transformOrigin: '12px 12px', transformBox: 'view-box' }}>
-        <circle cx="12" cy={12 - ORBIT_R} r={satR} fill={BONE} />
+        <circle cx="12" cy={12 - ORBIT_R} r={satR} fill={C.spark} />
       </g>
     </svg>
   )

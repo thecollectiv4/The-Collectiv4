@@ -477,16 +477,26 @@ function CraftFilterRow({ value, onChange, options, wide }) {
    cuelga de `.disc-banner img/svg` la animación de respiración del hover; si
    la imagen sale de ese contenedor, la tarjeta deja de respirar en hover y
    nadie relaciona el síntoma con este archivo. */
-const cardCoverH = (wide) => (wide ? 210 : 172)
+/* v12.2 — LA FOTO BAJA HASTA EL BORDE DE LA CÁPSULA.
+   Antes la capa medía 172/210px fijos y terminaba a ~64% de la tarjeta: se
+   veía dónde se acababa la foto y empezaba la tarjeta pelada. Ahora la capa
+   es `inset: 0` — o sea, EXACTAMENTE la cápsula. Los dos bordes inferiores
+   quedan alineados por construcción y no por un número que hay que volver a
+   afinar cada vez que la tarjeta cambia de alto (que es lo que pasó con los
+   172px en cuanto una tarjeta tuvo dos líneas de oficio).
+   Lo que decide dónde SE DEJA DE VER la foto es la máscara, no la altura: se
+   apaga al 88% para que la franja de abajo (taste / work) quede limpia. */
 const CARD_COVER_MASK = `linear-gradient(180deg,
-  #000 0%, #000 46%,
-  rgba(0,0,0,.72) 66%,
-  rgba(0,0,0,.34) 84%,
-  transparent 100%)`
+  #000 0%, #000 40%,
+  rgba(0,0,0,.74) 58%,
+  rgba(0,0,0,.36) 74%,
+  rgba(0,0,0,.12) 82%,
+  transparent 88%)`
 const CARD_COVER_SCRIM = `linear-gradient(180deg,
   rgba(var(--void-rgb),.06) 0%,
-  rgba(var(--void-rgb),.20) 45%,
-  rgba(var(--void-rgb),.52) 68%,
+  rgba(var(--void-rgb),.18) 38%,
+  rgba(var(--void-rgb),.46) 58%,
+  rgba(var(--void-rgb),.68) 76%,
   rgba(var(--void-rgb),.74) 100%)`
 
 function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts }) {
@@ -511,7 +521,7 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
           abajo. `disc-banner` va AQUÍ porque la respiración del hover cuelga
           de `.disc-banner img` (ver la nota larga arriba). */}
       <div className="disc-banner" aria-hidden="true" style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: `${cardCoverH(wide)}px`,
+        position: 'absolute', inset: 0,
         overflow: 'hidden', zIndex: 0, pointerEvents: 'none',
         WebkitMaskImage: CARD_COVER_MASK, maskImage: CARD_COVER_MASK,
       }}>

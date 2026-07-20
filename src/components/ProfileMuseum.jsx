@@ -110,10 +110,15 @@ const coverFade = (bleed) => `linear-gradient(180deg,
 
 /* las tres primeras paradas llevan el PISO de Pato (nunca soltar el velo
    arriba); de ahí para abajo manda el anclaje al borde inferior de Diego */
+/* Las TRES primeras paradas salen por variable — son el "velo de atmósfera"
+   y son las únicas que cambian de registro (index.css explica por qué). De la
+   cuarta para abajo son PROTECCIÓN DE TEXTO: ahí vive el bloque de identidad
+   y el velo tiene que pesar lo mismo en los dos temas o el nombre se pierde.
+   No se tocan. */
 const coverScrim = (bleed) => `linear-gradient(180deg,
-  rgba(var(--void-rgb),.42) 0%,
-  rgba(var(--void-rgb),.30) 22%,
-  rgba(var(--void-rgb),.34) calc(100% - ${bleed + 300}px),
+  rgba(var(--void-rgb),var(--cover-veil-top)) 0%,
+  rgba(var(--void-rgb),var(--cover-veil-hi)) 22%,
+  rgba(var(--void-rgb),var(--cover-veil-mid)) calc(100% - ${bleed + 300}px),
   rgba(var(--void-rgb),.62) calc(100% - ${bleed + 190}px),
   rgba(var(--void-rgb),.90) calc(100% - ${bleed + 96}px),
   rgba(var(--void-rgb),.88) calc(100% - ${bleed + 20}px),
@@ -152,10 +157,18 @@ const COVER_BLEED = { wide: 210, phone: 230 }
    apenas se suelta (.62 → .74). Es un realce, no un filtro: nada pasa de 1.0
    salvo el contraste, así que ningún color se inventa saturación que la foto
    no traía. */
-const COVER_GRADE = 'saturate(1.0) brightness(.74) contrast(1.13)'
+/* v12.2 — el grado se mudó a index.css (`--cover-grade`) porque tiene que
+   cambiar por tema, y el tema vive allá.
+
+   `filter` admite var() y resuelve — medido, no supuesto. La regla de "sólo
+   literales" que documenta glass.js es de `backdrop-filter` (WebKit 289800),
+   que es OTRA propiedad y que aquí no se toca: ningún backdrop-filter de la
+   app pasó a variable. Si algún día alguien mueve uno, ése sí se rompe sólo
+   en Safari y sin avisar. */
+const COVER_GRADE = 'var(--cover-grade)'
 // desktop: misma receta, un paso más abajo — una portada ancha tira mucha más
 // luz total que la de un teléfono al mismo brillo por píxel (Ley 3).
-const COVER_GRADE_WIDE = 'saturate(.94) brightness(.65) contrast(1.15)'
+const COVER_GRADE_WIDE = 'var(--cover-grade-wide)'
 
 /* ── LA REJILLA VERTICAL (Pato) ──────────────────────────────────────────
    Cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,

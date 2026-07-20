@@ -233,6 +233,51 @@ function presetForPath(path) {
   return { density: 'quiet', tint: '199,201,209', seed: 'c4' }
 }
 
+/* =========================================================================
+   EL DPR — LA CAUSA RAÍZ DEL BUG DEL IPHONE (v12.2).
+
+   El síntoma que reportó Diego: en iPhone la galaxia se veía plana / a
+   medias, y SÓLO se ponía nítida mientras hacía pinch-zoom; al soltar,
+   volvía a verse mal.
+
+   LA CAUSA A — ESTE NÚMERO. Aquí decía `Math.min(2, devicePixelRatio)`.
+   Los iPhone desde el X reportan devicePixelRatio = 3. Así que el respaldo
+   del canvas se construía a 2x mientras la pantalla pedía 3x:
+
+       (w·2 · h·2) / (w·3 · h·3)  =  4/9  =  44%
+
+   El canvas llevaba el 44% de los píxeles que la pantalla necesitaba, y el
+   compositor lo estiraba. Eso es "plano y a medias", exactamente. No era
+   una impresión: es menos de la mitad de la información.
+
+   POR QUÉ NADIE LO VIO ANTES — y por qué yo tampoco: en un Mac
+   devicePixelRatio es 2, y `Math.min(2, 2)` da 2. La fracción sale 1.0,
+   perfecta. El bug es INVISIBLE en el aparato donde se desarrolla y severo
+   en el aparato donde se usa. Medido en los dos.
+
+   EL TOPE AHORA LO PONE EL ÁREA, no un número mágico. Un teléfono a 3x son
+   ~3 Mpx (barato); un monitor de 2560 a 3x serían 10 Mpx para decoración.
+   Así que los viewports chicos —los teléfonos— reciben su DPR nativo
+   completo, y los grandes se quedan en 2 como estaban.
+   ========================================================================= */
+export function canvasDpr(w, h) {
+  const native = (typeof window !== 'undefined' && window.devicePixelRatio) || 1
+  // 1.2e6 px CSS ≈ cualquier cosa más grande que un teléfono en horizontal
+  return (w * h > 1.2e6) ? Math.min(2, native) : Math.min(3, native)
+}
+
+/* ¿VA A CORRER EL PARALLAX? Una sola función para las dos preguntas que
+   antes se respondían por separado —el guard del efecto y la promoción de
+   capa del estilo— y que por eso pudieron contradecirse durante meses: el
+   efecto decía "en táctil no corro" y el estilo decía "voy a animarme toda
+   la vida". Con una sola fuente ya no se pueden desmentir. */
+function parallaxRuns(presetMouse) {
+  if (typeof window === 'undefined' || !window.matchMedia) return false
+  return !!presetMouse
+    && window.matchMedia('(pointer: fine)').matches
+    && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
 /* deterministic sky per seed — a person's world keeps its own stars */
 function hash(seed = '') { let h = 0; for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0; return h }
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296 } }
@@ -286,6 +331,9 @@ export default function Atmosphere() {
   // cielo Y volver a resolver el caché de fondo (las dos paletas conviven en
   // el Map, así que ir y venir entre día y noche no repaga el raster).
   const cfgKey = `${cfg.density}|${TINT}|${cfg.seed}|${theme}`
+  // memoizado: matchMedia en cada render sería trabajo por nada, y esto sólo
+  // puede cambiar cuando cambia el registro de la superficie.
+  const parallaxOn = useMemo(() => parallaxRuns(preset.mouse), [preset.mouse])
   // survives cfg changes: bg raster cache (size|tint → offscreen canvas) and
   // the first-mount flag that decides fade-in vs full crossfade (review catch)
   const bgCache = useRef(new Map())
@@ -345,7 +393,7 @@ export default function Atmosphere() {
       const w = window.innerWidth
       const h = window.innerHeight
       if (w < 1 || h < 1) { nodes = []; return }
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      const dpr = canvasDpr(w, h)
       // realloc the backing store ONLY when the size actually changed — a
       // seed/tint change must not repay a multi-MB canvas alloc (review catch)
       const bw = Math.round(w * dpr), bh = Math.round(h * dpr)
@@ -421,11 +469,16 @@ export default function Atmosphere() {
          one soft river — plus sub-pixel dust. None of it carries an edge that
          2x resolves and 1.5x does not; it is the one layer in the app where
          the extra samples buy literally nothing visible. It buys 44% of the
-         memory back on the machine with the biggest canvas. The MOVING stars
-         still draw at full DPR (that clamp is untouched, above) — those DO
-         have edges. Phones keep 2x: there the raster is small and cheap. */
+         memory back on the machine with the biggest canvas.
+
+         v12.2 — LA PARTE DE "PHONES KEEP 2x" ERA JUSTO EL BUG. El párrafo de
+         arriba sigue siendo cierto para ESCRITORIO y ahí no se toca. Pero en
+         teléfono la frase "nada aquí tiene bordes" dejó de ser verdad cuando
+         v12 metió el POLVO: ~500 puntos de radio 0.35–1.25px son bordes puros,
+         y son exactamente lo que se veía suave. En un viewport chico el raster
+         es barato, así que sigue al canvas principal y va a DPR nativo. */
       const bigView = w * h > 1.0e6
-      const dpr = Math.min(bigView ? 1.5 : 2, window.devicePixelRatio || 1)
+      const dpr = bigView ? Math.min(1.5, window.devicePixelRatio || 1) : canvasDpr(w, h)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
       bgCanvas.height = Math.round(h * dpr)
@@ -618,17 +671,24 @@ export default function Atmosphere() {
 
       /* v12 desktop: the cap was reasoned from a PHONE (~5MB/entry). At
          2560x1440 DPR2 one entry is 5120x2880x4B = 59 MB, so the same cap
-         meant ~295 MB of backing store for decoration on a laptop. The cap is
-         now sized by area, and `>=` not `>` — the check runs BEFORE the
-         insert, so `> 4` actually kept FIVE resident. Off-by-one, mine. */
-      // 1.0e6 ≈ anything bigger than ~1000x1000, i.e. every real desktop.
-      // A 1440x900 laptop is 1.296e6 and its raster is 20.7 MB per entry —
-      // four of those is 83 MB of decoration. Phones (390x844 = 0.33e6) keep 4.
-      const maxEntries = (w * h > 1.0e6) ? 2 : 4
-      while (bgCache.current.size >= maxEntries) {
-        bgCache.current.delete(bgCache.current.keys().next().value)
-      }
+         meant ~295 MB of backing store for decoration on a laptop.
+
+         v12.2 — EL CUPO ES DE MEMORIA, NO DE ENTRADAS. Contar entradas fue
+         siempre una aproximación del dato que de verdad importa (bytes), y se
+         rompió sola en cuanto el DPR de teléfono subió de 2 a 3: la misma
+         "4 entradas" pasó de ~21 MB a ~48 MB sin que nadie tocara el número.
+         Un presupuesto en bytes no se puede desincronizar así, porque mide
+         justo lo que se quiere limitar. Se expulsa por LRU hasta caber. */
+      const BYTES = (cv) => cv.width * cv.height * 4
+      const BUDGET = 40e6   // ~40 MB de decoración, en cualquier aparato
       bgCache.current.set(key, bgCanvas)
+      let used = 0
+      for (const cv of bgCache.current.values()) used += BYTES(cv)
+      while (used > BUDGET && bgCache.current.size > 1) {
+        const oldestKey = bgCache.current.keys().next().value
+        used -= BYTES(bgCache.current.get(oldestKey))
+        bgCache.current.delete(oldestKey)
+      }
     }
 
     const draw = (dtFrames) => {
@@ -773,8 +833,7 @@ export default function Atmosphere() {
      dead on QUIET surfaces: where you read, even the tiles hold still
      (review catch: the register promised zero pointer reaction). */
   useEffect(() => {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (reduced || !preset.mouse || !window.matchMedia('(pointer: fine)').matches) return undefined
+    if (!parallaxRuns(preset.mouse)) return undefined
     let raf = 0
     const onMove = (ev) => {
       if (raf) return
@@ -790,11 +849,39 @@ export default function Atmosphere() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener('mousemove', onMove) }
   }, [preset.mouse])
 
-  // -28px covers the ±12px max parallax travel with margin (the tiles repeat,
-  // no empty band can show); -40% rasterized 3.24x the viewport per layer for
-  // nothing (review catch). willChange: these layers animate for the app's
-  // whole life — the one legitimate use.
-  const layer = { position: 'fixed', inset: '-28px', pointerEvents: 'none', backgroundRepeat: 'repeat', transition: 'opacity .8s ease', willChange: 'transform' }
+  /* =======================================================================
+     LA CAUSA B DEL BUG DEL IPHONE — `will-change` SOBRE ALGO QUE NO SE MUEVE.
+
+     Este objeto llevaba `willChange: 'transform'` SIEMPRE, con el comentario
+     "these layers animate for the app's whole life — the one legitimate use".
+     Eso es cierto en escritorio y FALSO en teléfono: el efecto de parallax
+     que lo justifica hace early-return en táctil (`pointer: fine`), o sea que
+     en cada iPhone se promovían DOS capas del tamaño del viewport para una
+     animación que jamás corre.
+
+     Por qué eso produce el síntoma exacto de "sólo se ve HD con zoom":
+     `will-change` fuerza al compositor a rasterizar la capa por separado y
+     guardarla. Con dos capas de viewport completo + el canvas + el grano +
+     cada superficie con backdrop-filter, iOS Safari se pasa del presupuesto
+     de memoria de compositor y responde RASTERIZANDO LAS CAPAS A MENOR
+     ESCALA. Al hacer pinch, Safari re-rasteriza a la escala del gesto y todo
+     se ve nítido; al soltar, vuelve a la escala reducida y se ve mal otra
+     vez. Es exactamente lo que Diego describió, incluido el "y al volver
+     queda a medias".
+
+     Ahora la promoción se declara sólo cuando la animación de verdad va a
+     correr. Y de paso, sin parallax no hay recorrido que cubrir, así que el
+     sangrado de -28px también se va: la capa deja de rasterizar el viewport
+     más 56px de más en cada eje.
+     ======================================================================= */
+  const layer = {
+    position: 'fixed',
+    inset: parallaxOn ? '-28px' : 0,
+    pointerEvents: 'none',
+    backgroundRepeat: 'repeat',
+    transition: 'opacity .8s ease',
+    ...(parallaxOn ? { willChange: 'transform' } : null),
+  }
 
   return (
     <div ref={wrapRef} aria-hidden="true" style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none' }}>

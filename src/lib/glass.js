@@ -225,10 +225,38 @@ export const CARD_TINT = 'var(--card-tint)'
 /* LITERAL A PROPÓSITO — misma regla que GLASS_FILTER. Sin color adentro. */
 const CARD_FILTER = 'saturate(150%) brightness(1.06) blur(14px)'
 
+/* ── EL CANTO CON VOLUMEN (v12.2) ────────────────────────────────────────
+   Diego: "dale dimensión a las cápsulas, que el borde refracte luz como
+   cristal con volumen, no que se vean planas".
+
+   La tarjeta ya tenía DOS señales de profundidad (un filo arriba de 1px y un
+   piso abajo de 1px) y por eso leía como un rectángulo con borde, no como un
+   objeto. Lo que le faltaba no es más opacidad —eso sólo la ensucia— sino
+   las dos señales que hacen que un canto de vidrio real se lea:
+
+     · EL DERRAME BAJO EL FILO. En cristal de verdad la luz que entra por el
+       canto superior no se corta en el canto: sangra hacia adentro unos
+       milímetros y se apaga. Sin ese derrame el filo lee como una LÍNEA
+       DIBUJADA encima; con él, lee como luz ENTRANDO por un espesor.
+     · LA SOMBRA INTERNA DE ABAJO. El mismo gesto invertido: el cuerpo del
+       vidrio proyecta hacia dentro sobre su propia base. Es lo que da el
+       "hay material entre las dos caras".
+
+   Es exactamente el razonamiento que WELL ya tenía escrito para los chips
+   ("quitá cualquiera de las tres señales y el volumen se cae por más
+   opacidad que le pongas") — sólo que la TARJETA nunca lo había recibido.
+   Cinco capas en un solo box-shadow: cero nodos nuevos, cero costo de
+   layout, y el compositor ya estaba rasterizando esta caja de todos modos. */
 export const cardGlass = (extra = {}) => ({
   background: 'linear-gradient(180deg, var(--card-hi) 0%, var(--card-lo) 100%)',
   WebkitBackdropFilter: CARD_FILTER,
   backdropFilter: CARD_FILTER,
-  boxShadow: 'inset 0 1px 0 var(--card-edge), inset 0 -1px 0 var(--glass-floor), var(--card-cast)',
+  boxShadow: [
+    'inset 0 1.5px 0 var(--card-edge)',              // el filo de arriba
+    'inset 0 16px 24px -18px var(--card-bloom)',     // su derrame hacia adentro
+    'inset 0 -1px 0 var(--glass-floor)',             // el piso
+    'inset 0 -14px 20px -16px var(--card-underglow)',// la sombra interna de abajo
+    'var(--card-cast)',                              // la proyectada
+  ].join(', '),
   ...extra,
 })

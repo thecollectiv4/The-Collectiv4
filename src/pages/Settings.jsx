@@ -6,6 +6,8 @@ import { supabase } from '@/api/supabase'
 import { useWide } from '@/lib/useIsDesktop'
 import AuthResolving from '@/components/AuthResolving'
 import SeedPill from '@/components/SeedMark'
+import VerifiedMark from '@/components/VerifiedMark'
+import { BADGE_COLORS, readBadgeColor, writeBadgeColor } from '@/lib/badgeColors'
 import { cardGlass, glassControl } from '@/lib/glass'
 import { BONE, BONE_LOW, BONE_MID, FAINT, SILVER, HAIR, HAIR_HI, CHROME, FONT_DISPLAY, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
 import { Copy, Check, ChevronRight, LogOut, MapPin } from 'lucide-react'
@@ -211,6 +213,51 @@ function ThemePills() {
   )
 }
 
+/* ── EL COLOR DEL SELLO (sólo verificados) ────────────────────────────── */
+/* Se dibuja la insignia DE VERDAD en cada opción, no una pastilla de color:
+   lo que se elige es cómo se ve tu sello, así que la muestra tiene que ser
+   el sello. Un círculo de color al lado de la palabra "Gold" te haría
+   adivinar el resultado. */
+function BadgePicker() {
+  const [sel, setSel] = useState(readBadgeColor)
+  const opts = Object.values(BADGE_COLORS)
+  const pick = (k) => { setSel(k); writeBadgeColor(k) }
+  return (
+    <div style={{ padding: '4px 16px 16px', borderTop: `1px solid ${HAIR}`, marginTop: '2px' }}>
+      <div style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.2em', textTransform: 'uppercase', margin: '14px 0 10px' }}>
+        Your badge
+      </div>
+      <div role="radiogroup" aria-label="Badge colour" style={{ display: 'flex', gap: '10px' }}>
+        {opts.map((o) => {
+          const on = sel === o.key
+          return (
+            <button key={o.key} type="button" role="radio" aria-checked={on}
+              onClick={() => pick(o.key)} className="pressable"
+              style={{
+                flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                padding: '11px 8px', borderRadius: '10px', cursor: 'pointer',
+                background: on ? 'rgba(var(--ink-rgb),.07)' : 'transparent',
+                border: `1px solid ${on ? 'rgba(var(--ink-rgb),.30)' : HAIR}`,
+                transition: 'background 200ms var(--ease-house), border-color 200ms var(--ease-house)',
+                fontFamily: FONT_MONO, fontSize: '9.5px', letterSpacing: '.14em', textTransform: 'uppercase',
+                color: on ? BONE : BONE_LOW,
+              }}>
+              <VerifiedMark size={18} color={o.key} /> {o.label}
+            </button>
+          )
+        })}
+      </div>
+      {/* La verdad, dicha donde se toma la decisión y no en una nota al pie:
+          sin columna en la base, esto vive en este aparato. */}
+      <div style={{ fontFamily: FONT_SANS, fontSize: '11.5px', color: BONE_LOW, lineHeight: 1.55, marginTop: '11px' }}>
+        Saved on this device only — everyone else still sees your badge in gold.
+        Making the choice public needs a <span className="selectable" style={{ fontFamily: FONT_MONO, fontSize: '10.5px' }}>badge_color</span> column
+        and a policy that only verified rows can write it.
+      </div>
+    </div>
+  )
+}
+
 /* ── la pantalla ──────────────────────────────────────────────────────── */
 
 export default function Settings() {
@@ -235,7 +282,7 @@ export default function Settings() {
        para que el público no vea datos falsos, no para que un fundador con
        una cuenta de QA no pueda leer la suya. Se transporta la bandera y se
        renderiza con la pastilla compartida, que es lo que la ley pide. */
-    supabase.from('profiles').select('full_name, username, is_demo').eq('id', user.id).maybeSingle()
+    supabase.from('profiles').select('full_name, username, is_demo, verified').eq('id', user.id).maybeSingle()
       .then(({ data }) => { if (alive) setProfile(data || null) }, () => {})
     supabase.auth.getSession().then(({ data }) => {
       // No hay "session id" como tal en Supabase: la sesión se identifica por
@@ -315,7 +362,16 @@ export default function Settings() {
         <section>
           <SectionHead n="01" mark="◇" title="Appearance"
             note="Dark is the house. Light is the same universe by day — the same constellation, read as graphite on paper." />
-          <Panel><ThemePills /></Panel>
+          <Panel>
+            <ThemePills />
+            {/* EL SELLO SÓLO SE PINTA SI EL SELLO ES TUYO. `verified` lo
+                escribe el servidor y el trigger lock_verified impide que un
+                cliente se lo ponga, así que esta compuerta descansa sobre un
+                hecho real y no sobre una bandera de UI. Sin eso, cualquiera se
+                pintaría un sello y el sello dejaría de significar algo — que
+                es exactamente lo que la insignia existe para significar. */}
+            {profile?.verified && <BadgePicker />}
+          </Panel>
         </section>
 
         {/* 02 — CUENTA */}
