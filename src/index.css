@@ -454,6 +454,53 @@ input, textarea, select,
   mask-image: linear-gradient(90deg, #000 0%, #000 calc(100% - 34px), rgba(0,0,0,.25) calc(100% - 8px), transparent 100%);
 }
 
+/* ============================================================
+   GLASS TAP (v12) — la respuesta al dedo, UNA sola en toda la app.
+
+   Cada chip de vidrio que se puede picar responde igual: el canto
+   se enciende y el vidrio se aclara, como si la luz entrara por el
+   borde. Es confirmación, no adorno.
+
+   POR QUÉ SÓLO LUZ Y NADA DE `transform`: la ranura de la barra
+   móvil ya lleva un transform INLINE (la lupa del scrub), y un
+   estilo inline le gana a cualquier clase — un `scale()` aquí
+   simplemente no se aplicaría en móvil y las dos barras volverían
+   a divergir. El hundido físico ya lo pone `.pressable` sobre el
+   BOTÓN, que es un elemento distinto; así los dos efectos se
+   componen en vez de pelearse por la misma propiedad.
+
+   Tiempos: mismo criterio que .pressable — entrar es deliberado
+   (200ms), soltar es inmediato (110ms). El sistema contesta más
+   rápido de lo que la mano pregunta.
+   ============================================================ */
+.glass-chip {
+  transition: box-shadow 110ms var(--ease-exit),
+              border-color 110ms var(--ease-exit),
+              background 110ms var(--ease-exit);
+}
+.glass-tap:not(:disabled):active .glass-chip {
+  border-color: rgba(242,238,230,.74);
+  background: linear-gradient(180deg, rgba(242,238,230,0.30), rgba(242,238,230,0.11));
+  box-shadow: inset 0 1.5px 1px rgba(255,255,255,.62),
+              inset 0 -5px 9px -5px rgba(0,0,0,.45),
+              0 0 16px rgba(242,238,230,.18),
+              0 3px 10px rgba(0,0,0,.34);
+  transition-duration: 200ms;
+}
+/* Puntero fino: el vidrio se insinúa ANTES del click — el cursor ya
+   dice "esto se pica" sin llegar al brillo del press. Sólo donde hay
+   hover de verdad; en táctil un hover pegado sería una mentira. */
+@media (hover: hover) and (pointer: fine) {
+  .glass-tap:not(:disabled):hover .glass-chip {
+    border-color: rgba(242,238,230,.52);
+    box-shadow: inset 0 1px 0.5px rgba(255,255,255,.46),
+                inset 0 -5px 9px -5px rgba(0,0,0,.50),
+                0 0 12px rgba(242,238,230,.10),
+                0 3px 10px rgba(0,0,0,.32);
+    transition-duration: 200ms;
+  }
+}
+
 .glass-nav, .glass-nav-slot { touch-action: none; }
 
 .glass-nav-slot { transition: opacity 400ms var(--ease-house), transform 80ms var(--ease-exit); }

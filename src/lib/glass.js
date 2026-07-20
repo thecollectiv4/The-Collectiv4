@@ -67,12 +67,41 @@ export const BUBBLE = {
    The fix is not more opacity — it is keeping all THREE depth cues BUBBLE
    has and only lowering their level: a specular top edge, a dark inner floor
    under it, and a cast shadow beneath. Drop any one of them and the volume
-   collapses no matter how bright the fill is. */
+   collapses no matter how bright the fill is.
+
+   v12: the border went 0.24 → 0.34 and the specular 0.30 → 0.38. At 0.24 on
+   a 12px-radius box the eye read "outlined rectangle", not "glass" — the note
+   that came back from the laptop was that CREATE was a bubble and the four
+   nav marks were little boxes. The level still sits clearly under BUBBLE
+   (0.58 / 0.45), so active vs resting is never in doubt; it just no longer
+   falls off the bottom of the material. */
 export const WELL = {
-  background: 'linear-gradient(180deg, rgba(242,238,230,0.14), rgba(242,238,230,0.035) 55%, rgba(10,10,13,0.10))',
-  border: '1px solid rgba(242,238,230,0.24)',
-  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.30), inset 0 -5px 9px -5px rgba(0,0,0,0.50), 0 3px 10px rgba(0,0,0,0.32)',
+  background: 'linear-gradient(180deg, rgba(242,238,230,0.16), rgba(242,238,230,0.045) 55%, rgba(10,10,13,0.10))',
+  border: '1px solid rgba(242,238,230,0.34)',
+  boxShadow: 'inset 0 1px 0.5px rgba(255,255,255,0.38), inset 0 -5px 9px -5px rgba(0,0,0,0.50), 0 3px 10px rgba(0,0,0,0.32)',
 }
+
+/* ── THE SHAPE RULE (v12) ────────────────────────────────────────────────
+   Material was never the whole story. WELL and BUBBLE were already the same
+   family on both bars, yet the laptop still read four boxes next to one
+   pill — because CREATE was 100px-radius and the marks were 12px-radius on
+   a 34px square. A 12px radius on a 34px box IS a rounded rectangle; no
+   amount of specular rescues it.
+
+   So the chip that carries a MARK is a circle, and the chip that carries a
+   WORD is a pill. One fully-rounded family, two widths. This constant exists
+   so the two bars can never disagree about it again. */
+export const MARK_CHIP_RADIUS = '50%'
+export const WORD_CHIP_RADIUS = '100px'
+
+/* Hierarchy, kept on purpose: CREATE is the only FILLED pill (it is the one
+   thing you DO here); the four rooms are glass you travel through. Same
+   material, same shape family, different job — that is jerarquía, not drift.
+   `active` promotes a room to BUBBLE so standing somewhere always reads. */
+export const markChip = (active = false) => ({
+  borderRadius: MARK_CHIP_RADIUS,
+  ...(active ? BUBBLE : WELL),
+})
 
 /* The bone glow, one value, so every lit mark in the app agrees. */
 export const BONE_GLOW = 'drop-shadow(0 0 7px rgba(242,238,230,.55))'

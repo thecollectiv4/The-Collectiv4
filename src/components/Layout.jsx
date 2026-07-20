@@ -1,5 +1,4 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { Plus } from 'lucide-react'
 import { useRef, useEffect, useState } from 'react'
 import { useAuth } from '@/lib/AuthContext'
 import { useOSAccess } from '@/lib/osAccess'
@@ -9,9 +8,8 @@ import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 import GlassNav from './GlassNav'
-import Mark from './Mark'
+import GlassNavDesktop from './GlassNavDesktop'
 import Atmosphere, { CosmosProvider, Grain } from './Atmosphere'
-import { BUBBLE, WELL, BONE_GLOW } from '@/lib/glass'
 
 /* The re-architecture (D1, decisión de Pato — LOCKED): EVENT = solo
    eventos (the directory of rooms), COMMUNITY = solo personas, MESSAGES =
@@ -179,63 +177,14 @@ export default function Layout() {
             <span style={{ fontFamily:'Bebas Neue', fontSize:'18px', color:'#F2EEE6', letterSpacing:'.08em' }}>THE COLLECTIV4</span>
             <span style={{ fontFamily:'DM Mono', fontSize:'8px', color:'#5B5952', letterSpacing:'.3em', textTransform:'uppercase' }}>◇ the creative universe</span>
           </div>
-          <nav style={{ display:'flex', alignItems:'center', gap:'2px' }}>
-            {tabs.map((tab) => {
-              const active = tab.to === '/' ? location.pathname === '/' : location.pathname.startsWith(tab.to)
-              return (
-                /* v11: desktop used to be the flat cousin — a bare 10px mark
-                   on a transparent button, while the phone got a lit glass
-                   bubble. Same recipe on both now (src/lib/glass.js), so the
-                   two can't drift again: the mark rides in a real 30px box,
-                   BUBBLE when you're standing in that room, WELL when you're
-                   not. */
-                <button key={tab.to} className="pressable" onClick={()=>handleTabClick(tab)} style={{
-                  background:'transparent', border:'none', cursor:'pointer',
-                  padding:'6px 12px', display:'inline-flex', alignItems:'center', gap:'9px',
-                  fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em', textTransform:'uppercase',
-                  color: active ? '#F2EEE6' : '#83838F', transition:'color .2s',
-                }}
-                  onMouseOver={e => { if (!active) e.currentTarget.style.color = '#C7C4BC' }}
-                  onMouseOut={e => { if (!active) e.currentTarget.style.color = '#83838F' }}>
-                  {/* the house mark — lit when this room is where you stand */}
-                  <span style={{
-                    position:'relative', display:'inline-flex', flexShrink:0,
-                    alignItems:'center', justifyContent:'center',
-                    width:'34px', height:'34px', borderRadius:'12px',
-                    transition:'background .25s var(--ease-house), border-color .25s var(--ease-house), box-shadow .25s var(--ease-house)',
-                    ...(active ? BUBBLE : WELL),
-                  }}>
-                    <Mark type={tab.mark} size={17} filled={active}
-                      color={active ? '#F2EEE6' : '#83838F'}
-                      style={{ flexShrink:0, filter: active ? BONE_GLOW : 'none', transition:'filter .2s' }} />
-                    {tab.to === '/messages' && bellCount > 0 && (
-                      <span data-testid="bell-badge" className="badge-in" aria-label={`${bellCount} unread signals`}
-                        style={{ position:'absolute', top:'-4px', right:'-5px', minWidth:'13px', height:'13px',
-                          borderRadius:'100px', background:'#F2EEE6', color:'#0A0A0D', fontFamily:'DM Mono',
-                          fontSize:'8px', fontWeight:700, lineHeight:'13px', textAlign:'center', padding:'0 3px', letterSpacing:0,
-                          boxShadow:'0 0 0 2px rgba(12,12,17,.65)' }}>
-                        {bellCount > 9 ? '9+' : bellCount}
-                      </span>
-                    )}
-                  </span>
-                  {tab.label}
-                </button>
-              )
-            })}
-            {/* CREATE — present in the instrument, one clear door (Ley 13) */}
-            <button className="pressable" onClick={openCreate} aria-label="Create"
-              style={{ marginLeft:'12px', display:'inline-flex', alignItems:'center', gap:'8px',
-                borderRadius:'100px', padding:'8px 17px', color:'#F2EEE6',
-                fontFamily:'DM Mono', fontSize:'10px', letterSpacing:'.18em',
-                textTransform:'uppercase', cursor:'pointer',
-                transition:'box-shadow .25s var(--ease-house), border-color .25s var(--ease-house)',
-                ...BUBBLE,
-              }}
-              onMouseOver={e => { e.currentTarget.style.boxShadow = `${BUBBLE.boxShadow}, 0 0 18px rgba(242,238,230,.14)`; e.currentTarget.style.borderColor='rgba(242,238,230,.78)' }}
-              onMouseOut={e => { e.currentTarget.style.boxShadow = BUBBLE.boxShadow; e.currentTarget.style.borderColor='rgba(242,238,230,.58)' }}>
-              <Plus size={13} strokeWidth={2} /> Create
-            </button>
-          </nav>
+          {/* v12: la barra de arriba dejó de vivir suelta aquí. Es un
+              componente hermano de GlassNav y comparte glass.js con él —
+              mismo círculo de vidrio por marca, mismo chip que se desliza,
+              misma pastilla rellena para CREATE. Era justo estar suelta lo
+              que la dejó derivar a cajitas planas junto a un CREATE de
+              vidrio. */}
+          <GlassNavDesktop tabs={tabs} currentIdx={currentIdx} bellCount={bellCount}
+            onTab={handleTabClick} onCreate={openCreate} />
         </header>
       )}
 
