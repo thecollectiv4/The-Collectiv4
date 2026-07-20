@@ -93,6 +93,26 @@ const COVER_GRADE = 'saturate(.70) brightness(.62) contrast(1.06)'
    La cura es fijar la ALTURA, no el padding: con height fija y padding sólo
    horizontal, toda pastilla mide exactamente lo mismo aunque cambie el icono,
    el texto o el idioma. Una sola fuente, ningún sitio donde volver a divergir. */
+/* ── LA REJILLA VERTICAL ─────────────────────────────────────────────────
+   El defecto de fondo del perfil no era ninguna pieza en particular: era que
+   cada franja traía su propio margen inventado (2px, 6px, 14px, 16px, 18px,
+   20px…). Siete valores distintos apilados leen exactamente como lo que
+   eran, mejoras sueltas puestas una encima de otra, y el ojo lo registra
+   como descuido aunque no sepa nombrarlo.
+
+   Un solo compás, en múltiplos de 4. Y —más importante que la escala— el
+   ritmo se aplica desde el CONTENEDOR con un `gap`, no repartiendo márgenes
+   por hijo: así ninguna franja futura puede inventarse su propio espaciado
+   sin que se note. La rejilla deja de ser disciplina y pasa a ser estructura. */
+const S = { xs: 4, sm: 8, md: 14, lg: 22, xl: 34 }
+
+/* ── ELEVACIÓN, NO BORDES ────────────────────────────────────────────────
+   Dark-first: la profundidad se construye apilando capas de luz apenas
+   distintas sobre el void, no dibujando contornos. Un borde marcado sobre
+   negro lee como caja de CSS; una superficie 4% más clara lee como material. */
+const ELEV_1 = 'rgba(242,238,230,.045)'   // superficie en reposo
+const ELEV_2 = 'rgba(242,238,230,.085)'   // superficie que invita a tocar
+
 const CHIP_H = 38
 const chipBase = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
@@ -806,17 +826,33 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
         {/* IDENTITY BLOCK — who this is and what they make, as ONE composed
             unit above the fold (Ley 2: the 3-second answer; Ley 3: identity
-            never animates, never competes — editorial scale over a hard
-            scrim, not a 140px war with the art). NO entrance animation, by
-            decision: identity must never depend on an animation firing. */}
-        <div style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? '30px' : '18px', zIndex: 3 }}>
+            never competes — editorial scale over a scrim, not a 140px war
+            with the art).
+
+            LA ENTRADA CINÉTICA, Y LA LEY QUE NO SE ROMPIÓ PARA TENERLA.
+            Antes decía "NO entrance animation, by decision: identity must
+            never depend on an animation firing". La ley sigue viva; lo que
+            cambió es que ya no hace falta elegir. `.identity-in` anima DESDE
+            un estado desplazado HACIA el natural, sin `forwards` y sin
+            opacity:0 en el estado base — así que si la animación no corre
+            (pestaña oculta, motor lento, movimiento reducido) el bloque ya
+            está exactamente donde debe estar. La identidad no depende de
+            nada; la animación sólo la afina.
+            Sube de 18 a 26px del borde: el aire bajo el nombre es lo que lo
+            hace leer editorial en vez de pegado al canto. */}
+        <div className="identity-in" style={{ position: 'absolute', left: 0, right: 0, bottom: wide ? `${S.xl}px` : '26px', zIndex: 3 }}>
           <div style={{ ...frame, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: wide ? '56px' : '16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: wide ? '20px' : '13px', minWidth: 0 }}>
               {/* the face — part of the identity block, not a footnote below */}
               <div style={{ position: 'relative', width: wide ? '74px' : '52px', height: wide ? '74px' : '52px', flexShrink: 0, marginBottom: '6px', cursor: isOwner ? 'pointer' : 'default' }} onClick={() => isOwner && fileRef.current?.click()}>
                 {avatar
-                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', outline: `1px solid ${SILVER}`, outlineOffset: '2px', boxShadow: '0 6px 22px rgba(0,0,0,.55)' }} />
-                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, outline: `1px solid ${SILVER}`, outlineOffset: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
+                  /* EL ANILLO ERA UN CONTORNO DURO: 1px de plata sólida a 2px de
+                     distancia, que sobre el void lee como sticker recortado.
+                     Ahora es un aro de luz —hueso al 28% pegado al canto, más
+                     un halo suave— o sea el mismo lenguaje especular del vidrio
+                     de la barra. Elevación, no borde. */
+                  ? <img src={avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', boxShadow: '0 0 0 1px rgba(242,238,230,.28), 0 6px 22px rgba(0,0,0,.55)' }} />
+                  : <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: CARD_HI, boxShadow: '0 0 0 1px rgba(242,238,230,.28), 0 6px 22px rgba(0,0,0,.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '24px', color: BONE }}>{initial}</div>}
                 {isOwner && (
                   <>
                     <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', background: CARD, border: `1px solid ${HAIR_HI}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -903,17 +939,33 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           Identity (face, name, craft, handle) lives in the hero block now;
           this strip carries the quote (mobile), the links, and the meter —
           composed, not abandoned (Ley 4). */}
-      <div style={{ position: 'relative', ...frame, paddingTop: wide ? '20px' : '16px', zIndex: 3 }}>
-        <div>
+      <div style={{ position: 'relative', ...frame, paddingTop: `${wide ? S.lg : S.md}px`, zIndex: 3 }}>
+        {/* EL RITMO VIVE AQUÍ, NO EN LOS HIJOS. Este div era un envoltorio sin
+            estilos y cada franja de abajo cargaba su propio marginTop — de ahí
+            los siete valores distintos. Ahora el espaciado es del CONTENEDOR,
+            así que cualquier franja que se agregue después entra en compás
+            sola, sin que nadie tenga que acordarse de la regla.
+
+            POR QUÉ `.byline-rhythm` (un `> * + *`) Y NO UN FLEX COLUMN CON GAP:
+            probé el flex primero y rompe la franja del dueño. Aquí adentro
+            conviven DOS tipos de hijo — bandas que deben ocupar todo el ancho
+            (el medidor, la migración de crafts) y pastillas que deben encogerse
+            a su contenido. En flex column hay que elegir: `flex-start` encoge
+            las bandas hasta colapsarlas, `stretch` estira las pastillas hasta
+            volverlas barras. Ninguno de los dos es lo que había.
+            El bloque normal ya hace lo correcto con ambos, así que se queda
+            bloque y sólo se le monta el ritmo encima. Un margen entre hermanos,
+            cero cambios de formato. */}
+        <div className="byline-rhythm" style={{ '--byline-gap': `${wide ? S.md : S.lg}px` }}>
 
         {/* tagline — mobile keeps it here as the featured statement; on wide
             it's already composed into the hero */}
         {!wide && (data.tagline ? (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: '2px 0 0', maxWidth: '460px', letterSpacing: '.005em' }}>
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: 0, maxWidth: '460px', letterSpacing: '.005em' }}>
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
         ) : (isOwner && !editing && (
-          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '2px 0 0' }}>Add a line — what you're on, right now.</p>
+          <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: 0 }}>Add a line — what you're on, right now.</p>
         )))}
         {wide && !data.tagline && isOwner && !editing && (
           <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW, margin: '0' }}>Add a line — what you're on, right now.</p>
@@ -927,7 +979,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           /* rowGap explícito: al envolverse, la segunda fila tiene que caer
              en el mismo ritmo que la primera — si no, la tira se desalinea
              justo en los teléfonos angostos, que es donde más se nota. */
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', rowGap: '10px', flexWrap: 'wrap', marginTop: wide ? '6px' : '18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: `${S.sm}px`, rowGap: `${S.sm}px`, flexWrap: 'wrap' }}>
             <button className="pressable" onClick={onFollowToggle} aria-pressed={social.iFollow}
               data-testid="follow-btn"
               style={{ ...chipBase, background: social.iFollow ? 'rgba(199,201,209,.1)' : BONE, border: social.iFollow ? `1px solid rgba(199,201,209,.4)` : '1px solid transparent', color: social.iFollow ? BONE : VOID }}>
@@ -956,17 +1008,17 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 </button>
               ) : (
                 <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
-                  style={{ ...chipBase, background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, color: BONE }}
-                  onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
-                  onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+                  style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
+                  onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+                  onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
                   + amigo
                 </button>
               )
             )}
             <button className="pressable" onClick={onMessage} data-testid="message-btn"
-              style={{ ...chipBase, background: 'rgba(242,238,230,.06)', border: `1px solid ${HAIR_HI}`, color: BONE }}
-              onMouseOver={e => { e.currentTarget.style.background = 'rgba(242,238,230,.12)'; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
-              onMouseOut={e => { e.currentTarget.style.background = 'rgba(242,238,230,.06)'; e.currentTarget.style.borderColor = HAIR_HI }}>
+              style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
+              onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(242,238,230,.35)' }}
+              onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>
               <MessageCircle size={13} /> MESSAGE
             </button>
             {(social.followers > 0 || social.following > 0) && (
@@ -987,20 +1039,20 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             back to curating, never follow-yourself buttons (review catch) */}
         {!editing && selfView && onSelfCurate && (
           <button className="pressable" onClick={onSelfCurate} data-testid="self-world"
-            style={{ marginTop: wide ? '6px' : '16px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(242,238,230,.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 16px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: ELEV_1, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '8px 16px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
             ◇ this is your world — curate it →
           </button>
         )}
         {/* the owner's own count — one honest line, never a vanity wall */}
         {!editing && social?.ready && isOwner && social.followers > 0 && (
-          <div style={{ marginTop: wide ? '6px' : '14px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>
             <span style={{ color: SILVER, fontSize: '11px' }}>{social.followers}</span> connected to your world
           </div>
         )}
 
         {/* world links — the doors out of this world (IG, portfolio, sound) */}
         {!editing && links.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: wide ? '2px' : '16px' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: `${S.sm}px` }}>
             {links.map((l, i) => (
               <a key={`${l.url}:${i}`} href={safeUrl(l.url)} target="_blank" rel="noopener noreferrer" className="pressable"
                 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', color: BONE_MID, border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '6px 13px', textDecoration: 'none', transition: 'border-color .2s, color .2s, transform .2s' }}
@@ -1013,12 +1065,12 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           </div>
         )}
         {isOwner && !editing && links.length === 0 && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', marginTop: wide ? '2px' : '16px' }}>+ add your links — IG, portfolio, sound</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>+ add your links — IG, portfolio, sound</div>
         )}
-        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em', marginTop: '14px' }}>⚠ {upErr}</div>}
+        {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: '#E5A0A0', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
-          <div style={{ marginTop: '18px' }}>
+          <div>
             {/* IN-UI CRAFT MIGRATION (D1): a legacy free-text discipline is
                 invited to become REAL crafts — recognition, not a form. The
                 band lives until the person chooses; nothing is rewritten

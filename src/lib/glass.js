@@ -27,17 +27,41 @@
    be emitted; Safari 17.6 and older only know the prefixed one. */
 export const GLASS_FILTER = 'saturate(158%) contrast(0.96) brightness(1.05) blur(20px)'
 
+/* EL VIDRIO SOBRE EL VACÍO — por qué el filo hace el trabajo, no el blur.
+
+   Detrás de la barra casi siempre hay void puro (#07080E con tres estrellas).
+   Difuminar negro da negro: el backdrop-filter puede estar funcionando
+   perfecto y la barra aun así leer como una placa plana. Ésa es la trampa —
+   parece que el vidrio "no jala" cuando en realidad no tiene nada que
+   muestrear.
+
+   La cura NO es más blur (más radio sobre negro = más negro, más caro) ni un
+   borde más grueso (un contorno marcado lee como caja de CSS, no como
+   material). La cura es la ESPECULAR: el filo superior iluminado sobre un
+   piso interno oscuro. Eso es lo que el ojo lee como espesor, y funciona
+   igual sobre una foto que sobre el vacío absoluto, porque la luz la genera
+   el propio material en vez de tomarla prestada del fondo.
+
+   Tres cosas se afinaron aquí sin engordar nada:
+   · la especular de arriba sube .22 → .30 — el filo lee como filo, no como
+     una línea gris
+   · el derrame de luz bajo esa especular se alarga (36px → 44px) para que la
+     losa tenga cara superior, no sólo canto
+   · las dos sombras proyectadas BAJAN (.60→.52, .45→.38): sobre void una
+     sombra dura no da profundidad, da suciedad. Profundidad por luz, no por
+     oscuridad apilada.
+   El borde se queda hairline a propósito (.12 → .14, nada más). */
 export const glassSurface = (extra = {}) => ({
   WebkitBackdropFilter: GLASS_FILTER,
   backdropFilter: GLASS_FILTER,
   background: 'linear-gradient(180deg, rgba(30,31,40,0.42) 0%, rgba(12,12,17,0.56) 100%)',
-  border: '1px solid rgba(242,238,230,0.12)',
+  border: '1px solid rgba(242,238,230,0.14)',
   boxShadow: [
-    '0 26px 54px rgba(0,0,0,0.60)',
-    '0 8px 20px rgba(0,0,0,0.45)',
-    'inset 0 1.5px 0 rgba(242,238,230,0.22)',
+    '0 26px 54px rgba(0,0,0,0.52)',
+    '0 8px 20px rgba(0,0,0,0.38)',
+    'inset 0 1.5px 0 rgba(242,238,230,0.30)',
     'inset 0 -1px 0 rgba(7,8,14,0.55)',
-    'inset 0 26px 36px -26px rgba(242,238,230,0.22)',
+    'inset 0 30px 44px -30px rgba(242,238,230,0.26)',
   ].join(', '),
   ...extra,
 })
