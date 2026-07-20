@@ -83,10 +83,36 @@ export async function resolveLineupWorlds(lineup = []) {
       if (e.handle && clean(e.handle)) handles.add(e.handle)   // the IG @ == the username (primary key)
       if (e.slug && clean(e.slug)) { handles.add(e.slug); handles.add(e.slug.replace(/-/g, '')) }
     })
-    const names = entries.map((e) => e.name).filter((n) => n && clean(n))
+    /* EL NOMBRE ACENTUADO NUNCA RESOLVÍA (encontrado en v12, verificando
+       ExperienceDetail: "Pato Durán" salía como texto muerto teniendo un
+       perfil verificado detrás).
+
+       El cotejo del cliente usa foldText, que quita acentos — o sea la
+       intención SIEMPRE fue ser insensible a acentos. Pero la consulta
+       mandaba el nombre crudo a `full_name.ilike.Pato Durán`, e ilike en
+       Postgres es insensible a MAYÚSCULAS, no a ACENTOS: un perfil guardado
+       como "Pato Duran" jamás regresaba, así que el fold del cliente nunca
+       llegaba a tener candidato que comparar. El acento se comía la puerta
+       en silencio.
+
+       Se manda también la variante sin acentos. NO afloja nada: el filtro
+       verificado + no-demo sigue igual, y la precedencia estricta del
+       cliente (handle > slug > nombre) tampoco se toca — esto sólo deja que
+       la DB devuelva al candidato que el cliente ya pensaba cotejar.
+
+       Importa más de lo que parece: esto también corre en el lineup de un
+       evento en vivo, y en una comunidad latina los acentos son la norma,
+       no el caso raro. */
+    const names = []
+    entries.forEach((e) => {
+      if (!e.name || !clean(e.name)) return
+      names.push(e.name)
+      const folded = foldText(e.name)
+      if (folded && folded !== e.name.toLowerCase() && clean(folded)) names.push(folded)
+    })
     const ors = [
       ...[...handles].map((h) => `username.ilike.${h}`),
-      ...names.map((n) => `full_name.ilike.${n}`),
+      ...[...new Set(names)].map((n) => `full_name.ilike.${n}`),
     ]
     if (!ors.length) return out
     const { data, error } = await supabase

@@ -40,8 +40,18 @@ const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/
 // here at >=1024px. Everything else keeps the centered phone frame under
 // the wide header until it earns its own desktop architecture. /e/:slug
 // renders the same EventShow spread the old landing wore.
+//
+// v12: entran `editions` y `experience`. Eran EL síntoma del reporte "en
+// compu se sigue viendo como móvil": al no estar aquí, en una pantalla de
+// 1440px salían como una columna de 430px debajo de un encabezado de 1440 —
+// un teléfono varado en medio de un monitor. Medido, no supuesto.
+//
+// Lo que NO entra sigue sin entrar a propósito: /auth, /claim, /reset-password
+// y /legal son formularios, y una columna angosta y centrada es su forma
+// CORRECTA en escritorio, no una deuda. La diferencia es que ahora es una
+// decisión y no un olvido.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(community|messages|profile|user|e|c4)(\/|$)/.test(path)
+  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()

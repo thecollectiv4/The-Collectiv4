@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { useWide } from '@/lib/useIsDesktop'
 import { ArrowLeft, MapPin, Clock, Calendar, Users, Music } from 'lucide-react'
 
 const EDITIONS = [
@@ -17,11 +18,28 @@ const EDITIONS = [
 
 export default function PastEditions() {
   const navigate = useNavigate()
+  const wide = useWide()
+
+  /* v12 — LA COMPOSICIÓN EN ESCRITORIO.
+
+     Un boleto NO se estira a 1440px. Es un objeto, y un objeto se compone
+     dándole aire alrededor, no inflándolo hasta que el borde toque los dos
+     cantos de la pantalla — eso es exactamente lo que hace que una app se
+     vea como una página web estirada. Se centra a una medida de objeto y el
+     resto del ancho pasa a ser negro con aire, que es lo que le da presencia
+     (Cosmos: espacio negativo generoso, alto contraste, editorial).
+
+     Si algún día hay varias ediciones, ESTA es la línea que se convierte en
+     reja; con una sola, una reja de una celda sería una reja fingida. */
+  const stack = wide
+    ? { maxWidth: '620px', margin: '0 auto', padding: '56px 32px 120px' }
+    : { padding: '24px 28px 100px' }
 
   return (
     <div style={{background:'linear-gradient(180deg,#0A0A0D 0%,#0A0A0D 20%,#0A0A0D 40%,#0A0A0D 100%)',minHeight:'100vh'}}>
-      {/* Header matching Event page */}
-      <div style={{position:'sticky',top:0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding:'12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
+      {/* Header matching Event page. En escritorio la barra global ya vive
+          arriba (56px), así que ésta se pega DEBAJO en vez de encima. */}
+      <div style={{position:'sticky',top: wide ? '56px' : 0,zIndex:50,background:'rgba(10,10,13,.92)',backdropFilter:'blur(16px)',borderBottom:'1px solid var(--border-hi)',padding: wide ? '12px clamp(24px, 4vw, 56px)' : '12px 28px',display:'flex',alignItems:'center',gap:'12px'}}>
         <button className="pressable" onClick={()=>navigate('/')} style={{background:'none',border:'none',color:'var(--cream-mid)',cursor:'pointer',display:'flex',alignItems:'center',transition:'color var(--dur-fast) var(--ease-house)'}}
           onMouseOver={e=>{e.currentTarget.style.color='var(--cream)'}}
           onMouseOut={e=>{e.currentTarget.style.color='var(--cream-mid)'}}>
@@ -30,7 +48,7 @@ export default function PastEditions() {
         <div style={{fontFamily:'Bebas Neue',fontSize:'16px',color:'var(--cream)',letterSpacing:'.06em'}}>PAST EDITIONS</div>
       </div>
 
-      <div style={{padding:'24px 28px 100px'}}>
+      <div style={stack}>
         {EDITIONS.map(ed => (
           <div key={ed.id} style={{
             borderRadius:'20px',

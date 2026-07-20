@@ -240,7 +240,12 @@ export default function HouseWorld() {
                   {offer.map((l) => {
                     const img = safeImg(l.images?.[0]?.url)
                     return (
-                      <div key={l.id} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${l.title}`}
+                      /* la tarjeta SIEMPRE llevó al mundo de quien vende, pero
+                         se anunciaba con el título de la pieza — a un lector de
+                         pantalla le prometía abrir la pieza y abría a la
+                         persona. Se nombra lo que de verdad hace (Ley 9). */
+                      <div key={l.id} className="disc-card pressable" role="button" tabIndex={0}
+                        aria-label={l.seller ? `Open ${l.seller}'s world — ${l.title}` : `Open the world behind ${l.title}`}
                         onClick={() => navigate('/user/' + l.profile_id)}
                         onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate('/user/' + l.profile_id) } }}
                         style={{ flexShrink: 0, minWidth: wide ? 0 : '186px', borderRadius: '14px', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, cursor: 'pointer' }}>

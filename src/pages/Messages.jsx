@@ -517,18 +517,26 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
             const avatar = safeImg(p.avatar_url)
             return (
               <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderBottom: `1px solid ${HAIR}` }}>
-                <span style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  {avatar
-                    ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
-                    <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
-                    <SeedPill is_demo={p.is_demo} />
+                {/* v12: la cara y el nombre de quien te pide entrar son PUERTA
+                    a su mundo — la fila de abajo (FriendRow) siempre lo fue, y
+                    ésta no. Justo aquí es donde más falta hace: para decidir
+                    si aceptas necesitas poder ver quién es. */}
+                <button className="pressable" onClick={() => onOpenWorld(p.id)} aria-label={`Open ${name}'s world`}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, textAlign: 'left',
+                    background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
+                  <span style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {avatar
+                      ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
                   </span>
-                  <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '3px' }}>wants in your circle</span>
-                </span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                      <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
+                      <SeedPill is_demo={p.is_demo} />
+                    </span>
+                    <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '3px' }}>wants in your circle</span>
+                  </span>
+                </button>
                 <button className="pressable" data-testid={`circle-accept-${p.id}`} disabled={busy} onClick={() => onAnswer(p, true)}
                   style={{ background: BONE, border: 'none', borderRadius: '100px', minHeight: '40px', padding: '10px 18px', color: VOID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 500, cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0 }}>
                   {busy ? '…' : 'accept'}
@@ -1203,9 +1211,23 @@ function Thread({ threadId, me, wide }) {
                     </span>
                   )}
                   <div style={{ maxWidth: '78%', background: mine ? 'rgba(242,238,230,.07)' : CARD, border: `1px solid ${mine ? 'rgba(242,238,230,.14)' : HAIR}`, borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '10px 14px' }}>
+                    {/* v12: en una sala con varias personas, el nombre sobre
+                        cada mensaje es puerta a su mundo. Es EL sitio donde a
+                        alguien le dan ganas de saber quién es el que habla, y
+                        era texto muerto. Sólo cuando hay id — un renglón sin
+                        perfil detrás no finge ser puerta (Ley 9). */}
                     {!mine && isRoomKind(thread.kind) && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: SILVER, letterSpacing: '.08em', marginBottom: '4px' }}>
-                        <span>{sender?.full_name || sender?.username || 'Member'}</span>
+                        {m.sender_id ? (
+                          <button className="pressable" onClick={() => navigate(`/user/${m.sender_id}`)}
+                            aria-label={`Open ${sender?.full_name || 'this member'}'s world`}
+                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                              font: 'inherit', color: 'inherit', letterSpacing: 'inherit' }}>
+                            {sender?.full_name || sender?.username || 'Member'}
+                          </button>
+                        ) : (
+                          <span>{sender?.full_name || sender?.username || 'Member'}</span>
+                        )}
                         <SeedPill is_demo={sender?.is_demo} size={7} />
                       </div>
                     )}
