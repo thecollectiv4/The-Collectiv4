@@ -21,11 +21,22 @@ export const GATE_FLAG = 'invite_gate'
 /* Is the gate on right now? Read at runtime from app_flags, never from a
    VITE_ var — the flag has to move without a rebuild, so the founders can
    open or close the door from a phone in the middle of a launch night. */
+const GATE_TIMEOUT_MS = 2000
+
 export async function fetchGateEnabled() {
   try {
-    const { data, error } = await supabase.rpc('gate_status')
-    if (error) return false                       // migration not pushed yet → open
-    return Boolean(data?.invite_gate)
+    // A STALLED CONNECTION NEVER REJECTS. The Supabase client is built with no
+    // timeout (src/api/supabase.js), so `await rpc(...)` on flaky mobile data
+    // can hang indefinitely — and the caller is holding the whole /auth screen
+    // on it. Without this race, a member on bad signal gets a blank page where
+    // sign-in and password recovery used to be. Losing the race means "open",
+    // which is the same answer every other failure gives.
+    const result = await Promise.race([
+      supabase.rpc('gate_status'),
+      new Promise(resolve => setTimeout(() => resolve({ data: null, error: 'timeout' }), GATE_TIMEOUT_MS)),
+    ])
+    if (result?.error) return false               // missing RPC / timeout → open
+    return Boolean(result?.data?.invite_gate)
   } catch {
     return false                                  // network/unknown → open
   }
@@ -37,7 +48,11 @@ export async function fetchGateEnabled() {
    all the same code. */
 export function normalizeCode(raw) {
   const clean = String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '')
-  const body = clean.startsWith('C4') ? clean.slice(2) : clean
+  // Only strip a leading C4 when what remains is a full 8-char body. The mint
+  // alphabet contains both C and 4, so C4-C4XY-ZZZZ is a real mintable code —
+  // stripping blindly would eat the body's own "C4" and reject a valid code
+  // for the ~1/961 of holders whose body happens to start that way.
+  const body = (clean.startsWith('C4') && clean.length !== 8) ? clean.slice(2) : clean
   const a = body.slice(0, 4)
   const b = body.slice(4, 8)
   if (!a) return clean.startsWith('C4') ? 'C4-' : ''
@@ -63,10 +78,13 @@ export async function checkInviteCode(code) {
   }
 }
 
-/* The code travels to the hook inside raw_user_meta_data. Both signup call
-   sites (AuthContext.signUp and AuthModal's direct call) build their
-   options.data through this, so the payload can never drift between them —
-   a gate with a hole in one of its own two forms is not a gate. */
+/* The code travels to the hook inside raw_user_meta_data.
+
+   ONLY AuthContext.signUp uses this. The app's OTHER signup path —
+   AuthModal.jsx — hand-builds its own options.data and does NOT call this;
+   it is covered differently, by refusing to sign up at all when the gate is
+   on and sending the visitor to /auth instead (AuthModal.jsx). Do not delete
+   that redirect on the assumption this helper covers the modal. It does not. */
 export function withInviteCode(extra, code) {
   const c = normalizeCode(code)
   return isCodeComplete(c) ? { ...extra, invite_code: c } : { ...extra }

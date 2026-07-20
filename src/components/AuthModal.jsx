@@ -26,7 +26,16 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
   const [gate, setGate] = useState(false)
   const navigate = useNavigate()
   useEffect(() => { let ok = true; fetchGateEnabled().then(v => { if (ok) setGate(v) }); return () => { ok = false } }, [])
-  useEffect(() => { if (gate && mode === 'signup') setMode('signin') }, [gate, mode])
+  /* If the flag resolves true while someone is mid-signup, we flip them to
+     sign-in. Clear the credentials and say so — otherwise their typed name
+     and password silently become a sign-in attempt and they get "Invalid
+     login credentials" for a password they never had. */
+  useEffect(() => {
+    if (gate && mode === 'signup') {
+      setMode('signin'); setPassword(''); setFirstName(''); setLastName('')
+      setNotice('Early access is by invitation now — sign in, or ask for an invite below.')
+    }
+  }, [gate, mode])
 
   const handle = async () => {
     if (mode === 'signup' && (!firstName.trim() || !lastName.trim())) { setError('Escribe tu nombre y apellido'); return }

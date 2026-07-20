@@ -265,8 +265,17 @@ export default function Atmosphere() {
       // v12: seed + sky join the cache key — two worlds at the same size no
       // longer share one bitmap now that the deep field is per-seed.
       const key = `${w}x${h}|${TINT}|${cfg.seed}|${preset.sky}`
+      // LRU, not FIFO. v12 added the SEED to this key, and seeds are per-entity
+      // (a profile id, an event slug), so the number of distinct keys is now
+      // unbounded where it used to be a handful of tints. Under plain FIFO a
+      // re-read never refreshed position, so the hot home sky was evicted by
+      // one-shot profile skies. Touch on hit = the skies you actually revisit
+      // are the ones that survive.
       const hit = bgCache.current.get(key)
-      if (hit) { bgCanvas = hit; return }
+      if (hit) {
+        bgCache.current.delete(key); bgCache.current.set(key, hit)
+        bgCanvas = hit; return
+      }
       const dpr = Math.min(2, window.devicePixelRatio || 1)
       bgCanvas = document.createElement('canvas')
       bgCanvas.width = Math.round(w * dpr)
@@ -360,8 +369,13 @@ export default function Atmosphere() {
       b.globalAlpha = 1
       b.globalCompositeOperation = 'source-over'
 
-      // small, bounded: a handful of size|tint pairs ever exist per session
-      if (bgCache.current.size > 8) bgCache.current.delete(bgCache.current.keys().next().value)
+      // Cap of 4, down from 8. Each entry is a full-viewport canvas at DPR 2 —
+      // ~5–6 MB on a large phone. With per-entity seeds the cache now actually
+      // reaches its cap (it never did when the key was just size|tint), so 8
+      // meant ~50 MB of backing store on the device that can least afford it,
+      // on a surface that also runs Stripe checkout. 4 is ~20 MB and still
+      // holds every sky in a normal back-and-forth.
+      if (bgCache.current.size > 4) bgCache.current.delete(bgCache.current.keys().next().value)
       bgCache.current.set(key, bgCanvas)
     }
 

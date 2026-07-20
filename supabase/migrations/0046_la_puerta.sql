@@ -123,28 +123,53 @@ begin
   -- ONE atomic statement (same arbiter pattern as claim_ticket_email, 0045).
   -- Two people racing the last seat on a code: one wins, one is rejected.
   -- Checking-then-updating would let both through.
-  update invite_codes
-     set used_count = used_count + 1
-   where code = v_code
-     and revoked_at is null
-     and (expires_at is null or expires_at > now())
-     and used_count < max_uses
-  returning code into v_hit;
+  --
+  -- SEAT AND AUDIT ROW MOVE TOGETHER. The redemption insert leads and the
+  -- increment only happens if that insert actually produced a row. Done the
+  -- other way round, a repeat attempt from an already-registered email would
+  -- burn a seat (the UPDATE always fires) while the insert silently did
+  -- nothing (unique on email) — used_count and invite_redemptions drift apart
+  -- permanently, and admin_list_invites, the founders' only view of the door,
+  -- quietly under-reports who came through.
+  with claimed as (
+    insert into invite_redemptions (code, redeemed_email)
+    select v_code, v_email
+     where exists (
+       select 1 from invite_codes
+        where code = v_code
+          and revoked_at is null
+          and (expires_at is null or expires_at > now())
+          and used_count < max_uses
+     )
+    on conflict (redeemed_email) do nothing
+    returning code
+  )
+  update invite_codes c
+     set used_count = c.used_count + 1
+    from claimed
+   where c.code = claimed.code
+     and c.revoked_at is null
+     and (c.expires_at is null or c.expires_at > now())
+     and c.used_count < c.max_uses
+  returning c.code into v_hit;
 
   if v_hit is null then
     return jsonb_build_object('error', jsonb_build_object(
       'http_code', 403, 'message', 'invite_invalid'));
   end if;
 
-  insert into invite_redemptions (code, redeemed_email)
-  values (v_hit, v_email)
-  on conflict (redeemed_email) do nothing;
-
   return '{}'::jsonb;
 end;
 $$;
 
 revoke all on function public.before_user_created_hook(jsonb) from public, anon, authenticated;
+-- USAGE on the schema as well as EXECUTE on the function. On a stock project
+-- PUBLIC still holds schema USAGE so EXECUTE alone would probably resolve —
+-- but "probably" is the wrong word here: if it does NOT resolve, the hook
+-- raises, GoTrue 500s, and EVERY signup fails regardless of the flag. The
+-- "installed and off" promise only holds while the function can execute at
+-- all; the flag is read inside it. One additive line, no downside.
+grant usage on schema public to supabase_auth_admin;
 grant execute on function public.before_user_created_hook(jsonb) to supabase_auth_admin;
 
 -- ============================================================== THE DOORS
@@ -167,9 +192,12 @@ grant execute on function public.gate_status() to anon, authenticated;
 -- check_invite_code — pre-submit validation so the UI can say "that code
 -- isn't right" before asking for a password. Returns {valid:bool} and
 -- NOTHING else: no code list, no owner, no remaining-uses count. It is a
--- yes/no oracle by design; brute-forcing C4-XXXX-XXXX over an unambiguous
--- 32-char alphabet is ~10^12 tries. Rate-limit at the edge if that ever
--- stops being comfortable. It does NOT consume a use — only the hook does.
+-- yes/no oracle BY DESIGN, and it is unrated and unlogged — be honest about
+-- what that costs. Keyspace is 31^8 ≈ 8.5e11, but the work factor is
+-- keyspace ÷ LIVE codes: at 200 live codes an attacker expects a hit in
+-- ~4e9 tries. Comfortable at founder scale, not forever.
+-- ⚠ TRIGGER, not a someday: add edge rate-limiting BEFORE live codes pass
+-- ~100. It does NOT consume a use — only the hook does.
 create or replace function public.check_invite_code(p_code text)
 returns jsonb
 language sql
@@ -216,13 +244,15 @@ begin
   for v_i in 1..greatest(1, least(coalesce(p_count, 1), 100)) loop
     -- retry until unique; collision odds are negligible but the loop is honest
     loop
+      -- gen_random_bytes, not random(). These codes ARE credentials: random()
+      -- is a seeded PRNG, and minting 100 at once draws them from one
+      -- contiguous stream — observing a few would constrain the rest. The
+      -- modulo bias across a 31-char alphabet is irrelevant next to that.
       v_code := 'C4-';
-      for v_j in 1..4 loop
-        v_code := v_code || substr(v_alpha, 1 + floor(random() * length(v_alpha))::int, 1);
-      end loop;
-      v_code := v_code || '-';
-      for v_j in 1..4 loop
-        v_code := v_code || substr(v_alpha, 1 + floor(random() * length(v_alpha))::int, 1);
+      for v_j in 1..8 loop
+        if v_j = 5 then v_code := v_code || '-'; end if;
+        v_code := v_code || substr(v_alpha,
+          1 + (get_byte(gen_random_bytes(1), 0) % length(v_alpha)), 1);
       end loop;
       exit when not exists (select 1 from invite_codes where code = v_code);
     end loop;
@@ -291,9 +321,19 @@ commit;
 --      signup with a garbage code     -> rejected, 'invite_invalid'
 --      signup with a minted code      -> allowed; used_count = 1
 --      SAME code again (max_uses 1)   -> rejected, 'invite_invalid'
+--   4b. SEAT/AUDIT SYMMETRY (the drift this migration was corrected for):
+--        gate ON, valid multi-use code, sign up with an email that ALREADY
+--        has an account -> rejected, and used_count MUST NOT have moved:
+--          select used_count from public.invite_codes where code = '<code>';
+--          select count(*) from public.invite_redemptions where code = '<code>';
+--        those two must agree after every attempt, successful or not.
 --   5. EXISTING MEMBERS, gate ON — all must still work:
 --        sign in with password · hard-reload a live session · password
 --        recovery through /reset-password · a paid buyer opening /claim
+--   5b. CLIENT FAILURE MODES (no DB needed — kill the network in devtools):
+--        /auth must still render sign-in, never a blank page (2s timeout)
+--        a rejected code must return you to the door, not trap you on a
+--        form with no code field
 --   6. flip it back off -> open signup returns instantly, no deploy:
 --        update public.app_flags set enabled = false where key = 'invite_gate';
 --
