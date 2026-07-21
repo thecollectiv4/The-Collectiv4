@@ -16,6 +16,9 @@ import { fetchMyTastes } from '@/lib/tastes'
 import { fetchUpcomingSets } from '@/lib/world'
 import { isOwnerFounder } from '@/lib/osAccess'
 import { glassControl } from '@/lib/glass'
+import { IdentityCardSheet, IdentityCardButton } from '@/components/IdentityCard'
+import StatusSheet from '@/components/StatusSheet'
+import { fetchMyStatus, TIERS } from '@/lib/tiers'
 
 export default function Profile() {
   // signOut ya no se desestructura aquí: se fue con el botón a /settings.
@@ -48,6 +51,18 @@ export default function Profile() {
   const [ticketEvent, setTicketEvent] = useState(null)  // the ticket's OWN event row — never the live event's name on someone else's ticket
   const [attended, setAttended] = useState([])          // real past events this user held a confirmed ticket for
   const [copied, setCopied] = useState(false)
+  /* v14 — LA CREDENCIAL Y EL NIVEL, leídos UNA vez y compartidos.
+     `statusRecord` en null NO significa "nivel cero": significa "todavía no
+     sé", y las dos superficies lo distinguen a propósito (la tarjeta deja el
+     renglón vacío, la hoja muestra su estado de carga). Esa diferencia entre
+     "no cargado" y "cargado y es cero" es la disciplina entera de esta
+     feature — la misma que este archivo ya aplica a crafts y tastes.
+     Un solo fetch alimenta a las dos: la tarjeta recibe el `tier` y la hoja
+     recibe el mismo registro como `preloaded`, así abrir la hoja desde aquí
+     no paga un segundo viaje. */
+  const [cardOpen, setCardOpen] = useState(false)
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [statusRecord, setStatusRecord] = useState(null)
 
   // Three-way guard: loading · authenticated · unauthenticated. On a hard load
   // (direct URL, the confirmation email's CTA) this effect fires BEFORE Supabase
@@ -76,6 +91,19 @@ export default function Profile() {
       window.removeEventListener('c4:listed', onListed)
     }
   }, [user])
+
+  /* EL NIVEL — se lee aquí y no dentro de la tarjeta ni de la hoja, porque
+     las dos tienen que decir LO MISMO y un doble fetch puede aterrizar en
+     desorden. `alive` corta la carrera clásica: cambiar de cuenta mientras
+     vuela la respuesta no puede pintar el nivel del anterior.
+     Va ANTES del return temprano de abajo — un hook después de un return
+     condicional rompe el orden de hooks de React. */
+  useEffect(() => {
+    if (authLoading || !user) return undefined
+    let alive = true
+    fetchMyStatus(user.id).then((r) => { if (alive) setStatusRecord(r) }, () => {})
+    return () => { alive = false }
+  }, [authLoading, user])
 
   // Cosmos holding state while identity resolves (or right before the redirect fires).
   if (authLoading || !user) return <AuthResolving />
@@ -244,7 +272,12 @@ export default function Profile() {
       lo quiere de vuelta arriba, es este bloque y nada más. */}
   const topBar = (
     <>
-      <span />
+      {/* v14 — LA CREDENCIAL, en la ranura que llevaba dos versiones vacía.
+          Aquí vivía un <span/> puesto sólo para empujar el botón de Settings
+          a la derecha con space-between. Ahora ese hueco carga la puerta al
+          objeto de la casa, y el par lee como par: la misma receta de
+          glassControl, el mismo radio, el mismo hover. */}
+      <IdentityCardButton onClick={() => setCardOpen(true)} />
       {/* ghost silver, same register as the Cover pill — the palette admits
           no salmon, not even as "danger" (panel catch, Ley 14) */}
       {/* v12.1 — receta compartida en vez del blur(8px) de la casa de al
@@ -273,8 +306,47 @@ export default function Profile() {
 
   const ownerExtras = (
     <>
-      {/* YOUR TICKET */}
+      {/* v14 — YOUR STATUS. La puerta al nivel, con la misma gramática de
+          tarjeta-puerta que ya usan YOUR TICKET y THE INSTRUMENT: cuerpo
+          arriba, filete punteado, renglón de acción abajo. No se inventa una
+          forma nueva para una fila más.
+
+          EL RENGLÓN DE LA DERECHA DICE LA VERDAD EN TRES TIEMPOS:
+            · statusRecord null      → nada (todavía no sé, y "no sé" no se
+                                       pinta como "cero")
+            · leído pero sin nivel   → nada, nunca un nombre inventado
+            · leído                  → el nombre real del peldaño
+          Ese silencio mientras carga es deliberado: un nivel equivocado
+          durante 300ms es una mentira corta, y aquí no hay mentiras cortas. */}
       <div style={{ marginTop: '44px' }}>
+        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>YOUR STATUS</div>
+        <div onClick={() => setStatusOpen(true)} role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setStatusOpen(true) } }}
+          style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .3s' }}
+          onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.2)'}
+          onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
+          <div style={{ padding: '22px 24px', background: 'var(--bg-card)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: 'var(--silver)', letterSpacing: '.08em' }}>◇</span>
+                <span style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {statusRecord?.status?.tier?.name || 'YOUR LEVEL'}
+                </span>
+              </div>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--cream-low)', marginTop: '8px', lineHeight: 1.5 }}>
+              Where you stand, and what moves you up. Counted from what you actually do here.
+            </div>
+          </div>
+          <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)' }}>SEE THE LADDER</span>
+            <ChevronRight size={14} style={{ color: 'var(--cream-low)' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* YOUR TICKET */}
+      <div style={{ marginTop: '40px' }}>
         <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>YOUR TICKET</div>
         {ticket ? (
           <div style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden' }}>
@@ -395,6 +467,7 @@ export default function Profile() {
   )
 
   return (
+    <>
     <ProfileMuseum
       profile={profile}
       crafts={crafts || []}
@@ -424,5 +497,28 @@ export default function Profile() {
       publicTastes={tastes}
       upcomingSets={upcomingSets}
     />
+
+    {/* Las dos superficies de v14. Portalean solas a document.body (GlassSheet),
+        así que su lugar en este árbol no cambia el apilado — están al final
+        por lectura, no por z-index.
+
+        La tarjeta recibe el MISMO registro que alimenta la fila de arriba, con
+        el total de peldaños adjunto para poder imprimir "03/05". Si el registro
+        aún no llegó, `tier` va en null y la tarjeta deja el renglón vacío en
+        vez de degradar a un peldaño que no se ha comprobado. */}
+    <IdentityCardSheet
+      open={cardOpen}
+      profile={profile}
+      tier={statusRecord && { ...statusRecord, total: TIERS.length }}
+      onClose={() => setCardOpen(false)}
+    />
+    {statusOpen && (
+      <StatusSheet
+        profileId={user.id}
+        preloaded={statusRecord}
+        onClose={() => setStatusOpen(false)}
+      />
+    )}
+    </>
   )
 }

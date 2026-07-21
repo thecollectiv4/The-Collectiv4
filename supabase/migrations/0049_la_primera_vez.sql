@@ -1,0 +1,388 @@
+-- =========================================================================
+-- 0049 — LA PRIMERA VEZ. v14 (entry & identity).
+--        Applied via the Management API (db push sigue roto en esta máquina;
+--        el curl exacto va al final de este archivo).
+--
+-- EL HUECO: v14 trae dos pantallas que por definición se ven UNA vez —
+-- <Onboarding/> (la bienvenida) y <Tutorial/> (el recorrido de 7 marcas).
+-- El cliente (src/lib/firstRun.js) ya está escrito contra estas dos
+-- columnas y hoy corre DEGRADADO a propósito: una columna que no existe
+-- devuelve 42703 al leer / PGRST204 al escribir, y firstRun.js traduce las
+-- dos a "ya visto" para no dejar a nadie con un modal en bucle mientras la
+-- migración va en camino. Esta migración es lo único que falta para que
+-- esas dos pantallas pasen de inertes a reales.
+--
+-- POR QUÉ EN LA FILA Y NO EN localStorage: localStorage es del NAVEGADOR,
+-- no de la cuenta. Un miembro que entra desde la laptop y luego desde el
+-- teléfono vería la bienvenida dos veces. La memoria de "ya viste esto"
+-- tiene que viajar con la identidad. El caché local sigue existiendo en el
+-- cliente, pero como PESTILLO DE UN SOLO SENTIDO (puede decir "ya la vio",
+-- nunca "no la ha visto") — la fila es la verdad.
+--
+-- ADITIVA Y NADA MÁS: dos columnas booleanas con default constante y un
+-- UPDATE de respaldo que corre UNA sola vez y sólo hacia atrás de una fecha
+-- fija. CERO cambios de RLS, CERO triggers nuevos, CERO grants, CERO
+-- índices, CERO funciones. No toca verified, deleted_at, protected, is_demo,
+-- precios, tickets, ni el path de Stripe. Todo lo que se EJECUTA de este
+-- archivo son 31 líneas; el resto es el porqué.
+--
+-- =========================================================================
+-- ANÁLISIS DE SEGURIDAD — las cuatro preguntas, contestadas antes de escribir
+-- =========================================================================
+--
+-- (1) ¿CHOCAN CON lock_verified (0002/0008) O CON lock_lifecycle (0027)?
+--     NO. Leí los dos cuerpos. Ambos son BEFORE INSERT OR UPDATE FOR EACH
+--     ROW sobre public.profiles, y ambos están escritos COLUMNA POR COLUMNA:
+--
+--       lock_verified  (0008:84-90):  new.verified  := old.verified
+--       lock_lifecycle (0027:51-62):  new.deleted_at := old.deleted_at
+--                                     new.protected  := old.protected
+--
+--     Ninguno hace `new := old`, ninguno recorre columnas dinámicamente (no
+--     hay to_jsonb(new), ni hstore, ni EXECUTE con listas de columnas), y
+--     ninguno depende del número ni del orden de las columnas de la tabla.
+--     Una columna nueva los ATRAVIESA intacta, en INSERT y en UPDATE, para
+--     todos los roles. Añadirlas no los modifica ni los rompe.
+--
+--     Y al revés: el UPDATE del cliente tampoco los despierta. firstRun.js
+--     manda UNA sola columna (`update profiles set tutorial_seen = true`).
+--     En un UPDATE parcial Postgres construye NEW a partir de OLD con sólo
+--     las columnas del SET reemplazadas — así que NEW.verified es idéntico a
+--     OLD.verified, los tres `is distinct from` dan false, y los dos guards
+--     son no-op. El guard sigue mordiendo para lo suyo (ver la verificación
+--     al final: una sola sentencia lo demuestra en los dos sentidos).
+--
+-- (2) ¿HACEN FALTA GUARDS PROPIOS? NO — y lo escribo explícito para que el
+--     siguiente lector sepa que se consideró y no que se olvidó.
+--     profiles_self_update (0001) es row-level y deja a un miembro escribir
+--     CUALQUIER columna de SU fila; por eso `verified`, `deleted_at` y
+--     `protected` necesitaron trigger. La diferencia no es técnica, es de
+--     naturaleza:
+--       · verified es una AFIRMACIÓN HACIA TERCEROS. Auto-otorgarla engaña
+--         a todos los que la leen. Por eso 0002 la ancló.
+--       · deleted_at / protected son ESTADO DE CICLO DE VIDA que sostiene el
+--         fundador. Auto-escribirlos derrota la moderación. Por eso 0027.
+--       · onboarding_seen / tutorial_seen son la MEMORIA DE UNA PERSONA
+--         SOBRE SU PROPIA SESIÓN. No hay tercero al que engañen. Lo peor que
+--         puede hacer un miembro escribiéndolas es saltarse —o repetir— su
+--         propia bienvenida… que es EXACTAMENTE lo que ya hacen, a propósito,
+--         el botón Skip y replayTour() (firstRun.js:167). Un guard aquí
+--         prohibiría por accidente la feature.
+--     Nada las agrega, nada las cuenta, nada hace join sobre ellas, ninguna
+--     superficie pública las expone. Son una preferencia, no una credencial.
+--     Que sean auto-escribibles es el diseño, no un descuido.
+--
+--     LO QUE SÍ HAY QUE DECIR EN VOZ ALTA: como toda columna de profiles,
+--     quedan LEGIBLES por quien pueda leer la fila (profiles_public_read,
+--     0033). O sea: cualquiera puede ver si alguien terminó su bienvenida.
+--     Es un dato de sensibilidad ~nula y se acepta a sabiendas. No se puede
+--     arreglar con un REVOKE de columna sin romper todo lo demás — 0002:51-56
+--     ya documentó por qué (el grant a nivel tabla es la UNIÓN con el de
+--     columna; para tener column-level habría que revocar la tabla entera y
+--     re-otorgar columna por columna, y cada columna futura nacería invisible).
+--     ⚠ Corolario para el futuro: profiles es una tabla de lectura ancha.
+--     Nada sensible entra aquí nunca.
+--
+-- (3) ¿EL ALTER TOMA UN LOCK DISRUPTIVO? NO.
+--     `add column ... boolean not null default false` con default CONSTANTE
+--     es un cambio SÓLO DE CATÁLOGO desde Postgres 11 (el valor vive en
+--     pg_attribute.attmissingval); no hay reescritura de tabla. Es el mismo
+--     razonamiento que 0002:33-34 dejó escrito al añadir `verified`, y el
+--     que 0027:26-28 usó para `protected`. Toma ACCESS EXCLUSIVE por los
+--     microsegundos del update de catálogo — el riesgo real no es el ALTER
+--     sino ENCOLARSE detrás de una transacción larga, y aquí no hay ninguna.
+--     Escala: 316 filas (10 reales + 306 demo). Aunque reescribiera la tabla
+--     entera sería instantáneo. El UPDATE de respaldo sí escribe filas de
+--     verdad, pero toma ROW EXCLUSIVE (no bloquea lecturas) sobre 316 filas.
+--     Sin índice a propósito: estas columnas se leen SIEMPRE por
+--     `where id = auth.uid()`, que ya es la primary key. Un índice sobre un
+--     booleano de 316 filas no lo elegiría el planner jamás.
+--
+-- (4) ¿HACE FALTA TOCAR RLS? NO. No se cambia ni una política. La prueba es
+--     la política misma, textual, de 0001:149-150:
+--
+--       create policy profiles_self_update on public.profiles
+--         for update using (auth.uid()::text = id::text)
+--                with check (auth.uid()::text = id::text);
+--
+--     Es row-level y SIN lista de columnas: cubre toda columna presente y
+--     toda columna futura de la fila propia. `using` deja tocar sólo mi
+--     fila; `with check` impide además moverla a otro dueño. Y el grant de
+--     UPDATE a nivel tabla (heredado de la era Base44, el mismo que 0002:51
+--     describe) cubre por definición las columnas añadidas después — en
+--     Postgres un GRANT de tabla no se queda atrás de un ALTER. Por eso este
+--     archivo no lleva un solo `grant`: añadir uno sería un cambio sin
+--     necesidad demostrada.
+--
+--     Lectura: profiles_public_read (0033:29) tampoco necesita nada — es
+--     `for select` sobre la fila, y ya trae la rama `id = auth.uid()` que
+--     garantiza que un miembro lee SIEMPRE su propia fila aunque esté
+--     purgado o marcado is_demo. Que un miembro lea su propio flag es
+--     exactamente el caso de uso, y ya está cubierto.
+--
+-- =========================================================================
+-- EL RESPALDO — la decisión que más se puede defender, y por qué
+-- =========================================================================
+-- Default false + nada más significaría que en el próximo deploy los 10
+-- humanos reales (los dos fundadores incluidos) reciben una BIENVENIDA a una
+-- app que llevan meses usando. Eso no es un detalle cosmético: es la app
+-- diciéndole "hola, nuevo" a la gente que la construyó. Se respalda.
+--
+-- LA FORMA — y ésta es la única parte no obvia del archivo, así que va con
+-- su porqué. El ALTER es idempotente (`if not exists`), o sea que el archivo
+-- PARECE re-ejecutable, y el curl del final es un POST que un humano puede
+-- repetir tras un timeout ambiguo. Un respaldo `where true` convertiría ese
+-- parecido en trampa: una segunda corrida una semana después le robaría la
+-- primera vez, en silencio y para siempre, a todo el que se haya registrado
+-- en esa semana. Van DOS CINTURONES, y hacen falta los dos:
+--
+--   CINTURÓN 1 — el respaldo corre SÓLO SI las columnas nacen en esta
+--   corrida. Se pregunta al catálogo ANTES del ALTER y se guarda la
+--   respuesta; si ya existían, el UPDATE ni se ejecuta. Esto es lo que
+--   protege una DECISIÓN POSTERIOR. Sin él, y esto lo encontró la relectura
+--   adversarial de este propio archivo: un fundador llama replayTour(),
+--   que pone tutorial_seen = false a propósito; alguien re-manda el curl;
+--   y el respaldo se lo devuelve a true, cancelándole el recorrido que
+--   acababa de pedir. El predicado de fecha NO lo habría salvado — ese
+--   fundador es anterior al corte. Un respaldo es para filas que nunca
+--   tuvieron la oportunidad de decidir, no para revisar decisiones.
+--
+--   CINTURÓN 2 — la fecha fija literal, no now(). Protege a quien se
+--   registre DESPUÉS, y sigue puesta aunque alguien corra el UPDATE suelto
+--   a mano sin el DO de arriba. Correrlo diez veces deja exactamente las
+--   mismas filas en exactamente el mismo valor.
+--
+-- EL SENTIDO DEL ERROR ESTÁ ELEGIDO. Si esto se aplica días después de haber
+-- sido escrito, quien se registró en esa ventana cae del lado "nuevo" y ve la
+-- bienvenida. Es el lado recuperable: mostrarle la bienvenida a alguien que
+-- entró hace tres días es una molestia que se cierra con un botón; SILENCIAR
+-- la bienvenida de un miembro nuevo es invisible y permanente. No son
+-- simétricos — misma doctrina que firstRun.js:31-38, con el signo al revés
+-- porque aquí la pregunta es distinta (allí "¿abro un modal sobre alguien?",
+-- aquí "¿a quién considero ya adentro?").
+--
+-- created_at NULL entra al respaldo: sólo puede ser una fila heredada de
+-- Base44, o sea más vieja que cualquier corte que yo pueda nombrar. Dejarla
+-- fuera emboscaría precisamente a los miembros MÁS antiguos.
+--
+-- LOS 306 DEMO: entran al respaldo por el mismo predicado, y da igual. Nadie
+-- inicia sesión como un perfil demo — no tienen fila en auth.users — así que
+-- fetchFirstRun (que va contra auth.uid()) no lee esas banderas nunca. Se
+-- barren con todos para que la columna tenga UN solo significado ("esta fila
+-- ya existía cuando llegó la primera vez") en vez de dos. Nota para el
+-- futuro: 0006 es precedente de que una fila se puede RE-APUNTAR a una
+-- identidad real; si eso vuelve a pasar, esa operación ya reescribe columnas
+-- de identidad a mano y puede poner estas dos en false en la misma sentencia.
+--
+-- LOS FUNDADORES QUEDAN EN true — y eso es lo correcto, no un descuido: la
+-- necesidad de "quiero VER la bienvenida" es de QA, no de producto, y ya
+-- tiene puerta propia (replayTour(), firstRun.js:167, o el UPDATE de una
+-- línea que está al final de este archivo). Un flujo de primera vez no se
+-- prueba emboscando a diez personas.
+-- =========================================================================
+
+begin;
+
+-- ---------- (1) las dos columnas + (2) el respaldo de una sola vez ----------
+-- Van juntos en un DO porque el respaldo tiene que saber algo que después
+-- del ALTER ya no se puede averiguar: si las columnas EXISTÍAN antes. El
+-- idioma (DO + introspección de catálogo + execute para el DDL) es el mismo
+-- de 0001:166-179, donde una política se elige según el tipo real de una
+-- columna. El `execute` no es adorno: deja el DDL y el UPDATE que lo usa en
+-- planes separados, así que no hay ninguna duda de orden de parseo.
+do $$
+declare
+  v_fresh boolean;
+begin
+  -- CINTURÓN 1 (ver header): ¿nacen HOY? Se pregunta ANTES del ALTER.
+  -- pg_catalog y no information_schema a propósito: information_schema filtra
+  -- por privilegios del rol que consulta, pg_attribute dice la verdad siempre.
+  -- Si CUALQUIERA de las dos ya existía, esta tabla ya vivió la primera vez y
+  -- el respaldo no tiene nada que hacer aquí: sus valores ya son decisiones
+  -- de personas, no un hueco por rellenar.
+  v_fresh := not exists (
+    select 1 from pg_attribute
+     where attrelid = 'public.profiles'::regclass
+       and attname in ('onboarding_seen', 'tutorial_seen')
+       and not attisdropped
+  );
+
+  -- NOT NULL DEFAULT false: mismo patrón que verified (0002:35) y protected
+  -- (0027:28), y por la misma razón — default constante = cambio sólo de
+  -- catálogo. NOT NULL para que la fila sólo pueda decir sí o no; el cliente
+  -- no maneja un tercer estado. (firstRun.js compara con === true, así que
+  -- toleraría un null; no es razón para permitirlo.)
+  execute $ddl$
+    alter table public.profiles
+      add column if not exists onboarding_seen boolean not null default false,
+      add column if not exists tutorial_seen   boolean not null default false
+  $ddl$;
+
+  if v_fresh then
+    -- Todo lo que existía cuando esto se escribió = miembro que ya está
+    -- adentro. CINTURÓN 2: el corte es un literal, nunca now().
+    -- Corre como el dueño de la tabla (Management API), así que ni RLS ni los
+    -- guards de 0008/0027 lo estorban: los dos triggers sólo actúan cuando
+    -- auth.role() es 'anon'/'authenticated', y aquí es null.
+    execute $bf$
+      update public.profiles
+         set onboarding_seen = true,
+             tutorial_seen   = true
+       where created_at is null
+          or created_at < timestamptz '2026-07-21 00:00:00+00'
+    $bf$;
+  end if;
+end $$;
+
+comment on column public.profiles.onboarding_seen is
+  'v14 primera vez: la bienvenida ya se vio (o se saltó). Auto-escribible por el dueño de la fila a propósito — es su memoria, no una credencial. Ver 0049.';
+comment on column public.profiles.tutorial_seen is
+  'v14 primera vez: el recorrido ya se vio (o se saltó). replayTour() lo devuelve a false. Ver 0049.';
+
+commit;
+
+-- =========================================================================
+-- CÓMO APLICARLO — `supabase db push` NO funciona en esta máquina
+-- =========================================================================
+-- (Es un launcher que delega a un `supabase-go` que no existe. Tampoco hay
+--  psql. La vía es la Management API. NO ejecutar nada de esto desde el
+--  archivo: es documentación para quien aplica.)
+--
+-- ⚠ El User-Agent de urllib de Python lo bloquea Cloudflare con 403/1010:
+--   se construye el JSON con python y se MANDA con curl. No al revés.
+--
+--   cd "/Users/diegovillasenor/Documents/Documents - Diego’s MacBook Air/the-collectiv4"
+--
+--   # 1) token del keychain — NUNCA imprimirlo
+--   TOKEN=$(security find-generic-password -s "Supabase CLI" -w)
+--
+--   # 2) payload = este archivo + el registro en el historial, en un POST.
+--   #    json.dumps escapa comillas y $$ correctamente; el replace("'","''")
+--   #    escapa el literal SQL de statements[].
+--   python3 - <<'PY' > /tmp/0049.json
+--   import json
+--   sql = open('supabase/migrations/0049_la_primera_vez.sql').read()
+--   lit = "'" + sql.replace("'", "''") + "'"
+--   reg = ("\ninsert into supabase_migrations.schema_migrations (version, name, statements)\n"
+--          "values ('0049', 'la_primera_vez', array[" + lit + "]::text[])\n"
+--          "on conflict (version) do nothing;\n")
+--   print(json.dumps({"query": sql + reg}))
+--   PY
+--
+--   # 3) aplicar
+--   curl -sS -X POST \
+--     "https://api.supabase.com/v1/projects/tpjbyxbsgtiwqcxcpwyn/database/query" \
+--     -H "Authorization: Bearer $TOKEN" \
+--     -H "Content-Type: application/json" \
+--     --data @/tmp/0049.json
+--
+--   # 4) confirmar que local y remoto coinciden
+--   ~/.local/bin/supabase migration list
+--
+-- SOBRE LA ATOMICIDAD, sin adornos: el begin/commit de ARRIBA hace atómico
+-- lo que importa (las columnas y el respaldo van juntos o no van). La fila
+-- del historial va después del commit, o sea en su propia transacción — si
+-- el POST muriera justo en medio, el esquema quedaría aplicado y el historial
+-- sin la fila. Eso lo delata `migration list` y se arregla re-mandando sólo el
+-- INSERT: lleva `on conflict (version) do nothing`, así que repetirlo es
+-- gratis. Se prefiere esa deriva cosmética y reparable a meter bookkeeping
+-- del CLI dentro de la transacción de DDL.
+--
+-- =========================================================================
+-- VERIFICACIÓN (comentada — correr a mano en el editor SQL / con curl)
+-- =========================================================================
+--
+-- ---------- A. las columnas existen, con la forma correcta ----------
+--   select column_name, data_type, is_nullable, column_default
+--     from information_schema.columns
+--    where table_schema = 'public' and table_name = 'profiles'
+--      and column_name in ('onboarding_seen', 'tutorial_seen');
+--   -- esperado: 2 filas · boolean · is_nullable = NO · default = false
+--
+-- ---------- B. el respaldo aterrizó y los nuevos nacen en false ----------
+--   select count(*)                                        as total,
+--          count(*) filter (where onboarding_seen)         as ya_adentro,
+--          count(*) filter (where not onboarding_seen)     as primera_vez
+--     from public.profiles;
+--   -- justo después de aplicar: total ≈ 316, primera_vez = 0
+--   --   (o sólo quien se haya registrado después del corte)
+--   -- y el que se registre MAÑANA nace false → sí ve la bienvenida:
+--   --   la fila la crea ensure_own_profile() (0017:256) con lista explícita
+--   --   de columnas, así que las dos nuevas toman su default. Verificable:
+--   select onboarding_seen, tutorial_seen from public.profiles
+--    order by created_at desc limit 1;      -- la cuenta más nueva → false, false
+--
+--   ⚠ SI primera_vez SALE ≈ 316 (nadie respaldado): las columnas ya existían
+--   antes de esta corrida, así que el CINTURÓN 1 se saltó el respaldo a
+--   propósito. Sólo puede pasar si alguien las añadió a mano — este archivo
+--   es una sola transacción, y si falla se va también el ALTER, nunca deja
+--   columnas sin respaldo. Es el único caso que pide intervención, y la
+--   intervención es exactamente el UPDATE que el DO no corrió:
+--     update public.profiles
+--        set onboarding_seen = true, tutorial_seen = true
+--      where created_at is null
+--         or created_at < timestamptz '2026-07-21 00:00:00+00';
+--   Correrlo a mano es seguro por el CINTURÓN 2 (la fecha fija) — pero antes
+--   confirmar que nadie pidió replayTour() en el intervalo, porque a ESO el
+--   cinturón 2 no llega.
+--
+-- ---------- C. un miembro SÍ puede poner SU propia bandera ----------
+--   -- vía REST, con el token de ese miembro:
+--   --   PATCH /rest/v1/profiles?id=eq.<self>   {"tutorial_seen": true}
+--   --   → 204 y el valor queda en true
+--   -- en el editor SQL, suplantando sin salir de la transacción:
+--   begin;
+--     select set_config('request.jwt.claims',
+--       json_build_object('sub','<uid-A>','role','authenticated')::text, true);
+--     set local role authenticated;
+--     update public.profiles set tutorial_seen = true where id = '<uid-A>';  -- UPDATE 1  ✔
+--   rollback;
+--
+-- ---------- D. un miembro NO puede poner la de OTRO ----------
+--   begin;
+--     select set_config('request.jwt.claims',
+--       json_build_object('sub','<uid-A>','role','authenticated')::text, true);
+--     set local role authenticated;
+--     update public.profiles set tutorial_seen = true where id = '<uid-B>';  -- UPDATE 0  ✔
+--   rollback;
+--   ⚠ OJO AL LEER ESTA PRUEBA: un UPDATE denegado por RLS **no lanza error**.
+--   El `using` simplemente no empareja la fila, así que afecta CERO filas y
+--   PostgREST devuelve 204 con lista vacía — un tester descuidado ve el 204 y
+--   canta victoria al revés. La prueba es "UPDATE 0" / "el valor de B no se
+--   movió", nunca "salió un error". (Mismo criterio que 0027:623.)
+--
+-- ---------- E. los guards viejos siguen mordiendo (una sola sentencia) ----
+--   begin;
+--     select set_config('request.jwt.claims',
+--       json_build_object('sub','<uid-A>','role','authenticated')::text, true);
+--     set local role authenticated;
+--     update public.profiles
+--        set onboarding_seen = true,      -- columna nueva  → SÍ se escribe
+--            verified        = true,      -- trg_lock_verified  → revertido
+--            protected       = true,      -- trg_lock_lifecycle → revertido
+--            deleted_at      = null       -- trg_lock_lifecycle → revertido
+--      where id = '<uid-A>';
+--     select onboarding_seen, verified, protected, deleted_at
+--       from public.profiles where id = '<uid-A>';
+--     -- esperado: onboarding_seen = true, y verified/protected/deleted_at
+--     -- EXACTAMENTE como estaban. Eso prueba las dos mitades de la sección
+--     -- (1) del header en una sola corrida: la columna nueva pasa, el guard
+--     -- viejo no se despertó ni se debilitó.
+--   rollback;
+--
+-- ---------- F. la puerta de vuelta (QA / "Replay the tour") ----------
+--   -- para volver a ver el recorrido siendo fundador, sin emboscar a nadie:
+--   update public.profiles set tutorial_seen = false where id = '<uid>';
+--   -- ⚠ el pestillo de localStorage es de un solo sentido: hay que borrar
+--   --   también 'c4:tutorial-seen:<uid>' en el navegador, o la fila en false
+--   --   no sirve de nada. replayTour() (firstRun.js:167) hace las dos cosas.
+--
+-- ---------- ROLLBACK (repo forward-only — a mano, si hiciera falta) -------
+--   alter table public.profiles
+--     drop column if exists onboarding_seen,
+--     drop column if exists tutorial_seen;
+--   delete from supabase_migrations.schema_migrations where version = '0049';
+--   -- firstRun.js vuelve solo al modo degradado ("ya visto"): trata 42703 /
+--   -- PGRST204 como respuesta válida, así que quitar las columnas apaga las
+--   -- dos pantallas sin romper ninguna carga.
+-- =========================================================================
