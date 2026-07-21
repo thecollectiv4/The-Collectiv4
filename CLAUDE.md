@@ -4,7 +4,7 @@ The platform behind The Collectiv4 (Houston creative movement, co-founded by Pat
 
 Stack: **Vite + React + Supabase (Postgres/RLS/Auth) + Stripe Checkout + Resend**, deployed on Vercel. Serverless functions live in `api/` (`create-checkout-session.js`, `webhook.js`). App code in `src/` (`pages/`, `components/`, `lib/`, `api/supabase.js`). DB migrations in `supabase/migrations/` (currently through `0007`).
 
-Flow for feature work: **branch → Vercel preview → Pato QA → merge to `main`.** One piece at a time, each with an acceptance criterion. Prod shows only the polished; unfinished layers hide behind feature flags. Prices are stored in **cents**. Recon table/field names before writing SQL — never assume schema.
+Flow for feature work: **branch → Vercel preview → founder QA → merge to `main`.** One piece at a time, each with an acceptance criterion. Prod shows only the polished; unfinished layers hide behind feature flags. Prices are stored in **cents**. Recon table/field names before writing SQL — never assume schema.
 
 ---
 
@@ -36,7 +36,7 @@ Every UI surface is the same universe as the room and the pitch deck. Cosmos is 
 
 - **Recon before touching.** Read the files/tables/policies you're about to change. No assumed field names.
 - **Adversarial self-review before every push.** Try to refute your own change — this caught the RLS hole and the silent profile-insert failure pre-launch. Default to skeptical.
-- **Prod merges are gated on explicit founder approval.** Preview + QA first; `main` merges only when Pato says so. (This docs-only file was explicitly authorized for a direct-to-`main` commit — that authorization does not generalize.)
+- **Prod merges are gated on explicit founder approval.** Preview + QA first; `main` merges only when a founder says so — and **either founder authorizes independently**: Pato or Diego, same weight, no second signature needed. The gate is the *approval*, not whose it is. It is still per-merge: one green light covers that merge and nothing after it, and "a founder approved something similar last week" is not approval. (This docs-only file was explicitly authorized for a direct-to-`main` commit — that authorization does not generalize.)
 - **Pause and surface when the plan diverges from reality.** If recon shows the world isn't what the send-off assumed (e.g. code already hand-merged, data looks seeded/fake), stop and report before building on top of it.
 - **Never touch `verified`, `lock_verified`, or prices** without explicit instruction. The DB trigger blocks self-granted `verified` by design — respect it.
 
