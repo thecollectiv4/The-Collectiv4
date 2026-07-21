@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, Check, X, ArrowLeft } from 'lucide-react'
+import { Loader2, Check, X, ArrowLeft, Star } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { useWide } from '@/lib/useIsDesktop'
 import AuthResolving from '@/components/AuthResolving'
@@ -13,8 +13,8 @@ import {
 import { announceSignalsChange } from '@/lib/signals'
 import { VOCAB } from '@/lib/socialVocab'
 import {
-  BONE, BONE_MID, BONE_LOW, SILVER, FAINT, HAIR, HAIR_HI, CARD,
-  FONT_DISPLAY, FONT_MONO, FONT_SANS, CHROME, safeImg,
+  BONE, BONE_MID, BONE_LOW, SILVER, STAR, FAINT, HAIR, HAIR_HI, CARD,
+  FONT_DISPLAY, FONT_MONO, FONT_SANS, CHROME, safeImg, closeStarStyle,
 } from '@/lib/cosmos'
 
 /* =========================================================================
@@ -304,7 +304,7 @@ function CloseStar({ on, busy, onClick, testid }) {
       title={on ? 'In your close friends' : 'Add to close friends'}
       style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '9px', background: on ? 'rgba(var(--ink-rgb),.08)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--ink-rgb),.24)' : HAIR}`, cursor: busy ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       {busy ? <Loader2 size={13} color={SILVER} style={{ animation: 'spin 1s linear infinite' }} />
-        : <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 1.6l1.7 3.9 4.2.4-3.2 2.8 1 4.1L8 10.6 4.3 12.8l1-4.1L2.1 5.9l4.2-.4z" fill={on ? BONE : 'none'} stroke={on ? BONE : BONE_LOW} strokeWidth="1" strokeLinejoin="round" /></svg>}
+        : <Star size={16} strokeWidth={1.6} fill={STAR} style={closeStarStyle(on)} />}
     </button>
   )
 }

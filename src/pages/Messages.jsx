@@ -16,7 +16,7 @@ import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signa
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
-import { tintChannel } from '@/lib/cosmos'
+import { tintChannel, closeStarStyle } from '@/lib/cosmos'
 
 /* =========================================================================
    MESSAGES — the conversations that continue (D2: the Base44 chat rebuilt
@@ -575,7 +575,10 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
               onToggleClose={() => onToggleClose(f)} onOpen={() => onOpenWorld(f.id)} />
           ))}
           <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '9px', lineHeight: 1.5 }}>
-            tap ☆ for close friends — they see your close-only plans.
+            {/* el hint traía un ☆ de texto: un CUARTO dibujo de la estrella,
+                con otra forma que el control que está señalando. La palabra
+                apunta a la marca sin competir con ella. */}
+            tap the star for close friends — they see your close-only plans.
           </div>
         </>
       )}
@@ -614,8 +617,7 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
         style={{ background: 'transparent', border: 'none', minHeight: '40px', minWidth: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0, padding: '6px' }}>
         {/* fill stays STAR; state rides interpolable props so the star lights
             up like a star, not a checkbox — interruptible on optimistic rollback (A-17) */}
-        <Star size={17} strokeWidth={1.6} fill={STAR}
-          style={{ fillOpacity: isClose ? 1 : 0, color: isClose ? STAR : BONE_LOW, filter: isClose ? 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' : 'drop-shadow(0 0 0 rgba(var(--star-rgb),0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }} />
+        <Star size={17} strokeWidth={1.6} fill={STAR} style={closeStarStyle(isClose)} />
       </button>
     </div>
   )

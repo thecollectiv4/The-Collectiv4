@@ -212,6 +212,26 @@ test('v13 · D — close friends funciona y es PRIVADO (la RLS, no la UI)', asyn
   // y anon tampoco
   const rowsAnon = await rest(request, 'close_friends?select=owner_id,friend_id', null)
   expect(Array.isArray(rowsAnon) ? rowsAnon.length : 0, 'anon no lee close_friends').toBe(0)
+
+  /* UN SOLO SÍMBOLO (v13-polish · decisión de Diego). La tercera cara de
+     close friends es la tarjeta de ConnectSheet, que traía anillo+satélite.
+     Acá se comprueba que la puerta existe, que abre desde el perfil ya
+     conectado, y que el toggle escribe de verdad — la estrella se ve en la
+     captura D2. */
+  await A.page.goto(`/user/${B.uid}`)
+  await A.page.getByTestId('friend-btn').waitFor({ timeout: 20000 })
+  await A.page.getByTestId('friend-btn').click()
+  const card = A.page.getByTestId('connect-close-card')
+  await expect(card, 'el chip CONNECTED abre la hoja con el círculo íntimo').toBeVisible({ timeout: 8000 })
+  await expect(card).toHaveAttribute('aria-pressed', 'false')
+  await shot(A.page, 'D2-connect-close-card-off')
+
+  await card.click()
+  await A.page.waitForTimeout(1800)
+  const closeA2 = await rpc(request, 'my_close_friends', {}, A.token)
+  expect(closeA2?.close?.some((p) => p.id === B.uid),
+    'la estrella de la hoja escribe en la lista de A').toBe(true)
+  await shot(A.page, 'D3-connect-close-card-on')
 })
 
 test('v13 · E — el badge cuenta, marca leído, y baja a cero', async ({ request }) => {
@@ -248,6 +268,35 @@ test('v13 · F — las tabs se leen en móvil y en desktop', async () => {
   await B.page.goto('/connections')
   await B.page.waitForTimeout(1200)
   await shot(B.page, 'F3-connections-desktop')
+})
+
+test('v13 · G — quitar conexión vive en /connections, y se lleva el círculo íntimo', async ({ request }) => {
+  /* Decisión de Diego (v13-polish): quitar es una acción de GESTIÓN y vive
+     acá, no en el perfil — el chip del perfil abre la hoja para interactuar.
+     De paso se comprueba el arreglo de la resurrección: la fila de
+     close_friends tiene que irse con la conexión, o al reconectar meses
+     después la persona reaparecería en el círculo íntimo sin elegirla. */
+  await B.page.goto('/connections')
+  await B.page.getByTestId('conn-seg-connected').click()
+
+  // B tenía a A en su círculo íntimo (test D) — el punto de partida
+  const before = await rpc(request, 'my_close_friends', {}, B.token)
+  expect(before?.close?.some((p) => p.id === A.uid), 'B parte con A en close friends').toBe(true)
+
+  const remove = B.page.getByTestId(`conn-remove-${A.uid}`)
+  await remove.waitFor({ timeout: 15000 })
+  await remove.click()
+  await B.page.waitForTimeout(2200)
+
+  const circleB = await rpc(request, 'my_circle', {}, B.token)
+  expect(circleB?.friends?.some((p) => p.id === A.uid), 'la conexión se fue').toBe(false)
+
+  const rows = await rest(request, `close_friends?select=friend_id&owner_id=eq.${B.uid}&friend_id=eq.${A.uid}`, B.token)
+  expect(Array.isArray(rows) ? rows.length : -1,
+    'la fila de close_friends se va con la conexión — no resucita al reconectar').toBe(0)
+
+  await expect(B.page.getByTestId(`conn-remove-${A.uid}`), 'la fila desaparece de la lista').toHaveCount(0, { timeout: 8000 })
+  await shot(B.page, 'G1-removed')
 })
 
 test('v13 · retirar las cuentas QA', async () => {

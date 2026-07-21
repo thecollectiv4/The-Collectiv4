@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Loader2, Check, ArrowRight } from 'lucide-react'
+import { Loader2, Check, ArrowRight, Star } from 'lucide-react'
 import GlassSheet from './GlassSheet'
 import {
   fetchFriendState, requestFriend, respondFriend, startDM, sendMessage,
@@ -9,7 +9,7 @@ import {
 import { announceSignalsChange } from '@/lib/signals'
 import { VOCAB } from '@/lib/socialVocab'
 import { WELL } from '@/lib/glass'
-import { BONE, BONE_MID, BONE_LOW, SILVER, FAINT, HAIR, HAIR_HI, FONT_MONO, FONT_SANS } from '@/lib/cosmos'
+import { BONE, BONE_MID, BONE_LOW, SILVER, STAR, FAINT, HAIR, HAIR_HI, FONT_MONO, FONT_SANS, closeStarStyle } from '@/lib/cosmos'
 
 /* =========================================================================
    CONNECT — LA INTERFAZ DE CONEXIÓN (v13 · Design Max).
@@ -264,7 +264,7 @@ export default function ConnectSheet({ me, person, wide, onClose, onStateChange 
 function CloseFriendsCard({ on, busy, firstName, onToggle }) {
   return (
     <button type="button" onClick={onToggle} disabled={busy} className="pressable"
-      aria-pressed={on}
+      aria-pressed={on} data-testid="connect-close-card"
       style={{
         width: '100%', display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left',
         padding: '16px 16px', borderRadius: '14px', cursor: busy ? 'default' : 'pointer',
@@ -272,13 +272,13 @@ function CloseFriendsCard({ on, busy, firstName, onToggle }) {
         transition: 'border-color 300ms var(--ease-house), background 300ms var(--ease-house)',
         ...(on ? WELL : { background: 'rgba(var(--ink-rgb),.03)' }),
       }}>
-      {/* la marca del círculo — un anillo con su satélite, lleno cuando estás dentro */}
+      {/* LA ESTRELLA — la misma que en Messages y /connections (decisión de
+          Diego, v13-polish). Acá vivía un anillo con satélite: se leía bien
+          solo, pero obligaba a aprender un segundo símbolo para el mismo
+          concepto. El estilo viene de cosmos.closeStarStyle — una sola
+          definición para los tres lugares. */}
       <span aria-hidden style={{ position: 'relative', flexShrink: 0, width: '34px', height: '34px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="34" height="34" viewBox="0 0 34 34" style={{ display: 'block' }}>
-          <circle cx="17" cy="17" r="11" fill="none" stroke={on ? BONE : BONE_LOW} strokeWidth="1.2" opacity={on ? 0.85 : 0.5} />
-          <circle cx="17" cy="6" r={on ? 3 : 2.4} fill={on ? BONE : BONE_LOW}
-            style={{ transition: 'r 300ms var(--ease-house)' }} />
-        </svg>
+        <Star size={24} strokeWidth={1.5} fill={STAR} style={closeStarStyle(on)} />
       </span>
       <span style={{ minWidth: 0, flex: 1 }}>
         <span style={{ display: 'block', fontFamily: FONT_SANS, fontSize: '15px', color: on ? BONE : BONE_MID, transition: 'color 300ms var(--ease-house)' }}>

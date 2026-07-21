@@ -116,3 +116,26 @@ export function relTime(iso) {
 }
 
 export const safeImg = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
+
+/* =========================================================================
+   LA ESTRELLA DEL CÍRCULO ÍNTIMO (v13-polish · decisión de Diego).
+
+   Close friends se dibujaba de tres maneras distintas: la estrella de lucide
+   en Messages, una estrella SVG a mano en /connections, y un anillo con
+   satélite en ConnectSheet. Un concepto, tres símbolos — el lector tenía que
+   aprender la app tres veces.
+
+   Ahora hay UNA estrella y vive acá, no en cada pantalla: quien la use la
+   importa. Un solo lugar para cambiarla es la única forma de que no vuelva a
+   divergir sola.
+
+   El estado ON no es un color distinto: es la MISMA estrella que se llena y
+   se enciende. Todo lo que se mueve es interpolable (fill-opacity, color,
+   filter), así que una reversión optimista puede interrumpirla a media
+   animación sin saltos — enciende como estrella, no como casilla (A-17). */
+export const closeStarStyle = (on) => ({
+  fillOpacity: on ? 1 : 0,
+  color: on ? STAR : BONE_LOW,
+  filter: on ? 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' : 'drop-shadow(0 0 0 rgba(var(--star-rgb),0))',
+  transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)',
+})
