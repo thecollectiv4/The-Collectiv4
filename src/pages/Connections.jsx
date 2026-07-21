@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2, Check, X, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { useWide } from '@/lib/useIsDesktop'
@@ -55,7 +55,15 @@ export default function Connections() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const wide = useWide()
-  const [seg, setSeg] = useState('connected')
+
+  /* el segmento vive en la URL (?seg=) — igual que en Messages. No es
+     cosmética: la campana de friend_request tiene que poder aterrizar en
+     REQUESTS, que es donde el handshake se cierra. Sin esto la campana
+     cumple a medias (Ley 9) — te deja en la puerta, no en el cuarto. */
+  const [searchParams, setSearchParams] = useSearchParams()
+  const rawSeg = searchParams.get('seg')
+  const seg = SEGS.some((s) => s.key === rawSeg) ? rawSeg : 'connected'
+  const setSeg = (s) => setSearchParams(s === 'connected' ? {} : { seg: s }, { replace: true })
 
   const [circle, setCircle] = useState(null)          // { friends, pending_in, pending_out }
   const [followers, setFollowers] = useState(null)
@@ -73,8 +81,15 @@ export default function Connections() {
 
   useEffect(() => { load() }, [load])
 
+  /* el rebote a casa vive en un efecto, no en el render: navegar durante el
+     render es un efecto secundario y React lo castiga con un warning y, en
+     el peor caso, un update sobre un componente que se está montando. */
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/', { replace: true })
+  }, [authLoading, user, navigate])
+
   if (authLoading) return <AuthResolving />
-  if (!user) { navigate('/'); return null }
+  if (!user) return null
 
   const pendingCount = (circle?.pending_in?.length || 0)
 
@@ -97,9 +112,18 @@ export default function Connections() {
     await respondFriend(p.id, false)
   }, load)
 
+  /* Quitar la conexión BORRA también la fila de close friends. La lectura ya
+     era honesta —is_close y my_close_friends llevan are_friends adentro
+     (0029), así que un ex-connected no ve nada— pero la fila sobrevivía: si
+     las dos personas se volvían a conectar meses después, el otro reaparecía
+     en tu círculo íntimo sin que vos lo eligieras. Un círculo privado no se
+     rearma solo. Se limpia acá, del lado del cliente, porque remove_friend
+     vive en la DB de producción y esto no necesita tocarla. */
   const removeConn = (p) => withBusy(p.id, async () => {
+    const wasClose = closeSet.has(p.id)
     setCircle((c) => ({ ...c, friends: c.friends.filter((x) => x.id !== p.id) }))
     setCloseSet((s) => { const n = new Set(s); n.delete(p.id); return n })
+    if (wasClose) await removeCloseFriend(p.id).catch(() => {})
     await removeFriend(p.id)
   }, load)
 
@@ -144,22 +168,29 @@ export default function Connections() {
         </div>
       </div>
 
-      {/* segmentos */}
-      <div className="no-scrollbar" style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '18px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '2px' }}>
+      {/* SEGMENTOS. Las cuatro palabras no caben en 390px con el tracking
+          ancho de la casa: FOLLOWERS quedaba cortada contra el borde, sin
+          nada que dijera que la tira se desliza — se leía como un bug, no
+          como un carrusel. En angosto los cuatro se reparten el ancho y
+          entran completos; de 1024 para arriba vuelven a su ritmo suelto. */}
+      <div className="no-scrollbar" style={{ display: 'flex', gap: wide ? '6px' : '0px', overflowX: 'auto', marginBottom: '18px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '2px' }}>
         {SEGS.map((s) => {
           const on = seg === s.key
           const badge = s.key === 'requests' && pendingCount > 0 ? pendingCount : null
           return (
             <button key={s.key} onClick={() => setSeg(s.key)} className="pressable"
+              data-testid={`conn-seg-${s.key}`} role="tab" aria-selected={on}
               style={{
-                position: 'relative', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
-                padding: '9px 12px 11px', fontFamily: FONT_MONO, fontSize: '10px', letterSpacing: '.14em', textTransform: 'uppercase',
+                position: 'relative', background: 'none', border: 'none', cursor: 'pointer',
+                ...(wide ? { flexShrink: 0, padding: '9px 12px 11px', letterSpacing: '.14em' }
+                         : { flex: '1 1 0', minWidth: 0, padding: '9px 2px 11px', letterSpacing: '.06em' }),
+                fontFamily: FONT_MONO, fontSize: '10px', textTransform: 'uppercase',
                 color: on ? BONE : BONE_LOW,
                 borderBottom: `2px solid ${on ? 'rgba(var(--ink-rgb),.85)' : 'transparent'}`, marginBottom: '-3px',
                 transition: 'color .2s var(--ease-house)',
               }}>
               {s.label}
-              {badge && <span style={{ marginLeft: '7px', fontFamily: FONT_MONO, fontSize: '8px', color: 'var(--bg)', background: 'rgba(var(--ink-rgb),.9)', borderRadius: '100px', padding: '2px 6px' }}>{badge}</span>}
+              {badge && <span style={{ marginLeft: wide ? '7px' : '4px', fontFamily: FONT_MONO, fontSize: '8px', color: 'var(--bg)', background: 'rgba(var(--ink-rgb),.9)', borderRadius: '100px', padding: '2px 5px' }}>{badge}</span>}
             </button>
           )
         })}
@@ -170,8 +201,10 @@ export default function Connections() {
         <PersonList people={circle?.friends} empty="No connections yet. Connect with someone from their world."
           render={(p) => (
             <>
-              <CloseStar on={closeSet.has(p.id)} busy={busyId === p.id} onClick={() => toggleClose(p)} />
-              <RowBtn label="Remove" busy={busyId === p.id} onClick={() => removeConn(p)} ghost />
+              <CloseStar on={closeSet.has(p.id)} busy={busyId === p.id} onClick={() => toggleClose(p)}
+                testid={`conn-close-${p.id}`} />
+              <RowBtn label="Remove" busy={busyId === p.id} onClick={() => removeConn(p)} ghost
+                testid={`conn-remove-${p.id}`} />
             </>
           )} onOpen={(p) => navigate('/user/' + p.id)} />
       )}
@@ -182,8 +215,10 @@ export default function Connections() {
           <PersonList people={circle?.pending_in} empty="No incoming requests."
             render={(p) => (
               <>
-                <RowBtn label={busyId === p.id ? '' : 'Accept'} busy={busyId === p.id} onClick={() => acceptReq(p)} solid icon={<Check size={13} />} />
-                <RowBtn label="Ignore" onClick={() => ignoreReq(p)} ghost icon={<X size={13} />} />
+                <RowBtn label={busyId === p.id ? '' : 'Accept'} busy={busyId === p.id} onClick={() => acceptReq(p)} solid icon={<Check size={13} />}
+                  testid={`conn-accept-${p.id}`} />
+                <RowBtn label="Ignore" onClick={() => ignoreReq(p)} ghost icon={<X size={13} />}
+                  testid={`conn-ignore-${p.id}`} />
               </>
             )} onOpen={(p) => navigate('/user/' + p.id)} />
 
@@ -233,7 +268,13 @@ function PersonList({ people, empty, render, onOpen }) {
 }
 
 function PersonRow({ p, render, onOpen }) {
-  const name = p.full_name || p.username || 'Unnamed'
+  /* DOS FORMAS, UNA FILA. my_circle (0023) devuelve la identidad con la llave
+     `name`; fetchFollowers/fetchFollowing devuelven la fila cruda de profiles,
+     con `full_name`. Esta página leía sólo `full_name`, así que CONNECTED y
+     REQUESTS —justo los dos segmentos que vienen de my_circle— pintaban a
+     todo el mundo como "Unnamed", mientras FOLLOWING y FOLLOWERS salían bien.
+     Se aceptan las dos llaves; CircleBlock en Messages ya lo hacía así. */
+  const name = p.full_name || p.name || p.username || 'Unnamed'
   const avatar = safeImg(p.avatar_url)
   const craft = p.discipline || (Array.isArray(p.crafts) && p.crafts[0]?.name) || ''
   return (
@@ -255,9 +296,11 @@ function PersonRow({ p, render, onOpen }) {
 }
 
 /* la estrella del círculo íntimo — llena cuando está dentro */
-function CloseStar({ on, busy, onClick }) {
+function CloseStar({ on, busy, onClick, testid }) {
   return (
     <button onClick={onClick} disabled={busy} className="pressable" aria-pressed={on}
+      data-testid={testid}
+      aria-label={on ? 'In your close friends' : 'Add to close friends'}
       title={on ? 'In your close friends' : 'Add to close friends'}
       style={{ flexShrink: 0, width: '32px', height: '32px', borderRadius: '9px', background: on ? 'rgba(var(--ink-rgb),.08)' : 'transparent', border: `1px solid ${on ? 'rgba(var(--ink-rgb),.24)' : HAIR}`, cursor: busy ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       {busy ? <Loader2 size={13} color={SILVER} style={{ animation: 'spin 1s linear infinite' }} />
@@ -266,9 +309,9 @@ function CloseStar({ on, busy, onClick }) {
   )
 }
 
-function RowBtn({ label, busy, onClick, solid, ghost, icon }) {
+function RowBtn({ label, busy, onClick, solid, ghost, icon, testid }) {
   return (
-    <button onClick={onClick} disabled={busy} className="pressable"
+    <button onClick={onClick} disabled={busy} className="pressable" data-testid={testid}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: busy ? 'default' : 'pointer',
         padding: '8px 13px', borderRadius: '100px',

@@ -74,6 +74,7 @@ function IntentRow({ intent, active, onPick }) {
   return (
     <button
       type="button" role="radio" aria-checked={active}
+      data-testid={`connect-intent-${intent.key}`}
       onClick={onPick} className="pressable"
       style={{
         position: 'relative', width: '100%', display: 'flex', alignItems: 'center', gap: '13px',
@@ -195,6 +196,7 @@ export default function ConnectSheet({ me, person, wide, onClose, onStateChange 
 
   return (
     <GlassSheet title={title} kicker={kicker} onClose={onClose} wide={wide} maxWidth="480px">
+      <div data-testid="connect-sheet">
       {done ? (
         <DoneCeremony kind={done} firstName={firstName} />
       ) : connected ? (
@@ -216,7 +218,11 @@ export default function ConnectSheet({ me, person, wide, onClose, onStateChange 
         /* ── SIN CONECTAR: las cuatro intenciones ── */
         <div style={{ paddingTop: '2px' }}>
           {bond === 'out' && <StateNote tone="mid">You already asked to connect — sending again just adds to the conversation.</StateNote>}
-          {bond === 'in' && <StateNote tone="hi">{firstName} asked to connect with you. Choosing an intent accepts it.</StateNote>}
+          {/* el copy tiene que decir la MISMA ley que el código: nada se manda
+              hasta que picás. "Choosing an intent accepts it" prometía que
+              elegir el radio ya aceptaba — justo lo contrario del handshake
+              que este archivo declara arriba. */}
+          {bond === 'in' && <StateNote tone="hi">{firstName} asked to connect with you. Pick what for, then send — that accepts it.</StateNote>}
 
           <div style={{ fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', margin: '2px 0 11px' }}>
             what for
@@ -245,6 +251,7 @@ export default function ConnectSheet({ me, person, wide, onClose, onStateChange 
           </p>
         </div>
       )}
+      </div>
     </GlassSheet>
   )
 }
@@ -310,7 +317,7 @@ function NoteField({ value, onChange, placeholder }) {
 function SendButton({ onClick, busy, disabled, label }) {
   const off = busy || disabled
   return (
-    <button onClick={onClick} disabled={off} className="pressable"
+    <button onClick={onClick} disabled={off} className="pressable" data-testid="connect-send"
       style={{
         width: '100%', marginTop: '16px', padding: '15px', borderRadius: '12px',
         background: off ? 'rgba(var(--ink-rgb),.10)' : BONE, border: 'none',

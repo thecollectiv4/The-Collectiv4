@@ -336,7 +336,8 @@ function Inbox({ me, wide }) {
                 onOpenWorld={(uid) => navigate('/user/' + uid)} />
               <CircleBlock circle={circleData} busyId={reqBusy} onAnswer={answerRequest}
                 closeSet={closeSet} closeBusy={closeBusy} onToggleClose={toggleClose}
-                craftsByFriend={craftsByFriend} onOpenWorld={(uid) => navigate('/user/' + uid)} />
+                craftsByFriend={craftsByFriend} onOpenWorld={(uid) => navigate('/user/' + uid)}
+                onManage={() => navigate('/connections')} />
               {crews.length > 0 && (
                 <div style={{ marginTop: '10px' }}>
                   {crews.map((t, i) => (
@@ -502,7 +503,7 @@ function SegRow({ seg, onSeg }) {
 /* YOUR CIRCLE — requests waiting on you, then the real roster (v9 D1): who
    your connections ARE, each with craft + a tap to their world, and a star to
    curate close friends. The circle is intimate — nothing here is public. */
-function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleClose, craftsByFriend, onOpenWorld }) {
+function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleClose, craftsByFriend, onOpenWorld, onManage }) {
   const { friends, pending_in } = circle
   if (!pending_in.length && !friends.length) return null
   const closeCount = friends.filter((f) => closeSet.has(f.id)).length
@@ -555,8 +556,18 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
       {/* the roster — the real circle, tappable, curatable */}
       {friends.length > 0 && (
         <>
-          <div data-testid="circle-count" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase', marginTop: pending_in.length ? '18px' : 0 }}>
-            ○ your circle · {friends.length}{closeCount > 0 ? ` · ${closeCount} close` : ''}
+          {/* v13-polish: /connections existía y sólo se llegaba por Settings —
+              tres taps, escondido detrás de la palabra menos social de la app.
+              El roster es el lugar obvio: acá es donde ya estás mirando a tu
+              gente. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: pending_in.length ? '18px' : 0 }}>
+            <div data-testid="circle-count" style={{ flex: 1, minWidth: 0, fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>
+              ○ your circle · {friends.length}{closeCount > 0 ? ` · ${closeCount} close` : ''}
+            </div>
+            <button className="pressable" data-testid="circle-manage" onClick={onManage}
+              style={{ flexShrink: 0, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.18em', textTransform: 'uppercase', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+              manage
+            </button>
           </div>
           {friends.map((f) => (
             <FriendRow key={f.id} f={f} craft={(craftsByFriend.get(f.id) || [])[0]}
