@@ -222,7 +222,12 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
         const held = scrub === i
         const lit = active || held
         return (
+          /* data-c4-tour: mismo gancho estable que GlassNav — ver la nota
+             allí. Las dos barras lo llevan porque el recorrido corre en las
+             dos, y una sola de ellas etiquetada sería justo la deriva que
+             el par de barras existe para no repetir. */
           <button key={slot.create ? 'create' : slot.to}
+            data-c4-tour={slot.create ? 'create' : (slot.label || '').toLowerCase()}
             className="pressable glass-tap" type="button"
             onClick={() => (slot.create ? onCreate() : onTab(slot))}
             aria-label={slot.create ? 'Create' : undefined}

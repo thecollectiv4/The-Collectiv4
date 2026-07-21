@@ -317,7 +317,12 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
 
             if (slot.create) {
               return (
-                <button key="create" type="button" className="pressable glass-tap glass-nav-slot" onClick={onCreate} aria-label="Create"
+                /* data-c4-tour: el gancho ESTABLE del recorrido de v14.
+                   Tutorial.jsx lo busca primero y sólo cae al texto del
+                   botón si no lo encuentra — o sea que sin esto el tour
+                   apunta por la etiqueta visible, y renombrar "Create"
+                   lo rompería en silencio. Un atributo, cero lógica. */
+                <button key="create" data-c4-tour="create" type="button" className="pressable glass-tap glass-nav-slot" onClick={onCreate} aria-label="Create"
                   style={{ flex:1, minWidth:0, background:'transparent', border:'none', font:'inherit', cursor:'pointer',
                     display:'flex', flexDirection:'column', alignItems:'center', gap:'5px', padding:'4px 2px',
                     WebkitTapHighlightColor:'transparent', color: BONE,
@@ -340,7 +345,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                  interactive elements, and a div's tap dies on finger drift.
                  onClick stays for mouse and keyboard; on touch the scrub
                  commits first and swallows the click that follows. */
-              <button key={slot.to} type="button" className="pressable glass-tap glass-nav-slot" onClick={() => onTab(slot)}
+              <button key={slot.to} data-c4-tour={(slot.label || '').toLowerCase()} type="button" className="pressable glass-tap glass-nav-slot" onClick={() => onTab(slot)}
                 aria-current={active ? 'page' : undefined}
                 style={{ flex:1, minWidth:0, cursor:'pointer', display:'flex', flexDirection:'column',
                   alignItems:'center', gap:'5px', padding:'4px 2px',

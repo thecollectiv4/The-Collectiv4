@@ -10,6 +10,7 @@ import GlassSheet from '@/components/GlassSheet'
 import SeedPill from '@/components/SeedMark'
 import VerifiedMark from '@/components/VerifiedMark'
 import { BADGE_COLORS, readBadgeColor, writeBadgeColor } from '@/lib/badgeColors'
+import { replayTour } from '@/lib/firstRun'
 import { cardGlass, glassControl } from '@/lib/glass'
 import { BONE, BONE_LOW, BONE_MID, CARD_HI, FAINT, SILVER, HAIR, HAIR_HI, WARN, CHROME, FONT_DISPLAY, FONT_MONO, FONT_SANS, safeImg } from '@/lib/cosmos'
 import { ArrowUpRight, Copy, Check, ChevronRight, Loader2, LogOut, MapPin } from 'lucide-react'
@@ -1086,6 +1087,27 @@ export default function Settings() {
                   ? <span style={{ fontFamily: FONT_MONO, fontSize: '11px', color: BONE_LOW }}>—</span>
                   : <Loader2 size={13} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />}
             </Row>
+            {/* v14 — LA PUERTA DE VUELTA AL RECORRIDO. Real, no <Pending/>:
+                0049 ya está en prod, así que replayTour() escribe de verdad.
+
+                LLEVA RECARGA A PROPÓSITO, y no es pereza. firstRun.js lo deja
+                advertido en el cuerpo de replayTour: limpia la fila y el caché
+                pero NO el `dismissed` de useFirstRun, que es estado de SESIÓN.
+                Cableada sin recargar, esta fila se pulsaría y no pasaría nada
+                visible hasta el siguiente arranque — exactamente el control que
+                la ley de esta pantalla prohíbe. Así que el gesto se completa
+                entero: se escribe, y se vuelve a la portada ya sin la marca,
+                donde el recorrido arranca solo. `assign` y no `navigate` porque
+                hace falta un montaje limpio del hook, no una transición de
+                router. Si el UPDATE falla no se recarga: mejor una fila que no
+                responde que una recarga que promete un recorrido que no viene. */}
+            <Row label="Replay the walkthrough" hint="See the seven-step tour again. Takes you back to the start."
+              onClick={async () => {
+                const r = await replayTour(user.id)
+                if (r?.ok) window.location.assign('/')
+              }}>
+              <ChevronRight size={15} color={SILVER} />
+            </Row>
             <Row label="Edit your world" hint="Cover, crafts, moments — the builder." onClick={() => navigate('/profile')}>
               <ChevronRight size={15} color={SILVER} />
             </Row>
@@ -1278,23 +1300,6 @@ export default function Settings() {
         />
       )}
 
-      {/* ── PUNTO DE INSERCIÓN, sin código muerto ───────────────────────────
-          REPLAY THE WALKTHROUGH. `src/lib/firstRun.js` (de otro agente en esta
-          misma rama) ya exporta `replayTour(uid)`, y una fila que vuelva a
-          abrir el onboarding sería REAL, no un <Pending/>. No se cableó desde
-          aquí a propósito: ese módulo depende de las columnas
-          `onboarding_seen` / `tutorial_seen` que agrega la migración 0049, y
-          esta pantalla no debe ser la que se rompa si 0049 no llegó a prod
-          todavía. Cuando 0049 esté aplicada, la fila va en la sección 02,
-          justo antes de "Edit your world":
-
-            <Row label="Replay the walkthrough" hint="See the intro again."
-              onClick={() => replayTour(user.id)}>
-              <ChevronRight size={15} color={SILVER} />
-            </Row>
-
-          con `import { replayTour } from '@/lib/firstRun'`. Detalle en el
-          reporte de entrega. */}
     </div>
   )
 }
