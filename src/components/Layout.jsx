@@ -5,10 +5,13 @@ import { useOSAccess } from '@/lib/osAccess'
 import { signalsUnread, SIGNALS_EVENT } from '@/lib/signals'
 import { supabase } from '@/api/supabase'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
+import { useFirstRun } from '@/lib/firstRun'
 import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 import GlassNav from './GlassNav'
 import GlassNavDesktop from './GlassNavDesktop'
+import Onboarding from './Onboarding'
+import Tutorial from './Tutorial'
 /* v12: Atmosphere/Grain/CosmosProvider moved to App.jsx (one sky, mounted
    above <Routes> so every route gets it — not just Layout's children).
    Verificado antes de soltar el import: App.jsx los monta en la línea 87.
@@ -179,6 +182,18 @@ export default function Layout() {
   // the bottom phone tabs disappear — desktop stops being a stretched phone.
   // The frame itself releases only on routes with a real desktop composition.
   const wide = useWide()
+
+  /* PRIMERA VEZ (v14) — la bienvenida y el recorrido de siete marcas. El hook
+     decide, ordena y persiste (profiles.onboarding_seen / tutorial_seen, 0049);
+     Layout sólo los monta. Nada se abre para un anónimo ni mientras la
+     identidad sigue sin resolver: useFirstRun espera a loading===false, que es
+     la misma disciplina de tres estados que gobierna el resto de este archivo
+     (un `user` nulo mientras carga NO es "no ha entrado"). */
+  const firstRun = useFirstRun()
+
+  // Las superficies de TRABAJO — ver la nota junto al montaje, abajo.
+  const isWorkSurface = location.pathname.startsWith('/os') || location.pathname.startsWith('/door')
+
   const consumerWide = wide && !location.pathname.startsWith('/os')
   const wideFull = consumerWide && wideDesigned(location.pathname)
   useEffect(() => {
@@ -275,6 +290,28 @@ export default function Layout() {
       {createOpen && user && (
         <CreateCentral user={user} isMemberVerified={osState === 'granted'} onClose={()=>setCreateOpen(false)} />
       )}
+
+      {/* PRIMERA VEZ — se ven UNA vez y en este orden. Los dos portalean a
+          document.body (zIndex 10030: por encima de la barra 9999, de AuthModal
+          10000, de CREATE 10005 y de GlassSheet 10020), así que dónde se
+          escriban en este árbol no cambia el apilado.
+
+          LAS FUNCIONES VAN DIRECTAS, sin envolver en flecha: el argumento es
+          load-bearing en las dos. Onboarding llama onDone(started) —true desde
+          "Begin", false desde Skip/Escape— y con eso completeOnboarding decide
+          si el recorrido sigue o si se cierran los dos juntos. Tutorial llama
+          onDone(persist) con el valor vivo de "Don't show this again", y
+          completeTutorial NO escribe nada cuando es false, que es justo lo que
+          la casilla sin marcar promete. `onDone={() => f()}` tiraría ambos.
+
+          FUERA DE LAS SUPERFICIES DE TRABAJO: /os es el instrumento de
+          fundadores y /door es el escáner de la puerta. Un tour de consumidor
+          encima de cualquiera de los dos —sobre todo del escáner, en plena
+          noche de evento— es exactamente el momento equivocado. El respaldo de
+          0049 ya dejó a los fundadores en `true`, así que esto es cinturón
+          redundante a propósito, no la única defensa. */}
+      {!isWorkSurface && firstRun.needsOnboarding && <Onboarding onDone={firstRun.completeOnboarding} />}
+      {!isWorkSurface && firstRun.needsTutorial && <Tutorial onDone={firstRun.completeTutorial} />}
     </div>
   )
 }
