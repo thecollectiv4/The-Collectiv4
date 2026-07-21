@@ -95,8 +95,12 @@ export function signalTo(s) {
     // un follow abre el mundo de quien te siguió — la campana cumple su
     // promesa (Ley 9): te lleva a lo que nombra, no a una bandeja genérica
     case 'follow':         return s?.actor?.id ? '/user/' + s.actor.id : '/community'
-    case 'friend_request': return '/messages?seg=crews'
-    case 'friend_accept':  return s?.actor?.id ? '/user/' + s.actor.id : '/messages?seg=crews'
+    // v13-polish: la petición de conexión se responde en /connections, que es
+    // el cuarto que v13 construyó para eso. Antes caía en el segmento CREWS de
+    // Messages — donde también se puede aceptar, pero es la sala equivocada:
+    // te deja buscando la fila en vez de ponerte enfrente. Ley 9, completa.
+    case 'friend_request': return '/connections?seg=requests'
+    case 'friend_accept':  return s?.actor?.id ? '/user/' + s.actor.id : '/connections'
     case 'plan_invite':
     case 'plan_rsvp':      return '/messages?seg=plans'
     case 'message':        return t.thread_id ? '/messages/' + t.thread_id : '/messages'

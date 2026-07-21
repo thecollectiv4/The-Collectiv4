@@ -16,7 +16,7 @@ import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signa
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
 import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
-import { tintChannel } from '@/lib/cosmos'
+import { tintChannel, closeStarStyle } from '@/lib/cosmos'
 
 /* =========================================================================
    MESSAGES — the conversations that continue (D2: the Base44 chat rebuilt
@@ -336,7 +336,8 @@ function Inbox({ me, wide }) {
                 onOpenWorld={(uid) => navigate('/user/' + uid)} />
               <CircleBlock circle={circleData} busyId={reqBusy} onAnswer={answerRequest}
                 closeSet={closeSet} closeBusy={closeBusy} onToggleClose={toggleClose}
-                craftsByFriend={craftsByFriend} onOpenWorld={(uid) => navigate('/user/' + uid)} />
+                craftsByFriend={craftsByFriend} onOpenWorld={(uid) => navigate('/user/' + uid)}
+                onManage={() => navigate('/connections')} />
               {crews.length > 0 && (
                 <div style={{ marginTop: '10px' }}>
                   {crews.map((t, i) => (
@@ -502,7 +503,7 @@ function SegRow({ seg, onSeg }) {
 /* YOUR CIRCLE — requests waiting on you, then the real roster (v9 D1): who
    your connections ARE, each with craft + a tap to their world, and a star to
    curate close friends. The circle is intimate — nothing here is public. */
-function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleClose, craftsByFriend, onOpenWorld }) {
+function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleClose, craftsByFriend, onOpenWorld, onManage }) {
   const { friends, pending_in } = circle
   if (!pending_in.length && !friends.length) return null
   const closeCount = friends.filter((f) => closeSet.has(f.id)).length
@@ -555,8 +556,18 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
       {/* the roster — the real circle, tappable, curatable */}
       {friends.length > 0 && (
         <>
-          <div data-testid="circle-count" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase', marginTop: pending_in.length ? '18px' : 0 }}>
-            ○ your circle · {friends.length}{closeCount > 0 ? ` · ${closeCount} close` : ''}
+          {/* v13-polish: /connections existía y sólo se llegaba por Settings —
+              tres taps, escondido detrás de la palabra menos social de la app.
+              El roster es el lugar obvio: acá es donde ya estás mirando a tu
+              gente. */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: pending_in.length ? '18px' : 0 }}>
+            <div data-testid="circle-count" style={{ flex: 1, minWidth: 0, fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>
+              ○ your circle · {friends.length}{closeCount > 0 ? ` · ${closeCount} close` : ''}
+            </div>
+            <button className="pressable" data-testid="circle-manage" onClick={onManage}
+              style={{ flexShrink: 0, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.18em', textTransform: 'uppercase', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
+              manage
+            </button>
           </div>
           {friends.map((f) => (
             <FriendRow key={f.id} f={f} craft={(craftsByFriend.get(f.id) || [])[0]}
@@ -564,7 +575,10 @@ function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleCl
               onToggleClose={() => onToggleClose(f)} onOpen={() => onOpenWorld(f.id)} />
           ))}
           <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '9px', lineHeight: 1.5 }}>
-            tap ☆ for close friends — they see your close-only plans.
+            {/* el hint traía un ☆ de texto: un CUARTO dibujo de la estrella,
+                con otra forma que el control que está señalando. La palabra
+                apunta a la marca sin competir con ella. */}
+            tap the star for close friends — they see your close-only plans.
           </div>
         </>
       )}
@@ -603,8 +617,7 @@ function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
         style={{ background: 'transparent', border: 'none', minHeight: '40px', minWidth: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0, padding: '6px' }}>
         {/* fill stays STAR; state rides interpolable props so the star lights
             up like a star, not a checkbox — interruptible on optimistic rollback (A-17) */}
-        <Star size={17} strokeWidth={1.6} fill={STAR}
-          style={{ fillOpacity: isClose ? 1 : 0, color: isClose ? STAR : BONE_LOW, filter: isClose ? 'drop-shadow(0 0 6px rgba(var(--star-rgb),.5))' : 'drop-shadow(0 0 0 rgba(var(--star-rgb),0))', transition: 'fill-opacity var(--dur-base) var(--ease-house), color var(--dur-base) var(--ease-house), filter var(--dur-base) var(--ease-house)' }} />
+        <Star size={17} strokeWidth={1.6} fill={STAR} style={closeStarStyle(isClose)} />
       </button>
     </div>
   )

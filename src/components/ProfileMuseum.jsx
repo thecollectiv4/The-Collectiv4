@@ -1219,25 +1219,41 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             {/* AMIGO (0023) — the mutual bond's door, in the same chip
                 grammar. No friendship prop = no door (pre-migration or a
                 load error must never render a dead promise — Ley 9). */}
+            {/* v13-polish — UNA SOLA PUERTA. Antes cada estado hacía su cosa
+                acá mismo: pedir a secas, aceptar a secas, y REQUESTED era un
+                chip muerto que no llevaba a ningún lado. Ahora los cuatro
+                estados abren la MISMA hoja de intención que Community, que es
+                la que sabe qué ofrecer en cada uno (las cuatro intenciones, el
+                "Accept & send", el círculo íntimo si ya están conectados).
+                Sin onConnect —una superficie vieja que no la pasa— cae al
+                comportamiento anterior: nada se rompe por omisión. */}
             {friendship && (
               friendship.state === 'friends' ? (
                 <button className="pressable" data-testid="friend-btn"
-                  onClick={() => { if (window.confirm(VOCAB_PHRASE.removeConnection)) friendship.onRemove?.() }}
+                  onClick={() => friendship.onConnect
+                    ? friendship.onConnect()
+                    : (window.confirm(VOCAB_PHRASE.removeConnection) && friendship.onRemove?.())}
                   style={{ ...chipBase, background: 'rgba(var(--silver-rgb),.1)', border: '1px solid rgba(var(--silver-rgb),.4)', color: BONE }}>
                   {VOCAB.connected} <span aria-hidden style={{ fontSize: '8px', color: SILVER }}>●</span>
                 </button>
               ) : friendship.state === 'in' ? (
-                <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onAccept?.()}
+                <button className="pressable" data-testid="friend-btn"
+                  onClick={() => friendship.onConnect ? friendship.onConnect() : friendship.onAccept?.()}
                   style={{ ...chipBase, background: BONE, border: '1px solid transparent', color: VOID }}>
                   {VOCAB.connectIncoming}
                 </button>
               ) : friendship.state === 'out' ? (
-                <button className="pressable" data-testid="friend-btn" aria-disabled
-                  style={{ ...chipBase, background: 'transparent', border: `1px solid ${HAIR_HI}`, color: BONE_LOW, cursor: 'default' }}>
+                /* REQUESTED ya no es una lápida: se puede volver a entrar y
+                   sumar a la conversación mientras el otro decide. */
+                <button className="pressable" data-testid="friend-btn"
+                  onClick={() => friendship.onConnect?.()}
+                  aria-disabled={!friendship.onConnect}
+                  style={{ ...chipBase, background: 'transparent', border: `1px solid ${HAIR_HI}`, color: BONE_LOW, cursor: friendship.onConnect ? 'pointer' : 'default' }}>
                   {VOCAB.connectPending}
                 </button>
               ) : (
-                <button className="pressable" data-testid="friend-btn" onClick={() => friendship.onRequest?.()}
+                <button className="pressable" data-testid="friend-btn"
+                  onClick={() => friendship.onConnect ? friendship.onConnect() : friendship.onRequest?.()}
                   style={{ ...chipBase, background: ELEV_1, border: `1px solid ${HAIR_HI}`, color: BONE }}
                   onMouseOver={e => { e.currentTarget.style.background = ELEV_2; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.35)' }}
                   onMouseOut={e => { e.currentTarget.style.background = ELEV_1; e.currentTarget.style.borderColor = HAIR_HI }}>

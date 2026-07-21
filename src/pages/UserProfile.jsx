@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/AuthContext'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { ArrowLeft } from 'lucide-react'
 import ProfileMuseum from '@/components/ProfileMuseum'
+import ConnectSheet from '@/components/ConnectSheet'
+import { useWide } from '@/lib/useIsDesktop'
 import { fetchWorldPosts } from '@/lib/worldPosts'
 import { fetchListings } from '@/lib/listings'
 import { socialReady, fetchFollowState, follow, unfollow, startDM, fetchFriendState, requestFriend, respondFriend, removeFriend } from '@/lib/social'
@@ -18,6 +20,15 @@ export default function UserProfile() {
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
   const live = useLiveEvent()
+  const wide = useWide()
+  /* v13-polish — EL MENÚ DE CONEXIÓN LLEGA AL MUSEO.
+     El Design Max de Connect (las cuatro intenciones + el primer mensaje)
+     vivía SÓLO en Community. Desde un perfil —que es donde de verdad se
+     conecta: es a donde llevan la campana, la búsqueda y cada tarjeta— el
+     botón seguía mandando el requestFriend pelón de v12: sin intención, sin
+     hilo, sin handshake visible. La misma palabra hacía dos cosas distintas
+     según de dónde la picaras. Ahora es una sola. */
+  const [connectOpen, setConnectOpen] = useState(false)
   const [profile, setProfile] = useState(null)
   const [crafts, setCrafts] = useState([])
   const [posts, setPosts] = useState([])
@@ -102,32 +113,51 @@ export default function UserProfile() {
          Ese es exactamente el fantasma.
 
      Ahora hay un TURNO (`followTurn`). Cada toque toma uno; sólo el ÚLTIMO
-     puede tocar el estado cuando su escritura vuelve. Y el optimista se
-     calcula con la forma funcional de setState, que siempre lee el valor
-     vigente en vez del que se congeló en la clausura — así el segundo toque
-     parte de lo que el primero ya dejó. Rápido o lento, lo que se ve es lo
-     que hay.
+     puede tocar el estado cuando su escritura vuelve.
 
-     La intención se guarda en un ref (no en el estado) para saber, al
-     volver, qué se pidió realmente: la DB es la que manda, no la pantalla. */
+     v13-polish — EL BOTÓN HACÍA LO CONTRARIO DE LO QUE DECÍA.
+     El arreglo de v12 movió el cálculo de la intención ADENTRO del updater
+     de setSocial:
+
+         let intent = null
+         setSocial((s) => { intent = !s.iFollow; ... })
+         if (intent) await follow(...) else await unfollow(...)
+
+     React no corre ese updater durante la llamada: lo agenda y lo ejecuta en
+     la fase de render, DESPUÉS de que el handler terminó. Así que la línea
+     siguiente leía `intent` todavía en `null` → caía siempre en el `else` y
+     mandaba UNFOLLOW. Capturado en vivo con la sonda de red: el botón decía
+     FOLLOW, salió un `DELETE /rest/v1/follows`, y la pantalla se quedó
+     diciendo FOLLOWING. Seguir a alguien desde su mundo no funcionaba, y la
+     campana de follow (0048) no podía sonar porque el INSERT nunca ocurría.
+     (De paso: asignar una variable de afuera adentro de un updater lo vuelve
+     impuro, que es justo lo que StrictMode existe para castigar.)
+
+     La intención ahora se decide SÍNCRONA, sobre un ref que espeja el último
+     deseo del dedo — que es lo que el comentario de v12 ya prometía y el
+     código no cumplía. El updater vuelve a ser puro (sólo lee `s`), así que
+     una doble invocación de StrictMode no puede desbalancear el conteo. */
   const followTurn = useRef(0)
+  const followWish = useRef(false)
+  // el servidor manda: cuando contesta la verdad, el deseo se realinea
+  useEffect(() => { followWish.current = social.iFollow }, [social.iFollow])
+
   const onFollowToggle = useCallback(async () => {
     if (!user) { navigate(`/auth?next=/user/${id}`); return }
     const turn = ++followTurn.current
-    let intent = null
+    const intent = !followWish.current          // lo que este toque PIDE, ya
+    followWish.current = intent
     setSocialErr('')
-    setSocial((s) => {
-      intent = !s.iFollow                       // lo que este toque PIDE
-      return intent
-        ? { ...s, iFollow: true, followers: s.followers + 1 }
-        : { ...s, iFollow: false, followers: Math.max(0, s.followers - 1) }
-    })
+    setSocial((s) => (intent
+      ? { ...s, iFollow: true, followers: s.followers + (s.iFollow ? 0 : 1) }
+      : { ...s, iFollow: false, followers: Math.max(0, s.followers - (s.iFollow ? 1 : 0)) }))
     try {
       if (intent) await follow(user.id, id)
       else await unfollow(user.id, id)
     } catch (e) {
       // un toque viejo que llega tarde no puede pisar al que manda ahora
       if (turn !== followTurn.current) return
+      followWish.current = !intent
       setSocial((s) => (intent
         ? { ...s, iFollow: false, followers: Math.max(0, s.followers - 1) }
         : { ...s, iFollow: true, followers: s.followers + 1 }))
@@ -162,6 +192,14 @@ export default function UserProfile() {
       setSocialErr(e?.message || "that didn't land — try again")
     }
   }, [id, friendState])
+
+  /* la hoja escribió: se re-lee el vínculo del servidor en vez de adivinarlo.
+     Es la única fuente que no puede mentir. */
+  const refreshBond = useCallback(async () => {
+    if (!user?.id) return
+    const s = await fetchFriendState(user.id, id)
+    setFriendState(s)
+  }, [user?.id, id])
 
   const onFriendRemove = useCallback(async () => {
     const was = friendState
@@ -225,11 +263,25 @@ export default function UserProfile() {
         onDMSeller={selfView ? null : onDMSeller}
         publicTastes={publicTastes}
         upcomingSets={upcomingSets}
-        friendship={(!selfView && user && friendState) ? { state: friendState, onRequest: onFriendRequest, onAccept: onFriendAccept, onRemove: onFriendRemove } : null}
+        friendship={(!selfView && user && friendState) ? {
+          state: friendState,
+          onRequest: onFriendRequest, onAccept: onFriendAccept, onRemove: onFriendRemove,
+          onConnect: () => setConnectOpen(true),
+        } : null}
       />
       {/* WORLDS IN ORBIT — the matching column's first public face (D2):
           real worlds sharing this person's craft, or nothing at all */}
       <RelatedWorlds profileId={id} crafts={crafts} />
+
+      {/* LA INTERFAZ DE CONEXIÓN (v13) — la misma hoja que Community, sobre
+          el mundo que estás mirando. Manda el vínculo Y abre el hilo con la
+          intención adentro, así que Messages queda sincronizado por
+          construcción (ver la nota larga en ConnectSheet.jsx). */}
+      {connectOpen && user && profile && (
+        <ConnectSheet me={user} person={profile} wide={wide}
+          onClose={() => setConnectOpen(false)}
+          onStateChange={refreshBond} />
+      )}
     </>
   )
 }
