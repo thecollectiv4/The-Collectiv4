@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import Mark from '@/components/Mark'
 import { useWide } from '@/lib/useIsDesktop'
-import { useFocusTrap, prefersReducedMotion } from '@/components/Onboarding'
+import { useFocusTrap } from '@/lib/focusTrap'
+import { prefersReducedMotion } from '@/components/Onboarding'
 import {
   BONE, BONE_MID, BONE_LOW, FAINT, HAIR, HAIR_HI,
   FONT_DISPLAY, FONT_MONO, FONT_SANS, EASE_HOUSE,
