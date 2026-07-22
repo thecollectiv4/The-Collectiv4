@@ -2,7 +2,7 @@
 
 The platform behind The Collectiv4 (Houston creative movement, co-founded by Pato Durán Chacón + Diego Villaseñor). This is the **one codebase** — EXTEND it, never rebuild, never spin up a second deployment.
 
-Stack: **Vite + React + Supabase (Postgres/RLS/Auth) + Stripe Checkout + Resend**, deployed on Vercel. Serverless functions live in `api/` (`create-checkout-session.js`, `webhook.js`). App code in `src/` (`pages/`, `components/`, `lib/`, `api/supabase.js`). DB migrations in `supabase/migrations/` (currently through `0007`).
+Stack: **Vite + React + Supabase (Postgres/RLS/Auth) + Stripe Checkout + Resend**, deployed on Vercel. Serverless functions live in `api/` (`create-checkout-session.js`, `webhook.js`). App code in `src/` (`pages/`, `components/`, `lib/`, `api/supabase.js`). DB migrations in `supabase/migrations/` (currently through `0051`). **Never assume the next number from this file — list the directory and check the remote ledger before naming a migration.** A numbering collision already cost us `0046_la_puerta`, which exists on disk but never reached the remote; the invite gate it carried is therefore not live.
 
 Flow for feature work: **branch → Vercel preview → founder QA → merge to `main`.** One piece at a time, each with an acceptance criterion. Prod shows only the polished; unfinished layers hide behind feature flags. Prices are stored in **cents**. Recon table/field names before writing SQL — never assume schema.
 
@@ -19,7 +19,7 @@ Every UI surface is the same universe as the room and the pitch deck. Cosmos is 
 - **Forbidden:** neon, purple/periwinkle, warm/floral tones, color gradients, soft SaaS shadows, heavily rounded corners (max 8–10px, prefer 0–4px), per-profile accent colors.
 - Live reference implementations already in this system: the profile museum, `/discover`, `/claim`.
 
-**Full spec lives in the vault** (Pato's Obsidian vault, `~/Documents/TheCollectiv4/`):
+**Full spec lives in the vault** (Pato's Obsidian vault, `/Users/pato/TheCollectiv4/`):
 `04 — Brand & Identity/Artifact Design System.md` + `04 — Brand & Identity/Brand Foundation.md` (Cosmos System section). Read those before any significant visual work.
 
 ---
@@ -27,7 +27,8 @@ Every UI surface is the same universe as the room and the pitch deck. Cosmos is 
 ## 2. Infrastructure — run it yourself
 
 - **Supabase CLI is linked** to this repo (`supabase/config.toml`, project ref `tpjbyxbsgtiwqcxcpwyn`). Run migrations yourself (`supabase db push`, or `psql` for reads) — **never hand raw SQL to the founder to paste into the dashboard.** Manual SQL is dead here.
-- **Vercel CLI** — not linked yet as of this writing. The moment it is, the same rule applies: drive deploys/env yourself, don't hand the founder manual dashboard steps.
+- **Vercel CLI is linked** (as of 21 jul 2026). Same rule as Supabase: drive deploys, env vars and preview inspection yourself — don't hand the founder manual dashboard steps.
+- **Supabase Edge Functions** are the home for any new serverless endpoint. `api/` is frozen by tree hash (§7), and in this Vite layout Vercel only serves functions from `api/` — so a new Vercel function is not deployable without breaking the freeze. Edge Functions deploy without Docker (`--use-api`).
 - **Automate on the second occurrence.** A manual step done twice gets scripted or CLI-driven the second time — don't let recurring friction on the critical path persist.
 
 ---
@@ -46,14 +47,14 @@ Every UI surface is the same universe as the room and the pitch deck. Cosmos is 
 
 Public paths never show fake data. Seed/demo data is fine for building, but honesty is **enforced in code**, not remembered: demo profiles carry an `is_demo` flag and every public view filters `is_demo = false` server-side. An owner/preview mode (env- or owner-gated, never a public URL param) reveals them for the team. At launch: zero bots, enforced by code. Any new public surface inherits this pattern.
 
-Retention-gated: no monetization layers (storefront, Connect, bookings) until Houston-first retention is proven. Discipline before scale.
+**Sequenced, not gated** (21 jul 2026 — supersedes the earlier "no monetization until retention is proven" rule). The platform opens outward in layers. Booking payments are live: they are infrastructure for creatives to charge *their own* clients — money that originates outside the platform, not monetization of the community. What stays gated is anything that charges C4's own users, or that fakes liquidity: no storefront and no Connect payouts built against seeded data. Integrity by code (above) is the real gate, not a retention milestone.
 
 ---
 
 ## 5. Current state — read the vault, don't assume
 
 Live platform state (what's shipped, in-flight, and next) lives in Pato's vault:
-`~/Documents/TheCollectiv4/02 — Startup & Product/Platform — Build Roadmap (El Mapa de Código).md`
+`/Users/pato/TheCollectiv4/02 — Startup & Product/Platform — Build Roadmap (El Mapa de Código).md`
 
 Send-offs carry the context a task needs — but they can lag reality. When a send-off's assumptions don't match what you find, **recon wins, and you surface the gap.**
 
@@ -71,3 +72,25 @@ Both founders drive this repo from the same company account. Claude Code greets 
 6. **The repo is the truth about the repo — never a briefing's memory of it.** Verify file/line claims against the code before acting on them.
 
 _17 jul 2026 — two branches over the same files in parallel, invisible to each other; one lived a full day with no backup._
+
+---
+
+## 7. Anti-regression — the five rules
+
+Almost nothing here has broken because a problem was hard. It broke because a change was bigger than its task, or because "done" was never actually checked. These five apply to every task in this repo, no exceptions.
+
+1. **No silent assumptions.** Never assume a field name, a prop, a route, a policy, or "how it probably works" — open the file and confirm it. When a briefing, a send-off, or your own recollection disagrees with the code, **the code wins** (§5, §6.6). When the task itself is ambiguous, **stop and ask** — one question is cheaper than a wrong guess shipped. Say what you verified and where (`src/pages/Profile.jsx:120`), not "verified."
+
+2. **Minimum change that solves it.** A 50-line fix does not become a 500-line refactor. No rewriting what already works, no cleanup of code you happened to pass through, no abstraction invented for a second case that doesn't exist yet. If the right answer genuinely is a rewrite, **say so and get approval first** — never smuggle one inside a fix.
+
+3. **No orthogonal changes.** Touch only what the task names. If the task is the profile, the nav is off-limits — even if it looks wrong; log it instead and move on. Shared files (`src/lib/cosmos.js`, `src/index.css`, shared components) are the blast radius: editing one to fix one surface silently edits every surface, and that is where regressions actually come from. Before you call anything finished, run `git diff --stat` and defend **every** file on that list against the task. A file you can't justify gets reverted, not explained.
+
+4. **"Done" means verified, not written.** Never report success from re-reading your own diff. Verified = the build is green **and** the change was exercised on a real surface. Floor for any change: `npm run build` plus `node scripts/guardrail4.test.mjs`, then the change actually seen working — dev server (`npm run dev`) or the walkthrough against a preview (`PREVIEW_URL=<url> npx playwright test e2e/walkthrough-v10.spec.js`). Report the commands you ran and what they printed. "Should work" is not a report, and a task verified only in part is reported as **partly verified** — never rounded up.
+
+5. **The hard rules don't bend for convenience.** Restated because these are the ones a helpful agent talks itself past:
+   - **`api/` is the payment machine** (checkout, webhook, ticket email). Unless the task *is* the payment flow, its tree hash is identical before and after: `git rev-parse HEAD:api` → `1bfb81a1f0f59434ea76ed9ee9cba62d3ab0919e` on current `main`. One command covers the whole folder — that is proof, where "I didn't touch those files" is only a claim.
+   - **Guardrail 4 green before any merge** — `node scripts/guardrail4.test.mjs`. `is_demo` travels with the identity (§4), enforced by that test and never by memory.
+   - **Never touch `verified`, `lock_verified`, or prices** without explicit instruction (§3). Prices stay in cents.
+   - **No merge to `main` without founder approval and a green gate** (§3, §6.5).
+
+_20 jul 2026 — written after the recurring shape of our failures: a fix lands, something adjacent breaks, and it surfaces sessions later. Each rule above is one of those failures, made checkable._
