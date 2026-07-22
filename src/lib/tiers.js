@@ -476,21 +476,48 @@ async function realDaysActive() {
     const { data, error } = await supabase.rpc('my_days_active')
     if (error) return null
     const days = data?.days
-    return typeof days === 'number' && Number.isFinite(days) ? days : null
+    if (typeof days !== 'number' || !Number.isFinite(days)) return null
+    /* CERO NO ES UN CONTEO, ES UN LATIDO QUE NO ATERRIZÓ. Quien lee esta
+       escalera está firmado y tiene la app abierta AHORA MISMO, así que un
+       número verdadero es 1 como mínimo. Un 0 sólo puede significar que
+       `retention_activity` todavía no tiene su fila — y hay al menos dos
+       caminos reales hasta ahí:
+         · la fila del perfil nace perezosa en la primera visita a /profile,
+           y log_return (0028) hace no-op mientras no exista. En un alta que
+           no recarga la página (Layout monta ANTES del alta) el latido se
+           dispara contra un perfil que aún no existe: el 0 es determinista,
+           no una carrera con mala suerte.
+         · el lado ESCRITURA falla de forma sostenida (log_return se dispara
+           fire-and-forget desde Layout y se traga sus errores) mientras el
+           lado lectura contesta perfecto.
+       Pintar "0 days" bajo la etiqueta "los días que abriste esto" en
+       cualquiera de los dos casos es exactamente la mentira que la doctrina
+       de este archivo prohíbe — la misma que motivó que null jamás se pinte
+       como 0. Así que un 0 se degrada a desconocido y cae al rótulo. */
+    return days > 0 ? days : null
   } catch { return null }
 }
 
 /* PENDING_METRICS ya no significa "no existe cómo leerlo": desde 0052 es el
-   fallback honesto para cuando la lectura NO CONTESTA (entorno sin la
-   migración, red caída, 42501). null jamás se pinta como 0 — StatusSheet
-   muestra la fila real sólo con un número de verdad y, si no lo hay, este
-   rótulo. La COPY es member-facing: sin nombres de tablas ni migraciones. */
+   fallback honesto para TODO lo que no sea un número que pueda ser verdad —
+   la lectura que no contesta (entorno sin la migración, red caída, 42501) y
+   también el 0 que sólo puede venir de un latido sin aterrizar (ver
+   realDaysActive). null jamás se pinta como 0.
+
+   LA COPY NO PROMETE NINGUNA ACCIÓN, y eso es deliberado: decía "close and
+   reopen to retry", que es cierto en Settings (StatusSheetLazy monta sin
+   `preloaded`, así que cada apertura relee) y FALSO en /profile, donde la
+   hoja recibe el `statusRecord` que la página leyó una sola vez por montaje
+   — cerrar y reabrir devuelve el mismo registro viejo. Un rótulo que manda
+   hacer un gesto que no sirve es la ley de Settings rota en su propia
+   pantalla explicativa. Se dice el estado y ya. Member-facing: sin nombres
+   de tablas ni migraciones. */
 export const PENDING_METRICS = [
   {
     key: 'daysActive',
     label: 'Days active',
-    why: 'the server counts the days you open this, but the read did not answer just now',
-    needs: 'the read to answer — close and reopen to retry',
+    why: 'the server records the days you open this, but that count has not reached this screen',
+    needs: 'a number this screen can stand behind',
   },
 ]
 

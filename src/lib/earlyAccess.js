@@ -80,11 +80,17 @@ export async function checkInviteCode(code) {
 
 /* The code travels to the hook inside raw_user_meta_data.
 
-   ONLY AuthContext.signUp uses this. The app's OTHER signup path —
-   AuthModal.jsx — hand-builds its own options.data and does NOT call this;
-   it is covered differently, by refusing to sign up at all when the gate is
-   on and sending the visitor to /auth instead (AuthModal.jsx). Do not delete
-   that redirect on the assumption this helper covers the modal. It does not. */
+   EVERY signup goes through AuthContext.signUp, and therefore through this
+   helper — including AuthModal's (v15: the modal stopped hand-building its
+   own options.data and now shares the page's plumbing). That is NOT the
+   same as being gate-covered.
+
+   DO NOT DELETE THE MODAL'S REDIRECT TO /auth on the assumption that this
+   helper now protects it. This helper only carries a code that somebody
+   already typed; the modal never collects one, so what it would carry is
+   nothing. The gate is enforced by the modal refusing to sign up at all
+   while the flag is on and sending the visitor to the one door (/auth),
+   where EarlyAccessGate actually asks for the code. Two different jobs. */
 export function withInviteCode(extra, code) {
   const c = normalizeCode(code)
   return isCodeComplete(c) ? { ...extra, invite_code: c } : { ...extra }

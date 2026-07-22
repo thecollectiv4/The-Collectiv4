@@ -83,7 +83,19 @@ export async function updateWorldPostCaption(post, caption) {
     .eq('id', post.id)
     .select('id,profile_id,caption,images,created_at')
     .single()
-  if (error) throw new Error(error.message || "couldn't save the line")
+  if (error) {
+    /* CERO FILAS = LA PIEZA YA NO ESTÁ AHÍ (borrada en otra pestaña, en el
+       teléfono, o nunca fue tuya y RLS la filtró). `.single()` lo convierte
+       en un throw en vez de un no-op silencioso — eso es lo que queremos —
+       pero el TEXTO de PostgREST ("JSON object requested, multiple (or no)
+       rows returned") es voz de API, no de la casa: un miembro no tiene por
+       qué leer eso (Ley 5/10, misma doctrina que authErrors.js). El delete
+       nunca llega aquí: borrar una fila que ya no está sale bien y calla. */
+    if (error.code === 'PGRST116' || /multiple \(or no\) rows|coerce the result/i.test(error.message || '')) {
+      throw new Error("that moment isn't on your wall anymore — it may have been removed somewhere else")
+    }
+    throw new Error(error.message || "couldn't save the line")
+  }
   return data
 }
 

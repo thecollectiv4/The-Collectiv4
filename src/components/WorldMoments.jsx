@@ -108,7 +108,11 @@ function Moment({ post, isOwner, onDelete, onEdit, wide }) {
         </div>
       )}
 
-      {err && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '8px' }}>⚠ {err}</div>}
+      {/* role="alert": un fallo aquí BLOQUEA lo que la persona pidió (borrar
+          o guardar la línea), así que interrumpe — el mismo registro que la
+          entrada usa para sus errores. Sin esto, quien no ve la pantalla
+          pulsa "save" y no se entera de nada. */}
+      {err && <div role="alert" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '8px' }}>⚠ {err}</div>}
 
       {/* the line — the caption reads like a wall text, not a feed blurb */}
       {!editing && post.caption && (
@@ -119,12 +123,18 @@ function Moment({ post, isOwner, onDelete, onEdit, wide }) {
 
       {/* rewriting the line — the same vocabulary as the composer's caption
           box (CreateCentral), resolved with the label row's mono verbs.
-          maxLength mirrors world_posts_caption_cap (1000). */}
+
+          maxLength 600 = EL MISMO TOPE QUE EL COMPOSER (CreateCentral), no
+          el de la columna (world_posts_caption_cap admite 1000). Dos
+          superficies que escriben el mismo campo con topes distintos dejan
+          líneas de 700 caracteres que el composer no podría volver a
+          escribir nunca: el tope de producto es 600 y vive en los dos
+          lados. Si algún día sube, sube en ambos. */}
       {editing && (
         <div style={{ marginTop: imgs.length ? '10px' : '2px', maxWidth: '640px' }}>
           <textarea
             value={draft} onChange={(e) => setDraft(e.target.value)}
-            maxLength={1000} rows={2} autoFocus aria-label="The line under this moment"
+            maxLength={600} rows={2} autoFocus aria-label="The line under this moment"
             placeholder="the line under this piece"
             style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '10px 12px', color: BONE, fontFamily: 'DM Sans', fontSize: '13.5px', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
           <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '10px', marginTop: '6px' }}>

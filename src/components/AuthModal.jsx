@@ -60,10 +60,23 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
+  /* QUÉ está en vuelo, no sólo SI hay algo en vuelo: '' | 'submit' | 'reset'.
+     Un solo booleano hacía que el primario anunciara "SIGNING IN…" (con
+     aria-busy) mientras lo que corría era el envío del correo de recuperación
+     — decirle a alguien, y sobre todo a un lector de pantalla, que está
+     pasando otra operación. Deshabilitar todo durante cualquiera de las dos
+     sigue siendo correcto; el que se rotula es el que de verdad corre. */
+  const [busy, setBusy] = useState('')
+  const loading = busy !== ''
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [gate, setGate] = useState(undefined)
+  /* El servidor dijo "aquí hace falta invitación" aunque nuestra bandera
+     local diga que no. Pasa cuando el flag se enciende DESPUÉS de montar:
+     el signup sale, el hook before_user_created (0046) lo rechaza, y el
+     visitante se queda con el error dentro de un modal que —sin esto— no
+     ofrecía ninguna puerta hacia la invitación. Ley 9: nunca un callejón. */
+  const [needsDoor, setNeedsDoor] = useState(false)
   const { signIn, signUp, resetPassword } = useAuth()
   const navigate = useNavigate()
   const cardRef = useRef(null)
@@ -92,12 +105,12 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
     if (e) e.preventDefault()
     if (loading) return
     if (signup && (!firstName.trim() || !lastName.trim())) { setError('Enter your first and last name'); return }
-    setLoading(true); setError(''); setNotice('')
+    setBusy('submit'); setError(''); setNotice('')
     try {
       if (signup) {
         // Belt and braces: if the gate turned on between mount and submit,
         // hand the visitor to the real door instead of a rejected signup.
-        if (gate) { setLoading(false); onClose(); navigate('/auth'); return }
+        if (gate) { setBusy(''); onClose(); navigate('/auth'); return }
         const fullName = `${firstName.trim()} ${lastName.trim()}`
         const { error: err } = await signUp(email, password, fullName, { first_name: firstName.trim(), last_name: lastName.trim() })
         if (err) throw err
@@ -110,8 +123,13 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
       // auto-redirect.
       onClose()
       return
-    } catch (err) { setError(humanizeGateError(err) || humanizeAuthError(err)) }
-    setLoading(false)
+    } catch (err) {
+      const gateMsg = humanizeGateError(err)
+      // el hook rechazó por invitación: abre la puerta de salida hacia /auth
+      if (gateMsg) setNeedsDoor(true)
+      setError(gateMsg || humanizeAuthError(err))
+    }
+    setBusy('')
   }
 
   /* D3: forgot password — anti-enumeration (same confirmation either way).
@@ -123,14 +141,14 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
      Add phrasings to it, never remove any. */
   const forgot = async () => {
     if (!email.trim()) { setError('Enter your email to get the reset link'); return }
-    setLoading(true); setError(''); setNotice('')
+    setBusy('reset'); setError(''); setNotice('')
     try {
       const { error: err } = (await resetPassword(email.trim())) || {}
       const raw = (err?.message || err?.error_description || '').toLowerCase()
       const leaksExistence = /user not found|email not found|account not found|no user|not registered|does ?n.t exist/.test(raw)
       if (err && !leaksExistence) { setError(humanizeAuthError(err)); return }
       setNotice('If an account exists for that email, we sent a link to reset your password.')
-    } catch (e) { setError(humanizeAuthError(e)) } finally { setLoading(false) }
+    } catch (e) { setError(humanizeAuthError(e)) } finally { setBusy('') }
   }
 
   const switchMode = (m) => { setMode(m); setError(''); setNotice('') }
@@ -149,7 +167,11 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
         onClick={e => e.stopPropagation()}
         style={{ position: 'relative', width: '100%', maxWidth: '360px', background: 'var(--bg-card)', border: `1px solid ${HAIR_HI}`, borderRadius: '18px', padding: '32px 28px', animation: 'fadeUp .3s ease', outline: 'none' }}>
         {/* Close button */}
-        <button onClick={onClose} aria-label="Close" className="pressable" style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px' }}>
+        {/* type="button" explícito: un <button> sin type es submit por
+            defecto. Hoy es inocuo porque esta X vive FUERA del <form>, pero
+            es una bomba de relojería para el día que alguien envuelva la
+            tarjeta — cerrar mandaría el formulario. */}
+        <button type="button" onClick={onClose} aria-label="Close" className="pressable" style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '4px' }}>
           <X size={18} />
         </button>
 
@@ -234,9 +256,9 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
             {!signup && (
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
-                  type="button" onClick={forgot} disabled={loading}
+                  type="button" onClick={forgot} disabled={loading} aria-busy={busy === 'reset'}
                   style={{ background: 'none', border: 'none', padding: '2px 1px', cursor: loading ? 'default' : 'pointer', fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE_LOW, textDecoration: 'underline', textUnderlineOffset: '3px', opacity: loading ? 0.6 : 1 }}>
-                  Forgot your password?
+                  {busy === 'reset' ? 'Sending the link…' : 'Forgot your password?'}
                 </button>
               </div>
             )}
@@ -258,7 +280,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
             {/* THE PRIMARY — un spinner real, nunca el string '...' (la página
                 lo dice mejor: un loading de tres puntos se lee como "roto"). */}
             <button
-              type="submit" className="pressable" disabled={loading} aria-busy={loading}
+              type="submit" className="pressable" disabled={loading} aria-busy={busy === 'submit'}
               style={{
                 width: '100%', marginTop: '6px', background: BONE, color: 'var(--bg)',
                 border: 'none', borderRadius: '4px', padding: '15px',
@@ -268,7 +290,7 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
                 cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1,
                 transition: `opacity .25s ${EASE_HOUSE}, ${PRESS}`,
               }}>
-              {loading
+              {busy === 'submit'
                 ? <><Loader2 size={13} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />{signup ? 'Creating…' : 'Signing in…'}</>
                 : (signup ? 'Create Account' : 'Sign In')}
             </button>
@@ -276,8 +298,14 @@ export default function AuthModal({ onClose, signinTitle = 'WELCOME BACK', signi
         </form>
 
         {/* v12: the way to the door, for someone who has no account yet.
-            Never a dead end (Ley 9) — it goes to the real gate. */}
-        {gate && (
+            Never a dead end (Ley 9) — it goes to the real gate.
+
+            `needsDoor` cubre la carrera del flag: si se encendió después de
+            montar, nuestra bandera local sigue en false y sin esto el
+            visitante recibía "esta puerta necesita invitación" dentro de un
+            modal sin una sola ruta hacia una invitación — y con la pestaña
+            Create Account todavía viva, fallando igual en cada intento. */}
+        {(gate || needsDoor) && (
           <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: `1px solid ${HAIR}`, textAlign: 'center' }}>
             <button onClick={() => { onClose(); navigate('/auth') }} className="pressable" style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: FONT_SANS, fontSize: '12px', color: BONE_LOW, padding: '4px' }}>
               New here? <span style={{ color: BONE_MID, textDecoration: 'underline', textUnderlineOffset: '3px' }}>Early access is by invitation&nbsp;→</span>
