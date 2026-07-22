@@ -325,7 +325,7 @@ const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-
 // flash an invite over an unknown truth); `upcomingSets` — published rooms
 // this person hosts; `friendship` — { state, onRequest, onAccept, onRemove }
 // from the wrapper (0023), absent = the door doesn't render.
-export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
+export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, onEditPost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const navigate = useNavigate()                       // SETS rows walk into their event rooms
   const reveal = useReveal()                           // scroll-reveal preset (reduced-motion aware)
@@ -773,7 +773,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       <motion.div key="moments" {...reveal} style={{ marginTop: mt }}>
         <Marker mark={MARKS.moments} n={num.moments} label="MOMENTS" kicker="posted, with a date" wide={wide} />
         {posts.length > 0
-          ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} wide={wide} />
+          ? <WorldMoments posts={posts} isOwner={isOwner} onDelete={onDeletePost} onEdit={onEditPost} wide={wide} />
           : <Invite icon={Plus}>Moments live here — images and a line, dated the day you post them. Tap the + in the nav and put one into the world.</Invite>}
       </motion.div>
     ),

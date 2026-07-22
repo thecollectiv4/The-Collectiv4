@@ -455,40 +455,42 @@ async function worldPct(me) {
   } catch { return null }
 }
 
-/* ── METRICS THAT EXIST BUT CANNOT BE READ FROM A BROWSER ─────────────────
-   DAYS ACTIVE is real: `retention_activity` has one row per profile per UTC
-   day (log_return, 0028) and the most active member genuinely has 6. But
-   the table is RLS-on with ZERO policies and no grants — deny-all through
-   PostgREST. There is no client read path, at all.
+/* ── DAYS ACTIVE — leído por fin, rotulado con exactitud ──────────────────
+   v14 dejó aquí el TODO; 0052 (my_days_active) lo cumplió tal cual estaba
+   escrito: definer, stable, clavada a auth.uid() — porque
+   `retention_activity` sigue siendo deny-all a propósito y la función es el
+   ÚNICO camino de lectura. Devuelve jsonb {ok, days, first_day, last_day}.
 
-   So it is not in the ladder, and it does not render a 0. Rendering "0 days
-   active" for someone who has been here six days would be a LIE — the exact
-   opposite failure from fake fullness, and just as dishonest. The screen
-   says what is missing and why, in the Settings grammar: a thing that does
-   not work is labelled, never faked, never quietly dropped either.
+   LO QUE EL NÚMERO ES, y cómo se rotula: días UTC distintos en que la app
+   se ABRIÓ con sesión (log_return dispara una vez por montaje de Layout).
+   No es "días en que hiciste algo" — el sheet lo dice con esas palabras, o
+   este número se vuelve otra clase de mentira. Frontera UTC, no Houston.
 
-   TODO (migration 0049, owned by the migration agent): add
-     my_days_active() → jsonb {ok, days, first_day, last_day}
-     security definer, stable, grant execute to authenticated,
-     `select count(distinct day) from retention_activity where profile_id = auth.uid()`
-   then move 'daysActive' out of PENDING_METRICS, read it in fetchMyCounts,
-   and it becomes eligible as a requirement. Note when you do: the day
-   boundary is UTC, not Houston, and log_return fires once per Layout mount
-   — so it counts DAYS THE APP WAS OPENED, not days something was done.
-   Label it accordingly or it becomes a different kind of lie.
+   NO ES REQUISITO DE NINGÚN RUNG, a propósito: meterlo a la escalera es
+   re-tunear niveles — otra decisión, tomada mirando datos reales como se
+   tomaron los umbrales de arriba, no de contrabando en la migración que
+   sólo añadía la lectura. Tampoco entra en METRIC_ORDER: un fallo de ESTA
+   lectura no puede negarle el rung a nadie (ok/unreadable no lo miran). */
+async function realDaysActive() {
+  try {
+    const { data, error } = await supabase.rpc('my_days_active')
+    if (error) return null
+    const days = data?.days
+    return typeof days === 'number' && Number.isFinite(days) ? days : null
+  } catch { return null }
+}
 
-   The COPY below is member-facing and stays that way: `retention_activity`,
-   `my_days_active()` and a migration number are true and they are written
-   above, in the code, where the person who has to build it will read them.
-   Settings names a missing TABLE in a hint when that is the clearest way to
-   say "this does not exist" — it has never quoted a migration number at a
-   member, and neither does this. */
+/* PENDING_METRICS ya no significa "no existe cómo leerlo": desde 0052 es el
+   fallback honesto para cuando la lectura NO CONTESTA (entorno sin la
+   migración, red caída, 42501). null jamás se pinta como 0 — StatusSheet
+   muestra la fila real sólo con un número de verdad y, si no lo hay, este
+   rótulo. La COPY es member-facing: sin nombres de tablas ni migraciones. */
 export const PENDING_METRICS = [
   {
     key: 'daysActive',
     label: 'Days active',
-    why: 'the days you open this are recorded, but nothing can read them back to you yet',
-    needs: 'a server-side read that does not exist',
+    why: 'the server counts the days you open this, but the read did not answer just now',
+    needs: 'the read to answer — close and reopen to retry',
   },
 ]
 
@@ -529,7 +531,7 @@ export async function fetchMyCounts(profileId) {
     return { ok: false, counts: blank, unreadable: ['session'] }
   }
 
-  const [crafts, world, follows, messages, connections, posts] = await Promise.all([
+  const [crafts, world, follows, messages, connections, posts, daysActive] = await Promise.all([
     headCount(() => supabase.from('profile_crafts').select('craft_id', { head: true, count: 'exact' }).eq('profile_id', profileId)),
     worldPct(profileId),
     realFollows(profileId),
@@ -558,9 +560,13 @@ export async function fetchMyCounts(profileId) {
        it. Dropping the metric to make the screen look fuller is the exact
        dishonesty this file exists to prevent. */
     headCount(() => supabase.from('world_posts').select('id', { head: true, count: 'exact' }).eq('profile_id', profileId)),
+    /* Días que abriste la app — my_days_active (0052), único camino de
+       lectura sobre una tabla deny-all. Fuera de METRIC_ORDER a propósito:
+       null degrada al rótulo de PENDING_METRICS, nunca bloquea el rung. */
+    realDaysActive(),
   ])
 
-  const counts = { crafts, world, follows, messages, connections, posts, daysActive: null }
+  const counts = { crafts, world, follows, messages, connections, posts, daysActive }
   const unreadable = METRIC_ORDER.filter((k) => typeof counts[k] !== 'number')
   return { ok: unreadable.length === 0, counts, unreadable }
 }

@@ -8,7 +8,7 @@ import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
 import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/worldStorage'
-import { fetchWorldPosts, deleteWorldPost } from '@/lib/worldPosts'
+import { fetchWorldPosts, deleteWorldPost, updateWorldPostCaption } from '@/lib/worldPosts'
 import { fetchListings, deleteListing, setListingStatus } from '@/lib/listings'
 import { socialReady, fetchFollowState } from '@/lib/social'
 import { fetchProfileCrafts } from '@/lib/crafts'
@@ -233,6 +233,12 @@ export default function Profile() {
   const onDeletePost = async (post) => {
     await deleteWorldPost(post)
     setPosts((ps) => ps.filter((p) => p.id !== post.id))
+  }
+  // …or rewrites the line under one. State takes the ROW the server returned,
+  // not the draft — same "the DB's truth" posture as delete above.
+  const onEditPost = async (post, caption) => {
+    const row = await updateWorldPostCaption(post, caption)
+    setPosts((ps) => ps.map((p) => (p.id === row.id ? { ...p, caption: row.caption } : p)))
   }
 
   // The OFFER: sold / relist / delete — the owner curates their own wall.
@@ -514,6 +520,7 @@ export default function Profile() {
       ownerExtras={ownerExtras}
       posts={posts}
       onDeletePost={onDeletePost}
+      onEditPost={onEditPost}
       listings={listings}
       onSetListingStatus={onSetListingStatus}
       onDeleteListing={onDeleteListing}

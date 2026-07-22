@@ -61,6 +61,32 @@ export async function createWorldPost(userId, { files = [], caption = '' }) {
   return data
 }
 
+/* Owner edit — the LINE only. A hung piece doesn't get re-cut: images are
+   immutable after publish; what the owner rewrites is the wall text. RLS
+   (world_posts_owner_update, 0016) is the gate; `.single()` turns a
+   zero-row update (not yours / gone) into an honest throw instead of a
+   silent no-op.
+
+   The one edit the DB would reject anyway gets blocked here with human
+   words (Ley 5/10): world_posts_not_empty forbids a post with no images
+   AND no caption, so clearing the line on a text-only moment is not
+   "saving", it is deleting with extra steps — and delete already exists. */
+export async function updateWorldPostCaption(post, caption) {
+  const line = (caption || '').trim()
+  const hasImages = Array.isArray(post.images) && post.images.length > 0
+  if (!line && !hasImages) {
+    throw new Error('a moment with no image needs its line — to take the piece down, use remove')
+  }
+  const { data, error } = await supabase
+    .from('world_posts')
+    .update({ caption: line || null })
+    .eq('id', post.id)
+    .select('id,profile_id,caption,images,created_at')
+    .single()
+  if (error) throw new Error(error.message || "couldn't save the line")
+  return data
+}
+
 /* Owner delete: the row first (source of truth), storage best-effort after. */
 export async function deleteWorldPost(post) {
   const { error } = await supabase.from('world_posts').delete().eq('id', post.id)
