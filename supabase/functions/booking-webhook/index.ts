@@ -45,7 +45,17 @@ Deno.serve(async (req) => {
     return json({ error: 'bad_signature' }, 400)
   }
 
-  if (event.type !== 'checkout.session.completed') {
+  // Three session events matter. payment_method_types is dashboard-driven in
+  // create-booking-session, so an async method (ACH, SEPA, …) could be enabled
+  // there someday: `completed` then arrives with payment_status 'unpaid' and
+  // the truth comes later via async_payment_succeeded / _failed. A booking is
+  // only ever called paid when Stripe says the money is actually captured.
+  const HANDLED = [
+    'checkout.session.completed',
+    'checkout.session.async_payment_succeeded',
+    'checkout.session.async_payment_failed',
+  ]
+  if (!HANDLED.includes(event.type)) {
     return json({ received: true, ignored: event.type })
   }
 
@@ -55,9 +65,27 @@ Deno.serve(async (req) => {
     return json({ received: true, ignored: 'not_a_booking' })
   }
 
+  const db = admin()
+
+  if (event.type === 'checkout.session.async_payment_failed') {
+    // the async collection died — the pending row closes honestly
+    const { error } = await db
+      .from('bookings')
+      .update({ status: 'cancelled' })
+      .eq('id', md.booking_id)
+      .eq('status', 'pending')
+    if (error) return json({ error: 'db_error' }, 500)
+    return json({ received: true, cancelled: true })
+  }
+
+  if (event.type === 'checkout.session.completed' && session.payment_status !== 'paid') {
+    // checkout finished but the money hasn't been captured yet (async
+    // method) — leave the row pending; async_payment_succeeded closes it
+    return json({ received: true, awaiting_async_payment: true })
+  }
+
   const paymentId =
     (typeof session.payment_intent === 'string' ? session.payment_intent : null) || session.id
-  const db = admin()
 
   // idempotent: only a pending row moves to paid; a retry finds nothing
   const { data: updated, error: uerr } = await db
