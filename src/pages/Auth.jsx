@@ -8,8 +8,9 @@ import EarlyAccessGate from '@/components/EarlyAccessGate'
 import { OAUTH_PROVIDERS, signInWithProvider } from '@/lib/oauth'
 import {
   BONE, BONE_MID, BONE_LOW, FAINT, HAIR, HAIR_HI,
-  FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, EASE_HOUSE, EASE_EXIT,
+  FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, EASE_HOUSE,
 } from '@/lib/cosmos'
+import { Field, PRESS } from '@/components/AuthField'
 import { glassControl } from '@/lib/glass'
 import { useWide } from '@/lib/useIsDesktop'
 
@@ -59,64 +60,12 @@ import { useWide } from '@/lib/useIsDesktop'
 const REDUCED = () => typeof window !== 'undefined'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/* `.pressable` is the house tap response, but an inline `transition` outranks
-   any author class rule — so every button here that needs its own colour or
-   opacity fade was silently overwriting the class's transform leg and snapping
-   into the press with no easing at all. An inline transition on a .pressable
-   element has to carry the transform itself. Append this, never replace it.
-
-   The class's deliberate asymmetry (160ms in from the :active rule, 80ms out
-   from the base rule) cannot survive an inline declaration either — inline
-   beats both rules, so one duration serves both directions. 80ms eased is the
-   honest best available; the alternative is deleting the fade the button's
-   own state depends on. Reduced motion still wins: index.css strips the
-   :active transform entirely, so there is nothing left to animate. */
-const PRESS = `transform 80ms ${EASE_EXIT}`
-
-/* ONE field shell for the whole screen — the icon gutter, the focus wake and
-   the right slot (the password eye) live here so four inputs cannot drift
-   into four slightly different rectangles.
-
-   MODULE SCOPE ON PURPOSE. Declared inside Auth() this would be a NEW
-   component type on every render, React would unmount and remount the input
-   on every keystroke, and focus would die one character in. */
-function Field({ icon: Icon, label, right = null, wrapStyle, ...input }) {
-  const [focused, setFocused] = useState(false)
-  /* The one moment of light in a field: it wakes when you are in it. This IS
-     the focus indicator — the input sets outline:none, so if you ever delete
-     this border change, put a real ring back before you do. */
-  const border = focused ? 'rgba(var(--ink-rgb),.42)' : HAIR_HI
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '11px',
-      background: 'rgba(var(--ink-rgb),.022)',
-      border: `1px solid ${border}`, borderRadius: '4px', padding: '0 13px',
-      transition: `border-color .35s ${EASE_HOUSE}, background .35s ${EASE_HOUSE}`,
-      ...wrapStyle,
-    }}>
-      {Icon && (
-        <Icon size={14} strokeWidth={1.6} aria-hidden="true" style={{
-          color: focused ? BONE_MID : BONE_LOW, flexShrink: 0,
-          transition: `color .35s ${EASE_HOUSE}`,
-        }} />
-      )}
-      <input
-        aria-label={label}
-        {...input}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        style={{
-          flex: 1, minWidth: 0, background: 'none', border: 'none', outline: 'none',
-          // 16px is not a taste call: below it, iOS Safari zooms the viewport on
-          // focus and the whole composition jumps. Same rule as la puerta.
-          fontFamily: FONT_SANS, fontSize: '16px', color: BONE, caretColor: BONE,
-          padding: '15px 0', letterSpacing: '.01em',
-        }}
-      />
-      {right}
-    </div>
-  )
-}
+/* PRESS y el cascarón de campo <Field/> vivían aquí en v14; en v15 el modal
+   alcanzó paridad con esta página y ambos se mudaron a
+   src/components/AuthField.jsx — un solo rectángulo para las dos superficies
+   de entrada, mismo criterio anti-deriva que Chip.jsx y focusTrap.js. Las
+   notas originales (por qué PRESS se appendea y nunca se reemplaza, por qué
+   Field es module-scope, por qué 16px) viajaron con el código. */
 
 export default function Auth() {
   /* Default to SIGN IN whenever we were sent here from somewhere (?next=…).

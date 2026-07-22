@@ -56,6 +56,22 @@ import { useAuth } from '@/lib/AuthContext'
    sea una bienvenida perdida. Se prefiere eso a un modal en bucle.
    ========================================================================= */
 
+/* ── v15: EL RECORRIDO ESTÁ APAGADO ──────────────────────────────────────
+   Decisión de founders (22 jul 2026): los coach-marks de v14 ya no gustan.
+   APAGADO, no borrado — <Tutorial/> queda intacto y este único booleano es
+   el interruptor. Para reactivarlo: true + deploy.
+
+   Qué apaga: `needsTutorial` (abajo) nunca es true, así que Layout jamás
+   monta <Tutorial/>; y Settings esconde su fila "Replay the walkthrough"
+   detrás de este mismo flag — una fila que relanza un recorrido apagado es
+   exactamente el control muerto que la ley de Settings prohíbe.
+
+   Qué NO toca: la bienvenida (<Onboarding/>) sigue viva; las columnas de
+   0049 siguen escribiéndose igual. `tutorial_seen` se queda en false para
+   quien nunca lo vio — dato honesto, no basura: si el flag vuelve a true,
+   el recorrido aparece solo para quienes de verdad no lo han visto. */
+export const TUTORIAL_ENABLED = false
+
 /* Prefijos namespaced como THEME_KEY ('c4:theme'). El uid va pegado porque
    localStorage es del NAVEGADOR, no de la cuenta: dos personas en la misma
    laptop compartirían el pestillo, y la segunda nunca vería su bienvenida. */
@@ -272,7 +288,7 @@ export function useFirstRun() {
     ready: state.ready,
     degraded: state.degraded,
     needsOnboarding: state.ready && !state.onboardingSeen && !dismissed.onboarding,
-    needsTutorial: state.ready && state.onboardingSeen && !state.tutorialSeen && !dismissed.tutorial,
+    needsTutorial: TUTORIAL_ENABLED && state.ready && state.onboardingSeen && !state.tutorialSeen && !dismissed.tutorial,
     completeOnboarding,
     completeTutorial,
   }

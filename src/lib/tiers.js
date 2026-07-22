@@ -455,40 +455,69 @@ async function worldPct(me) {
   } catch { return null }
 }
 
-/* ── METRICS THAT EXIST BUT CANNOT BE READ FROM A BROWSER ─────────────────
-   DAYS ACTIVE is real: `retention_activity` has one row per profile per UTC
-   day (log_return, 0028) and the most active member genuinely has 6. But
-   the table is RLS-on with ZERO policies and no grants — deny-all through
-   PostgREST. There is no client read path, at all.
+/* ── DAYS ACTIVE — leído por fin, rotulado con exactitud ──────────────────
+   v14 dejó aquí el TODO; 0052 (my_days_active) lo cumplió tal cual estaba
+   escrito: definer, stable, clavada a auth.uid() — porque
+   `retention_activity` sigue siendo deny-all a propósito y la función es el
+   ÚNICO camino de lectura. Devuelve jsonb {ok, days, first_day, last_day}.
 
-   So it is not in the ladder, and it does not render a 0. Rendering "0 days
-   active" for someone who has been here six days would be a LIE — the exact
-   opposite failure from fake fullness, and just as dishonest. The screen
-   says what is missing and why, in the Settings grammar: a thing that does
-   not work is labelled, never faked, never quietly dropped either.
+   LO QUE EL NÚMERO ES, y cómo se rotula: días UTC distintos en que la app
+   se ABRIÓ con sesión (log_return dispara una vez por montaje de Layout).
+   No es "días en que hiciste algo" — el sheet lo dice con esas palabras, o
+   este número se vuelve otra clase de mentira. Frontera UTC, no Houston.
 
-   TODO (migration 0049, owned by the migration agent): add
-     my_days_active() → jsonb {ok, days, first_day, last_day}
-     security definer, stable, grant execute to authenticated,
-     `select count(distinct day) from retention_activity where profile_id = auth.uid()`
-   then move 'daysActive' out of PENDING_METRICS, read it in fetchMyCounts,
-   and it becomes eligible as a requirement. Note when you do: the day
-   boundary is UTC, not Houston, and log_return fires once per Layout mount
-   — so it counts DAYS THE APP WAS OPENED, not days something was done.
-   Label it accordingly or it becomes a different kind of lie.
+   NO ES REQUISITO DE NINGÚN RUNG, a propósito: meterlo a la escalera es
+   re-tunear niveles — otra decisión, tomada mirando datos reales como se
+   tomaron los umbrales de arriba, no de contrabando en la migración que
+   sólo añadía la lectura. Tampoco entra en METRIC_ORDER: un fallo de ESTA
+   lectura no puede negarle el rung a nadie (ok/unreadable no lo miran). */
+async function realDaysActive() {
+  try {
+    const { data, error } = await supabase.rpc('my_days_active')
+    if (error) return null
+    const days = data?.days
+    if (typeof days !== 'number' || !Number.isFinite(days)) return null
+    /* CERO NO ES UN CONTEO, ES UN LATIDO QUE NO ATERRIZÓ. Quien lee esta
+       escalera está firmado y tiene la app abierta AHORA MISMO, así que un
+       número verdadero es 1 como mínimo. Un 0 sólo puede significar que
+       `retention_activity` todavía no tiene su fila — y hay al menos dos
+       caminos reales hasta ahí:
+         · la fila del perfil nace perezosa en la primera visita a /profile,
+           y log_return (0028) hace no-op mientras no exista. En un alta que
+           no recarga la página (Layout monta ANTES del alta) el latido se
+           dispara contra un perfil que aún no existe: el 0 es determinista,
+           no una carrera con mala suerte.
+         · el lado ESCRITURA falla de forma sostenida (log_return se dispara
+           fire-and-forget desde Layout y se traga sus errores) mientras el
+           lado lectura contesta perfecto.
+       Pintar "0 days" bajo la etiqueta "los días que abriste esto" en
+       cualquiera de los dos casos es exactamente la mentira que la doctrina
+       de este archivo prohíbe — la misma que motivó que null jamás se pinte
+       como 0. Así que un 0 se degrada a desconocido y cae al rótulo. */
+    return days > 0 ? days : null
+  } catch { return null }
+}
 
-   The COPY below is member-facing and stays that way: `retention_activity`,
-   `my_days_active()` and a migration number are true and they are written
-   above, in the code, where the person who has to build it will read them.
-   Settings names a missing TABLE in a hint when that is the clearest way to
-   say "this does not exist" — it has never quoted a migration number at a
-   member, and neither does this. */
+/* PENDING_METRICS ya no significa "no existe cómo leerlo": desde 0052 es el
+   fallback honesto para TODO lo que no sea un número que pueda ser verdad —
+   la lectura que no contesta (entorno sin la migración, red caída, 42501) y
+   también el 0 que sólo puede venir de un latido sin aterrizar (ver
+   realDaysActive). null jamás se pinta como 0.
+
+   LA COPY NO PROMETE NINGUNA ACCIÓN, y eso es deliberado: decía "close and
+   reopen to retry", que es cierto en Settings (StatusSheetLazy monta sin
+   `preloaded`, así que cada apertura relee) y FALSO en /profile, donde la
+   hoja recibe el `statusRecord` que la página leyó una sola vez por montaje
+   — cerrar y reabrir devuelve el mismo registro viejo. Un rótulo que manda
+   hacer un gesto que no sirve es la ley de Settings rota en su propia
+   pantalla explicativa. Se dice el estado y ya. Member-facing: sin nombres
+   de tablas ni migraciones. */
 export const PENDING_METRICS = [
   {
     key: 'daysActive',
     label: 'Days active',
-    why: 'the days you open this are recorded, but nothing can read them back to you yet',
-    needs: 'a server-side read that does not exist',
+    why: 'the server records the days you open this, but that count has not reached this screen',
+    needs: 'a number this screen can stand behind',
   },
 ]
 
@@ -529,7 +558,7 @@ export async function fetchMyCounts(profileId) {
     return { ok: false, counts: blank, unreadable: ['session'] }
   }
 
-  const [crafts, world, follows, messages, connections, posts] = await Promise.all([
+  const [crafts, world, follows, messages, connections, posts, daysActive] = await Promise.all([
     headCount(() => supabase.from('profile_crafts').select('craft_id', { head: true, count: 'exact' }).eq('profile_id', profileId)),
     worldPct(profileId),
     realFollows(profileId),
@@ -558,9 +587,13 @@ export async function fetchMyCounts(profileId) {
        it. Dropping the metric to make the screen look fuller is the exact
        dishonesty this file exists to prevent. */
     headCount(() => supabase.from('world_posts').select('id', { head: true, count: 'exact' }).eq('profile_id', profileId)),
+    /* Días que abriste la app — my_days_active (0052), único camino de
+       lectura sobre una tabla deny-all. Fuera de METRIC_ORDER a propósito:
+       null degrada al rótulo de PENDING_METRICS, nunca bloquea el rung. */
+    realDaysActive(),
   ])
 
-  const counts = { crafts, world, follows, messages, connections, posts, daysActive: null }
+  const counts = { crafts, world, follows, messages, connections, posts, daysActive }
   const unreadable = METRIC_ORDER.filter((k) => typeof counts[k] !== 'number')
   return { ok: unreadable.length === 0, counts, unreadable }
 }

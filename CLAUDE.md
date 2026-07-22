@@ -17,6 +17,7 @@ Every UI surface is the same universe as the room and the pitch deck. Cosmos is 
 - **Type:** Bebas Neue (display) · DM Mono (labels/data/kickers, wide tracking) · DM Sans (body).
 - **Motifs:** subtle film grain over surfaces · star-chart geometric marks (`●  ○  ✕  △  ◇`) as section markers/separators · catalog numbering (01, 02, 03) · generous negative space, high contrast, editorial.
 - **Forbidden:** neon, purple/periwinkle, warm/floral tones, color gradients, soft SaaS shadows, heavily rounded corners (max 8–10px, prefer 0–4px), per-profile accent colors.
+- **Cosmos is the brief.** Any design skill (frontend-design, taste-skill, or future ones) defers to Cosmos. Where they conflict, Cosmos wins.
 - Live reference implementations already in this system: the profile museum, `/discover`, `/claim`.
 
 **Full spec lives in the vault** (Pato's Obsidian vault, `/Users/pato/TheCollectiv4/`):
@@ -30,6 +31,7 @@ Every UI surface is the same universe as the room and the pitch deck. Cosmos is 
 - **Vercel CLI is linked** (as of 21 jul 2026). Same rule as Supabase: drive deploys, env vars and preview inspection yourself — don't hand the founder manual dashboard steps.
 - **Supabase Edge Functions** are the home for any new serverless endpoint. `api/` is frozen by tree hash (§7), and in this Vite layout Vercel only serves functions from `api/` — so a new Vercel function is not deployable without breaking the freeze. Edge Functions deploy without Docker (`--use-api`).
 - **Automate on the second occurrence.** A manual step done twice gets scripted or CLI-driven the second time — don't let recurring friction on the critical path persist.
+- **Neither founder writes code.** Both direct the work in plain language. Never hand a founder a git command, a file path to inspect, or a doc section to read as a task — those are Claude Code's job. Founder-facing steps are only physical dashboard actions.
 
 ---
 

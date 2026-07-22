@@ -289,7 +289,7 @@ export default function StatusSheet({ profileId, onClose, preloaded = null, wide
         ) : !record.ok || !record.status ? (
           <ErrorState identity={record.unreadable?.includes('identity')} onRetry={retry} />
         ) : (
-          <Standing status={record.status} wide={isWide} />
+          <Standing status={record.status} daysActive={record.counts?.daysActive} wide={isWide} />
         )}
       </div>
     </GlassSheet>
@@ -334,7 +334,7 @@ function ErrorState({ identity, onRetry }) {
   )
 }
 
-function Standing({ status, wide }) {
+function Standing({ status, daysActive = null, wide }) {
   const { tier, nextTier, progress, requirements, ladder } = status
   const pct = Math.round(progress * 100)
 
@@ -439,25 +439,49 @@ function Standing({ status, wide }) {
         </p>
       </section>
 
-      {/* ── 05 · WHAT ISN'T COUNTED YET ────────────────────────────────────
-          Se dice, no se finge y no se calla. La ley de Settings: un dato que
-          no funciona se ROTULA — el que no existe no promete nada, el que
-          miente sí. "0 días activo" para alguien que lleva seis sería una
-          mentira igual de grave que inflar el número. */}
-      {PENDING_METRICS.map((m) => (
-        <div key={m.key} data-testid={`status-pending-${m.key}`}
+      {/* ── 05 · THE REST OF THE RECORD ────────────────────────────────────
+          Days active dejó de ser "no leíble": 0052 (my_days_active) abrió el
+          único camino de lectura sobre una tabla que sigue deny-all. Con un
+          número real, la fila lo muestra — rotulado como lo que ES: días en
+          que ABRISTE esto, contados por el servidor en días UTC, no "días en
+          que hiciste algo". No es requisito de ningún rung.
+
+          Y si la lectura no contesta (entorno sin la migración, red), cae al
+          rótulo de siempre: se dice, no se finge y no se calla. La ley de
+          Settings: "0 días activo" para alguien que lleva seis sería una
+          mentira igual de grave que inflar el número — por eso null jamás
+          se pinta como 0. */}
+      {typeof daysActive === 'number' ? (
+        <div data-testid="status-days-active"
           style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px', marginTop: '18px', paddingTop: '14px', borderTop: `1px solid ${HAIR}` }}>
           <span style={{ minWidth: 0 }}>
             <span style={{ display: 'block', fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE_MID, lineHeight: 1.3 }}>
-              {m.label}
+              Days active
             </span>
             <span style={{ display: 'block', fontFamily: FONT_MONO, fontSize: '8.5px', letterSpacing: '.08em', color: BONE_LOW, marginTop: '6px', lineHeight: 1.6 }}>
-              {m.why} · needs {m.needs}
+              the days you opened this, counted by the server · UTC days · not part of any rung
             </span>
           </span>
-          <Pending>Not readable</Pending>
+          <span style={{ fontFamily: FONT_MONO, fontSize: '10.5px', letterSpacing: '.06em', color: SILVER, whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {daysActive} day{daysActive === 1 ? '' : 's'}
+          </span>
         </div>
-      ))}
+      ) : (
+        PENDING_METRICS.map((m) => (
+          <div key={m.key} data-testid={`status-pending-${m.key}`}
+            style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '14px', marginTop: '18px', paddingTop: '14px', borderTop: `1px solid ${HAIR}` }}>
+            <span style={{ minWidth: 0 }}>
+              <span style={{ display: 'block', fontFamily: FONT_SANS, fontSize: '12.5px', color: BONE_MID, lineHeight: 1.3 }}>
+                {m.label}
+              </span>
+              <span style={{ display: 'block', fontFamily: FONT_MONO, fontSize: '8.5px', letterSpacing: '.08em', color: BONE_LOW, marginTop: '6px', lineHeight: 1.6 }}>
+                {m.why} · needs {m.needs}
+              </span>
+            </span>
+            <Pending>Not readable</Pending>
+          </div>
+        ))
+      )}
     </>
   )
 }
