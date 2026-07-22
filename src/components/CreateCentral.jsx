@@ -451,6 +451,7 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
   const [title, setTitle] = useState('')
   const [price, setPrice] = useState('')
   const [desc, setDesc] = useState('')
+  const [deliv, setDeliv] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const fileRef = useRef(null)
@@ -478,7 +479,7 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
   const service = kind === 'service'
   const heading = service ? 'OFFER A SERVICE' : 'SELL A PIECE'
   const sub = service
-    ? 'Your craft with a rate — shoots, sets, design, whatever you do. Booking happens by DM for now; native booking is a coming layer.'
+    ? 'Your craft with a rate — shoots, sets, design, whatever you do. It goes up with a payment link: clients pay by card or Apple Pay, no account needed.'
     : 'A piece with a price — clothing, prints, archive. Buying happens by DM for now; native checkout is a coming layer.'
 
   const publish = async () => {
@@ -490,6 +491,7 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
         title,
         description: desc,
         priceCents: Math.round(priceNum * 100),
+        delivery: service ? deliv : '',
         files: files.map((f) => f.file),
       })
       window.dispatchEvent(new Event('c4:listed'))
@@ -546,10 +548,19 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
         <div>
           <label htmlFor="listing-desc" style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>THE DETAILS <span style={{ opacity: .6 }}>· optional</span></label>
           <textarea id="listing-desc" value={desc} maxLength={1000} rows={2} disabled={busy}
-            placeholder={service ? 'What it includes, turnaround, where you work.' : 'Size, condition, the story behind it.'}
+            placeholder={service ? 'What it includes, where you work.' : 'Size, condition, the story behind it.'}
             onChange={(e) => setDesc(e.target.value)}
             style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
         </div>
+        {service && (
+          <div>
+            <label htmlFor="listing-deliv" style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', color: BONE_LOW, textTransform: 'uppercase', display: 'block', marginBottom: '7px' }}>DELIVERS <span style={{ opacity: .6 }}>· optional</span></label>
+            <input id="listing-deliv" value={deliv} maxLength={140} disabled={busy}
+              placeholder="60 edited photos · 5 days"
+              onChange={(e) => setDeliv(e.target.value)}
+              style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '12px 14px', color: BONE, fontFamily: 'DM Sans', fontSize: '14px', outline: 'none' }} />
+          </div>
+        )}
       </div>
 
       {err && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '10px' }}>⚠ {err}</div>}
@@ -561,7 +572,7 @@ function ListingComposer({ wide, user, kind, onBack, onClose, onBusy, onListed }
           : `PUT IT ON THE WALL${priceOk ? ` · ${priceLabel(Math.round(priceNum * 100))}` : ''}`}
       </button>
       <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', textAlign: 'center', marginTop: '10px', textTransform: 'uppercase' }}>
-        {KINDS[kind].cta} · native checkout comes next
+        {service ? 'goes up with a shareable payment link' : `${KINDS[kind].cta} · native checkout comes next`}
       </div>
     </div>
   )

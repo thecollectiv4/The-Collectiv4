@@ -445,7 +445,7 @@ async function worldPct(me) {
   try {
     const { data, error } = await supabase
       .from('profiles')
-      .select('discipline,tagline,gallery,world_links,marquee_text,world_theme,avatar_url')
+      .select('discipline,tagline,gallery,world_links,marquee_text,world_theme,avatar_url,is_demo')
       .eq('id', me)
       .maybeSingle()
     if (error) return null

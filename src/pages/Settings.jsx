@@ -306,7 +306,7 @@ function CopyBlock({ text, idle = 'Copy', done = 'Copied' }) {
    · NO LLEVA aria-label, y quitarlo fue el arreglo, no el descuido. Un
      aria-label en el <button> SUSTITUYE al nombre calculado de su contenido:
      el lector de pantalla decía "Open your profile, button" y se comía el
-     nombre, el @handle, el sello y la pastilla ◇ seed — o sea, se comía lo
+     nombre, el @handle, el sello y la pastilla seed (◇) — o sea, se comía lo
      único que esta tarjeta existe para decir, que es DE QUÉ CUENTA estamos
      hablando. El contenido ya nombra el control y "View your world" ya
      nombra la acción. El sello sí necesitaba etiqueta propia: su SVG es

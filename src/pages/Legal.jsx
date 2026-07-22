@@ -25,6 +25,7 @@ const NAV = [
   { to: '/terms', label: 'Terms' },
   { to: '/privacy', label: 'Privacy' },
   { to: '/refunds', label: 'Refunds' },
+  { to: '/booking-terms', label: 'Booking Terms' },
 ]
 
 function LegalShell({ title, kicker, children }) {
@@ -175,6 +176,47 @@ export function Refunds() {
 
       <Section h="Why it works this way">
         <P>We're an independent team, and we commit real money to a room — venue, sound, artists, production — before a single door opens. A no-refund-except-cancellation policy is the standard for live events, and it's what lets us keep making them. We'd rather be honest about it up front than surprise you at the worst moment.</P>
+      </Section>
+    </LegalShell>
+  )
+}
+
+/* ============================ BOOKING TERMS ============================
+   Transaction terms for the booking payment layer (services booked and
+   paid through a creative's shared link). DRAFT — functional and honest,
+   but it moves money between three parties: REQUIRES LEGAL REVIEW before
+   live mode. Flagged in the payment-layer handback. */
+export function BookingTerms() {
+  return (
+    <LegalShell kicker="◇ The Collectiv4 · Legal" title="BOOKING TERMS">
+      <P>These terms cover <Em>bookings</Em>: paying a creative for a service through a payment link on The Collectiv4. By checking the box at checkout you agree to them. They sit on top of our general <a href="/terms" style={{ color: BONE, textDecoration: 'underline' }}>Terms</a>.</P>
+
+      <Section h="Who you're actually hiring">
+        <P>The work agreement is <Em>between you and the creative</Em>. The Collectiv4 is the venue: we host the page, process the payment through Stripe, pass your request to the creative, and keep the record of the booking. We are not a party to the work itself.</P>
+      </Section>
+
+      <Section h="What we charge">
+        <P>The price you see is the price you pay. The Collectiv4 keeps a <Em>service fee</Em> out of that amount for the connection, the platform, and payment processing; the rest goes to the creative. The fee never changes what you were quoted.</P>
+      </Section>
+
+      <Section h="What we guarantee">
+        <P>That your payment is processed securely by Stripe, that the creative receives your full request, that both of you get a written record, and that the booking exists in our system before we ever call it confirmed.</P>
+      </Section>
+
+      <Section h="What we don't guarantee">
+        <P>The creative's work — its quality, its timeline, or that it's the right fit for what you asked. Creatives on The Collectiv4 are independent, not our employees or agents. Judge the work by their world before you book.</P>
+      </Section>
+
+      <Section h="If something goes wrong">
+        <P>Talk to the creative first — most issues are a conversation. If that fails, email <a href={`mailto:${CONTACT}`} style={{ color: BONE, textDecoration: 'underline' }}>{CONTACT}</a> with the booking details and we'll mediate in good faith. If a creative takes payment and never responds or never starts, we'll refund you.</P>
+      </Section>
+
+      <Section h="Refunds">
+        <P>Before the work starts: contact us and we'll work it out. Creative never responds or never delivers anything: <Em>full refund</Em>. After work is delivered: payment stands, and any revision or adjustment is between you and the creative. Refunds go back to the original payment method through Stripe.</P>
+      </Section>
+
+      <Section h="Your information">
+        <P>Your name, email, and request go to the creative you booked — that's the point. Nothing is sold or shared beyond that. The rest works as described in our <a href="/privacy" style={{ color: BONE, textDecoration: 'underline' }}>Privacy Policy</a>.</P>
       </Section>
     </LegalShell>
   )

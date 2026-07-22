@@ -3,9 +3,10 @@ import { uploadWorldImage, removeWorldImages } from '@/lib/worldStorage'
 
 /* =========================================================================
    listings — the OFFER (migration 0017): pieces and services with a real
-   price, hanging in a member's world. This layer is "exist and show
-   honestly": there is NO payment path yet, so every buy affordance is
-   "DM to buy" — a door that opens a real conversation (Ley 11).
+   price, hanging in a member's world. SERVICES now have a real payment
+   path (migration 0051 + src/lib/bookings.js): their CTA opens /book/:id.
+   PIECES keep "DM to buy" — a door that opens a real conversation (Ley 11)
+   until pieces earn their own checkout.
 
    Images ride the 'worlds' bucket under the owner's own uid folder
    ('l-' prefix) — the same server-side storage RLS as the gallery.
@@ -16,7 +17,7 @@ const MISSING = /listings|schema cache|does not exist|Could not find/i
 
 export const KINDS = {
   piece:   { label: 'PIECE',   cta: 'DM to buy' },
-  service: { label: 'SERVICE', cta: 'DM to book' },
+  service: { label: 'SERVICE', cta: 'Book' },
 }
 
 export const priceLabel = (cents) => {
@@ -34,7 +35,7 @@ export async function fetchListings(profileId) {
   if (!profileId) return []
   const { data, error } = await supabase
     .from('listings')
-    .select('id,profile_id,kind,title,description,price_cents,currency,images,status,created_at')
+    .select('id,profile_id,kind,title,description,price_cents,currency,images,status,delivery,created_at')
     .eq('profile_id', profileId)
     .order('created_at', { ascending: false })
     .limit(60)
@@ -44,7 +45,7 @@ export async function fetchListings(profileId) {
 
 /* Upload each image into the caller's own folder, then insert the row.
    A failure anywhere cleans up every object already uploaded. */
-export async function createListing(userId, { kind, title, description = '', priceCents, files = [] }) {
+export async function createListing(userId, { kind, title, description = '', priceCents, delivery = '', files = [] }) {
   const images = []
   try {
     for (const f of files) {
@@ -63,9 +64,10 @@ export async function createListing(userId, { kind, title, description = '', pri
       title: (title || '').trim(),
       description: (description || '').trim() || null,
       price_cents: priceCents,
+      delivery: (delivery || '').trim() || null,
       images,
     })
-    .select('id,profile_id,kind,title,description,price_cents,currency,images,status,created_at')
+    .select('id,profile_id,kind,title,description,price_cents,currency,images,status,delivery,created_at')
     .single()
   if (error) {
     removeWorldImages(images.map((i) => i.path))
