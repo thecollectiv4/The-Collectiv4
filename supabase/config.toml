@@ -412,3 +412,14 @@ enabled = true
 # declarative_schema_path = "./database"
 # JSON string passed through to pg-delta SQL formatting.
 # format_options = "{\"keywordCase\":\"upper\",\"indent\":2,\"maxWidth\":80,\"commaStyle\":\"trailing\"}"
+
+# Booking payment layer — public endpoints; auth is the Stripe signature
+# (webhook) and server-side validation (create/status). See supabase/functions/.
+[functions.create-booking-session]
+verify_jwt = false
+
+[functions.booking-webhook]
+verify_jwt = false
+
+[functions.booking-status]
+verify_jwt = false

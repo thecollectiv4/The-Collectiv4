@@ -1,6 +1,8 @@
 import { useState } from 'react'
-import { X, Tag, Handshake, MessageCircle, RotateCcw, Check } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { X, Tag, Handshake, MessageCircle, RotateCcw, Check, Link2, ArrowRight } from 'lucide-react'
 import { KINDS, priceLabel } from '@/lib/listings'
+import { bookingLink } from '@/lib/bookings'
 
 /* =========================================================================
    WorldOffer — the OFFER movement of a world (listings, migration 0017):
@@ -8,8 +10,10 @@ import { KINDS, priceLabel } from '@/lib/listings'
    profile as a portfolio that sells). Pieces and services hang like
    catalog objects: specimen label (kind · number), title, a REAL price.
 
-   No payment path exists yet, so the buy affordance is a DM — a real
-   door into a real conversation, never a dead checkout (Leyes 9, 11).
+   The payment layer (0051) made SERVICES bookable for real: their CTA
+   opens /book/:id — the standalone payment page — and the owner gets a
+   copy-link pill for sharing the same door by DM. PIECES keep the DM
+   affordance: a real conversation, never a dead checkout (Leyes 9, 11).
    The section marker/numbering lives in ProfileMuseum with the other
    movements.
    ========================================================================= */
@@ -41,8 +45,10 @@ export default function WorldOffer({ listings, isOwner, onDMSeller, onSetStatus,
 }
 
 function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide }) {
+  const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [err, setErr] = useState('')
   const img = safeImg(l.images?.[0]?.url)
   const kind = KINDS[l.kind] || KINDS.piece
@@ -91,7 +97,17 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
           {/* the price — the point of the layer, set like a display fact */}
           <span style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: BONE, letterSpacing: '.02em' }}>{priceLabel(l.price_cents)}</span>
 
-          {!isOwner && live && onDMSeller && (
+          {/* services: the CTA is the real payment door (/book/:id).
+              pieces: still a DM — a conversation, not a checkout. */}
+          {!isOwner && live && l.kind === 'service' && (
+            <button className="pressable" onClick={() => navigate(`/book/${l.id}`)}
+              style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(var(--ink-rgb),.07)', border: `1px solid rgba(var(--ink-rgb),.24)`, borderRadius: '100px', padding: '8px 15px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.13)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.45)' }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.07)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.24)' }}>
+              {kind.cta} <ArrowRight size={11} />
+            </button>
+          )}
+          {!isOwner && live && l.kind !== 'service' && onDMSeller && (
             <button className="pressable" onClick={() => onDMSeller(l)}
               style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '7px', background: 'rgba(var(--ink-rgb),.07)', border: `1px solid rgba(var(--ink-rgb),.24)`, borderRadius: '100px', padding: '8px 15px', color: BONE, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', transition: 'background .2s, border-color .2s, transform .2s' }}
               onMouseOver={(e) => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.13)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.45)' }}
@@ -102,6 +118,13 @@ function OfferPiece({ l, index, isOwner, onDMSeller, onSetStatus, onDelete, wide
 
           {isOwner && !confirming && (
             <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              {live && l.kind === 'service' && (
+                <button className="pressable" title="Copy your payment link"
+                  onClick={() => { navigator.clipboard.writeText(bookingLink(l.id)); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                  style={ownerBtn}>
+                  {copied ? <><Check size={10} /> copied</> : <><Link2 size={10} /> link</>}
+                </button>
+              )}
               {live ? (
                 <button className="pressable" onClick={() => act(() => onSetStatus?.(l, 'sold'))} disabled={busy} title="Mark sold"
                   style={ownerBtn}>

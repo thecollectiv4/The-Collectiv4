@@ -80,7 +80,7 @@ const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/
 // propio techo de 760px adentro (Settings.jsx), que es lo que un settings de
 // escritorio necesita: columna cómoda, no pantalla completa.
 const wideDesigned = (path) =>
-  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience|settings|connections)(\/|$)/.test(path)
+  path === '/' || /^\/(community|messages|profile|user|e|c4|editions|experience|settings|connections|bookings)(\/|$)/.test(path)
 
 export default function Layout() {
   const location = useLocation()

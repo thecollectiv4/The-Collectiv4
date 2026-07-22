@@ -430,6 +430,33 @@ export default function Profile() {
         </div>
       )}
 
+      {/* YOUR BOOKINGS — the payment layer's door (0051). Same card-door
+          grammar as THE INSTRUMENT below. Every member can offer services,
+          so this shows on every own-profile — the dashboard behind it
+          renders honest zeros until something real is sold. */}
+      <div style={{ marginTop: '40px' }}>
+        <div style={{ fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.3em', color: 'var(--cream-low)', textTransform: 'uppercase', marginBottom: '16px' }}>YOUR BOOKINGS</div>
+        <div onClick={() => navigate('/bookings')} role="button" tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate('/bookings') } }}
+          style={{ border: '1px solid var(--border-hi)', borderRadius: '14px', overflow: 'hidden', cursor: 'pointer', transition: 'border-color .3s' }}
+          onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.2)'}
+          onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border-hi)'}>
+          <div style={{ padding: '22px 24px', background: 'var(--bg-card)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: 'var(--silver)', letterSpacing: '.08em' }}>●</span>
+              <span style={{ fontFamily: 'Bebas Neue', fontSize: '22px', color: 'var(--cream)', letterSpacing: '.02em', lineHeight: 1 }}>THE OFFER, WORKING</span>
+            </div>
+            <div style={{ fontFamily: 'DM Sans', fontSize: '12px', color: 'var(--cream-low)', marginTop: '8px', lineHeight: 1.5 }}>
+              Your services, your payment links, who booked you — and your real number.
+            </div>
+          </div>
+          <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--cream-low)' }}>ENTER</span>
+            <ChevronRight size={14} style={{ color: 'var(--cream-low)' }} />
+          </div>
+        </div>
+      </div>
+
       {/* THE INSTRUMENT — /os. It used to be a fifth tab in the bottom bar,
           which meant a founder-only tool was shaping a public-facing row and
           the bar changed size depending on who you were. It lives here now:

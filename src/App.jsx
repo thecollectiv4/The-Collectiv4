@@ -25,7 +25,10 @@ import DoorScanner from '@/pages/DoorScanner'
 import HouseWorld from '@/pages/HouseWorld'
 import Settings from '@/pages/Settings'
 import Connections from '@/pages/Connections'
-import { Terms, Privacy, Refunds } from '@/pages/Legal'
+import { Terms, Privacy, Refunds, BookingTerms } from '@/pages/Legal'
+import BookService from '@/pages/BookService'
+import Booked from '@/pages/Booked'
+import Bookings from '@/pages/Bookings'
 
 // DEV-ONLY layout harness (/__os-harness): mounts the OS instrument with
 // mirror data so layout is verifiable without a member session. The
@@ -54,6 +57,10 @@ const GatePreview = import.meta.env.DEV ? lazy(() => import('@/components/EarlyA
 // `createOpen && user`, which made the app's most important screen the hardest
 // one to look at on a phone. Statically excluded from prod.
 const CreateHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__CreateHarness')) : null
+
+// DEV-ONLY booking harness (/__book) — the payment page + post-pay ceremony
+// on a static mock, QA-able without a real listing or payment. Excluded from prod.
+const BookHarness = import.meta.env.DEV ? lazy(() => import('@/pages/__BookHarness')) : null
 
 // Route changes start at the top — without this, opening a world (or any
 // page) inherits the previous page's scroll position mid-museum.
@@ -104,10 +111,16 @@ export default function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />{/* D3: recovery link lands here (top-level, before the catch-all) */}
           <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
+          {/* Booking payment layer — the client usually has NO account (the
+              link arrives by DM), so both surfaces are standalone like /claim:
+              /book/:id is the payment page, /booked the polled ceremony. */}
+          <Route path="/book/:id" element={<BookService />} />
+          <Route path="/booked" element={<Booked />} />
           {/* Legal — standalone cosmos pages, anon-reachable, linked from checkout + footer */}
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/refunds" element={<Refunds />} />
+          <Route path="/booking-terms" element={<BookingTerms />} />
           {import.meta.env.DEV && OSHarness && (
             <Route path="/__os-harness" element={<Suspense fallback={null}><OSHarness /></Suspense>} />
           )}
@@ -127,6 +140,10 @@ export default function App() {
           {CreateHarness && (
             <Route path="/__create" element={<Suspense fallback={null}><CreateHarness /></Suspense>} />
           )}
+          {/* DEV-ONLY (/__book): the booking payment surfaces on a mock. */}
+          {BookHarness && (
+            <Route path="/__book" element={<Suspense fallback={null}><BookHarness /></Suspense>} />
+          )}
           <Route path="/" element={<Layout />}>
             <Route index element={<Events />} />{/* EVENT tab — every room on the platform */}
             <Route path="c4" element={<HouseWorld />} />{/* the house world — the flagship example (D4); becomes the front door when the domain points here */}
@@ -137,6 +154,7 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />{/* v12: el cuarto de máquinas — apariencia, cuenta, privacidad, sesión */}
             <Route path="connections" element={<Connections />} />{/* v13: gestión de conexiones + close friends */}
+            <Route path="bookings" element={<Bookings />} />{/* payment layer: the creative's services, links & real income */}
             <Route path="experience/:slug" element={<ExperienceDetail />} />
             <Route path="editions" element={<PastEditions />} />
             <Route path="artist/:slug" element={<ArtistRedirect />} />{/* D1: /artist is dead — resolve to the real world or clean gone */}
