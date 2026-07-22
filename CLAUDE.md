@@ -2,7 +2,7 @@
 
 The platform behind The Collectiv4 (Houston creative movement, co-founded by Pato Durán Chacón + Diego Villaseñor). This is the **one codebase** — EXTEND it, never rebuild, never spin up a second deployment.
 
-Stack: **Vite + React + Supabase (Postgres/RLS/Auth) + Stripe Checkout + Resend**, deployed on Vercel. Serverless functions live in `api/` (`create-checkout-session.js`, `webhook.js`). App code in `src/` (`pages/`, `components/`, `lib/`, `api/supabase.js`). DB migrations in `supabase/migrations/` (currently through `0051`). **Never assume the next number from this file — list the directory and check the remote ledger before naming a migration.** A numbering collision already cost us `0046_la_puerta`, which exists on disk but never reached the remote; the invite gate it carried is therefore not live.
+Stack: **Vite + React + Supabase (Postgres/RLS/Auth) + Stripe Checkout + Resend**, deployed on Vercel. Serverless functions live in `api/` (`create-checkout-session.js`, `webhook.js`). App code in `src/` (`pages/`, `components/`, `lib/`, `api/supabase.js`). DB migrations in `supabase/migrations/` (currently through `0052`). **Never assume the next number from this file — list the directory and check the remote ledger before naming a migration.** A numbering collision already cost us `0046_la_puerta`, which exists on disk but never reached the remote; the invite gate it carried is therefore not live.
 
 Flow for feature work: **branch → Vercel preview → founder QA → merge to `main`.** One piece at a time, each with an acceptance criterion. Prod shows only the polished; unfinished layers hide behind feature flags. Prices are stored in **cents**. Recon table/field names before writing SQL — never assume schema.
 
