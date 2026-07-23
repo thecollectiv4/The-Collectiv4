@@ -5,7 +5,6 @@ import { supabase } from '@/api/supabase'
 import { isOwnerFounder } from '@/lib/osAccess'
 import { useWide } from '@/lib/useIsDesktop'
 import ForYou from '@/components/ForYou'
-import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import CraftsSheet from '@/components/CraftsSheet'
@@ -93,8 +92,11 @@ export default function Community() {
     p.set('view', v)
     setSearchParams(p, { replace: true })
   }
-  // anon tapping FOR YOU meets the same door the nav's gated tabs open
-  const [showAuth, setShowAuth] = useState(false)
+  /* v16 — el modal murió: anon cae en /auth pantalla completa con ?next de
+     vuelta exacta (la misma puerta que ya usaba el flujo de follow del
+     perfil). El next lleva el estado real de esta sala (view/craft/city). */
+  const goAuth = (next) =>
+    navigate('/auth?next=' + encodeURIComponent(next || (window.location.pathname + window.location.search)))
   const [craftsByProfile, setCraftsByProfile] = useState(new Map())
   const [craftsLoaded, setCraftsLoaded] = useState(false)
   // v8 (adición C): the seed preview is no longer a per-page toggle — it's
@@ -123,7 +125,7 @@ export default function Community() {
      encienda lo hace sentir roto. CONNECT no es optimista — abre una hoja y
      ahí el estado real se lee del servidor. */
   const onToggleFollow = async (c) => {
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     const was = followingSet.has(c.id)
     setFollowingSet((s) => { const n = new Set(s); was ? n.delete(c.id) : n.add(c.id); return n })
     try {
@@ -137,13 +139,13 @@ export default function Community() {
   /* MESSAGE = SÓLO abrir el chat directo (decisión de Diego: message y
      connect son dos cosas distintas). Sin intención, sin hoja: el hilo. */
   const onMessage = async (c) => {
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     try { navigate(`/messages/${await startDM(c.id)}`) }
     catch { navigate('/messages') }   // el hilo no se pudo abrir → la bandeja, nunca una pantalla muerta
   }
 
   const onConnect = (c) => {
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     setConnectFor(c)
   }
 
@@ -273,7 +275,7 @@ export default function Community() {
             const on = view === key
             return (
               <button key={key} className="pressable" data-testid={tid}
-                onClick={() => { if (key === 'foryou' && !authLoading && !user) { setShowAuth(true); return } setView(key) }}
+                onClick={() => { if (key === 'foryou' && !authLoading && !user) { goAuth('/community?view=foryou'); return } setView(key) }}
                 style={{ background: 'transparent', border: 'none', padding: '0 2px 10px', marginBottom: '-1px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.22em', textTransform: 'uppercase', color: on ? BONE : 'rgba(var(--silver-rgb),.45)', borderBottom: `1px solid ${on ? BONE : 'transparent'}`, transition: 'color .2s, border-color .2s' }}>
                 {label}
               </button>
@@ -301,7 +303,7 @@ export default function Community() {
               <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '310px' }}>
                 For you is composed from your taste, your crafts and your people — not follower counts. Sign in and the universe starts listening.
               </p>
-              <button className="pressable" onClick={() => setShowAuth(true)} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+              <button className="press-spring" onClick={() => goAuth('/community?view=foryou')} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '100px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                 Sign in <ArrowUpRight size={16} />
               </button>
             </div>
@@ -399,11 +401,9 @@ export default function Community() {
         )}
       </div>
 
-      {/* the auth door — local, exactly the Layout nav pattern */}
-      {/* this door only ever opens from the For You entry — a first-touch
-          invitation, never "welcome back" to someone who's never been here */}
-      {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)}
-        signinTitle="SEE WHO SHARES YOUR TASTE" signinKicker="sign in to meet your people" />}
+      {/* v16: aquí vivía el segundo render del AuthModal (con el título
+          "SEE WHO SHARES YOUR TASTE"). Murió — ese headline vive ahora en
+          /auth como el copy de primera visita, que es donde pertenecía. */}
 
       {/* el +N de una tarjeta, abierto: los crafts completos de esa persona,
           cada uno una puerta al filtro correspondiente */}

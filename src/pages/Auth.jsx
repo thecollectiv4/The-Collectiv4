@@ -10,7 +10,7 @@ import {
   BONE, BONE_MID, BONE_LOW, FAINT, HAIR, HAIR_HI,
   FONT_DISPLAY, FONT_MONO, FONT_SANS, chromeText, EASE_HOUSE,
 } from '@/lib/cosmos'
-import { Field, PRESS } from '@/components/AuthField'
+import { Field, PRESS, PRESS_SPRING } from '@/components/AuthField'
 import { glassControl } from '@/lib/glass'
 import { useWide } from '@/lib/useIsDesktop'
 
@@ -68,13 +68,17 @@ const REDUCED = () => typeof window !== 'undefined'
    Field es module-scope, por qué 16px) viajaron con el código. */
 
 export default function Auth() {
-  /* Default to SIGN IN whenever we were sent here from somewhere (?next=…).
-     That path is overwhelmingly someone who already has an account and lost
-     their session — most sharply the ticket buyer bounced from /claim. They
-     already paid; "NOT FOR ALL PEOPLE" is the wrong first thing to show them.
-     A cold visit to /auth still opens on signup. */
-  const [mode, setMode] = useState(() =>
-    new URLSearchParams(window.location.search).get('next') ? 'signin' : 'signup')
+  /* v16 — DOS ESTADOS POR PESTILLO DE DISPOSITIVO (decisión de fundador).
+     c4:returning se escribe en AuthContext cuando CUALQUIER sesión nace o
+     rehidrata en este dispositivo. Con pestillo: la persona ya entró aquí
+     antes → SIGN IN. Sin pestillo: primera visita → CREATE ACCOUNT. La
+     heurística vieja (?next → signin) muere con esto: el comprador de
+     tickets rebotado de /claim que ya entró alguna vez trae el pestillo, y
+     el que nunca ha tenido cuenta necesita justamente la puerta de crear. */
+  const [mode, setMode] = useState(() => {
+    try { if (localStorage.getItem('c4:returning') === '1') return 'signin' } catch { /* sin storage → primera visita */ }
+    return 'signup'
+  })
   /* v12 — LA PUERTA. The gate stands in front of SIGNUP only; sign-in is
      never gated (see EarlyAccessGate). `gate` is undefined until the flag
      resolves, so we render nothing rather than flashing the open signup
@@ -286,23 +290,33 @@ export default function Auth() {
           </div>
         </div>
 
-        {/* THE chrome moment. The ONLY one on this screen (Ley 8). */}
+        {/* THE chrome moment. The ONLY one on this screen (Ley 8).
+            v16 copy (fundador): primera visita "SEE WHO SHARES YOUR TASTE",
+            regreso "WELCOME BACK". El headline largo baja un paso de escala
+            para vivir en dos líneas Bebas, nunca en tres. */}
         <div style={{ ...rise(80), textAlign: 'center' }}>
           <h1 style={{
             ...chromeText, fontFamily: FONT_DISPLAY, fontWeight: 400,
-            fontSize: wide ? 'clamp(46px, 4.6vw, 64px)' : 'clamp(34px, 10.5vw, 48px)',
+            fontSize: signup
+              ? (wide ? 'clamp(38px, 3.6vw, 52px)' : 'clamp(29px, 8.6vw, 40px)')
+              : (wide ? 'clamp(46px, 4.6vw, 64px)' : 'clamp(34px, 10.5vw, 48px)'),
             lineHeight: 0.94, letterSpacing: '.02em', margin: wide ? '20px 0 0' : '16px 0 0',
+            maxWidth: '14ch', marginInline: 'auto',
           }}>
-            {signup ? 'COME INSIDE' : 'WELCOME BACK'}
+            {signup ? 'SEE WHO SHARES YOUR TASTE' : 'WELCOME BACK'}
           </h1>
         </div>
 
+        {/* v16: el sub deja de ser oración y se vuelve kicker mono — la
+            gramática de catálogo de la casa. "Your world is where you left
+            it." murió con el send-off. */}
         <div style={{ ...rise(150), textAlign: 'center' }}>
           <p style={{
-            fontFamily: FONT_SANS, fontSize: wide ? '14.5px' : '13.5px', lineHeight: 1.65,
-            color: BONE_MID, margin: '16px auto 0', maxWidth: '32ch', textWrap: 'balance',
+            fontFamily: FONT_MONO, fontSize: wide ? '10px' : '9px', lineHeight: 1.8,
+            letterSpacing: '.24em', textTransform: 'uppercase',
+            color: BONE_MID, margin: '16px auto 0', maxWidth: '40ch',
           }}>
-            {signup ? 'Make the account. Then make the world.' : 'Your world is where you left it.'}
+            {signup ? 'Create your account · meet your people' : 'Sign in to continue'}
           </p>
         </div>
 
@@ -390,15 +404,17 @@ export default function Auth() {
                 shipped with — a loading state that is three periods is a
                 loading state a member reads as "broken". */}
             <button
-              type="submit" className="pressable" disabled={loading} aria-busy={loading}
+              type="submit" className="press-spring" disabled={loading} aria-busy={loading}
               style={{
                 width: '100%', marginTop: '6px', background: BONE, color: 'var(--bg)',
-                border: 'none', borderRadius: '4px', padding: '17px',
+                border: 'none', borderRadius: '100px', padding: '17px',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
                 fontFamily: FONT_MONO, fontSize: '11px', letterSpacing: '.22em',
                 textTransform: 'uppercase', fontWeight: 500,
                 cursor: loading ? 'default' : 'pointer', opacity: loading ? 0.6 : 1,
-                transition: `opacity .25s ${EASE_HOUSE}, ${PRESS}`,
+                /* la transition inline le gana a la clase, así que la pata del
+                   resorte viaja appendeada (PRESS_SPRING) — v16 */
+                transition: `opacity .25s ${EASE_HOUSE}, ${PRESS_SPRING}`,
               }}>
               {loading
                 ? <><Loader2 size={13} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />{signup ? 'Creating…' : 'Signing in…'}</>
@@ -431,21 +447,26 @@ export default function Auth() {
             const busy = oauthBusy === p.id
             return (
               <button
-                key={p.id} type="button" className="pressable"
+                key={p.id} type="button" className="glass-press"
                 onClick={() => openProvider(p.id)}
                 disabled={Boolean(oauthBusy)} aria-busy={busy}
                 style={{
+                  /* v16 — cápsula de vidrio (glassControl: flota directo sobre
+                     el cielo). SIN transform en la transition — un transform
+                     sobre backdrop-filter mata el sampling en WebKit; el press
+                     aquí es luz (.glass-press), no hundido. */
+                  ...glassControl(),
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
-                  width: '100%', background: 'rgba(var(--ink-rgb),.03)',
-                  border: `1px solid ${HAIR_HI}`, borderRadius: '4px', padding: '15px 12px',
+                  width: '100%',
+                  borderRadius: '100px', padding: '15px 12px',
                   color: BONE_MID, fontFamily: FONT_MONO, fontSize: '10px',
                   letterSpacing: '.16em', textTransform: 'uppercase',
                   cursor: oauthBusy ? 'default' : 'pointer',
                   opacity: oauthBusy && !busy ? 0.45 : 1,
-                  transition: `border-color .3s ${EASE_HOUSE}, color .3s ${EASE_HOUSE}, opacity .25s, ${PRESS}`,
+                  transition: `border-color .3s ${EASE_HOUSE}, color .3s ${EASE_HOUSE}, opacity .25s`,
                 }}
-                onMouseOver={e => { if (!oauthBusy) { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.34)'; e.currentTarget.style.color = BONE } }}
-                onMouseOut={e => { e.currentTarget.style.borderColor = HAIR_HI; e.currentTarget.style.color = BONE_MID }}>
+                onMouseOver={e => { if (!oauthBusy) { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.40)'; e.currentTarget.style.color = BONE } }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.22)'; e.currentTarget.style.color = BONE_MID }}>
                 {busy
                   ? <><Loader2 size={12} strokeWidth={2} style={{ animation: 'spin 1s linear infinite' }} />Opening…</>
                   : <>Continue with {p.label}</>}

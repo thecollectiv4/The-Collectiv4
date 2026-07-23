@@ -20,6 +20,15 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
+      /* v16 — c4:returning: el pestillo de dispositivo que decide el estado
+         inicial de /auth (primera visita = CREATE ACCOUNT, regreso = SIGN IN).
+         Se escribe aquí y no en Auth.jsx porque TODA sesión pasa por este
+         listener: email, OAuth (que vuelve por el hash, sin tocar el submit
+         de Auth), y la rehidratación — todas significan "esta persona ya
+         entró en este dispositivo". Sin uid a propósito: es un hecho del
+         dispositivo, previo a saber quién eres. try/catch: localStorage
+         puede no existir (modo privado viejo) y la sesión vale más. */
+      if (session?.user) { try { localStorage.setItem('c4:returning', '1') } catch { /* sin storage, sin pestillo */ } }
     })
     return () => subscription.unsubscribe()
   }, [])
