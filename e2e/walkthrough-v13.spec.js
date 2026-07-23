@@ -161,7 +161,9 @@ test('v13 · C — la campana de connect aterriza en REQUESTS y ahí se cierra e
   expect(req, 'B debe oír friend_request').toBeTruthy()
 
   // la campana cumple su promesa: abre /connections en el segmento REQUESTS
+  // (v16: las filas viven en el panel — se abre por bell-door primero)
   await B.page.goto('/messages')
+  await B.page.getByTestId('bell-door').click()
   const row = B.page.getByTestId('bell-row-friend_request').first()
   await row.waitFor({ timeout: 20000 })
   await row.click()
@@ -244,6 +246,8 @@ test('v13 · E — el badge cuenta, marca leído, y baja a cero', async ({ reque
   await shot(B.page, 'E1-badge')
 
   await B.page.goto('/messages')
+  // v16: mark-all vive dentro del panel de la campana
+  await B.page.getByTestId('bell-door').click()
   await B.page.getByTestId('bell-mark-all').waitFor({ timeout: 15000 })
   await B.page.getByTestId('bell-mark-all').click()
   await B.page.waitForTimeout(2000)

@@ -5,7 +5,6 @@ import { supabase } from '@/api/supabase'
 import { isOwnerFounder } from '@/lib/osAccess'
 import { useWide } from '@/lib/useIsDesktop'
 import ForYou from '@/components/ForYou'
-import AuthModal from '@/components/AuthModal'
 import { fetchFollowingSet } from '@/lib/social'
 import SeedPill, { SEED_BORDER } from '@/components/SeedMark'
 import CraftsSheet from '@/components/CraftsSheet'
@@ -93,8 +92,11 @@ export default function Community() {
     p.set('view', v)
     setSearchParams(p, { replace: true })
   }
-  // anon tapping FOR YOU meets the same door the nav's gated tabs open
-  const [showAuth, setShowAuth] = useState(false)
+  /* v16 — el modal murió: anon cae en /auth pantalla completa con ?next de
+     vuelta exacta (la misma puerta que ya usaba el flujo de follow del
+     perfil). El next lleva el estado real de esta sala (view/craft/city). */
+  const goAuth = (next) =>
+    navigate('/auth?next=' + encodeURIComponent(next || (window.location.pathname + window.location.search)))
   const [craftsByProfile, setCraftsByProfile] = useState(new Map())
   const [craftsLoaded, setCraftsLoaded] = useState(false)
   // v8 (adición C): the seed preview is no longer a per-page toggle — it's
@@ -123,7 +125,7 @@ export default function Community() {
      encienda lo hace sentir roto. CONNECT no es optimista — abre una hoja y
      ahí el estado real se lee del servidor. */
   const onToggleFollow = async (c) => {
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     const was = followingSet.has(c.id)
     setFollowingSet((s) => { const n = new Set(s); was ? n.delete(c.id) : n.add(c.id); return n })
     try {
@@ -137,13 +139,13 @@ export default function Community() {
   /* MESSAGE = SÓLO abrir el chat directo (decisión de Diego: message y
      connect son dos cosas distintas). Sin intención, sin hoja: el hilo. */
   const onMessage = async (c) => {
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     try { navigate(`/messages/${await startDM(c.id)}`) }
     catch { navigate('/messages') }   // el hilo no se pudo abrir → la bandeja, nunca una pantalla muerta
   }
 
   const onConnect = (c) => {
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     setConnectFor(c)
   }
 
@@ -177,7 +179,12 @@ export default function Community() {
     let alive = true
     async function load() {
       setLoading(true)
-      const FIELDS = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media'
+      /* review v16: el camino de rescate existe para esquemas VIEJOS — si
+         también pidiera photos_completed_at (0054), fallaría por la misma
+         columna que tumbó la query primaria y el directorio quedaría vacío.
+         La columna nueva viaja sólo en la query primaria. */
+      const FIELDS_BASE = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media'
+      const FIELDS = FIELDS_BASE + ',photos_completed_at'
       let rows = []
       // bounded: the directory pages later — an unbounded select with jsonb
       // columns won't survive a real community (review catch)
@@ -185,13 +192,26 @@ export default function Community() {
       if (!showDemo) q = q.eq('is_demo', false)
       const { data, error } = await q
       if (error) {
-        const res = await supabase.from('profiles').select(FIELDS)
+        const res = await supabase.from('profiles').select(FIELDS_BASE)
         rows = (res.data || []).map(r => ({ ...r, is_demo: DEMO_USERNAMES.has(r.username) }))
         if (!showDemo) rows = rows.filter(r => !r.is_demo)
       } else {
         rows = data || []
       }
       if (!alive) return
+      /* v16 — LA REGLA DE ORDEN (0054, decisión de fundador): los mundos con
+         avatar Y portada van SIEMPRE arriba, ordenados por cuándo
+         completaron sus fotos (photos_completed_at asc: el recién completado
+         entra AL FINAL del grupo con fotos). Los sin fotos completas se
+         quedan abajo en su orden actual (created_at asc, que ya trae la
+         query). El sello viene del trigger de 0054 — una sola fuente, nunca
+         derivado a ojo en el cliente. */
+      rows = [...rows].sort((a, b) => {
+        const as = a.photos_completed_at, bs = b.photos_completed_at
+        if (!!as !== !!bs) return as ? -1 : 1
+        if (as && bs && as !== bs) return as < bs ? -1 : 1
+        return 0   // estable: dentro de cada grupo manda el orden de la query
+      })
       setCreatives(rows)
       setLoading(false)
       // the craft spine on the cards + the filter's real vocabulary (0020)
@@ -273,7 +293,7 @@ export default function Community() {
             const on = view === key
             return (
               <button key={key} className="pressable" data-testid={tid}
-                onClick={() => { if (key === 'foryou' && !authLoading && !user) { setShowAuth(true); return } setView(key) }}
+                onClick={() => { if (key === 'foryou' && !authLoading && !user) { goAuth('/community?view=foryou'); return } setView(key) }}
                 style={{ background: 'transparent', border: 'none', padding: '0 2px 10px', marginBottom: '-1px', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.22em', textTransform: 'uppercase', color: on ? BONE : 'rgba(var(--silver-rgb),.45)', borderBottom: `1px solid ${on ? BONE : 'transparent'}`, transition: 'color .2s, border-color .2s' }}>
                 {label}
               </button>
@@ -301,7 +321,7 @@ export default function Community() {
               <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '310px' }}>
                 For you is composed from your taste, your crafts and your people — not follower counts. Sign in and the universe starts listening.
               </p>
-              <button className="pressable" onClick={() => setShowAuth(true)} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+              <button className="press-spring" onClick={() => goAuth('/community?view=foryou')} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '100px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
                 Sign in <ArrowUpRight size={16} />
               </button>
             </div>
@@ -399,11 +419,9 @@ export default function Community() {
         )}
       </div>
 
-      {/* the auth door — local, exactly the Layout nav pattern */}
-      {/* this door only ever opens from the For You entry — a first-touch
-          invitation, never "welcome back" to someone who's never been here */}
-      {showAuth && !user && <AuthModal onClose={() => setShowAuth(false)}
-        signinTitle="SEE WHO SHARES YOUR TASTE" signinKicker="sign in to meet your people" />}
+      {/* v16: aquí vivía el segundo render del AuthModal (con el título
+          "SEE WHO SHARES YOUR TASTE"). Murió — ese headline vive ahora en
+          /auth como el copy de primera visita, que es donde pertenecía. */}
 
       {/* el +N de una tarjeta, abierto: los crafts completos de esa persona,
           cada uno una puerta al filtro correspondiente */}
@@ -600,9 +618,20 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
           recorta la foto: ahora es espacio reservado. Los sellos viven aquí
           y no en la capa de portada, que es aria-hidden y no recibe toques. */}
       <div style={{ position: 'relative', height: wide ? '116px' : '92px', zIndex: 2 }}>
-        {/* v12: 16px was frozen at phone scale inside a card that is ~50%
-            wider on desktop — the membership mark read as a speck there. */}
-        {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex' }}><VerifiedMark size={wide ? 20 : 16} /></span>}
+        {/* v16 — la esquina superior derecha es el cluster de estado, en la
+            MISMA posición que For You: FOLLOWING (con respaldo onPhoto, la
+            pill vieja a tinta .05 era ilegible sobre portada — reporte de
+            Diego) y el sello de verificación. La pill sale del renglón del
+            nombre, donde apretaba el nombre y flotaba distinto en cada
+            sección. */}
+        <span style={{ position: 'absolute', top: '10px', right: '10px', display: 'inline-flex', alignItems: 'center', gap: '7px' }}>
+          {following && (
+            <StateChip label={VOCAB.followingState} mark={<UserCheck size={8} />} title={`You follow ${name}`} onPhoto />
+          )}
+          {/* v12: 16px was frozen at phone scale inside a card that is ~50%
+              wider on desktop — the membership mark read as a speck there. */}
+          {c.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex' }}><VerifiedMark size={wide ? 20 : 16} /></span>}
+        </span>
         {/* guardrail 4: the label rides is_demo itself (the ONE shared pill) —
             the query already hides seed when SHOW SEED is off, so a rendered
             seed row is always a labeled seed row */}
@@ -625,13 +654,9 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
       <div style={{ position: 'relative', zIndex: 1, padding: '26px 13px 14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', minWidth: 0 }}>
           <div className="disc-name" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '22px' : '19px', letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</div>
-          {/* v12: este chip sale de followingSet — o sea "TÚ LO SIGUES", que
-              es direccional. Decía "You're connected" y mostraba "IN", con
-              CONNECTED ya reservado para el vínculo mutuo: la misma palabra
-              en dos sentidos, que es justo lo que se vino a matar. */}
-          {following && (
-            <StateChip label={VOCAB.followingState} mark={<UserCheck size={8} />} title={`You follow ${name}`} />
-          )}
+          {/* v16: la pill FOLLOWING se mudó a la esquina superior derecha de
+              la cápsula (el cluster de estado, misma posición que For You) —
+              aquí apretaba el nombre y se leía mal sobre cualquier fondo. */}
         </div>
         {/* v12: el craft y el +N se pican POR SEPARADO de la tarjeta. Toda la
             tarjeta navega al mundo, así que estos dos tienen que parar la

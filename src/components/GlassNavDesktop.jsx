@@ -154,6 +154,10 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
   const rowRef = useRef(null)
   const [scrub, setScrub] = useState(null)
   const [armed, setArmed] = useState(false)
+  /* v16 — labels ocultos por default: la palabra sólo existe bajo hover o
+     press (scrub). Estado React y no :hover de CSS porque el estado de
+     scrub también la enciende, y un inline style le ganaría a la regla. */
+  const [hovered, setHovered] = useState(null)
 
   const slots = [...tabs, CREATE_SLOT]
   const n = slots.length
@@ -205,7 +209,7 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
           zIndex 0 contra las ranuras en 1 es LOAD-BEARING: un absoluto pinta
           encima de sus hermanos en flujo sin importar el orden del DOM, y sin
           esto el degradado lavaría la marca y el rótulo que va marcando. */}
-      <div aria-hidden="true" className="glass-nav-chip" style={{
+      <div aria-hidden="true" className="glass-nav-chip glass-nav-chip-pill" style={{
         position: 'absolute', top: 0, bottom: 0, left: 0, zIndex: 0,
         width: `${100 / n}%`, borderRadius: WORD_CHIP_RADIUS, pointerEvents: 'none',
         transform: `translateX(${(chipIdx ?? 0) * 100}%)`,
@@ -221,6 +225,10 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
         const active = !slot.create && i === currentIdx
         const held = scrub === i
         const lit = active || held
+        /* v16: la palabra despierta con el puntero encima o el press; el
+           resto del tiempo la píldora es solo-ícono. El max-width anima el
+           espacio (el ícono se re-centra suave) y la opacity anima la voz. */
+        const wordOn = held || hovered === i
         return (
           /* data-c4-tour: mismo gancho estable que GlassNav — ver la nota
              allí. Las dos barras lo llevan porque el recorrido corre en las
@@ -230,7 +238,9 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
             data-c4-tour={slot.create ? 'create' : (slot.label || '').toLowerCase()}
             className="pressable glass-tap" type="button"
             onClick={() => (slot.create ? onCreate() : onTab(slot))}
-            aria-label={slot.create ? 'Create' : undefined}
+            onPointerEnter={() => setHovered(i)}
+            onPointerLeave={() => setHovered(h => (h === i ? null : h))}
+            aria-label={slot.create ? 'Create' : slot.label}
             aria-current={active ? 'page' : undefined}
             style={{
               flex: '1 1 0', minWidth: 0,          // los cinco, exactamente iguales
@@ -242,7 +252,7 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
             {/* LA BURBUJA. Es la ranura entera — no hay circulito adentro:
                 el ícono va limpio sobre el vidrio. Un contenedor, no dos. */}
             <span className="glass-chip" style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: '100%', height: '100%',
               borderRadius: WORD_CHIP_RADIUS,
               fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.16em',
@@ -266,7 +276,17 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
                   </span>
                 )}
               </span>
-              {slot.label}
+              {/* v16: la palabra, oculta por default — despierta con fade y
+                  el ícono se re-centra suave vía max-width animado */}
+              <span aria-hidden="true" style={{
+                display: 'inline-block', overflow: 'hidden', whiteSpace: 'nowrap',
+                maxWidth: wordOn ? '110px' : '0px',
+                opacity: wordOn ? 1 : 0,
+                marginLeft: wordOn ? '8px' : '0px',
+                transition: 'max-width 320ms var(--ease-house), opacity 240ms var(--ease-house), margin-left 320ms var(--ease-house)',
+              }}>
+                {slot.label}
+              </span>
             </span>
           </button>
         )

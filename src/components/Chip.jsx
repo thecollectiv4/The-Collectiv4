@@ -46,10 +46,23 @@ export function MoreChip({ n, onClick, label, style }) {
 }
 
 /* Estado — no interactivo. `mark` opcional (un ícono de lucide, ya
-   dimensionado por quien lo pasa). */
-export function StateChip({ label, mark, tone = SILVER, title, style }) {
+   dimensionado por quien lo pasa).
+
+   v16 · `onPhoto`: la pill que vive SOBRE la foto (Community y For You la
+   anclan arriba a la derecha de la cápsula) necesita respaldo propio — la
+   cápsula base a tinta .05 desaparece contra una portada. El respaldo es
+   velo de VACÍO (se invierte solo por canal: noche = oscurece, día =
+   aclara) + borde más presente + texto al frente. Diego reportó la pill
+   ilegible y mal posicionada en ambos modos; esto es la mitad del
+   contraste, la posición la ponen las cápsulas. */
+export function StateChip({ label, mark, tone = SILVER, title, style, onPhoto = false }) {
   return (
-    <span title={title} style={{ ...CAP, color: tone, textTransform: 'uppercase', ...style }}>
+    <span title={title} style={{
+      ...CAP,
+      ...(onPhoto
+        ? { background: 'rgba(var(--void-rgb),.55)', border: '1px solid rgba(var(--ink-rgb),.30)', color: 'var(--cream)' }
+        : { color: tone }),
+      textTransform: 'uppercase', ...style }}>
       {mark}
       {label}
     </span>

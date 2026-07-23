@@ -112,12 +112,12 @@ import { supabase } from '@/api/supabase'
    Do not flip a provider without answering that question.
    ========================================================================= */
 
-/* The two doors we offer, in render order. Deliberately no brand logos: the
-   Apple mark and the four-colour Google G are trademarked artwork, and the G
-   is a colour gradient — which Cosmos forbids outright. The label does the
-   work, in the same mono-uppercase voice as every other button in the app. */
+/* v16 — SOLO GOOGLE. Decisión de fundador (send-off v16): el botón de Apple
+   se elimina del bundle; queda Google + email. Deliberately no brand logo:
+   the four-colour Google G is a colour gradient — which Cosmos forbids
+   outright. The label does the work, in the same mono-uppercase voice as
+   every other button in the app. */
 export const OAUTH_PROVIDERS = [
-  { id: 'apple', label: 'Apple' },
   { id: 'google', label: 'Google' },
 ]
 

@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { BONE, BONE_MID, BONE_LOW, HAIR_HI, FONT_SANS, EASE_HOUSE, EASE_EXIT } from '@/lib/cosmos'
+import { glassControl } from '@/lib/glass'
+
+/* la receta del control, menos el filtro — ver la nota dentro de Field */
+const { WebkitBackdropFilter: _wbf, backdropFilter: _bf, ...ctlFlat } = glassControl()
 
 /* =========================================================================
    EL CAMPO DE LA ENTRADA — un solo cascarón para /auth Y AuthModal.
@@ -26,6 +30,13 @@ import { BONE, BONE_MID, BONE_LOW, HAIR_HI, FONT_SANS, EASE_HOUSE, EASE_EXIT } f
    animar.) */
 export const PRESS = `transform 80ms ${EASE_EXIT}`
 
+/* v16 — la pata de transform del RESORTE, para botones que (como PRESS)
+   cargan su propia `transition` inline y por eso no pueden heredar la de
+   `.press-spring`. Se APPENDEA junto a la clase: la clase pone el scale del
+   :active, esta cadena pone la curva con rebote en la suelta. Sólo para
+   elementos SIN backdrop-filter (la regla de .disc-card sigue viva). */
+export const PRESS_SPRING = 'transform var(--dur-spring) var(--ease-spring)'
+
 /* MODULE SCOPE A PROPÓSITO. Declarado dentro del componente que lo usa
    sería un tipo NUEVO en cada render: React desmontaría y remontaría el
    input en cada tecla y el foco moriría al primer carácter. */
@@ -34,12 +45,19 @@ export function Field({ icon: Icon, label, right = null, wrapStyle, ...input }) 
   /* El único momento de luz en un campo: despierta cuando estás en él. Esto
      ES el indicador de foco — el input pone outline:none, así que si algún
      día borras este cambio de borde, pon un anillo real antes. */
-  const border = focused ? 'rgba(var(--ink-rgb),.42)' : HAIR_HI
+  const border = focused ? 'rgba(var(--ink-rgb),.42)' : 'rgba(var(--ink-rgb),.20)'
+  /* v16 — el campo es una CÁPSULA con el MATERIAL de glassControl pero SIN
+     backdrop-filter (review v16): los campos viven dentro de wrappers que
+     animan transform/opacity (rise, row-collapse) y un ancestro animado
+     mata el sampling del vidrio en WebKit para siempre. Sobre el void el
+     blur muestrea casi-negro y no compra nada — el volumen lo dan el
+     gradiente, el filo y el piso, que viajan intactos. El borde sigue
+     siendo el indicador de foco: .20 en reposo, .42 enfocado. */
   return (
     <div style={{
+      ...ctlFlat,
       display: 'flex', alignItems: 'center', gap: '11px',
-      background: 'rgba(var(--ink-rgb),.022)',
-      border: `1px solid ${border}`, borderRadius: '4px', padding: '0 13px',
+      border: `1px solid ${border}`, borderRadius: '100px', padding: '0 17px',
       transition: `border-color .35s ${EASE_HOUSE}, background .35s ${EASE_HOUSE}`,
       ...wrapStyle,
     }}>

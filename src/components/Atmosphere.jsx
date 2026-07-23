@@ -66,10 +66,14 @@ const STARS_2 = [
    It rides the rasterized layer, so it scales the sky's BEAUTY without
    touching the per-frame cost — quiet surfaces get a dimmer deep field,
    not a cheaper one. */
+/* v16 — EL CIELO SE AFINA, NO SE RECONSTRUYE. Dirección de Diego: campo más
+   fino y escaso con jerarquía (pocas brillantes, muchas tenues), líneas más
+   sutiles, movimiento más lento. Cada número bajó con intención; la
+   arquitectura (raster cacheado, DPR, throttles v12.2) no se toca. */
 const PRESETS = {
-  dense:  { k: 1,    linkA: 0.14, mouse: true,  starsO: [0.5, 0.35], sky: 1 },
-  medium: { k: 0.62, linkA: 0.09, mouse: true,  starsO: [0.3, 0.2],  sky: 0.72 },
-  quiet:  { k: 0,    linkA: 0,    mouse: false, starsO: [0.14, 0.1], sky: 0.4, fixedCount: 5 },
+  dense:  { k: 0.82, linkA: 0.10,  mouse: true,  starsO: [0.4, 0.28],  sky: 1 },
+  medium: { k: 0.5,  linkA: 0.065, mouse: true,  starsO: [0.24, 0.16], sky: 0.72 },
+  quiet:  { k: 0,    linkA: 0,     mouse: false, starsO: [0.12, 0.09], sky: 0.4, fixedCount: 5 },
 }
 
 /* =========================================================================
@@ -425,15 +429,17 @@ export default function Atmosphere() {
       const curY = (rnd() - 0.5) * 0.04
       nodes = Array.from({ length: n }, () => {
         const m = rnd()                                     // magnitude roll
-        const bright = m > 0.92                             // ~3 per sky
-        const mid = !bright && m > 0.62
+        // v16: la jerarquía se abre — menos brillantes (6%), más tenues.
+        // Pocas estrellas que mandan sobre un fondo que casi susurra.
+        const bright = m > 0.94                             // ~3 per sky
+        const mid = !bright && m > 0.70
         return {
           x: rnd() * w,
           y: rnd() * h,
-          vx: (rnd() - 0.5) * 0.16 + cur,   // deck drift: px/frame @60 — barely there
-          vy: (rnd() - 0.5) * 0.16 + curY,
+          vx: (rnd() - 0.5) * 0.11 + cur,   // v16: drift aún más lento — se siente, no se ve
+          vy: (rnd() - 0.5) * 0.11 + curY,
           r: bright ? 1.5 + rnd() * 0.6 : mid ? 0.9 + rnd() * 0.5 : 0.5 + rnd() * 0.35,
-          a: bright ? 0.92 : mid ? 0.66 : 0.42,             // was a flat 0.7 for all
+          a: bright ? 0.92 : mid ? 0.58 : 0.34,             // v16: la escala se estira hacia abajo
           halo: bright,                                     // only the brightest earn one
           ph: rnd() * 6.28,                                 // twinkle phase
           tw: 0.6 + rnd() * 0.9,                            // twinkle speed
@@ -734,9 +740,10 @@ export default function Atmosphere() {
           const md = Math.sqrt(mdx * mdx + mdy * mdy)
           if (md < MOUSE_R) {
             // the sky reacts to whoever is looking at it (D4)
-            ctx.globalAlpha = (1 - md / MOUSE_R) * 0.4
+            // v16: más sutil — la constelación insinúa, nunca satura
+            ctx.globalAlpha = (1 - md / MOUSE_R) * 0.28
             ctx.strokeStyle = PAL.node
-            ctx.lineWidth = 0.7
+            ctx.lineWidth = 0.6
             ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(mx, my); ctx.stroke()
           }
         }
@@ -841,8 +848,10 @@ export default function Atmosphere() {
         raf = 0
         const x = ev.clientX / window.innerWidth - 0.5
         const y = ev.clientY / window.innerHeight - 0.5
-        if (s1Ref.current) s1Ref.current.style.transform = `translate(${x * 13}px,${y * 13}px)`
-        if (s2Ref.current) s2Ref.current.style.transform = `translate(${x * 24}px,${y * 24}px)`
+        /* v16: recorrido 13/24 → 10/19 — la profundidad se conserva (dos
+           velocidades) pero el gesto se vuelve más quieto */
+        if (s1Ref.current) s1Ref.current.style.transform = `translate(${x * 10}px,${y * 10}px)`
+        if (s2Ref.current) s2Ref.current.style.transform = `translate(${x * 19}px,${y * 19}px)`
       })
     }
     window.addEventListener('mousemove', onMove, { passive: true })

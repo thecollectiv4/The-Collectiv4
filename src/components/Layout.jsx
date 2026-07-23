@@ -6,7 +6,6 @@ import { signalsUnread, SIGNALS_EVENT } from '@/lib/signals'
 import { supabase } from '@/api/supabase'
 import { useIsDesktop, useWide } from '@/lib/useIsDesktop'
 import { useFirstRun } from '@/lib/firstRun'
-import AuthModal from './AuthModal'
 import CreateCentral from './CreateCentral'
 import GlassNav from './GlassNav'
 import GlassNavDesktop from './GlassNavDesktop'
@@ -90,29 +89,35 @@ export default function Layout() {
   const isDesktop = useIsDesktop()
   const prevIdx = useRef(0)
   const [transClass, setTransClass] = useState('page-transition')
-  // Don't auto-open the sign-in modal when landing on a public route — and never
-  // while the session is still rehydrating. On a hard load `user` is null until
-  // getSession() resolves; computing showAuth from that flashed the modal at
-  // signed-in members. Auto-open only once, on a CONFIRMED unauthenticated state.
-  const [showAuth, setShowAuth] = useState(false)
-  const [authDismissed, setAuthDismissed] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const autoPrompted = useRef(false)
+
+  /* v16 — EL MODAL DE AUTH MURIÓ. Toda puerta de entrada es /auth pantalla
+     completa, con ?next para volver exactamente a donde estaba la persona.
+     El modal sobrevivía en 8 disparadores (3 aquí, 5 en Community); todos
+     navegan ahora por esta única función. El next viaja codificado porque
+     puede llevar su propio query (?view=foryou). */
+  const goAuth = (next) =>
+    navigate('/auth?next=' + encodeURIComponent(next || (location.pathname + location.search)))
 
   // CREATE — the + at the center of the app (Ley 13). Signed-out taps meet
   // the door, not a dead button; signed-in taps open the intentions.
   const openCreate = () => {
     if (authLoading) return
-    if (!user) { setShowAuth(true); return }
+    if (!user) { goAuth(); return }
     setCreateOpen(true)
   }
   useEffect(() => {
     if (authLoading || autoPrompted.current) return
     // Consume the one-shot on the FIRST resolution regardless of outcome — if it
     // only armed-off when unauthenticated, a later mid-session SIGNED_OUT (cross-tab
-    // sign-out, failed token refresh) would pop the modal unprompted. First-load only.
+    // sign-out, failed token refresh) would bounce the person unprompted. First-load only.
     autoPrompted.current = true
-    if (!user && !isPublicPath(location.pathname)) setShowAuth(true)
+    // replace: la redirección de carga no debe dejar la ruta gated en el
+    // historial — back desde /auth regresa a donde la persona venía, no al muro
+    if (!user && !isPublicPath(location.pathname)) {
+      navigate('/auth?next=' + encodeURIComponent(location.pathname + location.search), { replace: true })
+    }
   }, [authLoading, user])
 
   // D4 retention heartbeat: one honest ping per authed session (the RPC is
@@ -161,7 +166,7 @@ export default function Layout() {
     // While auth is still resolving, navigate optimistically — the target page's
     // own three-way guard settles it (an unresolved identity is not "signed out").
     if (tab.requiresAuth && !authLoading && !user) {
-      setShowAuth(true)
+      goAuth(tab.to)
     } else {
       navigate(tab.to)
     }
@@ -273,9 +278,7 @@ export default function Layout() {
         </div>
       </main>
 
-      {/* Auth Modal - shows on first load when not signed in */}
-      {showAuth && !user && <AuthModal onClose={()=>{setShowAuth(false);setAuthDismissed(true)}} />}
-      {/* Also show if they try to navigate without auth after dismissing */}
+      {/* v16: aquí vivía el AuthModal. Murió — toda entrada es /auth (goAuth). */}
 
       {/* Nav - consumer surfaces + mobile /os; never on desktop /os or wide (the header carries it).
           v11: the bar is now GlassNav — same tabs, same destinations, same

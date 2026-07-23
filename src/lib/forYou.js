@@ -45,7 +45,12 @@ export function reasonsFor(person = {}) {
   if (tastes.length) out.push(`shares ${tastes.slice(0, 2).join(' · ')}`)
   if (person.same_city && person.city) out.push(`in ${String(person.city).toLowerCase()}`)
   if (person.follows_me) out.push('follows your world')
-  if (!out.length) return ['the universe sees a match']
+  /* v16 (0054): el score ya no excluye a nadie — un perfil sin señales
+     compartidas AHORA APARECE, y decirle "the universe sees a match" sería
+     mentira. La línea callada dice la verdad: están en el mismo universo,
+     todavía sin señal compartida. Integridad §4: el copy nunca promete lo
+     que el sistema no hizo. */
+  if (!out.length) return ['no shared signals yet']
   return out.slice(0, 3)
 }
 

@@ -12,11 +12,13 @@ import {
   setPlanVisibility, VIS_TIERS, VIS_LABEL,
 } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
+import { useFocusTrap } from '@/lib/focusTrap'
 import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signalTo } from '@/lib/signals'
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
-import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users } from 'lucide-react'
+import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users, Bell } from 'lucide-react'
 import { tintChannel, closeStarStyle } from '@/lib/cosmos'
+import { glassSurface, glassControl, CHIP, WELL, CARD_TINT } from '@/lib/glass'
 
 /* =========================================================================
    MESSAGES — the conversations that continue (D2: the Base44 chat rebuilt
@@ -137,6 +139,10 @@ function Inbox({ me, wide }) {
   const [craftsByFriend, setCraftsByFriend] = useState(new Map())
   const [closeBusy, setCloseBusy] = useState(null)   // profile id mid-toggle
   const [bells, setBells] = useState({ unread: 0, signals: [] })   // LAS CAMPANAS (v10 D2)
+  /* v16 — The Bell dejó de ser un bloque arriba de la lista: es un PANEL
+     propio, abierto desde el ícono de campana del encabezado (badge con
+     no-leídas). La lista queda limpia: solo conversaciones y salas. */
+  const [bellOpen, setBellOpen] = useState(false)
 
   // the segment lives in the URL (?seg=) so CREWS/PLANS are deep-linkable;
   // pre-0023 everything honestly collapses to SIGNALS (no dead segments)
@@ -154,7 +160,7 @@ function Inbox({ me, wide }) {
     let alive = true
     fetchInbox(me.id).then((rows) => { if (alive) { setThreads(rows); setLoading(false) } })
     // the bell inbox (0042) — empty shape pre-migration, so nothing dead renders
-    fetchSignals(24).then((b) => { if (alive) setBells(b) })
+    fetchSignals(50).then((b) => { if (alive) setBells(b) })
     circleReady().then((r) => {
       if (!alive) return
       setCircle(r)
@@ -273,7 +279,7 @@ function Inbox({ me, wide }) {
 
   return (
     <Shell wide={wide}>
-      <Header wide={wide} count={count} />
+      <Header wide={wide} count={count} bellUnread={bells.unread} onBell={() => setBellOpen(true)} />
 
       {circle === true && <SegRow seg={seg} onSeg={setSeg} />}
 
@@ -289,23 +295,9 @@ function Inbox({ me, wide }) {
               swap slides in from the side its tab lives on (plan 009). The
               initial mount carries '' and stays still. */}
           <div key={seg} className={segDir}>
+          {/* v16: aquí vivía el bloque TheBell — se mudó al panel de la
+              campana (encabezado, arriba a la derecha). La lista respira. */}
           {/* ---------------- SIGNALS — the original inbox ---------------- */}
-          {seg === 'signals' && (
-            <TheBell bells={bells}
-              onOpen={(s) => {
-                if (!s.read_at) {
-                  // optimistic, with the honest rollback: a null return means
-                  // the door refused — refetch server truth (Ley 11)
-                  markSignalsRead([s.id]).then((n) => { if (n === null) fetchSignals(24).then(setBells) })
-                  setBells((b) => ({ unread: Math.max(0, b.unread - 1), signals: b.signals.map((x) => x.id === s.id ? { ...x, read_at: new Date().toISOString() } : x) }))
-                }
-                navigate(signalTo(s))
-              }}
-              onMarkAll={() => {
-                markSignalsRead(null).then((n) => { if (n === null) fetchSignals(24).then(setBells) })
-                setBells((b) => ({ unread: 0, signals: b.signals.map((x) => ({ ...x, read_at: x.read_at || new Date().toISOString() })) }))
-              }} />
-          )}
           {seg === 'signals' && (
             signals.length === 0 ? (
               <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
@@ -398,6 +390,27 @@ function Inbox({ me, wide }) {
         </div>
       )}
 
+      {/* v16 — EL PANEL DE LA CAMPANA. Portaleado a body (el patrón de la
+          casa para overlays: el wrapper de transición de Layout anima
+          transform y un fixed adentro anclaría mal a mitad de animación). */}
+      {bellOpen && (
+        <BellPanel bells={bells} onClose={() => setBellOpen(false)}
+          onOpen={(s) => {
+            if (!s.read_at) {
+              // optimistic, with the honest rollback: a null return means
+              // the door refused — refetch server truth (Ley 11)
+              markSignalsRead([s.id]).then((n) => { if (n === null) fetchSignals(50).then(setBells) })
+              setBells((b) => ({ unread: Math.max(0, b.unread - 1), signals: b.signals.map((x) => x.id === s.id ? { ...x, read_at: new Date().toISOString() } : x) }))
+            }
+            setBellOpen(false)
+            navigate(signalTo(s))
+          }}
+          onMarkAll={() => {
+            markSignalsRead(null).then((n) => { if (n === null) fetchSignals(50).then(setBells) })
+            setBells((b) => ({ unread: 0, signals: b.signals.map((x) => ({ ...x, read_at: x.read_at || new Date().toISOString() })) }))
+          }} />
+      )}
+
       {crewSheet && (
         <CrewSheet friends={circleData.friends} onClose={() => setCrewSheet(false)}
           onGoCommunity={() => { setCrewSheet(false); navigate('/community') }}
@@ -411,30 +424,60 @@ function Inbox({ me, wide }) {
   )
 }
 
-/* THE BELL (v10 D2 · Las Campanas) — the notification inbox, quiet by law:
-   one block above SIGNALS, unread first, each row keeps its promise (the
-   tap opens the surface it names and marks itself read). Renders nothing
-   when the stream is empty or the migration isn't live — no dead chrome.
+/* THE BELL (v10 D2 · Las Campanas → v16 EL PANEL) — the notification inbox,
+   quiet by law: each row keeps its promise (the tap opens the surface it
+   names and marks itself read). v16: dejó de ser un bloque arriba de la
+   lista de SIGNALS — es un panel lateral propio, abierto desde la campana
+   del encabezado, con el stream completo (50) y scroll. Los testids
+   (bell-block / bell-row-* / bell-mark-all) viajan intactos.
    The ◇ pill marks a seed actor — only a founder can ever receive one
    (the RPC floors demo actors for everyone else). */
-function TheBell({ bells, onOpen, onMarkAll }) {
-  const rows = (bells.signals || []).slice(0, 8)
-  if (!rows.length) return null
-  return (
-    <div data-testid="bell-block" style={{ marginTop: '16px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px' }}>
-        <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: SILVER }}>◇</span>
-        <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>
-          The bell{bells.unread > 0 ? ` · ${bells.unread} new` : ''}
-        </span>
-        {bells.unread > 0 && (
-          <button className="pressable" data-testid="bell-mark-all" onClick={onMarkAll}
-            style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', padding: '4px 2px' }}>
-            mark all read
+function BellPanel({ bells, onOpen, onMarkAll, onClose }) {
+  const rows = bells.signals || []
+  /* review v16: un dialog sin manejo de foco es un dialog roto para
+     teclado/lector — la trampa de la casa (focusTrap.js) mete el foco,
+     lo cicla, maneja Escape y lo DEVUELVE al botón de la campana. */
+  const panelRef = useRef(null)
+  useFocusTrap(panelRef, onClose)
+  return createPortal(
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10020 }}>
+      {/* el velo — picar afuera cierra */}
+      <div className="overlay-fade" onClick={onClose} aria-hidden style={{ position: 'absolute', inset: 0, background: 'rgba(var(--void-rgb),.45)', animation: 'overlayFade .25s var(--ease-exit)' }} />
+      {/* el panel — losa de vidrio anclada a la derecha, viewport completo */}
+      <div data-testid="bell-block" role="dialog" aria-modal="true" aria-label="The bell — notifications"
+        className="panel-in-right" ref={panelRef} tabIndex={-1}
+        style={{
+          position: 'absolute', top: 0, right: 0, bottom: 0,
+          width: 'min(92vw, 384px)',
+          display: 'flex', flexDirection: 'column',
+          ...glassSurface({ borderRadius: 0, border: 'none', borderLeft: '1px solid var(--glass-border)' }),
+        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '18px 18px 12px', paddingTop: 'calc(18px + env(safe-area-inset-top, 0px))' }}>
+          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: SILVER }}>◇</span>
+          <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em', textTransform: 'uppercase' }}>
+            The bell{bells.unread > 0 ? ` · ${bells.unread} new` : ''}
+          </span>
+          {bells.unread > 0 && (
+            <button className="pressable" data-testid="bell-mark-all" onClick={onMarkAll}
+              style={{ marginLeft: 'auto', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', padding: '4px 2px' }}>
+              mark all read
+            </button>
+          )}
+          <button className="pressable" onClick={onClose} aria-label="Close the bell"
+            style={{ marginLeft: bells.unread > 0 ? '4px' : 'auto', background: 'transparent', border: 'none', cursor: 'pointer', color: BONE_MID, padding: '6px', display: 'inline-flex' }}>
+            <X size={15} />
           </button>
+        </div>
+        {rows.length === 0 && (
+          <div style={{ padding: '44px 26px', textAlign: 'center' }}>
+            <Bell size={18} strokeWidth={1.4} style={{ color: SILVER, marginBottom: '12px' }} />
+            <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6 }}>
+              nothing ringing yet — when someone follows you or asks into your circle, it lands here.
+            </div>
+          </div>
         )}
-      </div>
-      <div style={{ marginTop: '8px', borderRadius: '14px', border: `1px solid ${HAIR}`, overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 18px' }}>
+        <div style={{ borderRadius: '14px', border: rows.length ? `1px solid ${HAIR}` : 'none', overflow: 'hidden', background: 'rgba(var(--void-rgb),.25)' }}>
         {rows.map((s, i) => {
           const unread = !s.read_at
           const name = s.actor?.name || s.actor?.username || (s.kind === 'ticket_sale' ? 'someone' : 'the room')
@@ -469,12 +512,19 @@ function TheBell({ bells, onOpen, onMarkAll }) {
             </div>
           )
         })}
+        </div>
+        </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
-/* the mono segmented row — SIGNALS · CREWS · PLANS */
+/* the segmented row — SIGNALS · CREWS · PLANS.
+   v16: control segmentado de VIDRIO — pozo (WELL) de píldora con el panel
+   activo iluminado (CHIP), la misma gramática que la nav. Los subrayados
+   con puntos murieron. Gradientes, nunca un segundo blur (regla de
+   no-anidar de glass.js). */
 function SegRow({ seg, onSeg }) {
   const items = [
     { key: 'signals', label: 'SIGNALS' },
@@ -482,18 +532,23 @@ function SegRow({ seg, onSeg }) {
     { key: 'plans', label: 'PLANS' },
   ]
   return (
-    <div role="tablist" aria-label="Message registers" style={{ display: 'flex', alignItems: 'center', marginTop: '16px', borderBottom: `1px solid ${HAIR}` }}>
-      {items.map((it, i) => {
+    <div role="tablist" aria-label="Message registers"
+      style={{ display: 'flex', alignItems: 'stretch', marginTop: '16px', borderRadius: '100px', padding: '4px', gap: '4px', ...WELL }}>
+      {items.map((it) => {
         const on = seg === it.key
         return (
-          <span key={it.key} style={{ display: 'inline-flex', alignItems: 'center' }}>
-            {i > 0 && <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, padding: '0 2px' }}>·</span>}
-            <button role="tab" aria-selected={on} className="pressable" data-testid={`inbox-seg-${it.key}`}
-              onClick={() => onSeg(it.key)}
-              style={{ background: 'transparent', border: 'none', borderBottom: `1px solid ${on ? BONE : 'transparent'}`, marginBottom: '-1px', minHeight: '40px', padding: '10px 10px 12px', color: on ? BONE : BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22em', textTransform: 'uppercase', cursor: 'pointer', transition: 'color .2s' }}>
-              {it.label}
-            </button>
-          </span>
+          <button key={it.key} role="tab" aria-selected={on} className="pressable" data-testid={`inbox-seg-${it.key}`}
+            onClick={() => onSeg(it.key)}
+            style={{
+              flex: 1, minHeight: '36px', padding: '9px 8px',
+              background: 'transparent', border: '1px solid transparent', borderRadius: '100px',
+              color: on ? BONE : BONE_LOW,
+              fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', textTransform: 'uppercase',
+              cursor: 'pointer', transition: 'color .2s, background .25s var(--ease-house), border-color .25s var(--ease-house), box-shadow .25s var(--ease-house)',
+              ...(on ? CHIP : null),
+            }}>
+            {it.label}
+          </button>
         )
       })}
     </div>
@@ -649,9 +704,19 @@ function InboxRow({ t, me, last, onOpen }) {
   const face = roomKind ? null : t.others?.[0]
   const avatar = safeImg(face?.avatar_url)
   const kicker = t.kind === 'event' ? 'room' : t.kind === 'group' ? 'crew' : t.kind === 'plan' ? 'plan' : null
+  /* v16 — la fila es una CÁPSULA de vidrio con volumen, no una línea con
+     hairline (Diego: "transparentes pero planas, y al picarlas no responden").
+     Las tres señales de profundidad de la casa (filo especular, piso, sombra
+     proyectada) SIN backdrop-filter: una bandeja pinta 10-20 filas y un blur
+     por fila es GPU tirada — la translucidez (CARD_TINT) ya deja pasar la
+     atmósfera. El press es el resorte (.press-spring): estas filas no llevan
+     vidrio real, así que el transform es legal. */
   return (
-    <button className="row-lead" onClick={onOpen}
-      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: last ? 'none' : `1px solid ${HAIR}`, padding: '14px 2px', cursor: 'pointer' }}>
+    <button className="press-spring" onClick={onOpen}
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', width: '100%', textAlign: 'left',
+        background: CARD_TINT, border: `1px solid ${HAIR_HI}`, borderRadius: '18px',
+        boxShadow: 'inset 0 1.5px 0 var(--card-edge), inset 0 -1px 0 var(--glass-floor), var(--card-cast)',
+        padding: '13px 14px', marginBottom: last ? 0 : '10px', cursor: 'pointer' }}>
       {/* the face — or the room's mark: calendar for events, square for
           crews, star for plan rooms (Ley 6 / Ley 14) */}
       <span style={{ width: '42px', height: '42px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${t.unread ? SILVER : HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1301,7 +1366,7 @@ function Shell({ children, wide }) {
   )
 }
 
-function Header({ wide, count }) {
+function Header({ wide, count, bellUnread = 0, onBell }) {
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: '14px', flexWrap: 'wrap' }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: '10px' }}>
@@ -1315,6 +1380,34 @@ function Header({ wide, count }) {
         <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', paddingBottom: wide ? '7px' : '5px' }}>
           {String(count).padStart(2, '0')} open
         </div>
+      )}
+      {/* v16 — LA CAMPANA: el panel de notificaciones vive detrás de este
+          control (arriba a la derecha, como pidió el send-off). glassControl:
+          flota directo sobre la página, sin cardGlass arriba — la regla de
+          no-anidar se respeta. El badge dice la verdad de signals_unread y
+          nunca inventa. */
+      }
+      {onBell && (
+        <button className="glass-press" data-testid="bell-door" onClick={onBell}
+          aria-label={bellUnread > 0 ? `The bell — ${bellUnread} unread` : 'The bell — notifications'}
+          style={{
+            ...glassControl(),
+            marginLeft: 'auto', alignSelf: 'flex-end', marginBottom: wide ? '2px' : 0,
+            position: 'relative', width: '40px', height: '40px', borderRadius: '50%',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            color: BONE, cursor: 'pointer',
+          }}>
+          <Bell size={16} strokeWidth={1.5} />
+          {bellUnread > 0 && (
+            <span data-testid="bell-door-badge" aria-hidden
+              style={{ position: 'absolute', top: '-3px', right: '-3px', minWidth: '15px', height: '15px',
+                borderRadius: '100px', background: BONE, color: 'var(--bg)', fontFamily: 'DM Mono',
+                fontSize: '8.5px', fontWeight: 700, lineHeight: '15px', textAlign: 'center', padding: '0 3px',
+                boxShadow: '0 0 0 2px rgba(var(--void-rgb),0.55)' }}>
+              {bellUnread > 9 ? '9+' : bellUnread}
+            </span>
+          )}
+        </button>
       )}
     </div>
   )
