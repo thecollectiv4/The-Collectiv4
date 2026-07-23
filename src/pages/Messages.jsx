@@ -9,14 +9,14 @@ import {
   socialReady, circleReady, fetchInbox, fetchThread, sendMessage, markThreadRead, subscribeThread, msgTime,
   myCircle, respondFriend, createCrew, leaveCrew, createPlan, rsvpPlan, cancelPlan, leavePlan, myPlans,
   addCloseFriend, removeCloseFriend, myCloseFriends,
-  setPlanVisibility, VIS_TIERS, VIS_LABEL,
+  setPlanVisibility, VIS_TIERS, VIS_LABEL, planWhen,
 } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { useFocusTrap } from '@/lib/focusTrap'
 import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signalTo } from '@/lib/signals'
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
-import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users, Bell } from 'lucide-react'
+import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users, Bell, Link2, Check } from 'lucide-react'
 import { tintChannel, closeStarStyle } from '@/lib/cosmos'
 import { glassSurface, glassControl, CHIP, WELL, CARD_TINT } from '@/lib/glass'
 
@@ -756,20 +756,8 @@ function relDay(iso) {
 
 /* ------------------------------- plans ------------------------------- */
 
-/* the plan's when, human and honest — relDay's cousin for the FUTURE */
-function planWhen(iso) {
-  if (!iso) return 'when tbd'
-  const d = new Date(iso)
-  if (isNaN(d)) return 'when tbd'
-  const now = new Date()
-  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate())
-  const days = Math.round((startOf(d) - startOf(now)) / 86400000)
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  if (days === 0) return `today · ${time}`
-  if (days === 1) return `tomorrow · ${time}`
-  if (days === -1) return `yesterday · ${time}`
-  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`
-}
+/* the plan's when — moved to src/lib/social.js in v17 (three consumers:
+   here, the Events rail, the /p/:id landing). Imported above. */
 
 /* my RSVP applied locally: roster is the source, counts recomputed from
    it — the optimistic card can never show a count the roster contradicts */
@@ -787,6 +775,18 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
   const canceled = p.status === 'canceled'
   const mine = p.creator?.id === meId
   const creatorName = p.creator?.name || (p.creator?.username ? '@' + p.creator.username : null)
+  /* v17 — el link compartible. Sólo planes PÚBLICOS lo enseñan (la landing
+     /p/:id responde not_found para cualquier otro tier — un link a un
+     cuarto invisible es una promesa rota). Cualquier miembro puede
+     copiarlo: el caso real es el link del fucho cayendo en un WhatsApp. */
+  const [copied, setCopied] = useState(false)
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${p.id}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard denied — the button simply doesn't confirm */ }
+  }
   return (
     <div data-testid={`plan-card-${p.id}`}
       style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '14px', padding: '16px 16px 12px', marginBottom: '12px', background: 'linear-gradient(150deg, rgba(var(--star-rgb),.04), rgba(var(--star-rgb),.01))', opacity: canceled ? .55 : 1 }}>
@@ -824,6 +824,16 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
             {VIS_LABEL[p.visibility || 'friends']}
           </div>
         )
+      )}
+
+      {/* v17 — the shareable door: public plans carry their own link. Drop
+          it in the group chat and it opens for people with no account. */}
+      {!canceled && p.visibility === 'public' && (
+        <button className="pressable" data-testid="plan-copy-link" onClick={copyLink}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px', background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '6px 12px', color: copied ? BONE : BONE_MID, cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.14em', textTransform: 'uppercase' }}>
+          {copied ? <Check size={10} /> : <Link2 size={10} />}
+          {copied ? 'copied — drop it anywhere' : 'copy the door link'}
+        </button>
       )}
 
       {!canceled && (

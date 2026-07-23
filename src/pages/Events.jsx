@@ -6,6 +6,8 @@ import { useWide } from '@/lib/useIsDesktop'
 import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
 import { normVibe, vibeMeta } from '@/lib/match'
 import FoundersLine from '@/components/FoundersLine'
+import SeedPill from '@/components/SeedMark'
+import { publicPlans, planWhen } from '@/lib/social'
 import { CARD_TINT, cardGlass, glassControl } from '@/lib/glass'
 import { tintChannel } from '@/lib/cosmos'
 
@@ -96,6 +98,20 @@ export default function Events() {
         setEvents(data || []); setLoading(false)
       })
       .catch(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [])
+
+  /* v17 — HAPPENING NEAR YOU: los planes públicos de la ciudad (0057).
+     Los eventos C4 van SIEMPRE arriba (dirección de fundador); el rail
+     vive debajo y también en noches sin evento — la ciudad no cierra
+     cuando el calendario de la casa está vacío. Anon-safe por diseño
+     (publicPlans degrada a [] sin sesión ni red). Esto además deja la
+     superficie lista para el aggregation de v18: el tab ya es LA CIUDAD,
+     no sólo nuestro calendario. */
+  const [cityPlans, setCityPlans] = useState([])
+  useEffect(() => {
+    let alive = true
+    publicPlans(30).then((ps) => { if (alive) setCityPlans(ps) })
     return () => { alive = false }
   }, [])
 
@@ -199,6 +215,46 @@ export default function Events() {
                       style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50 + 100}ms` }}>
                       <RoomCard e={e} wide={wide} onOpen={() => navigate(e.slug ? `/e/${e.slug}` : '/')} />
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* v17 — HAPPENING NEAR YOU: el rail de planes públicos. Debajo
+                de los cuartos C4 (siempre primero), vivo también en noches
+                sin evento. Cada fila es una puerta a /p/:id — la landing
+                que abre para no-miembros. Filas hairline, no RoomCards: un
+                plan es más ligero que un cuarto y no debe confundirse con
+                uno. La ciudad de cada fila es la del creador (los planes no
+                cargan geo propia — Ley 11: no nombrar más allá del dato). */}
+            {cityPlans.length > 0 && (
+              <div style={{ marginTop: wide ? '44px' : '32px' }}>
+                <RowMarker label="HAPPENING NEAR YOU" kicker="plans from the community" />
+                <div style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', overflow: 'hidden' }}>
+                  {cityPlans.slice(0, 8).map((p, i) => (
+                    <button key={p.id} className={`pressable${entered ? '' : ' card-in'}`}
+                      data-testid={`city-plan-${p.id}`}
+                      onClick={() => navigate(`/p/${p.id}`)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left',
+                        padding: wide ? '14px 18px' : '13px 14px', background: 'rgba(var(--ink-rgb),.02)',
+                        border: 'none', borderBottom: i === Math.min(cityPlans.length, 8) - 1 ? 'none' : `1px solid ${HAIR}`,
+                        cursor: 'pointer', ...(entered ? {} : { animationDelay: `${Math.min(i, 8) * 50 + 150}ms` }),
+                      }}>
+                      <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', textTransform: 'uppercase', width: wide ? '110px' : '84px', flexShrink: 0 }}>
+                        {planWhen(p.starts_at)}
+                      </span>
+                      <span style={{ minWidth: 0, flex: 1 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                          <span style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</span>
+                          <SeedPill is_demo={p.creator?.is_demo} />
+                        </span>
+                        <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          by {p.creator?.name || p.creator?.username || 'a member'}{p.creator?.city ? ` · ${p.creator.city}` : ''}{p.spot ? ` · ${p.spot}` : ''}
+                        </span>
+                      </span>
+                      <ArrowUpRight size={13} style={{ color: BONE_LOW, flexShrink: 0 }} />
+                    </button>
                   ))}
                 </div>
               </div>

@@ -17,6 +17,7 @@ import PastEditions from '@/pages/PastEditions'
 import ArtistRedirect from '@/pages/ArtistRedirect'
 import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
+import PlanLanding from '@/pages/PlanLanding'
 import ClaimWorld from '@/pages/ClaimWorld'
 import EventPage from '@/pages/EventPage'
 import NetworkAdmin from '@/pages/NetworkAdmin'
@@ -149,6 +150,7 @@ export default function App() {
             <Route path="c4" element={<HouseWorld />} />{/* the house world — the flagship example (D4); becomes the front door when the domain points here */}
             <Route path="e/:slug" element={<EventPage />} />{/* any published event's public room (0016) */}
             <Route path="community" element={<Community />} />{/* the people — find yours */}
+            <Route path="p/:id" element={<PlanLanding />} />{/* v17 — el link compartible de un plan público; abre para no-miembros (isPublicPath) */}
             <Route path="messages" element={<Messages />} />{/* the conversations (0017) */}
             <Route path="messages/:id" element={<Messages />} />
             <Route path="profile" element={<Profile />} />
