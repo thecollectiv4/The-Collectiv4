@@ -83,9 +83,14 @@ export default function Community() {
   // links land on the filtered grid, never for-you; otherwise signed-in
   // defaults to the matched feed and anon to the open room.
   const viewParam = searchParams.get('view')
+  /* v17 — EVERYONE es el default para TODOS (decisión de fundador, 23 jul):
+     con 11 mundos, ver a todos ES el descubrimiento. For You pasa a segunda
+     pestaña y gana peso cuando haya volumen. El default ya no depende de la
+     sesión, así que el hold de authLoading que evitaba el flash del default
+     equivocado murió con esta línea. */
   const view = (viewParam === 'foryou' || viewParam === 'everyone')
     ? viewParam
-    : (craft !== 'all' ? 'everyone' : (user ? 'foryou' : 'everyone'))
+    : 'everyone'
   const setView = (v) => {
     // mirror setCraft: touch ONLY the view param
     const p = new URLSearchParams(searchParams)
@@ -193,28 +198,34 @@ export default function Community() {
       let rows = []
       // bounded: the directory pages later — an unbounded select with jsonb
       // columns won't survive a real community (review catch)
-      let q = supabase.from('profiles').select(FIELDS + ',is_demo').order('created_at', { ascending: true }).limit(200)
+      // v17: created_at DESC — con tope 200, ascendente significaba que el
+      // recién llegado (el que MÁS necesita ser visto) renderizaba al final
+      // o, pasados 200 perfiles, NUNCA. Los más nuevos sobreviven el tope.
+      let q = supabase.from('profiles').select(FIELDS + ',is_demo').order('created_at', { ascending: false }).limit(200)
       if (!showDemo) q = q.eq('is_demo', false)
       const { data, error } = await q
       if (error) {
-        const res = await supabase.from('profiles').select(FIELDS_BASE)
+        const res = await supabase.from('profiles').select(FIELDS_BASE).order('created_at', { ascending: false })
         rows = (res.data || []).map(r => ({ ...r, is_demo: DEMO_USERNAMES.has(r.username) }))
         if (!showDemo) rows = rows.filter(r => !r.is_demo)
       } else {
         rows = data || []
       }
       if (!alive) return
-      /* v16 — LA REGLA DE ORDEN (0054, decisión de fundador): los mundos con
-         avatar Y portada van SIEMPRE arriba, ordenados por cuándo
-         completaron sus fotos (photos_completed_at asc: el recién completado
-         entra AL FINAL del grupo con fotos). Los sin fotos completas se
-         quedan abajo en su orden actual (created_at asc, que ya trae la
-         query). El sello viene del trigger de 0054 — una sola fuente, nunca
-         derivado a ojo en el cliente. */
+      /* v17 — LA REGLA DE ORDEN (decisión de fundador, 23 jul — supersede
+         el orden-dentro-del-grupo de v16/0054 en ESTA superficie): los
+         mundos con avatar Y portada siguen SIEMPRE arriba (0054 intacta en
+         eso), pero dentro de cada grupo van LOS MÁS NUEVOS PRIMERO —
+         photos_completed_at desc en el grupo con fotos, created_at desc
+         (el orden de la query) en el resto. El sello sigue viniendo del
+         trigger de 0054 — una sola fuente, nunca derivado a ojo en el
+         cliente. Nota honesta: get_for_you (For You) conserva el orden
+         v16 dentro del grupo con fotos; cambiarlo es una migración sobre
+         la función y no viajó en v17. */
       rows = [...rows].sort((a, b) => {
         const as = a.photos_completed_at, bs = b.photos_completed_at
         if (!!as !== !!bs) return as ? -1 : 1
-        if (as && bs && as !== bs) return as < bs ? -1 : 1
+        if (as && bs && as !== bs) return as > bs ? -1 : 1
         return 0   // estable: dentro de cada grupo manda el orden de la query
       })
       setCreatives(rows)
@@ -222,17 +233,22 @@ export default function Community() {
       // the craft spine on the cards + the filter's real vocabulary (0020)
       setCraftsLoaded(false)
       fetchCraftsForProfiles(rows.map(r => r.id)).then((m) => { if (alive) { setCraftsByProfile(m); setCraftsLoaded(true) } })
-      // v17 — public tastes for the craft-less card band (3 max per card:
-      // the band is one line, not a list). Rides this same load pass so the
-      // directory stays at one render storm, not two.
+      // v17 — public tastes, full lists: the card band shows 3 but the
+      // SEARCH matches all of them ("cumbia" must find the person whose
+      // 8th taste is cumbia). Rides this same load pass so the directory
+      // stays at one render storm, not two. is_public explícito: la RLS de
+      // 0022/0027 ya filtra igual para terceros, pero el eq también excluye
+      // las filas privadas PROPIAS que el branch de owner sí devolvería —
+      // sin él, tu taste quiet matchearía tu propia búsqueda y nombrarlo
+      // rompería la ley de privacidad.
       supabase.from('profile_tastes').select('profile_id,label').eq('is_public', true)
-        .in('profile_id', rows.map(r => r.id)).limit(1000)
+        .in('profile_id', rows.map(r => r.id)).limit(2000)
         .then(({ data: trows }) => {
           if (!alive || !trows) return
           const m = new Map()
           trows.forEach(t => {
             const a = m.get(t.profile_id) || []
-            if (a.length < 3) a.push(t.label)
+            a.push(t.label)
             m.set(t.profile_id, a)
           })
           setTastesByProfile(m)
@@ -263,7 +279,10 @@ export default function Community() {
   const shown = creatives.filter(c =>
     (city === 'all' || c.city === city) &&
     (craft === 'all' || (craftsByProfile.get(c.id) || []).some((k) => k.slug === craft)) &&
-    (!nq || (c.full_name || '').toLowerCase().includes(nq) || (c.username || '').toLowerCase().includes(nq)))
+    (!nq || (c.full_name || '').toLowerCase().includes(nq) || (c.username || '').toLowerCase().includes(nq)
+      // v17 — search speaks taste: "cumbia" o "fucho" devuelven gente, no
+      // sólo nombres. Sólo tastes públicos (así llegó tastesByProfile).
+      || (tastesByProfile.get(c.id) || []).some(l => l.toLowerCase().includes(nq))))
   // the grid re-keys on any filter change — the real filter state is city +
   // craft (URL param) + nameQ (the people search), not the plan's placeholder q.
   // firstKey pins the combo the page landed on: the refilter crossfade fires
@@ -305,11 +324,13 @@ export default function Community() {
           )}
         </div>
 
-        {/* FOR YOU / EVERYONE — two ways into the same room (D2): the
-            matched feed or the open grid. Anon tapping FOR YOU meets the
-            auth door exactly like the nav's gated tabs (Ley 9). */}
+        {/* EVERYONE / FOR YOU — two ways into the same room (D2): the open
+            grid or the matched feed. v17: Everyone va primero y es el
+            default — con 11 mundos, ver a todos ES el descubrimiento. Anon
+            tapping FOR YOU meets the auth door exactly like the nav's
+            gated tabs (Ley 9). */}
         <div style={{ display: 'flex', gap: '22px', marginTop: '18px', borderBottom: `1px solid ${HAIR}` }}>
-          {[['foryou', 'For You', 'foryou-toggle'], ['everyone', 'Everyone', 'everyone-toggle']].map(([key, label, tid]) => {
+          {[['everyone', 'Everyone', 'everyone-toggle'], ['foryou', 'For You', 'foryou-toggle']].map(([key, label, tid]) => {
             const on = view === key
             return (
               <button key={key} className="pressable" data-testid={tid}
@@ -321,14 +342,9 @@ export default function Community() {
           })}
         </div>
 
-        {/* while identity is UNKNOWN and no view was asked for, hold —
-            defaulting on an unresolved session would flash the wrong room
-            (three-way auth doctrine) */}
-        {authLoading && !viewParam && craft === 'all' ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-            <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
-          </div>
-        ) : (
+        {/* v17: el hold de authLoading murió — el default (everyone) ya no
+            depende de la sesión, así que no hay "default equivocado" que
+            flashear mientras la identidad resuelve. */}
         <div key={view} className={view !== firstView.current ? 'refilter-in' : undefined}>
         {view === 'foryou' ? (
           user ? (
@@ -353,7 +369,7 @@ export default function Community() {
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginTop: '16px', maxWidth: wide ? '440px' : undefined }}>
           <Search size={14} strokeWidth={1.6} style={{ position: 'absolute', left: '13px', color: BONE_LOW, pointerEvents: 'none' }} />
           <input value={nameQ} onChange={(e) => setNameQ(e.target.value)} data-testid="community-search"
-            placeholder="search people by name or @handle" aria-label="Search people by name or handle" autoComplete="off"
+            placeholder="search by name, @handle, or taste" aria-label="Search people by name, handle, or taste" autoComplete="off"
             style={{ width: '100%', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '10px', padding: '11px 38px 11px 36px', color: BONE, fontFamily: 'DM Sans', fontSize: '13.5px', outline: 'none' }} />
           {nameQ && (
             <button onClick={() => setNameQ('')} aria-label="Clear search" className="pressable"
@@ -436,7 +452,6 @@ export default function Community() {
         </>
         )}
         </div>
-        )}
       </div>
 
       {/* v16: aquí vivía el segundo render del AuthModal (con el título
@@ -702,7 +717,7 @@ function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showS
         /* v17 — el no-maker no queda fantasma: sin craft ni discipline, la
            tarjeta habla su taste (sólo lo público — la capa quiet nunca
            sale de la DB). Minúsculas y sin tinte: es taste, no oficio. */
-        : tastes.length > 0 ? <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.08em', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tastes.map(t => t.toLowerCase()).join(' · ')}</div> : null}
+        : tastes.length > 0 ? <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.08em', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tastes.slice(0, 3).map(t => t.toLowerCase()).join(' · ')}</div> : null}
         {c.tagline && (
           <div className="disc-reveal" style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             “{c.tagline}”

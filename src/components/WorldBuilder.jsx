@@ -73,6 +73,7 @@ const SHOW_OPTIONS = [
 const STEP_COPY = {
   craft: { title: 'YOUR CRAFT', kicker: 'the door sign', why: `${WHY} Start with what you make.` },
   taste: { title: 'BRAINSTORM YOUR TASTE', kicker: 'the quiet layer', why: 'Music, film, what keeps you alive. Quiet by default — the universe uses it to find your people, only you decide what shows.' },
+  city: { title: 'YOUR CITY', kicker: 'where real life happens', why: 'Where does real life happen for you? One answer and the universe knows who’s actually near — the room only works if it knows where you stand.' },
   line: { title: 'YOUR LINE', kicker: 'in your voice', why: 'One line under your name — what you\'re on right now. Rewrite the suggestion or clear it; it ships in YOUR words only.' },
   work: { title: 'THE WORK', kicker: 'what turns it on', why: 'This space is for your work — three pieces turn it on. Shots, canvases, fits, stills.' },
   doors: { title: 'THE DOORS', kicker: 'where it leads', why: 'Every link is a door out of your world — IG, portfolio, sound. One keeps it open.' },
@@ -108,6 +109,7 @@ function firstUnfinished(steps, d, crafts, tastes) {
     const k = steps[i]
     if (k === 'craft' && !(crafts || []).length && !(tastes || []).length) return i
     if (k === 'taste' && !(tastes || []).length) return i
+    if (k === 'city' && !(d?.city || '').trim()) return i
     if (k === 'line' && !(d?.tagline || '').trim()) return i
     if (k === 'words' && !(d?.bio || '').trim()) return i
     if (k === 'work' && normGallery(d?.gallery).length < 3) return i
@@ -222,7 +224,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
      exactly this human) and every other step stays reachable + skippable.
      No 'craft' step in this order: the wall doesn't reappear downstream. */
   const enterTasteFirst = () => {
-    setPlanSteps(['taste', 'line', 'work', 'doors', 'marquee', 'skin'])
+    setPlanSteps(['taste', 'city', 'line', 'work', 'doors', 'marquee', 'skin'])
     setStage('steps')
     setStep(0)
   }
@@ -305,6 +307,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
       setBusy(false)
       return setStep(safeStep + 1)
     }
+    if (key === 'city') return commitAndGo({ city: (data.city || '').trim() || null }, safeStep + 1)
     if (key === 'line') return commitAndGo({ tagline: (data.tagline || '').trim() || null }, safeStep + 1)
     if (key === 'words') return commitAndGo({ bio: (data.bio || '').trim() || null }, safeStep + 1)
     if (key === 'work') return commitAndGo({ gallery: gallery.map(g => ({ path: g.path || null, url: g.url, caption: (g.caption || '').trim() })) }, safeStep + 1)
@@ -628,6 +631,17 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
               ) : (
                 <TasteBrainstorm value={tasteValue} onChange={setTasteDraft} maxHeight="22vh" />
               )
+            )}
+
+            {key === 'city' && (
+              <div>
+                <label style={monoLabel}>YOUR CITY</label>
+                <input style={inp} value={data.city || ''} placeholder="Houston · Valencia · Katy…" maxLength={60}
+                  onChange={e => onDraft({ city: e.target.value })} />
+                <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '8px' }}>
+                  the city you actually live in — not the one you dream of. it feeds who you meet.
+                </div>
+              </div>
             )}
 
             {key === 'line' && (

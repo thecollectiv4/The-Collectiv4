@@ -57,12 +57,16 @@ export function craftKindOf(discipline) {
 /* Step order per craft — same steps, different door. `words` (the writer's
    piece) edits `bio`, which the museum already opens the world with.
    `taste` (v6) rides right after the craft: who you are, then what you
-   love — the quiet layer that powers the for-you (0022). */
+   love — the quiet layer that powers the for-you (0022).
+   `city` (v17) rides right after taste: a third of get_for_you's score is
+   same-city, and until now the app NEVER asked — the engine ran on an
+   empty field. One question, all three populations (new makers, the
+   here-for-the-people path, returning members via firstUnfinished). */
 export const CRAFT_STEPS = {
-  visual: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
-  sound: ['craft', 'taste', 'doors', 'work', 'marquee', 'skin'],
-  word: ['craft', 'taste', 'words', 'work', 'doors', 'marquee', 'skin'],
-  generic: ['craft', 'taste', 'work', 'doors', 'marquee', 'skin'],
+  visual: ['craft', 'taste', 'city', 'work', 'doors', 'marquee', 'skin'],
+  sound: ['craft', 'taste', 'city', 'doors', 'work', 'marquee', 'skin'],
+  word: ['craft', 'taste', 'city', 'words', 'work', 'doors', 'marquee', 'skin'],
+  generic: ['craft', 'taste', 'city', 'work', 'doors', 'marquee', 'skin'],
 }
 
 /* =========================================================================
@@ -164,8 +168,8 @@ export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride })
   if (has.has('images')) push('work')
   if (has.has('links')) push('doors')
   // fill the rest in the craft's own order (minus 'craft' — already
-  // answered — and 'taste', which rides right after the line below)
-  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'taste' && k !== 'marquee' && k !== 'skin') push(k) })
+  // answered — 'taste' and 'city', which ride right after the line below)
+  CRAFT_STEPS[kind].forEach((k) => { if (k !== 'craft' && k !== 'taste' && k !== 'city' && k !== 'marquee' && k !== 'skin') push(k) })
 
   const skin = skinForFeel(feel)
   // local marquee suggestion: their own feel, spoken as a welcome — never
@@ -175,7 +179,7 @@ export function composeWorldPlan({ craft, feel, show = [], kind: kindOverride })
 
   return {
     kind,
-    steps: ['line', 'taste', ...order, 'marquee', 'skin'],
+    steps: ['line', 'taste', 'city', ...order, 'marquee', 'skin'],
     skin,
     marquee: marquee || null,   // null → keep the house default
     line: null,                 // a suggested tagline comes only from /api/curate
