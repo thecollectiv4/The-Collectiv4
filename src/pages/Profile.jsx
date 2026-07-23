@@ -7,7 +7,7 @@ import { SlidersHorizontal, Calendar, MapPin, Clock, ChevronRight, Copy, Check }
 import { QRCodeSVG } from 'qrcode.react'
 import ProfileMuseum from '@/components/ProfileMuseum'
 import AuthResolving from '@/components/AuthResolving'
-import { uploadWorldImage, removeWorldImages, worldPathFromUrl } from '@/lib/worldStorage'
+import { uploadWorldImage, removeWorldImages, worldPathFromUrl, downscaleImage } from '@/lib/worldStorage'
 import { fetchWorldPosts, deleteWorldPost, updateWorldPostCaption } from '@/lib/worldPosts'
 import { fetchListings, deleteListing, setListingStatus } from '@/lib/listings'
 import { socialReady, fetchFollowState } from '@/lib/social'
@@ -206,7 +206,10 @@ export default function Profile() {
   // RLS). Old base64 avatars keep rendering — only NEW uploads change shape.
   // The replaced object is removed best-effort AFTER the row points elsewhere.
   const uploadImage = (col, prefix) => async (file) => {
-    const { path, url } = await uploadWorldImage(user.id, file, prefix)
+    // v17 — avatar y cover bajan a ~1920px ANTES de subir (worldStorage);
+    // falla → sube el original. La galería NO pasa por aquí a propósito.
+    const slim = await downscaleImage(file)
+    const { path, url } = await uploadWorldImage(user.id, slim, prefix)
     const prev = worldPathFromUrl(profile?.[col])
     const { error } = await supabase.from('profiles').update({ [col]: url }).eq('id', user.id)
     if (error) { removeWorldImages([path]); throw error }
