@@ -929,7 +929,9 @@ input, textarea, select,
 
 .glass-nav, .glass-nav-slot { touch-action: none; }
 
-.glass-nav-slot { transition: opacity 400ms var(--ease-house), transform 80ms var(--ease-exit); }
+/* v16: la suelta del slot viaja por el resorte (rebota una vez); el press
+   de entrada sigue directo y rápido — misma asimetría que .press-spring. */
+.glass-nav-slot { transition: opacity 400ms var(--ease-house), transform var(--dur-spring) var(--ease-spring); }
 .glass-nav-slot:not(:disabled):active { transition: opacity 400ms var(--ease-house), transform var(--dur-press) var(--ease-exit); }
 
 .glass-nav-label {
@@ -942,6 +944,10 @@ input, textarea, select,
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* v16: los labels viven ocultos (opacity inline por estado) y aparecen
+     con fade — la transición vive aquí para que las dos barras respiren
+     igual. Es comprensión, no movimiento: no se apaga en reduced-motion. */
+  transition: opacity 260ms var(--ease-house);
 }
 
 /* Transparencia reducida: el vidrio se vuelve sólido. Nunca se queda
@@ -961,8 +967,12 @@ input, textarea, select,
   .glass-nav-chip {
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
-    background: rgba(var(--ink-rgb),.16) !important;
   }
+  /* v16: el vidrio del viajero vive ahora en el disco (.glass-nav-puck) en
+     móvil y en la píldora de ranura completa (.glass-nav-chip-pill) en
+     escritorio; el marco móvil es transparente. El sólido va donde va el
+     vidrio. */
+  .glass-nav-puck, .glass-nav-chip-pill { background: rgba(var(--ink-rgb),.16) !important; }
 }
 
 /* Alto contraste: bordes definidos, fondo casi opaco. */

@@ -288,7 +288,13 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
 
         <div ref={rowRef} style={{ position:'relative', display:'flex', alignItems:'stretch' }}>
           {/* THE CHIP — a pane of brighter glass, not a second blur. It tracks
-              the finger during a scrub (fast) and the route otherwise. */}
+              the finger during a scrub (fast) and the route otherwise.
+              v16 (fix de Diego): la burbuja es CIRCULAR y envuelve TODO el
+              ícono. El div exterior quedó como marco de posicionamiento
+              (transparente, viaja por translateX de ranura en ranura) y el
+              vidrio vive en un disco de 44px centrado sobre la burbuja del
+              ícono (36px) — el rectángulo redondeado de ranura completa
+              murió. El transform sigue en el marco: un solo viajero. */}
           <div aria-hidden="true" className="glass-nav-chip" style={{
             position:'absolute', top:0, bottom:0, left:0,
             /* zIndex 0 against the slots' zIndex 1 is LOAD-BEARING: an
@@ -296,24 +302,41 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                regardless of DOM order, so without this the chip's gradient
                washes over the very icon and label it sits behind. */
             zIndex:0,
-            width:`${100 / n}%`, borderRadius:'20px', pointerEvents:'none',
+            width:`${100 / n}%`, pointerEvents:'none',
             transform:`translateZ(0) translateX(${(chipSlot ?? 0) * 100}%) scale(${scrub !== null ? 1.04 : 1})`,
             opacity: chipSlot === null ? 0 : 1,
-            ...CHIP,
             transition: armed
               ? `transform ${scrub !== null ? SCRUB_MS : CHIP_MS}ms ${scrub !== null ? HOUSE_EASE : CHIP_EASE}, opacity ${CHIP_MS}ms ${CHIP_EASE}`
               : 'none',
             willChange:'transform',
-          }} />
+          }}>
+            {/* el disco: centrado sobre el centro de la burbuja del ícono
+                (padding 4px + 36/2 = 22px desde arriba de la fila) */}
+            <span className="glass-nav-puck" style={{
+              position:'absolute', top:'0px', left:'50%', marginLeft:'-22px',
+              width:'44px', height:'44px', borderRadius:'50%',
+              ...CHIP,
+            }} />
+          </div>
 
           {slots.map((slot, i) => {
             const held = scrub === i
             /* the magnification: the held slot swells and lifts, everything
-               else settles back. One transform, compositor-friendly. */
+               else settles back. One transform, compositor-friendly.
+               v16: la SUELTA viaja por el resorte — el press entra directo
+               (SCRUB_MS) y la vuelta rebota una vez (--ease-spring). */
             const lift = {
               transform: held ? 'translateY(-5px) scale(1.22)' : 'translateY(0) scale(1)',
-              transition: `transform ${SCRUB_MS}ms ${HOUSE_EASE}`,
+              transition: held
+                ? `transform ${SCRUB_MS}ms ${HOUSE_EASE}`
+                : 'transform var(--dur-spring) var(--ease-spring)',
             }
+            /* v16 — labels ocultos por default. En touch no existe hover, así
+               que la regla es: el label del tab ACTIVO se queda visible (la
+               única orientación de texto de la barra) y el del slot bajo el
+               dedo aparece durante el scrub como preview. Todo lo demás,
+               silencio. El span se queda en el flujo con opacity 0 — la
+               geometría de la barra no cambia (DOCK_BOTTOM es contrato). */
 
             if (slot.create) {
               return (
@@ -334,7 +357,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                   }}>
                     <Plus size={ICON} strokeWidth={1.9} />
                   </span>
-                  <span className="glass-nav-label" style={{ color: BONE }}>Create</span>
+                  <span className="glass-nav-label" style={{ color: BONE, opacity: held ? 1 : 0 }}>Create</span>
                 </button>
               )
             }
@@ -372,7 +395,7 @@ export default function GlassNav({ tabs, currentIdx, bellCount, onTab, onCreate 
                     </span>
                   )}
                 </span>
-                <span className="glass-nav-label">{slot.label}</span>
+                <span className="glass-nav-label" style={{ opacity: held || (scrub === null && active) ? 1 : 0 }}>{slot.label}</span>
               </button>
             )
           })}
