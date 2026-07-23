@@ -80,6 +80,13 @@
      El CANAL cambia de registro y las α escritas a mano se quedan donde
      están — igual que con --ink-rgb. */
   --shadow-rgb: 0,0,0;
+  /* v16 — EL HALO DEL TEXTO SOBRE FOTO. Distinto de --shadow-rgb a
+     propósito: una sombra separa texto CLARO de una foto (oscureciendo
+     detrás), pero en día el texto es OSCURO y lo que separa es luz — un
+     halo de papel. En vacío el halo ES la sombra (mismo 0,0,0 de siempre:
+     dark no cambia ni un byte); en día se invierte a papel. Lo usan los
+     textShadow del héroe del perfil y el nombre de las cápsulas. */
+  --halo-rgb: 0,0,0;
 
   /* ---- superficies sólidas (constantes locales de ~10 archivos) ---- */
   --bg-top:       #0B0B10;   /* la cabeza del degradado de página */
@@ -117,6 +124,15 @@
      que Diego aprobó y el que light tiene que igualar EN APARIENCIA. */
   --cover-o1:         300px;
   --cover-o2:         190px;
+  /* v16 — LA BANDA DE PROTECCIÓN DEL TEXTO, POR REGISTRO. Las paradas
+     .62/.90/.88 del scrim del héroe eran literales compartidos ("no se
+     tocan") — y en dark siguen siendo EXACTAMENTE estos valores. Pero en
+     papel, un velo de paper al 90% es la sábana blanca que mata la foto
+     (reporte de Diego, v16): el registro claro las baja y compensa la
+     legibilidad con el halo de texto (--halo-rgb) en vez de con muro. */
+  --cover-band:    .62;
+  --cover-peak-hi: .90;
+  --cover-peak-lo: .88;
 
   /* EL VELO DE LA TARJETA DE COMMUNITY — y por qué NO es simétrico.
      En vacío el velo OSCURECE y el texto es hueso: oscurecer siempre ayuda,
@@ -177,6 +193,15 @@
      el canal cambiado sigue siendo una sombra de vacío. */
   --glass-cast:   0 26px 54px rgba(0,0,0,0.52), 0 8px 20px rgba(0,0,0,0.38);
   --card-cast:    0 10px 30px rgba(0,0,0,0.42);
+
+  /* v16 — EL RESPALDO DE LOS CONTROLES SUELTOS (glassControl), por
+     registro. En vacío el control es velo de hueso (los mismos .10/.035
+     de siempre — dark no cambia). En papel esos velos de tinta eran casi
+     transparencia pura y los botones sobre foto (Card/Settings/Remove/
+     Change) quedaban ilegibles (screenshots de Diego): de día el respaldo
+     es PAPEL con cuerpo, no tinta fantasma. */
+  --ctl-hi: rgba(242,238,230,0.10);
+  --ctl-lo: rgba(242,238,230,0.035);
 
   /* CHROME — el metal líquido, sólo sobre tipografía de display. Sobre
      vacío es acero pulido claro; sobre papel tiene que ser metal OSCURO o
@@ -261,6 +286,10 @@
      el trabajo: un gris-tierra medio que ni al .7 de un scrim lee como
      mugre, y al .3 de una tarjeta lee como una sombra suave de papel. */
   --shadow-rgb: 120,116,106;
+  /* v16: el halo de texto de día es LUZ — papel detrás de tinta. Una
+     "sombra" gris clara bajo texto oscuro no separaba nada (la causa
+     medible de los textos ilegibles del héroe en claro). */
+  --halo-rgb: 237,235,230;
 
   /* ---- superficies sólidas: el degradado de página se vuelve un muro con
      una caída muy leve hacia abajo — vignette de galería, no bloque plano ---- */
@@ -270,7 +299,10 @@
   --card-solid:   #F6F4EF;
   --card-hi-solid:#FBFAF6;
   --menu-bg:      #FAF9F5;
-  --cream-dim:    #87857D;
+  /* v16: #87857D daba ~3.5:1 — decorativo de nombre pero cargando texto
+     real (city, separadores) en las cápsulas y el héroe. #6B695F pasa AA
+     (~4.6:1 contra --bg) sin robarle jerarquía a --cream-soft. */
+  --cream-dim:    #6B695F;
   --cream-soft:   #55534C;
 
   /* Las tres temperaturas, en tinta. Conservan su ORDEN relativo (star más
@@ -295,6 +327,15 @@
      (ver la nota larga en ProfileMuseum). El pico no se mueve. */
   --cover-o1:         200px;
   --cover-o2:         150px;
+  /* v16 — EL FIX DEL "DIFUMINADO BLANCO QUE MATA LA FOTO" (screenshots de
+     Diego, 20 jul). El pico de paper al .90 era la sábana: la mitad baja de
+     la portada desaparecía en blanco. La banda baja a .44/.64/.60 — la foto
+     VIVE hasta abajo — y la lectura del texto la garantiza el halo de papel
+     (--halo-rgb en los textShadow del héroe) + el grade sin recorte de
+     brillo. Dark conserva sus .62/.90/.88 exactos en :root. */
+  --cover-band:    .44;
+  --cover-peak-hi: .64;
+  --cover-peak-lo: .60;
 
   /* SEGUNDA PASADA — el contraste numérico no alcanzaba.
      Con .62 en la banda del texto el número daba AA, y aun así el nombre
@@ -308,12 +349,17 @@
      texto (velo alto y parejo, la foto ya sólo se insinúa). Un corte limpio
      lee mejor que un degradado tibio que no termina de ser ninguna de las
      dos cosas — y de paso es más editorial: imagen arriba, pie abajo. */
+  /* v16 — mismo fix que el héroe: el corte al .74/.90/.94 blanqueaba la
+     mitad baja de la tarjeta (reporte de Diego sobre Community en claro).
+     Baja a .60/.78/.86 — la foto respira hasta abajo — y el nombre gana el
+     halo de papel (.disc-name, abajo) para sostener la lectura sobre el
+     velo más ligero. */
   --card-cover-scrim: linear-gradient(180deg,
     rgba(var(--void-rgb),.04) 0%,
     rgba(var(--void-rgb),.14) 34%,
-    rgba(var(--void-rgb),.74) 54%,
-    rgba(var(--void-rgb),.90) 68%,
-    rgba(var(--void-rgb),.94) 100%);
+    rgba(var(--void-rgb),.60) 54%,
+    rgba(var(--void-rgb),.78) 68%,
+    rgba(var(--void-rgb),.86) 100%);
 
   /* EL VIDRIO DE DÍA. Se invierte la lógica del material: la losa se ACLARA
      (luz atrapada en el vidrio, no oscuridad) y el filete de arriba se vuelve
@@ -341,6 +387,12 @@
      peso. En papel la elevación la da la LUZ del canto, no la oscuridad. */
   --glass-cast:   0 18px 40px rgba(60,56,48,0.11), 0 6px 16px rgba(60,56,48,0.08);
   --card-cast:    0 8px 24px rgba(60,56,48,0.09);
+
+  /* v16: el respaldo de los controles sueltos de día es PAPEL con cuerpo —
+     tinta al 10% sobre una foto clara era un botón fantasma (Card/Settings/
+     Remove/Change ilegibles, screenshots de Diego). */
+  --ctl-hi: rgba(252,251,248,0.68);
+  --ctl-lo: rgba(246,244,239,0.50);
 
   /* metal oscuro pulido — grabado en la pared, no reflejo sobre el vacío */
   --chrome: linear-gradient(100deg,#3A3D46 0%,#8A8F9C 26%,#23252B 50%,#7C818E 73%,#40434C 100%);
@@ -767,9 +819,12 @@ input, textarea, select,
    yanks the transform off the element the moment the pointer leaves). */
 .disc-banner img, .disc-banner svg { transform-origin: 50% 50%; animation: discBreathe 6s ease-in-out infinite; animation-play-state: paused; }
 .disc-card:hover .disc-banner img, .disc-card:hover .disc-banner svg { animation-play-state: running; }
-/* the name brightens — chrome belongs to the title alone (Ley 8) */
-.disc-name { color: var(--cream); transition: text-shadow .3s ease; }
-.disc-card:hover .disc-name { text-shadow: 0 0 18px rgba(var(--ink-rgb),.25); }
+/* the name brightens — chrome belongs to the title alone (Ley 8).
+   v16: el nombre carga un halo base por canal (--halo-rgb): en vacío es la
+   sombra de siempre bajo texto claro; en día es LUZ de papel bajo tinta —
+   lo que permite que el scrim claro baje sin perder la lectura. */
+.disc-name { color: var(--cream); text-shadow: 0 1px 10px rgba(var(--halo-rgb),.55); transition: text-shadow .3s ease; }
+.disc-card:hover .disc-name { text-shadow: 0 1px 10px rgba(var(--halo-rgb),.55), 0 0 18px rgba(var(--ink-rgb),.25); }
 /* micro-reveal — the person's line surfaces when you lean in */
 .disc-reveal { opacity: 0; transform: translateY(3px); transition: opacity .35s ease .06s, transform .35s ease .06s; }
 .disc-card:hover .disc-reveal { opacity: 1; transform: translateY(0); }

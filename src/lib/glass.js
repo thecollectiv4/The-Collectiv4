@@ -113,7 +113,12 @@ export const CONTROL_FILTER = 'saturate(150%) brightness(1.04) blur(12px)'
 export const glassControl = (extra = {}) => ({
   WebkitBackdropFilter: CONTROL_FILTER,
   backdropFilter: CONTROL_FILTER,
-  background: 'linear-gradient(180deg, rgba(var(--ink-rgb),0.10), rgba(var(--ink-rgb),0.035))',
+  /* v16: el respaldo sale por registro (--ctl-hi/--ctl-lo, index.css). En
+     vacío son EXACTAMENTE los velos de hueso .10/.035 históricos; en papel
+     el respaldo gana cuerpo — tinta al 10% sobre una foto clara era un
+     botón fantasma (Card/Settings/Remove/Change, screenshots de Diego).
+     El background sí admite var(); el FILTRO de arriba no (WebKit 289800). */
+  background: 'linear-gradient(180deg, var(--ctl-hi), var(--ctl-lo))',
   border: '1px solid rgba(var(--ink-rgb),0.22)',
   // mismas tres señales de profundidad que WELL, un paso más bajas: filo
   // especular arriba, piso oscuro debajo, sombra proyectada. Quitá una y el

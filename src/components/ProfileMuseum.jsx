@@ -111,11 +111,13 @@ const coverFade = (bleed) => `linear-gradient(180deg,
 
 /* las tres primeras paradas llevan el PISO de Pato (nunca soltar el velo
    arriba); de ahí para abajo manda el anclaje al borde inferior de Diego */
-/* Las TRES primeras paradas salen por variable — son el "velo de atmósfera"
-   y son las únicas que cambian de registro (index.css explica por qué). De la
-   cuarta para abajo son PROTECCIÓN DE TEXTO: ahí vive el bloque de identidad
-   y el velo tiene que pesar lo mismo en los dos temas o el nombre se pierde.
-   No se tocan. */
+/* Las TRES primeras paradas salen por variable — son el "velo de atmósfera".
+   v16: LA BANDA DE PROTECCIÓN (.62/.90/.88) también sale por variable ahora
+   (--cover-band/--cover-peak-hi/--cover-peak-lo). En dark los valores son
+   byte-idénticos a los históricos — ese registro no se movió. En light la
+   banda BAJA (la sábana de papel al 90% mataba la foto — screenshots de
+   Diego, 20 jul) y la lectura del nombre la sostiene el halo de papel
+   (--halo-rgb) en los textShadow del bloque de identidad, no el muro. */
 /* v12.3 — LAS POSICIONES TAMBIÉN CAMBIAN POR TEMA, NO SÓLO LAS α.
 
    Diego: "en light la portada difumina demasiado arriba; que baje más y
@@ -144,9 +146,9 @@ const coverScrim = (bleed) => `linear-gradient(180deg,
   rgba(var(--void-rgb),var(--cover-veil-top)) 0%,
   rgba(var(--void-rgb),var(--cover-veil-hi)) 22%,
   rgba(var(--void-rgb),var(--cover-veil-mid)) calc(100% - ${bleed}px - var(--cover-o1)),
-  rgba(var(--void-rgb),.62) calc(100% - ${bleed}px - var(--cover-o2)),
-  rgba(var(--void-rgb),.90) calc(100% - ${bleed + 96}px),
-  rgba(var(--void-rgb),.88) calc(100% - ${bleed + 20}px),
+  rgba(var(--void-rgb),var(--cover-band)) calc(100% - ${bleed}px - var(--cover-o2)),
+  rgba(var(--void-rgb),var(--cover-peak-hi)) calc(100% - ${bleed + 96}px),
+  rgba(var(--void-rgb),var(--cover-peak-lo)) calc(100% - ${bleed + 20}px),
   rgba(var(--void-rgb),.50) calc(100% - ${Math.round(bleed * 0.55)}px),
   rgba(var(--void-rgb),.14) calc(100% - ${Math.round(bleed * 0.22)}px),
   rgba(var(--void-rgb),0) 100%)`
@@ -1068,7 +1070,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                   /* el oficio ACOMPAÑA al nombre, no compite: una zona, un
                      protagonista. .82 de opacidad lo manda al susurro sin
                      tocarle el color de categoría, que sí es información. */
-                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(var(--shadow-rgb),.5)', opacity: .82 }}>
+                  <div data-testid="hero-crafts" style={{ display: 'flex', alignItems: 'baseline', gap: '9px', flexWrap: 'wrap', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(var(--halo-rgb),.5)', opacity: .82 }}>
                     {/* primary ALWAYS leads — regardless of the order the
                         set arrived in (fresh save vs DB read) */}
                     {/* v12: cada craft es una PUERTA — lleva a Community
@@ -1099,7 +1101,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                     )}
                   </div>
                 ) : data.discipline && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(var(--shadow-rgb),.5)', opacity: .82 }}>
+                  <div style={{ fontFamily: 'DM Mono', fontSize: wide ? '10px' : '9px', color: SILVER, letterSpacing: '.3em', textTransform: 'uppercase', marginBottom: wide ? '9px' : '7px', textShadow: '0 1px 8px rgba(var(--halo-rgb),.5)', opacity: .82 }}>
                     {data.discipline}
                   </div>
                 )}
@@ -1112,14 +1114,14 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                       la foto ya atenuada, una sombra pesada deja de ser
                       legibilidad y se vuelve halo — y el halo es lo que se
                       lee como barato. */}
-                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(48px, 5.2vw, 76px)' : 'clamp(34px, 9.5vw, 46px)', letterSpacing: '.02em', lineHeight: 0.9, margin: 0, textShadow: '0 2px 16px rgba(var(--shadow-rgb),.45)', ...displaySkin }}>{displayName}</h1>
+                  <h1 style={{ fontFamily: 'Bebas Neue', fontSize: wide ? 'clamp(48px, 5.2vw, 76px)' : 'clamp(34px, 9.5vw, 46px)', letterSpacing: '.02em', lineHeight: 0.9, margin: 0, textShadow: '0 2px 16px rgba(var(--halo-rgb),.45)', ...displaySkin }}>{displayName}</h1>
                   {data.verified && <span title="In The Collectiv4 network" aria-label="Verified — in The Collectiv4 network" style={{ display: 'inline-flex', alignItems: 'center', marginBottom: wide ? '10px' : '5px' }}><VerifiedMark size={wide ? 24 : 19} /></span>}
                   {/* guardrail 4: the museum itself — the destination of every
                       labeled card tap — carries the truth on its own hero */}
                   <span style={{ display: 'inline-flex', marginBottom: wide ? '12px' : '7px' }}><SeedPill is_demo={data.is_demo} size={8.5} /></span>
                 </div>
                 {(data.username || data.city || ticket) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 8px rgba(var(--shadow-rgb),.5)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '11px', flexWrap: 'wrap', rowGap: '4px', marginTop: wide ? '10px' : '8px', textShadow: '0 1px 8px rgba(var(--halo-rgb),.5)' }}>
                     {data.username && <span style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_MID, letterSpacing: '.04em' }}>@{data.username}</span>}
                     {/* City renders only when the user claimed one — no invented hometown. */}
                     {data.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -1145,7 +1147,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                  rather than an island. It is still an editorial judgment call
                  (see the handback) — the alternative is moving it under the
                  identity block entirely, which is Pato's taste to settle. */
-              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '420px', marginRight: 'clamp(0px, 7vw, 150px)', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(var(--shadow-rgb),.7)' }}>
+              <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '18px', color: BONE, lineHeight: 1.5, margin: '0 0 8px', maxWidth: '420px', marginRight: 'clamp(0px, 7vw, 150px)', flexShrink: 0, borderLeft: `1px solid ${HAIR_HI}`, paddingLeft: '20px', textShadow: '0 1px 12px rgba(var(--halo-rgb),.7)' }}>
                 <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
               </p>
             )}
@@ -1991,7 +1993,7 @@ function PosterCard({ value, index, wide, big }) {
           <Play size={13} style={{ color: BONE, marginLeft: '2px' }} fill={BONE} />
         </div>
       )}
-      <div style={{ position: 'absolute', left: '12px', right: '12px', bottom: '12px', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.03em', lineHeight: 1.02, textShadow: '0 1px 10px rgba(var(--shadow-rgb),.7)' }}>{label}</div>
+      <div style={{ position: 'absolute', left: '12px', right: '12px', bottom: '12px', fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.03em', lineHeight: 1.02, textShadow: '0 1px 10px rgba(var(--halo-rgb),.7)' }}>{label}</div>
     </>
   ) : (
     // typographic poster — no image, still a curated object in the void
