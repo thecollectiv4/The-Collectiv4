@@ -195,6 +195,12 @@
   --dur-base:    250ms;
   --dur-slow:    500ms;
   --dur-cinematic: 950ms;                          /* the deck's .95s reveal — rare, deliberate */
+  /* v16 — el resorte. La curva pasa de 1 y regresa: al soltar, el control
+     rebota una vez y se asienta. Se usa SÓLO en la suelta (el press de
+     entrada sigue siendo directo, --ease-exit): un rebote al presionar
+     leería como juguete, el rebote al soltar lee como material. */
+  --ease-spring: cubic-bezier(.30, 1.42, .38, 1);
+  --dur-spring:  340ms;
 }
 
 /* =========================================================================
@@ -478,6 +484,44 @@ input, textarea, select,
   transform: translateY(1px) scale(.99);
   transition: transform var(--dur-press) var(--ease-exit), opacity var(--dur-press) var(--ease-exit);
 }
+
+/* ============================================================
+   PRESS SPRING (v16) — la presión tipo resorte del liquid glass.
+
+   Entrar al press es directo y rápido (110ms, --ease-exit): el
+   sistema confirma antes de que la mano termine de preguntar.
+   SOLTAR es donde vive el resorte: la vuelta a escala 1 viaja por
+   --ease-spring, que se pasa de 1 y regresa — un rebote, físico,
+   nunca un bailoteo.
+
+   ⚠ SÓLO PARA ELEMENTOS SIN backdrop-filter. Un transform sobre un
+   elemento con vidrio mata el sampling en WebKit para el resto de
+   la sesión (la lección de .disc-card, documentada arriba). Para
+   vidrio, la respuesta al press es LUZ: .glass-press, abajo.
+   ============================================================ */
+.press-spring { transition: transform var(--dur-spring) var(--ease-spring), opacity 120ms var(--ease-exit); }
+.press-spring:not(:disabled):active {
+  transform: scale(.96);
+  transition: transform 110ms var(--ease-exit), opacity 110ms var(--ease-exit);
+}
+
+/* La respuesta al press para VIDRIO (elementos con backdrop-filter):
+   cero transform — una capa de luz que se enciende encima y se apaga
+   con la curva del resorte. Requiere border-radius en el host (la capa
+   lo hereda). El host puede ser position:static — la clase le da el
+   contexto; un inline position existente le gana sin conflicto. */
+.glass-press { position: relative; }
+.glass-press::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: rgba(var(--ink-rgb), .07);
+  opacity: 0;
+  transition: opacity var(--dur-spring) var(--ease-spring);
+  pointer-events: none;
+}
+.glass-press:not(:disabled):active::after { opacity: 1; transition-duration: 90ms; }
 
 /* catalog rows lead with the whole row on hover — transform, never padding
    (padding reflows the row's text mid-hover); gated so touch taps don't
@@ -949,6 +993,10 @@ input, textarea, select,
   .os-now-dot, .os-mic-live { animation:none; }
   .os-root button:not(:disabled):active { transform:none; }
   .pressable:not(:disabled):active { transform:none; }
+  /* v16: el resorte se apaga entero — ni hundido ni rebote; la capa de luz
+     del vidrio se queda como fade corto (es confirmación, no movimiento). */
+  .press-spring, .press-spring:not(:disabled):active { transition: none; transform: none; }
+  .glass-press::after { transition: opacity 150ms ease; }
   .glow-pulse::after, .pulse-dot { animation:none; }
   /* the selectors MIRROR the base rules above — a bare `.row-lead:active`
      would lose to `.row-lead:not(:disabled):active` (:not's argument counts
