@@ -179,7 +179,12 @@ export default function Community() {
     let alive = true
     async function load() {
       setLoading(true)
-      const FIELDS = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media,photos_completed_at'
+      /* review v16: el camino de rescate existe para esquemas VIEJOS — si
+         también pidiera photos_completed_at (0054), fallaría por la misma
+         columna que tumbó la query primaria y el directorio quedaría vacío.
+         La columna nueva viaja sólo en la query primaria. */
+      const FIELDS_BASE = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media'
+      const FIELDS = FIELDS_BASE + ',photos_completed_at'
       let rows = []
       // bounded: the directory pages later — an unbounded select with jsonb
       // columns won't survive a real community (review catch)
@@ -187,7 +192,7 @@ export default function Community() {
       if (!showDemo) q = q.eq('is_demo', false)
       const { data, error } = await q
       if (error) {
-        const res = await supabase.from('profiles').select(FIELDS)
+        const res = await supabase.from('profiles').select(FIELDS_BASE)
         rows = (res.data || []).map(r => ({ ...r, is_demo: DEMO_USERNAMES.has(r.username) }))
         if (!showDemo) rows = rows.filter(r => !r.is_demo)
       } else {

@@ -205,7 +205,11 @@ test('B · badge on the mark + inbox block render, and mark-all clears both', as
   await signin(page, B.email, B.password)
   await page.goto('/messages')
   await expect(page.getByTestId('bell-badge').first(), 'BADGE_ON_THE_MARK').toBeVisible({ timeout: 15000 })
-  await expect(page.getByTestId('bell-block'), 'BELL_BLOCK_IN_SIGNALS').toBeVisible()
+  // v16: The Bell dejó de ser un bloque arriba de SIGNALS — es un panel
+  // detrás del ícono de campana del encabezado (bell-door). El gate se
+  // actualiza a la superficie real: abrir la puerta, luego afirmar.
+  await page.getByTestId('bell-door').click()
+  await expect(page.getByTestId('bell-block'), 'BELL_PANEL_OPENS').toBeVisible()
   await expect(page.getByTestId('bell-row-message').first()).toBeVisible()
   await page.screenshot({ path: path.join(SHOTS, 'v10-bell-inbox.png'), fullPage: false })
 

@@ -12,6 +12,10 @@ import {
 } from '@/lib/cosmos'
 import { Field, PRESS, PRESS_SPRING } from '@/components/AuthField'
 import { glassControl } from '@/lib/glass'
+
+/* la receta del control menos el filtro — el porqué vive junto al botón de
+   Google (los wrappers rise() animan y el vidrio real no sobrevive eso) */
+const { WebkitBackdropFilter: _wbf, backdropFilter: _bf, ...GOOGLE_FLAT } = glassControl()
 import { useWide } from '@/lib/useIsDesktop'
 
 /* =========================================================================
@@ -451,11 +455,14 @@ export default function Auth() {
                 onClick={() => openProvider(p.id)}
                 disabled={Boolean(oauthBusy)} aria-busy={busy}
                 style={{
-                  /* v16 — cápsula de vidrio (glassControl: flota directo sobre
-                     el cielo). SIN transform en la transition — un transform
-                     sobre backdrop-filter mata el sampling en WebKit; el press
-                     aquí es luz (.glass-press), no hundido. */
-                  ...glassControl(),
+                  /* v16 — cápsula con el material del control pero SIN
+                     backdrop-filter (review v16): este botón vive dentro de
+                     un wrapper rise() que anima transform/opacity, y un
+                     ancestro animado mata el sampling del vidrio en WebKit.
+                     Sobre el void el blur no compra nada; el volumen viaja
+                     en gradiente + filo + piso. El press es luz
+                     (.glass-press), no hundido. */
+                  ...GOOGLE_FLAT,
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
                   width: '100%',
                   borderRadius: '100px', padding: '15px 12px',

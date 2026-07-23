@@ -169,11 +169,12 @@ export default function ForYou({ user, onBrainstorm, onEveryone }) {
        conserva proporción de teléfono, centrada como pieza). */
     <div style={{ maxWidth: wide ? '520px' : undefined, marginInline: wide ? 'auto' : undefined }}>
 
-      {/* the kicker — where the matching stands, city lowercase-proud */}
+      {/* the kicker — honesto post-0054: el score ORDENA el universo, ya no
+          selecciona un subconjunto "matcheado". El copy dice eso y no más. */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: '9px', marginTop: '18px' }}>
         <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '9px', color: SILVER }}>◇</span>
         <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.26em' }}>
-          MATCHED BY TASTE{city ? ` · ${city}` : ''}
+          ORDERED BY TASTE{city ? ` · ${city}` : ''}
         </span>
       </div>
 
@@ -245,7 +246,13 @@ function PersonCard({ p, showSeed, height, following, canFollow, err, onOpen, on
   const primary = crafts.find((c) => c.is_primary) || crafts[0]
   const meta = primary ? categoryMeta(primary.category) : null
   const reasons = reasonsFor(p)
-  const keyOpen = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }
+  /* review v16: el keydown de los botones internos (Follow/Message) burbujea
+     hasta aquí — sin el guard, Enter sobre Follow navegaba al perfil en vez
+     de seguir. Sólo el card MISMO responde al teclado. */
+  const keyOpen = (ev) => {
+    if (ev.target !== ev.currentTarget) return
+    if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() }
+  }
 
   return (
     <div data-testid={`foryou-person-${p.id}`} role="button" tabIndex={0}
@@ -273,6 +280,11 @@ function PersonCard({ p, showSeed, height, following, canFollow, err, onOpen, on
           ? <img src={cover} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           : <span aria-hidden style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bebas Neue', fontSize: '200px', lineHeight: 1, color: 'rgba(var(--ink-rgb),.05)' }}>{initial}</span>}
         <div style={{ position: 'absolute', inset: 0, background: CARD_COVER_SCRIM }} />
+        {/* review v16: el scrim compartido protege ABAJO, pero en esta
+            cápsula la identidad vive ARRIBA — banda superior propia (por
+            canal, se invierte sola) para que nombre y sellos lean sobre
+            cualquier foto en ambos modos. */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(var(--void-rgb),.46) 0%, rgba(var(--void-rgb),.22) 30%, rgba(var(--void-rgb),0) 48%)' }} />
       </div>
 
       {/* los sellos — arriba: seed a la izquierda, FOLLOWING + verified a la
@@ -292,11 +304,11 @@ function PersonCard({ p, showSeed, height, following, canFollow, err, onOpen, on
             ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <span style={{ fontFamily: 'Bebas Neue', fontSize: '31px', color: BONE }}>{initial}</span>}
         </div>
-        <div style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(30px, 8.6vw, 38px)', letterSpacing: '.02em', lineHeight: 0.98, color: BONE, marginTop: '14px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 1px 18px rgba(var(--shadow-rgb),.45)' }}>{name}</div>
+        <div style={{ fontFamily: 'Bebas Neue', fontSize: 'clamp(30px, 8.6vw, 38px)', letterSpacing: '.02em', lineHeight: 0.98, color: BONE, marginTop: '14px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 1px 18px rgba(var(--halo-rgb),.5)' }}>{name}</div>
         {p.username && (
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.18em', marginTop: '7px' }}>@{p.username}</div>
+          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.18em', marginTop: '7px', textShadow: '0 1px 8px rgba(var(--halo-rgb),.5)' }}>@{p.username}</div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '11px', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '11px', minWidth: 0, textShadow: '0 1px 8px rgba(var(--halo-rgb),.5)' }}>
           {primary && (
             <span style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${tintChannel(meta.tint)})`, letterSpacing: '.14em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
               {primary.name}{crafts.length > 1 ? `  +${crafts.length - 1}` : ''}
@@ -369,7 +381,10 @@ function EventCard({ ev, onOpen }) {
   const place = ev.venue || ev.city
 
   return (
-    <div data-testid={`foryou-event-${ev.slug}`} className="pressable" role="button" tabIndex={0}
+    /* review v16: NUNCA `pressable` aquí — el nodo carga cardGlass()
+       (backdrop-filter) y un transform lo mata en WebKit (la lección de
+       .disc-card). La respuesta al press es luz: .glass-press. */
+    <div data-testid={`foryou-event-${ev.slug}`} className="glass-press" role="button" tabIndex={0}
       aria-label={`Enter ${ev.title}`} onClick={onOpen}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen() } }}
       style={{ position: 'relative', borderRadius: '26px', overflow: 'hidden', border: `1px solid ${meta ? `rgba(${tintChannel(meta.tint)},.28)` : HAIR_HI}`, cursor: 'pointer', padding: '20px 18px', scrollSnapAlign: 'start', scrollMarginTop: '14px', ...cardGlass() }}>

@@ -12,6 +12,7 @@ import {
   setPlanVisibility, VIS_TIERS, VIS_LABEL,
 } from '@/lib/social'
 import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
+import { useFocusTrap } from '@/lib/focusTrap'
 import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signalTo } from '@/lib/signals'
 import SeedPill from '@/components/SeedMark'
 import PeopleSearch from '@/components/PeopleSearch'
@@ -433,17 +434,18 @@ function Inbox({ me, wide }) {
    (the RPC floors demo actors for everyone else). */
 function BellPanel({ bells, onOpen, onMarkAll, onClose }) {
   const rows = bells.signals || []
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
+  /* review v16: un dialog sin manejo de foco es un dialog roto para
+     teclado/lector — la trampa de la casa (focusTrap.js) mete el foco,
+     lo cicla, maneja Escape y lo DEVUELVE al botón de la campana. */
+  const panelRef = useRef(null)
+  useFocusTrap(panelRef, onClose)
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 10020 }}>
       {/* el velo — picar afuera cierra */}
       <div className="overlay-fade" onClick={onClose} aria-hidden style={{ position: 'absolute', inset: 0, background: 'rgba(var(--void-rgb),.45)', animation: 'overlayFade .25s var(--ease-exit)' }} />
       {/* el panel — losa de vidrio anclada a la derecha, viewport completo */}
-      <div data-testid="bell-block" role="dialog" aria-label="The bell — notifications" className="panel-in-right"
+      <div data-testid="bell-block" role="dialog" aria-modal="true" aria-label="The bell — notifications"
+        className="panel-in-right" ref={panelRef} tabIndex={-1}
         style={{
           position: 'absolute', top: 0, right: 0, bottom: 0,
           width: 'min(92vw, 384px)',

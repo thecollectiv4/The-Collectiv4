@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { BONE, BONE_MID, BONE_LOW, HAIR_HI, FONT_SANS, EASE_HOUSE, EASE_EXIT } from '@/lib/cosmos'
 import { glassControl } from '@/lib/glass'
 
+/* la receta del control, menos el filtro — ver la nota dentro de Field */
+const { WebkitBackdropFilter: _wbf, backdropFilter: _bf, ...ctlFlat } = glassControl()
+
 /* =========================================================================
    EL CAMPO DE LA ENTRADA — un solo cascarón para /auth Y AuthModal.
 
@@ -43,13 +46,16 @@ export function Field({ icon: Icon, label, right = null, wrapStyle, ...input }) 
      ES el indicador de foco — el input pone outline:none, así que si algún
      día borras este cambio de borde, pon un anillo real antes. */
   const border = focused ? 'rgba(var(--ink-rgb),.42)' : 'rgba(var(--ink-rgb),.20)'
-  /* v16 — el campo es una CÁPSULA de vidrio (glassControl: los campos de
-     /auth flotan directo sobre el cielo, sin cardGlass arriba — la regla de
-     no-anidar se respeta). El borde sigue siendo el indicador de foco: la
-     receta pone .20 en reposo y el foco lo sube a .42, igual que siempre. */
+  /* v16 — el campo es una CÁPSULA con el MATERIAL de glassControl pero SIN
+     backdrop-filter (review v16): los campos viven dentro de wrappers que
+     animan transform/opacity (rise, row-collapse) y un ancestro animado
+     mata el sampling del vidrio en WebKit para siempre. Sobre el void el
+     blur muestrea casi-negro y no compra nada — el volumen lo dan el
+     gradiente, el filo y el piso, que viajan intactos. El borde sigue
+     siendo el indicador de foco: .20 en reposo, .42 enfocado. */
   return (
     <div style={{
-      ...glassControl(),
+      ...ctlFlat,
       display: 'flex', alignItems: 'center', gap: '11px',
       border: `1px solid ${border}`, borderRadius: '100px', padding: '0 17px',
       transition: `border-color .35s ${EASE_HOUSE}, background .35s ${EASE_HOUSE}`,
