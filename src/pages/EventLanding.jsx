@@ -136,7 +136,10 @@ export function EventShow({ live }) {
       params.set('buy', tierId)
       const q = params.toString()
       const next = `${location.pathname}${q ? `?${q}` : ''}`
-      navigate(`/auth?next=${encodeURIComponent(next)}`)
+      // ?mode=create lives on the /auth URL, never inside next — a buyer with
+      // no account is a join door (v17 auth por intención); the mode param
+      // must not ride back to /e/<slug> when the resume effect restores next.
+      navigate(`/auth?mode=create&next=${encodeURIComponent(next)}`)
       return
     }
     if (!event) return

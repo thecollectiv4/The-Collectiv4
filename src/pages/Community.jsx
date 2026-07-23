@@ -390,8 +390,8 @@ export default function Community() {
             )}
             {/* few worlds → the void invites (Leyes 4, 11) */}
             {shown.length <= 3 && city === 'all' && craft === 'all' && (
-              <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?next=/profile')} role="button" tabIndex={0} aria-label="Claim your world"
-                onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate(user ? '/profile' : '/auth?next=/profile') } }}
+              <div className="pressable" onClick={() => navigate(user ? '/profile' : '/auth?mode=create&next=/profile')} role="button" tabIndex={0} aria-label="Claim your world"
+                onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); navigate(user ? '/profile' : '/auth?mode=create&next=/profile') } }}
                 style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '16px', minHeight: wide ? '236px' : '200px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '9px', cursor: 'pointer', transition: 'border-color .25s ease' }}
                 onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.5)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
@@ -410,7 +410,7 @@ export default function Community() {
                 ? 'No worlds match this filter yet. Clear it, or be the first from here.'
                 : 'No worlds have taken shape yet. Build yours — a personal museum of your sound, work and influences — and be one of the first stars in the room.'}
             cta={user ? 'Build your world' : 'Claim your world'}
-            onCta={() => navigate(user ? '/profile' : '/auth?next=/profile')}
+            onCta={() => navigate(user ? '/profile' : '/auth?mode=create&next=/profile')}
           />
         )}
         </>

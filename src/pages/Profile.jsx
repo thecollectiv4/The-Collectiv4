@@ -71,7 +71,9 @@ export default function Profile() {
   // unresolved identity; only a CONFIRMED unauthenticated state sends to /auth.
   useEffect(() => {
     if (authLoading) return
-    if (!user) { navigate('/auth'); return }
+    // ?next=/profile: the Layout redirect usually wins this race and already
+    // carries next — this backstop must not be the one path that drops it.
+    if (!user) { navigate('/auth?next=/profile'); return }
     load()
     // fire-and-forget, same idiom as ForYou/PeopleSearch/Community: any
     // failure leaves isFounder false and the OS door simply doesn't appear.

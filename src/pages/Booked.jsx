@@ -137,7 +137,10 @@ export default function Booked({ preview }) {
         This happened inside The Collectiv4 — the room where the city’s creatives live. Claim your world and the next booking finds you already in it.
       </p>
       <div className="rise rise-5" style={{ marginTop: '18px', display: 'flex' }}>
-        <button onClick={() => navigate('/auth')} style={{ ...cta, marginTop: 0, width: '100%' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
+        {/* Join door → ?mode=create (v17). ?next preserves this receipt —
+            without it the new member lands on '/' and the paid-booking
+            context (their one reason to be here) is dropped on the floor. */}
+        <button onClick={() => navigate(`/auth?mode=create&next=${encodeURIComponent(window.location.pathname + window.location.search)}`)} style={{ ...cta, marginTop: 0, width: '100%' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
           Claim your world <ArrowRight size={18} />
         </button>
       </div>
