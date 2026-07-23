@@ -50,9 +50,16 @@ const WHY = 'Your world is your card in Discover, your museum — and soon, wher
 /* The conversation — three questions, each with a reason to exist.
    01 is the craft — from the CURATED taxonomy (0020), never free text:
    the app recognizes you as you type (Ley 15), and the structured craft
-   is what turns the matching column on. */
+   is what turns the matching column on.
+   v17 — LA PARED CAE (decisión de fundador, 23 jul 2026): la 01 deja de
+   ser obligatoria. Un humano que no vende nada — la maestra, el del
+   fucho, la crowd — entra por "I'm here for the people" o por skip, y
+   ambos caen DIRECTO al taste brainstorm: la capa construida exactamente
+   para ellos, que vivía sellada detrás de esta pregunta. El audit del
+   16 jul midió el costo del required: 11 de 13 arquetipos rebotados en
+   la primera pregunta de la casa. */
 const MEET = [
-  { key: 'craft', kicker: 'question 01 · who you are', title: 'WHAT DO YOU MAKE?', why: `${WHY} Start with the craft — everything composes around it. You can be many at once.`, required: true },
+  { key: 'craft', kicker: 'question 01 · who you are', title: 'WHAT DO YOU MAKE?', why: `${WHY} Start with the craft — everything composes around it. You can be many at once.`, required: false },
   { key: 'feel', kicker: 'question 02 · the door', title: 'WHEN SOMEONE STEPS IN — WHAT SHOULD THEY FEEL?', why: 'One phrase. It seeds your welcome line and how your name is set.', placeholder: 'like walking into a warm room · raw energy · timeless…', required: false },
   { key: 'show', kicker: 'question 03 · today', title: 'WHAT DO YOU HAVE READY TO SHOW TODAY?', why: 'Only what exists — the world starts honest. What you have leads; the rest waits for you.', required: false },
 ]
@@ -91,12 +98,15 @@ const CRAFT_COPY = {
 /* Land on the first unfinished step of THIS order, not always at zero.
    The craft step counts as done only when REAL crafts are chosen — a legacy
    free-text discipline alone re-opens the step (the in-UI migration door).
+   v17: a member holding tastes but no crafts took the "here for the
+   people" door DELIBERATELY — craft counts as answered for them, or the
+   builder re-traps every non-maker at the wall it just tore down.
    Taste counts as done only when ≥1 taste is held — a member with crafts
    but zero tastes re-enters at the brainstorm (the v6 door). */
 function firstUnfinished(steps, d, crafts, tastes) {
   for (let i = 0; i < steps.length; i++) {
     const k = steps[i]
-    if (k === 'craft' && !(crafts || []).length) return i
+    if (k === 'craft' && !(crafts || []).length && !(tastes || []).length) return i
     if (k === 'taste' && !(tastes || []).length) return i
     if (k === 'line' && !(d?.tagline || '').trim()) return i
     if (k === 'words' && !(d?.bio || '').trim()) return i
@@ -110,8 +120,10 @@ function firstUnfinished(steps, d, crafts, tastes) {
 export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes = null, onTastesSaved, onDraft, onCommit, onUploadGallery, onCleanupImages, onCurate, onClose, onPublished }) {
   const wide = useWide()
   // A world with no craft yet meets the conversation; a returning member's
-  // world goes straight to its first unfinished step.
-  const isNew = !crafts.length && !(data?.discipline || '').trim() && normGallery(data?.gallery).length === 0
+  // world goes straight to its first unfinished step. v17: tastes count as
+  // a begun world too — the non-maker who brainstormed yesterday must not
+  // meet question 01 again tomorrow.
+  const isNew = !crafts.length && !(data?.discipline || '').trim() && normGallery(data?.gallery).length === 0 && !(tastes || []).length
   const [stage, setStage] = useState(isNew ? 'meet' : 'steps')  // meet | compose | plan | steps
   const [meetIdx, setMeetIdx] = useState(0)
   const [answers, setAnswers] = useState({ craft: '', feel: '', show: [] })
@@ -198,8 +210,21 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
     compose()
   }
   const meetSkip = () => {
+    // v17 — skipping the craft question is the same door as "I'm here for
+    // the people": straight to the brainstorm, never to a 0% dead end.
+    if (MEET[meetIdx].key === 'craft') { enterTasteFirst(); return }
     if (meetIdx < MEET.length - 1) { setMeetIdx(meetIdx + 1); return }
     compose()
+  }
+
+  /* v17 — LA PARED CAE. The first-class non-maker path: no craft, no
+     conversation detour — the plan leads with taste (the layer built for
+     exactly this human) and every other step stays reachable + skippable.
+     No 'craft' step in this order: the wall doesn't reappear downstream. */
+  const enterTasteFirst = () => {
+    setPlanSteps(['taste', 'line', 'work', 'doors', 'marquee', 'skin'])
+    setStage('steps')
+    setStep(0)
   }
 
   const compose = async () => {
@@ -417,7 +442,10 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
       {/* ======================= THE CONVERSATION ======================= */}
       {stage === 'meet' && (() => {
         const q = MEET[meetIdx]
-        const canNext = !busy && (!q.required || (q.key === 'craft' ? picked.length > 0 : true))
+        // Next still needs a picked craft on Q01 (v17: the question is no
+        // longer required, but "continue as a maker" with zero crafts is a
+        // lie) — the non-maker doors are the people-option and skip below.
+        const canNext = !busy && (q.key === 'craft' ? picked.length > 0 : true)
         return (
           <>
             <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
@@ -436,8 +464,32 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                 <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{q.why}</p>
 
                 {q.key === 'craft' ? (
-                  <CraftPicker value={picked} primaryId={primaryId} autoFocus={wide}
-                    onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
+                  <>
+                    <CraftPicker value={picked} primaryId={primaryId} autoFocus={wide}
+                      onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
+                    {/* v17 — the first-class answer for the human who makes
+                        nothing and shows up anyway. Only while no craft is
+                        picked: the moment one is, they answered as a maker
+                        and this door would be noise. Same grammar as the
+                        SHOW_OPTIONS buttons — an option, not an apology. */}
+                    {!picked.length && (
+                      <div style={{ marginTop: '14px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 10px' }}>
+                          <div style={{ flex: 1, height: '1px', background: HAIR }} />
+                          <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>or</span>
+                          <div style={{ flex: 1, height: '1px', background: HAIR }} />
+                        </div>
+                        <button onClick={enterTasteFirst} disabled={busy} className="pressable"
+                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'background .2s, border-color .2s' }}>
+                          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW }}>◇</span>
+                          <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE }}>I&rsquo;m here for the people</span>
+                            <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>no craft needed — your taste opens the world</span>
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </>
                 ) : q.key !== 'show' ? (
                   <input autoFocus={wide} style={inp} value={answers[q.key]} placeholder={q.placeholder} maxLength={120}
                     onChange={(e) => setAnswers(a => ({ ...a, [q.key]: e.target.value }))}

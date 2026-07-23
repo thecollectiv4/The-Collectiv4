@@ -99,6 +99,11 @@ export default function Community() {
     navigate('/auth?next=' + encodeURIComponent(next || (window.location.pathname + window.location.search)))
   const [craftsByProfile, setCraftsByProfile] = useState(new Map())
   const [craftsLoaded, setCraftsLoaded] = useState(false)
+  // v17 — la tarjeta del no-maker habla su taste. Bulk de profile_tastes
+  // públicos (la RLS de 0022 filtra lo mismo server-side; el eq es
+  // explicitud, no la defensa) para la banda que WorldCard muestra cuando
+  // un mundo no tiene craft ni discipline que lo nombre.
+  const [tastesByProfile, setTastesByProfile] = useState(new Map())
   // v8 (adición C): the seed preview is no longer a per-page toggle — it's
   // governed by the founders' SHOW SEED switch in /os (default OFF) and the
   // 0033 RLS floor (verified ≠ seed access; owners only). This page only
@@ -217,6 +222,21 @@ export default function Community() {
       // the craft spine on the cards + the filter's real vocabulary (0020)
       setCraftsLoaded(false)
       fetchCraftsForProfiles(rows.map(r => r.id)).then((m) => { if (alive) { setCraftsByProfile(m); setCraftsLoaded(true) } })
+      // v17 — public tastes for the craft-less card band (3 max per card:
+      // the band is one line, not a list). Rides this same load pass so the
+      // directory stays at one render storm, not two.
+      supabase.from('profile_tastes').select('profile_id,label').eq('is_public', true)
+        .in('profile_id', rows.map(r => r.id)).limit(1000)
+        .then(({ data: trows }) => {
+          if (!alive || !trows) return
+          const m = new Map()
+          trows.forEach(t => {
+            const a = m.get(t.profile_id) || []
+            if (a.length < 3) a.push(t.label)
+            m.set(t.profile_id, a)
+          })
+          setTastesByProfile(m)
+        })
       // connected state on the cards (empty set pre-0017 / signed out)
       if (user?.id) {
         fetchFollowingSet(user.id, rows.map(r => r.id)).then((s) => { if (alive) setFollowingSet(s) })
@@ -367,7 +387,7 @@ export default function Community() {
                  relies on that stretch for its flex:1 body (equal-height rows) */
               <div key={c.id} className={entered ? undefined : 'card-in'}
                 style={entered ? { display: 'grid' } : { display: 'grid', animationDelay: `${Math.min(i, 8) * 50}ms` }}>
-                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} following={followingSet.has(c.id)}
+                <WorldCard c={c} crafts={craftsByProfile.get(c.id) || []} tastes={tastesByProfile.get(c.id) || []} following={followingSet.has(c.id)}
                   onOpen={() => navigate('/user/' + c.id)} wide={wide} showSeed={showDemo}
                   onPickCraft={setCraft}
                   onShowCrafts={() => setCraftsFor(c)}
@@ -581,7 +601,7 @@ const CARD_COVER_MASK = `linear-gradient(180deg,
    escrita ahí junto a los valores. */
 const CARD_COVER_SCRIM = 'var(--card-cover-scrim)'
 
-function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts, onFollow, onMessage, onConnect }) {
+function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showSeed, onPickCraft, onShowCrafts, onFollow, onMessage, onConnect }) {
   const cover = safeImg(c.cover_url)
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
@@ -678,7 +698,11 @@ function WorldCard({ c, crafts = [], following, onOpen, wide, showSeed, onPickCr
                 label={`See all ${crafts.length} crafts`} />
             )}
           </div>
-        ) : c.discipline && <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>}
+        ) : c.discipline ? <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>
+        /* v17 — el no-maker no queda fantasma: sin craft ni discipline, la
+           tarjeta habla su taste (sólo lo público — la capa quiet nunca
+           sale de la DB). Minúsculas y sin tinte: es taste, no oficio. */
+        : tastes.length > 0 ? <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.08em', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tastes.map(t => t.toLowerCase()).join(' · ')}</div> : null}
         {c.tagline && (
           <div className="disc-reveal" style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
             “{c.tagline}”
