@@ -139,7 +139,7 @@ export default function CreateCentral({ user, isMemberVerified, onClose, devForc
           <CreateMenu wide={wide}
             verified={isMemberVerified} marketReady={marketReady} planReady={planReady} onClose={onClose}
             onPost={() => setStage('post')}
-            onPlan={() => go('/messages?seg=plans&new=1')}
+            onPlan={() => go('/messages?new=plan')}
             onSell={(kind) => { setSellKind(kind); setStage('sell') }}
             onHost={() => go('/os?tab=events&new=1')}
             onCurate={() => go('/profile')} />

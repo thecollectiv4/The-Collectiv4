@@ -101,8 +101,11 @@ export function signalTo(s) {
     // te deja buscando la fila en vez de ponerte enfrente. Ley 9, completa.
     case 'friend_request': return '/connections?seg=requests'
     case 'friend_accept':  return s?.actor?.id ? '/user/' + s.actor.id : '/connections'
+    // v17: los tabs murieron — la lista es una, y el room del plan vive en
+    // ella. El payload de la campana no trae thread_id, así que la puerta
+    // honesta es la lista (nunca /p/:id — sólo abre planes públicos).
     case 'plan_invite':
-    case 'plan_rsvp':      return '/messages?seg=plans'
+    case 'plan_rsvp':      return '/messages'
     case 'message':        return t.thread_id ? '/messages/' + t.thread_id : '/messages'
     case 'ticket_sale':    return t.slug ? '/e/' + t.slug : '/'
     default:               return '/messages'
