@@ -374,6 +374,13 @@ body.os-full { max-width: none; }
 body.wide-full { max-width: none; }
 
 ::-webkit-scrollbar { width: 0; }
+/* v16 — FOR YOU dominante: el snap del feed vive en el scroller real (la
+   ventana = <html>), montado/desmontado por ForYou.jsx como una clase —
+   mismo mecanismo que body.wide-full. `proximity`, no `mandatory`: el
+   encabezado de Community sigue alcanzable y el scroll nunca se siente
+   secuestrado; cada cápsula declara su propio scroll-snap-align. */
+html.c4-snap-feed { scroll-snap-type: y proximity; }
+
 /* horizontal gallery rails — hide the scrollbar cross-browser */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; width: 0; height: 0; }
