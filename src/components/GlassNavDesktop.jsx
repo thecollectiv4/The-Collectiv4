@@ -36,13 +36,20 @@ import { CHIP, WELL, BONE_GLOW, WORD_CHIP_RADIUS } from '@/lib/glass'
 
    ─── CREATE SIGUE SIENDO ACCIÓN, NO CUARTO ────────────────────────────────
 
-   El chip DESCANSA sólo sobre salas (índices 0-3). Puede PREVISUALIZAR
-   CREATE mientras el puntero está encima, y soltarlo ahí abre CREATE — pero
-   después vuelve a la sala donde estás parado, porque nunca "estuviste" en
+   v17 — CREATE AL CENTRO, TAMBIÉN AQUÍ (decisión de fundador): la ranura
+   central es el acto, dos cuartos por lado — la MISMA anatomía que la
+   barra del teléfono. La asimetría v12-v16 (CREATE al final en desktop)
+   murió; los índices de sala ahora son 0,1,3,4 y todo mapeo entre
+   currentIdx (índice de tab) e índice de ranura pasa por slotIdxOf().
+
+   El chip DESCANSA sólo sobre salas. Puede PREVISUALIZAR CREATE mientras
+   el puntero está encima, y soltarlo ahí abre CREATE — pero después
+   vuelve a la sala donde estás parado, porque nunca "estuviste" en
    CREATE. Es exactamente el contrato de la barra del teléfono.
 
-   (En el teléfono CREATE sigue siendo la pastilla rellena, a propósito: ahí
-   es el pulgar el que manda y el destaque ayuda. Esto es sólo escritorio.)
+   La distinción leve del acto central: el + vive siempre en BONE (los
+   cuartos en reposo son DIM). Nada de pastilla rellena aquí — el vidrio
+   manda; una palabra de color basta.
 
    ─── EL GESTO ─────────────────────────────────────────────────────────────
 
@@ -159,8 +166,13 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
      scrub también la enciende, y un inline style le ganaría a la regla. */
   const [hovered, setHovered] = useState(null)
 
-  const slots = [...tabs, CREATE_SLOT]
+  // v17 — CREATE al centro: dos cuartos por lado, el mismo insert que la
+  // barra del teléfono (GlassNav mid). slotIdxOf traduce un índice de TAB
+  // (currentIdx, 0-3) a su ranura visual saltando la del centro.
+  const mid = Math.ceil(tabs.length / 2)
+  const slots = [...tabs.slice(0, mid), CREATE_SLOT, ...tabs.slice(mid)]
   const n = slots.length
+  const slotIdxOf = (tabIdx) => (tabIdx < mid ? tabIdx : tabIdx + 1)
 
   /* El chip aparece YA colocado en la primera pintura y sólo después se le
      permite animar. Sin esto, al cargar se ve viajar desde la izquierda hasta
@@ -195,8 +207,10 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
   /* Dónde se para el chip. El puntero manda mientras está abajo — eso es lo
      que convierte el arrastre en un preview y no en un salto consumado.
      currentIdx es -1 en una subpágina: ahí el chip se desvanece en vez de
-     mentir sobre en qué cuarto estás. */
-  const chipIdx = scrub ?? (currentIdx < 0 ? null : currentIdx)
+     mentir sobre en qué cuarto estás. v17: currentIdx es índice de TAB —
+     el chip vive en ranuras, así que pasa por slotIdxOf (el centro es de
+     CREATE y el chip jamás descansa ahí). */
+  const chipIdx = scrub ?? (currentIdx < 0 ? null : slotIdxOf(currentIdx))
 
   return (
     <nav ref={rowRef} style={{
@@ -222,7 +236,7 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
       }} />
 
       {slots.map((slot, i) => {
-        const active = !slot.create && i === currentIdx
+        const active = !slot.create && currentIdx >= 0 && i === slotIdxOf(currentIdx)
         const held = scrub === i
         const lit = active || held
         /* v16: la palabra despierta con el puntero encima o el press; el
@@ -263,7 +277,9 @@ export default function GlassNavDesktop({ tabs, currentIdx, bellCount, onTab, on
             }}>
               <span style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
                 {slot.create
-                  ? <Plus size={ICON} strokeWidth={1.9} />
+                  /* v17 — la distinción leve del acto central: el + siempre
+                     en BONE. Color, no material — el vidrio no se rompe. */
+                  ? <Plus size={ICON} strokeWidth={1.9} style={{ color: BONE }} />
                   : <Mark type={slot.mark} size={ICON} filled={active} color={lit ? BONE : DIM}
                       style={{ flexShrink: 0, filter: active ? BONE_GLOW : 'none', transition: 'filter .2s' }} />}
                 {!slot.create && slot.to === '/messages' && bellCount > 0 && (
