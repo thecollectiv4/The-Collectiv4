@@ -55,6 +55,11 @@ export default async function handler(req, res) {
     const productName = `${event.title}${event.edition ? ' — ' + event.edition : ''} · ${tierData.name}`
 
     const session = await stripe.checkout.sessions.create({
+      // v20 — EL PAGO EN CASA. ui_mode:'embedded' keeps the card form on OUR
+      // domain (mounted inside /checkout), instead of sending the buyer to
+      // checkout.stripe.com. Everything below (price, tier, metadata, quantity,
+      // email) is byte-identical to the hosted flow — only the surface moved.
+      ui_mode: 'embedded',
       payment_method_types: ['card'],
       mode: 'payment',
       line_items: [{
@@ -69,9 +74,12 @@ export default async function handler(req, res) {
         },
         quantity: Math.max(1, Math.min(Number(quantity) || 1, 5)),
       }],
-      // Land the buyer on the retention bridge: confirm the ticket + build their world.
-      success_url: `${origin}/claim?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/?ticket=cancelled`,
+      // Embedded uses return_url (not success_url/cancel_url). On completion
+      // Stripe redirects the top window to the SAME retention bridge as before:
+      // /claim polls the DB for the real ticket the webhook writes (unchanged
+      // source of truth). The cancel/back path is a control on /checkout, so no
+      // cancel_url is needed here.
+      return_url: `${origin}/claim?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         event_id: event.id,
         event_slug: event.slug,
@@ -85,7 +93,8 @@ export default async function handler(req, res) {
       billing_address_collection: 'auto',
     })
 
-    res.status(200).json({ url: session.url, sessionId: session.id })
+    // Embedded needs the client_secret to mount; keep sessionId for parity.
+    res.status(200).json({ clientSecret: session.client_secret, sessionId: session.id })
   } catch (err) {
     console.error('Stripe checkout error:', err)
     res.status(500).json({ error: 'Failed to create checkout session' })
