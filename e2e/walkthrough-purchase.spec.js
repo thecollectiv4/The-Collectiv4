@@ -9,16 +9,20 @@ import { createClient } from '@supabase/supabase-js'
    ticket. Every other walkthrough stops at checkout.stripe.com; this one rides
    the whole chain to a real ticket ROW that belongs to the buyer.
 
-   WHAT IT COVERS (all against REAL, FROZEN api/ code on the target deploy):
-     A · intent survives the door — a buyer sent to /auth?mode=create&next=…
-         (the exact ?next mechanism EventLanding relies on) authenticates and
-         lands back on their intended destination. Then the internal QA checkout
+   WHAT IT COVERS (against REAL api/ code on the target deploy — api/ is the v20
+   EMBEDDED checkout now, no longer the hosted-URL flow):
+     A · the EMBEDDED server switch + intent stays in-app. A1: the real
+         create-checkout-session, hit on the TEST key, must answer 200 with a
+         clientSecret and NO checkout.stripe.com URL — the proof the fn moved
+         from ui_mode:hosted → 'embedded' (v20). A2: a buyer sent to
+         /auth?mode=create&next=… (the exact ?next mechanism EventLanding relies
+         on) authenticates, lands back on their destination, and the internal QA
          UI (/test-purchase — the ONLY surface that reaches the is_test QA event;
-         the public EventPage filters is_test=false, by design) fires the real
-         create-checkout-session, which must answer 200 with a live
-         checkout.stripe.com URL — proof the checkout fn + the Stripe TEST key
-         work end to end. (The resume-checkout-on-a-public-event variant needs a
-         real published event with an available tier and is out of scope here.)
+         the public EventPage filters is_test=false, by design) hands off to our
+         OWN /checkout surface — the buyer never bounces to checkout.stripe.com.
+         (Driving Stripe's card iframe is cross-origin/brittle and needs
+         VITE_STRIPE_PUBLISHABLE_KEY on the preview, so it stays out of scope —
+         same boundary the hosted flow drew at the redirect.)
      B · the money machine — a validly-SIGNED checkout.session.completed is
          posted to /api/webhook (see WHY SIMULATED below); we then VERIFY IN THE
          DATABASE that exactly one confirmed ticket exists, keyed to the buyer
@@ -27,9 +31,13 @@ import { createClient } from '@supabase/supabase-js'
          "YOU'RE IN" — and ClaimWorld only ever says that against a real row.
 
    WHAT IT DOES **NOT** COVER (honest, per the send-off — no faked coverage):
-     · Stripe's HOSTED checkout page rendering + typing card 4242 + Stripe
-       actually charging. Driving checkout.stripe.com is cross-origin and
-       brittle; we assert the session/URL is created and stop there.
+     · Typing card 4242 into Stripe's embedded iframe + Stripe actually
+       charging. We assert the embedded session (clientSecret, no hosted URL),
+       that the buyer lands on our own /checkout, that the surface itself
+       creates the session, and that Stripe's card iframe MOUNTS on our domain
+       (needs VITE_STRIPE_PUBLISHABLE_KEY on the preview build) — but typing
+       into the cross-origin iframe is brittle, so the charge stays simulated
+       in test B.
      · Stripe's REAL webhook DELIVERY. Stripe can only deliver to a public
        endpoint it reaches itself (via `stripe listen`/`stripe trigger`, or a
        dashboard test endpoint). The Stripe CLI is not present in CI/headless,
@@ -77,7 +85,7 @@ const admin = envOk ? createClient(SUPA_URL, SERVICE_KEY, { auth: { persistSessi
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_signer')
 
 // module state shared across the serial story
-const S = { uid: null, eventId: null, price: null, tierName: null, sessionUrl: null }
+const S = { uid: null, eventId: null, price: null, tierName: null, clientSecret: null }
 
 /** Build a signed checkout.session.completed exactly as webhook.js reads it. */
 function signedCompletedEvent({ sessionId, paymentId, eventId, uid, email, name, amount, tier, tierName }) {
@@ -138,19 +146,39 @@ test.describe('v19 · the purchase machine, end to end', () => {
     S.uid = created.user.id
   })
 
-  test('A · intent survives the door (?next) → the QA UI creates a real Stripe test checkout', async ({ page }) => {
-    // --- intent: the EXACT ?next mechanism EventLanding relies on. The join
-    // door opens on Create Account (mode=create); ?next carries the buyer's
-    // destination through the door and must return them to it after auth. ---
+  test('A · the frozen fn creates an EMBEDDED session (clientSecret, no hosted URL) + intent stays in-app', async ({ page, request }) => {
+    // ---- A1 · the embedded server switch, proven deterministically ----
+    // The SAME frozen create-checkout-session, hit directly on the TEST key,
+    // must now answer an EMBEDDED session: a clientSecret to mount in-app and
+    // NO checkout.stripe.com URL. This is the money-machine half of v20 — it
+    // needs no browser and no publishable key, so it is the trustworthy proof
+    // that the fn moved from hosted → embedded. (userId is required by the fn;
+    // the QA buyer from beforeAll supplies a real one.)
+    const create = await request.post('/api/create-checkout-session', {
+      headers: { 'content-type': 'application/json' },
+      data: { eventSlug: QA_EVENT_SLUG, tier: QA_TIER, email: BUYER_EMAIL, userName: BUYER_NAME, userId: S.uid },
+    })
+    expect(create.status(), 'create-checkout-session must answer 200 (frozen fn + Stripe TEST key)').toBe(200)
+    const body = await create.json()
+    expect(body.clientSecret, 'embedded checkout must return a clientSecret to mount in-app').toBeTruthy()
+    expect(String(body.clientSecret), 'the clientSecret must be a real embedded session secret').toContain('_secret_')
+    expect(body.url, 'embedded must NOT return a hosted checkout.stripe.com URL').toBeFalsy()
+    expect(body.sessionId, 'checkout must still return a session id').toBeTruthy()
+    S.clientSecret = body.clientSecret
+
+    // ---- A2 · intent survives the door AND the buyer stays IN the app ----
+    // The EXACT ?next mechanism EventLanding relies on: the join door opens on
+    // Create Account (mode=create); ?next returns the buyer to their intended
+    // destination after auth. Then the QA UI hands off to our OWN /checkout —
+    // NOT a bounce to checkout.stripe.com. That in-app handoff is the whole
+    // point of v20, so we assert the URL that results is ours.
     await page.goto('/auth?mode=create&next=%2Ftest-purchase')
     await expect(page.getByPlaceholder('First name'), 'mode=create must open the create form').toBeVisible({ timeout: 15000 })
-    // this buyer already exists (beforeAll) → switch to Sign In and authenticate
     await page.getByRole('button', { name: 'Sign In' }).last().click()
     await page.getByPlaceholder('Email').fill(BUYER_EMAIL)
     await page.getByPlaceholder('Password').fill(BUYER_PASS)
     await page.getByRole('button', { name: 'Sign In' }).last().click()
 
-    // ?next honored → the buyer returns to EXACTLY where they intended
     await page.waitForURL('**/test-purchase', { timeout: 25000 })
     expect(page.url(), 'the buyer must return to their intended destination (?next preserved)').toContain('/test-purchase')
 
@@ -160,30 +188,39 @@ test.describe('v19 · the purchase machine, end to end', () => {
     await page.keyboard.press('Escape').catch(() => {})
     await page.waitForTimeout(500)
 
-    // --- checkout: the internal QA UI fires the REAL frozen fn on the TEST key.
-    // /test-purchase is the only surface that reaches the is_test QA event. ---
-    // We CAPTURE the checkout response inside a route handler — reading the body
-    // there, before the page does window.location.href=<stripe url> and tears
-    // down the network resource (a plain waitForResponse().json() races the
-    // unload and fails). The Stripe redirect itself is aborted so the page stays.
-    let checkoutStatus = null
-    let checkoutBody = null
-    await page.route('**/api/create-checkout-session', async (route) => {
-      const response = await route.fetch()
-      checkoutStatus = response.status()
-      const text = await response.text()
-      try { checkoutBody = JSON.parse(text) } catch { /* leave null */ }
-      await route.fulfill({ response, body: text })
-    })
-    await page.route(/checkout\.stripe\.com/, (route) => route.abort())
+    // Arm the request spy BEFORE the click: /checkout (CheckoutEmbedded) must
+    // ITSELF create the session — this is the UI-initiated path the old hosted
+    // test never exercised. A1 proves the fn; this proves the surface calls it.
+    const uiCheckoutReq = page.waitForRequest(
+      (r) => r.url().includes('/api/create-checkout-session') && r.method() === 'POST',
+      { timeout: 25000 }
+    )
     await page.getByRole('button', { name: /RUN TEST CHECKOUT/i }).click({ force: true })
-    await expect.poll(() => checkoutBody, { message: 'create-checkout-session never answered', timeout: 30000 }).toBeTruthy()
-    expect(checkoutStatus, 'create-checkout-session must answer 200 (frozen fn + Stripe TEST key)').toBe(200)
-    expect(checkoutBody.url, 'checkout must return a live Stripe URL').toContain('checkout.stripe.com')
-    expect(checkoutBody.sessionId, 'checkout must return a session id').toBeTruthy()
-    S.sessionUrl = checkoutBody.url
-    // We deliberately do NOT drive checkout.stripe.com (cross-origin/brittle) —
-    // the handoff is proven; the payment itself is simulated in test B.
+
+    // the QA UI navigates to our in-app checkout surface, carrying the event +
+    // tier — the buyer never leaves the app for checkout.stripe.com.
+    await page.waitForURL('**/checkout**', { timeout: 20000 })
+    expect(page.url(), 'the buyer must land on OUR /checkout, not Stripe’s domain').toContain('/checkout')
+    expect(page.url(), 'the checkout surface must carry the QA event slug').toContain('slug=qa-checkout-test')
+
+    // the surface actually initiated a session (not just changed the URL)
+    await uiCheckoutReq
+
+    // and Stripe Embedded Checkout actually MOUNTS on our page — an iframe
+    // served by Stripe attaches inside our panel. (Requires the preview build
+    // to carry VITE_STRIPE_PUBLISHABLE_KEY; without it the surface shows its
+    // honest error instead and THIS assertion fails loudly — never a false
+    // green.) We stop at "the card form rendered on our domain"; typing card
+    // 4242 into Stripe's cross-origin iframe stays out of scope, and the
+    // payment itself is simulated in test B.
+    // Assert the iframe INSIDE our own mount container — NOT any stray
+    // js.stripe.com utility iframe (those attach to <body> whenever Stripe.js
+    // loads, even when the mount fails). Only the real embedded card form lands
+    // inside [data-testid="embedded-mount"].
+    await expect(
+      page.locator('[data-testid="embedded-mount"] iframe').first(),
+      'Stripe Embedded Checkout must mount its card iframe inside our /checkout panel'
+    ).toBeVisible({ timeout: 25000 })
   })
 
   test('B · webhook → a real confirmed ticket that belongs to the buyer → /claim', async ({ page, request }) => {

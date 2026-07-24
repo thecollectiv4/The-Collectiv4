@@ -144,23 +144,18 @@ export function EventShow({ live }) {
     }
     if (!event) return
     setCheckingOut(true)
-    try {
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ eventSlug: event.slug, tier: tierId, email: user.email, userName: user.user_metadata?.full_name || '', userId: user.id }),
-      })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        alert(data.error || 'Something went wrong. Try again.')
-        setCheckingOut(false)
-      }
-    } catch (err) {
-      alert('Connection error. Try again.')
-      setCheckingOut(false)
-    }
+    // v20 — el pago en casa. The card form no longer lives on checkout.stripe.com:
+    // we hand off to our OWN /checkout surface, which creates the session and
+    // mounts Stripe Embedded Checkout in-app. `from` carries this exact room back
+    // for the buyer's "changed my mind" path (tier intact). The session itself is
+    // created there, so the auth/consent gating above stays the sole gate here.
+    // Strip ?buy from the return path: it drives the post-signup resume effect,
+    // and carrying it back would bounce the buyer straight into /checkout again.
+    const backParams = new URLSearchParams(location.search)
+    backParams.delete('buy')
+    const backQ = backParams.toString()
+    const from = `${location.pathname}${backQ ? `?${backQ}` : ''}`
+    navigate(`/checkout?slug=${encodeURIComponent(event.slug)}&tier=${encodeURIComponent(tierId)}&from=${encodeURIComponent(from)}`)
   }
 
   const [showCountdown, setShowCountdown] = useState(false)
@@ -373,7 +368,7 @@ export function EventShow({ live }) {
             onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(var(--ink-rgb),.12)'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
-              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING...' : 'GET YOUR TICKET'}</span>
+              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'OPENING CHECKOUT…' : 'GET YOUR TICKET'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               {fromPrice != null && <span style={{fontSize:'12px',color:'rgba(var(--void-rgb),.55)',fontWeight:500}}>from ${fromPrice}</span>}

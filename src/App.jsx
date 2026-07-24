@@ -19,6 +19,7 @@ import TestPurchase from '@/pages/TestPurchase'
 import UserProfile from '@/pages/UserProfile'
 import PlanLanding from '@/pages/PlanLanding'
 import ClaimWorld from '@/pages/ClaimWorld'
+import CheckoutEmbedded from '@/pages/CheckoutEmbedded'
 import EventPage from '@/pages/EventPage'
 import NetworkAdmin from '@/pages/NetworkAdmin'
 import OS from '@/pages/OS'
@@ -112,6 +113,7 @@ export default function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/reset-password" element={<ResetPassword />} />{/* D3: recovery link lands here (top-level, before the catch-all) */}
           <Route path="/claim" element={<ClaimWorld />} />{/* post-purchase → build your world */}
+          <Route path="/checkout" element={<CheckoutEmbedded />} />{/* v20 — el pago en casa: embedded checkout, standalone over the sky */}
           {/* Booking payment layer — the client usually has NO account (the
               link arrives by DM), so both surfaces are standalone like /claim:
               /book/:id is the payment page, /booked the polled ceremony. */}

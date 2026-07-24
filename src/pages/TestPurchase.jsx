@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/AuthContext'
 import { supabase } from '@/api/supabase'
 import { Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 export default function TestPurchase() {
   const { user, loading: authLoading } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState(null)
 
@@ -21,24 +23,11 @@ export default function TestPurchase() {
       const eventSlug = ev?.slug || null
       if (!eventSlug) { setStatus({ ok: false, msg: 'QA test event missing — apply migration 0012' }); setLoading(false); return }
 
-      const res = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventSlug,
-          tier: 'test',
-          email: user.email,
-          userName: user.user_metadata?.full_name || '',
-          userId: user.id,
-        }),
-      })
-      const data = await res.json()
-      if (data.url) {
-        setStatus({ ok: true, msg: 'Redirecting to Stripe...' })
-        window.location.href = data.url
-      } else {
-        setStatus({ ok: false, msg: data.error || 'Failed to create checkout session' })
-      }
+      // v20 — el pago en casa: the QA path now rides the SAME in-app embedded
+      // checkout surface real buyers use. /checkout creates the (frozen) session
+      // and mounts Stripe Embedded Checkout — no bounce to checkout.stripe.com.
+      setStatus({ ok: true, msg: 'Opening in-app checkout…' })
+      navigate(`/checkout?slug=${encodeURIComponent(eventSlug)}&tier=test&from=/test-purchase`)
     } catch (err) {
       setStatus({ ok: false, msg: err.message })
     }
