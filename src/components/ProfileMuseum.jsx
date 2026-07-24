@@ -1193,24 +1193,17 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
         {/* tagline — mobile keeps it here as the featured statement; on wide
             it's already composed into the hero */}
-        {!wide && (data.tagline ? (
+        {/* v18 — LA BYLINE DEJA DE APILAR INVITACIONES. Aquí vivían dos
+            invites sueltos ("Add a line…" en móvil y en wide) que se sumaban
+            a "+ add your links", a las bandas y al medidor: hasta seis piezas
+            de registros distintos antes de que el museo empezara — el "se ve
+            messy" del fundador, medido. El medidor (abajo) ya NOMBRA la
+            siguiente pieza que falta y abre el builder: una sola voz invita.
+            La tagline sólo se pinta cuando existe. */}
+        {!wide && data.tagline && (
           <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: 0, maxWidth: '460px', letterSpacing: '.005em' }}>
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
-        ) : (isOwner && !editing && (
-          /* ERA UN <p>: se veía clickeable y no hacía nada. Nada que parezca
-             interactivo puede estar muerto — es lo contrario del lujo. Ahora
-             abre el editor, que es a donde el texto ya prometía llevarte. */
-          <button className="pressable" onClick={startEdit} data-testid="add-tagline"
-            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
-            Add a line — what you're on, right now.
-          </button>
-        )))}
-        {wide && !data.tagline && isOwner && !editing && (
-          <button className="pressable" onClick={startEdit} data-testid="add-tagline-wide"
-            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
-            Add a line — what you're on, right now.
-          </button>
         )}
 
         {/* CONNECT — the social layer's face on the world (0017): follow +
@@ -1341,17 +1334,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             ))}
           </div>
         )}
-        {isOwner && !editing && links.length === 0 && (
-          /* mismo caso que el de arriba: parecía botón, era un div */
-          <button className="pressable" onClick={startEdit} data-testid="add-links"
-            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>
-            + add your links — IG, portfolio, sound
-          </button>
-        )}
+        {/* v18: el invite suelto de links murió con los de la tagline — el
+            medidor de abajo es la única voz que nombra lo que falta */}
         {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
-          <div>
+          /* v18 — LA CONSOLA DEL DUEÑO ES UNA ZONA, NO BANDAS SUELTAS: una
+             costura hairline separa las herramientas (bandas de migración/
+             escucha, medidor, botones de curar) de la voz del mundo (tagline,
+             links). Orden y jerarquía, no idioma nuevo. */
+          <div style={{ borderTop: `1px solid ${HAIR}`, paddingTop: `${S.md}px` }}>
             {/* IN-UI CRAFT MIGRATION (D1): a legacy free-text discipline is
                 invited to become REAL crafts — recognition, not a form. The
                 band lives until the person chooses; nothing is rewritten
