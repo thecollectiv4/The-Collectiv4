@@ -31,11 +31,13 @@ import { createClient } from '@supabase/supabase-js'
          "YOU'RE IN" — and ClaimWorld only ever says that against a real row.
 
    WHAT IT DOES **NOT** COVER (honest, per the send-off — no faked coverage):
-     · Stripe's EMBEDDED card iframe rendering + typing card 4242 + Stripe
-       actually charging. The iframe is cross-origin/brittle and needs
-       VITE_STRIPE_PUBLISHABLE_KEY on the preview build; we assert the embedded
-       session (clientSecret) is created and that the buyer lands on our own
-       /checkout, and stop there.
+     · Typing card 4242 into Stripe's embedded iframe + Stripe actually
+       charging. We assert the embedded session (clientSecret, no hosted URL),
+       that the buyer lands on our own /checkout, that the surface itself
+       creates the session, and that Stripe's card iframe MOUNTS on our domain
+       (needs VITE_STRIPE_PUBLISHABLE_KEY on the preview build) — but typing
+       into the cross-origin iframe is brittle, so the charge stays simulated
+       in test B.
      · Stripe's REAL webhook DELIVERY. Stripe can only deliver to a public
        endpoint it reaches itself (via `stripe listen`/`stripe trigger`, or a
        dashboard test endpoint). The Stripe CLI is not present in CI/headless,
@@ -186,16 +188,35 @@ test.describe('v19 · the purchase machine, end to end', () => {
     await page.keyboard.press('Escape').catch(() => {})
     await page.waitForTimeout(500)
 
+    // Arm the request spy BEFORE the click: /checkout (CheckoutEmbedded) must
+    // ITSELF create the session — this is the UI-initiated path the old hosted
+    // test never exercised. A1 proves the fn; this proves the surface calls it.
+    const uiCheckoutReq = page.waitForRequest(
+      (r) => r.url().includes('/api/create-checkout-session') && r.method() === 'POST',
+      { timeout: 25000 }
+    )
     await page.getByRole('button', { name: /RUN TEST CHECKOUT/i }).click({ force: true })
+
     // the QA UI navigates to our in-app checkout surface, carrying the event +
     // tier — the buyer never leaves the app for checkout.stripe.com.
     await page.waitForURL('**/checkout**', { timeout: 20000 })
     expect(page.url(), 'the buyer must land on OUR /checkout, not Stripe’s domain').toContain('/checkout')
     expect(page.url(), 'the checkout surface must carry the QA event slug').toContain('slug=qa-checkout-test')
-    expect(page.url(), 'the buyer must NOT be bounced to checkout.stripe.com').not.toContain('stripe.com')
-    // We deliberately do NOT drive the Stripe card iframe (cross-origin/brittle,
-    // and it needs VITE_STRIPE_PUBLISHABLE_KEY on the preview). The embedded
-    // SESSION is proven in A1; the payment itself is simulated in test B.
+
+    // the surface actually initiated a session (not just changed the URL)
+    await uiCheckoutReq
+
+    // and Stripe Embedded Checkout actually MOUNTS on our page — an iframe
+    // served by Stripe attaches inside our panel. (Requires the preview build
+    // to carry VITE_STRIPE_PUBLISHABLE_KEY; without it the surface shows its
+    // honest error instead and THIS assertion fails loudly — never a false
+    // green.) We stop at "the card form rendered on our domain"; typing card
+    // 4242 into Stripe's cross-origin iframe stays out of scope, and the
+    // payment itself is simulated in test B.
+    await expect(
+      page.locator('iframe[src*="stripe"], iframe[name*="Stripe"], iframe[title*="Secure"], iframe[name*="EmbeddedCheckout"]').first(),
+      'Stripe Embedded Checkout must mount its iframe on our /checkout surface'
+    ).toBeAttached({ timeout: 25000 })
   })
 
   test('B · webhook → a real confirmed ticket that belongs to the buyer → /claim', async ({ page, request }) => {
