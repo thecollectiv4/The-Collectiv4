@@ -243,11 +243,20 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
     onPublished()
   }
   // guilt-free — a skipped beat writes nothing and the door keeps moving.
-  // Skipping the LAST beat still publishes (the world exists either way).
+  // REVIEW v18 (dos catches del mismo par):
+  // · un skip LIMPIA su draft: lo tecleado-y-saltado se veía "guardado" en
+  //   el museo detrás y desaparecía en el próximo reload — pérdida
+  //   silenciosa percibida. El draft vuelve al null que la DB tiene (en la
+  //   entrada exprés nada previo existía: isNew lo garantiza).
+  // · saltar el ÚLTIMO beat NO publica ni celebra: "YOUR WORLD IS LIVE"
+  //   sobre un mundo posiblemente vacío viola la Ley 11. Skip = "ahora no";
+  //   la ceremonia sólo sigue al PUBLISH real.
   const expressSkip = () => {
     setErr('')
+    if (expressIdx === 1) { onDraft({ city: null }) }
     if (expressIdx < EXPRESS.length - 1) { setExpressIdx(expressIdx + 1); return }
-    onPublished()
+    onDraft({ tagline: null })
+    onClose()
   }
 
   // the face beat's upload — persists immediately via the parent (the same

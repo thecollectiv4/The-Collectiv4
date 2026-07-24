@@ -1406,11 +1406,23 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <div style={{ height: '1px', background: HAIR, position: 'relative' }}>
                   <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', transform: `scaleX(${completeness.pct / 100})`, transformOrigin: 'left', background: SILVER, opacity: .7, transition: 'transform .5s var(--ease-house)' }} />
                 </div>
-                {completeness.missing.length > 0 && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '6px' }}>
-                    {MISSING_INVITE[completeness.missing[0]] || 'keep building'} →
-                  </div>
-                )}
+                {(() => {
+                  /* review v18 — dos exclusiones de doctrina:
+                     · 'line' no invita: el builder profundo no tiene paso de
+                       línea (vive en el paso craft y en el editor) — invitar
+                       a algo que la puerta no puede tomar es una promesa rota.
+                     · 'craft' no invita al no-maker deliberado (sin crafts NI
+                       discipline): sería re-hablar la pared que v17 tiró. El
+                       maker legacy (discipline text) sí la recibe — es su
+                       puerta de migración. */
+                  const isDeliberateNonMaker = crafts.length === 0 && !(data.discipline || '').trim()
+                  const inviteKey = completeness.missing.find((k) => k !== 'line' && !(k === 'craft' && isDeliberateNonMaker))
+                  return inviteKey ? (
+                    <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '6px' }}>
+                      {MISSING_INVITE[inviteKey] || 'keep building'} →
+                    </div>
+                  ) : null
+                })()}
               </button>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>

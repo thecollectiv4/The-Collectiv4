@@ -209,9 +209,13 @@ export default function Community() {
          La columna nueva viaja sólo en la query primaria. */
       /* v18 — world_links viaja a la tarjeta: el link de redes (IG, portfolio)
          ya vivía en el perfil (0014, doors); la carta ahora lo enseña. Campo
-         existente, público por RLS de profiles — cero migración. */
-      const FIELDS_BASE = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media,world_links'
-      const FIELDS = FIELDS_BASE + ',photos_completed_at'
+         existente, público por RLS de profiles — cero migración.
+         Viaja SOLO en la query primaria (review v18): el camino de rescate
+         existe para esquemas VIEJOS y cada columna que se le suma estrecha
+         su cobertura — en el rescate la carta simplemente no enseña link. */
+      const FIELDS_BASE = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media'
+      const FIELDS_LINKS = FIELDS_BASE + ',world_links'
+      const FIELDS = FIELDS_LINKS + ',photos_completed_at'
       let rows = []
       // bounded: the directory pages later — an unbounded select with jsonb
       // columns won't survive a real community (review catch)
@@ -647,7 +651,12 @@ function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showS
 
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
-      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
+      /* review v18: el guard target===currentTarget es obligatorio — sin él,
+         Enter sobre el link social (hijo <a>) burbujeaba hasta aquí, el
+         preventDefault cancelaba el link y onOpen() abría el mundo en vez
+         del IG. Sólo la tarjeta MISMA responde al teclado (la receta que el
+         rail de Events ya usa). */
+      onKeyDown={(ev) => { if (ev.target !== ev.currentTarget) return; if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
       /* v11: real glass, not a painted panel. cardGlass carries the
          translucent fill AND the backdrop blur, so the star field genuinely
          reads through the card — 14px, not the bar's 28: a view shows one bar
