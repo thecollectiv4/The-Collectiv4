@@ -99,15 +99,19 @@ const CRAFT_COPY = {
 /* Land on the first unfinished step of THIS order, not always at zero.
    The craft step counts as done only when REAL crafts are chosen — a legacy
    free-text discipline alone re-opens the step (the in-UI migration door).
-   v17: a member holding tastes but no crafts took the "here for the
-   people" door DELIBERATELY — craft counts as answered for them, or the
-   builder re-traps every non-maker at the wall it just tore down.
+   v17: a member holding tastes but no crafts AND no legacy discipline
+   took the "here for the people" door DELIBERATELY — craft counts as
+   answered for them, or the builder re-traps every non-maker at the wall
+   it just tore down. A LEGACY free-text maker (discipline text, zero
+   structured crafts) keeps meeting the craft step even with tastes:
+   that's the migration door that turns the matching column on (review
+   catch v17 — the first cut exempted them by accident).
    Taste counts as done only when ≥1 taste is held — a member with crafts
    but zero tastes re-enters at the brainstorm (the v6 door). */
 function firstUnfinished(steps, d, crafts, tastes) {
   for (let i = 0; i < steps.length; i++) {
     const k = steps[i]
-    if (k === 'craft' && !(crafts || []).length && !(tastes || []).length) return i
+    if (k === 'craft' && !(crafts || []).length && ((d?.discipline || '').trim() || !(tastes || []).length)) return i
     if (k === 'taste' && !(tastes || []).length) return i
     if (k === 'city' && !(d?.city || '').trim()) return i
     if (k === 'line' && !(d?.tagline || '').trim()) return i

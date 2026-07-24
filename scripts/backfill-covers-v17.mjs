@@ -36,10 +36,20 @@ const MAX_EDGE = 1920
 if (!KEY) { console.error('✗ SUPABASE_SERVICE_KEY no está en el ambiente — ver el header del script.'); process.exit(1) }
 
 const H = { apikey: KEY, Authorization: `Bearer ${KEY}` }
+/* Hardened (review catch): profiles.*_url es texto que el DUEÑO de la fila
+   controla — este script corre con service role, así que un URL malicioso
+   no puede volverse un delete cruzado. Tres candados: host exacto de
+   NUESTRO proyecto, cero '..' tras decodificar, y el objeto tiene que
+   vivir bajo la carpeta uid de SU PROPIA fila (se valida en el loop). */
 const pathFromUrl = (url) => {
-  const m = /\/storage\/v1\/object\/public\/worlds\/(.+?)(?:[?#]|$)/.exec(url || '')
-  if (!m) return null
-  try { return decodeURIComponent(m[1]) } catch { return null }
+  const PREFIX = `${SUPABASE_URL}/storage/v1/object/public/worlds/`
+  if (!(url || '').startsWith(PREFIX)) return null
+  const raw = url.slice(PREFIX.length).split(/[?#]/)[0]
+  try {
+    const p = decodeURIComponent(raw)
+    if (p.includes('..') || p.startsWith('/')) return null
+    return p
+  } catch { return null }
 }
 const fmt = (b) => b >= 1048576 ? (b / 1048576).toFixed(2) + 'MB' : Math.round(b / 1024) + 'KB'
 
@@ -59,6 +69,9 @@ for (const row of rows) {
     const who = `${row.username || row.id.slice(0, 8)} · ${col}`
     if (!url) continue
     if (!objPath) { report.push(`○ ${who}: URL fuera del bucket (data:/foránea) — intacta`); continue }
+    // el objeto DEBE vivir bajo la carpeta de su propia fila — nunca tocar
+    // (ni borrar) el objeto de otro usuario por un URL apuntado a mano
+    if (!objPath.startsWith(`${row.id}/`)) { report.push(`✗ ${who}: el objeto no vive bajo su uid (${objPath.split('/')[0]}) — intacta, revisar a mano`); failures++; continue }
 
     const r = await fetch(url)
     if (!r.ok) { report.push(`✗ ${who}: descarga falló (${r.status})`); failures++; continue }

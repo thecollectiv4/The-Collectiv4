@@ -304,18 +304,22 @@ export default function Auth() {
         {/* THE chrome moment. The ONLY one on this screen (Ley 8).
             v17: el headline lo elige el PESTILLO del dispositivo — regreso
             "WELCOME BACK", primera vez "SEE WHO SHARES YOUR TASTE" — nunca
-            el modo. El tamaño sigue al texto: el headline largo baja un
-            paso de escala para vivir en dos líneas Bebas, nunca en tres. */}
+            la pestaña. Coherencia (review catch): WELCOME BACK sólo es
+            verdad SOBRE el form de sign in — un regresado que llegó por
+            una puerta de unirse (?mode=create) lee el headline de taste,
+            que es coherente sobre ambos forms. El tamaño sigue al texto:
+            el headline largo baja un paso de escala para vivir en dos
+            líneas Bebas, nunca en tres. */}
         <div style={{ ...rise(80), textAlign: 'center' }}>
           <h1 style={{
             ...chromeText, fontFamily: FONT_DISPLAY, fontWeight: 400,
-            fontSize: returning
+            fontSize: (returning && !signup)
               ? (wide ? 'clamp(46px, 4.6vw, 64px)' : 'clamp(34px, 10.5vw, 48px)')
               : (wide ? 'clamp(38px, 3.6vw, 52px)' : 'clamp(29px, 8.6vw, 40px)'),
             lineHeight: 0.94, letterSpacing: '.02em', margin: wide ? '20px 0 0' : '16px 0 0',
             maxWidth: '14ch', marginInline: 'auto',
           }}>
-            {returning ? 'WELCOME BACK' : 'SEE WHO SHARES YOUR TASTE'}
+            {(returning && !signup) ? 'WELCOME BACK' : 'SEE WHO SHARES YOUR TASTE'}
           </h1>
         </div>
 

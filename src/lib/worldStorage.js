@@ -37,7 +37,10 @@ export function validateImage(file) {
 
    Reglas duras:
    · gif/avif pasan intactos (canvas mata la animación y no encode avif)
-   · png queda png (transparencia); jpeg/webp re-encodan jpeg q.85
+   · jpeg re-encoda jpeg q.85; png Y webp salen png — webp también carga
+     alpha y a jpeg se hornea sobre negro (review catch v17). No se
+     re-encoda a webp: el toBlob de Safari no lo emite y produciría bytes
+     png con MIME webp — exactamente la mentira que este header prohíbe
    · el File devuelto carga el MIME correcto — EXT y contentType derivan
      de file.type y un blob renombrado subiría mentido (riesgo documentado)
    · createImageBitmap con from-image: la foto de iPhone en portrait llega
@@ -57,7 +60,7 @@ export async function downscaleImage(file, maxEdge = 1920, quality = 0.85) {
     canvas.width = w; canvas.height = h
     canvas.getContext('2d').drawImage(bmp, 0, 0, w, h)
     bmp.close?.()
-    const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg'
+    const type = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png'
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality))
     // si el "óptimo" salió más pesado que el original, el original gana
     if (!blob || blob.size >= file.size) return file

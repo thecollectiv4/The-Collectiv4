@@ -110,6 +110,12 @@ test('v17 · A — mode=create abre en crear, y el plan público nace con room y
 
   await page.getByPlaceholder('fucho on saturday').fill('fucho del gate v17')
   await page.getByPlaceholder('the park on Eleanor, mi casa, tbd').fill('Moody Park')
+  // WHEN cercano-futuro (review catch): los sin-fecha ordenan AL FINAL del
+  // rail — con fecha, la presencia del plan en las primeras 8 filas del
+  // test D es determinista, no suerte del tamaño del rail
+  const soon = new Date(Date.now() + 60 * 60 * 1000)
+  const pad = (n) => String(n).padStart(2, '0')
+  await page.locator('#plan-when').fill(`${soon.getFullYear()}-${pad(soon.getMonth() + 1)}-${pad(soon.getDate())}T${pad(soon.getHours())}:${pad(soon.getMinutes())}`)
   await page.getByPlaceholder('bring a ball. loser buys tacos.').fill('bring a ball. loser buys tacos.')
   await page.getByTestId('plan-vis-public').click()
   await shot(page, '03-plan-composer-publico')
@@ -249,7 +255,7 @@ test('v17 · D — el rail de la ciudad abre para anon y lleva a la landing', as
   const page = await ctx.newPage()
 
   await page.goto('/')
-  await expect(page.getByText('HAPPENING NEAR YOU').first(), 'EL_RAIL_NO_EXISTE_PARA_ANON — 0057/anon roto').toBeVisible({ timeout: 20000 })
+  await expect(page.getByText('HAPPENING IN THE CITY').first(), 'EL_RAIL_NO_EXISTE_PARA_ANON — 0057/anon roto').toBeVisible({ timeout: 20000 })
   const row = page.getByTestId(`city-plan-${PLAN.id}`)
   await expect(row, 'EL_PLAN_PUBLICO_NO_ESTA_EN_EL_RAIL').toBeVisible({ timeout: 10000 })
   await shot(page, '12-rail-anon')
@@ -260,4 +266,21 @@ test('v17 · D — el rail de la ciudad abre para anon y lleva a la landing', as
   await shot(page, '13-landing-desde-el-rail')
 
   await ctx.close()
+
+  // TEARDOWN (review catch): el plan del gate se CANCELA — cancel_plan es
+  // del creador y public_plans/public_plan filtran status='live', así que
+  // el rail de anon queda limpio al instante. Sin esto, cada corrida
+  // plantaba un plan público eterno esperando el cleanup manual.
+  const SUPA = 'https://tpjbyxbsgtiwqcxcpwyn.supabase.co'
+  const ANON = 'sb_publishable_GWP7VXZml8dAxi5vfyBkxQ_uCGJAC8K'
+  const acct = JSON.parse(fs.readFileSync(path.join(SHOTS, 'account-v17-a.json'), 'utf8'))
+  const tok = await fetch(`${SUPA}/auth/v1/token?grant_type=password`, {
+    method: 'POST', headers: { apikey: ANON, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: acct.email, password: acct.password }),
+  }).then((r) => r.json())
+  const done = await fetch(`${SUPA}/rest/v1/rpc/cancel_plan`, {
+    method: 'POST', headers: { apikey: ANON, Authorization: `Bearer ${tok.access_token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_plan: PLAN.id }),
+  }).then((r) => r.json()).catch(() => null)
+  expect(done?.ok, 'EL_TEARDOWN_NO_CANCELO_EL_PLAN — retirarlo a mano').toBeTruthy()
 })

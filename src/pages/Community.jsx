@@ -241,8 +241,13 @@ export default function Community() {
       // las filas privadas PROPIAS que el branch de owner sí devolvería —
       // sin él, tu taste quiet matchearía tu propia búsqueda y nombrarlo
       // rompería la ley de privacidad.
+      // orden determinista (review catch): si algún día el techo de 2000
+      // corta, que corte SIEMPRE igual — por perfil y position, nunca al
+      // azar del plan de query
       supabase.from('profile_tastes').select('profile_id,label').eq('is_public', true)
-        .in('profile_id', rows.map(r => r.id)).limit(2000)
+        .in('profile_id', rows.map(r => r.id))
+        .order('profile_id', { ascending: true }).order('position', { ascending: true })
+        .limit(2000)
         .then(({ data: trows }) => {
           if (!alive || !trows) return
           const m = new Map()

@@ -32,7 +32,7 @@ import {
 
 export default function PlanLanding() {
   const { id } = useParams()
-  const { user } = useAuth()
+  const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
   const [plan, setPlan] = useState(undefined)   // undefined=loading · null=not found
   const [joining, setJoining] = useState(false)
@@ -46,6 +46,11 @@ export default function PlanLanding() {
   }, [id])
 
   const join = async () => {
+    // identidad sin resolver ≠ sin sesión (doctrina three-way, AuthContext):
+    // en hard load del link compartido, el tap de un miembro rehidratando
+    // NO puede rebotar a Create Account — se ignora el click, como
+    // EventLanding.jsx hace en la misma ventana de milisegundos.
+    if (authLoading) return
     if (!user) { navigate(`/auth?mode=create&next=${encodeURIComponent(`/p/${id}`)}`); return }
     if (joining) return
     setJoining(true); setErr('')
@@ -154,8 +159,8 @@ export default function PlanLanding() {
           style={{ width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '14px', color: VOID, fontWeight: 600, fontSize: '13.5px', fontFamily: FONT_SANS, cursor: joining ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: joining ? .6 : 1 }}>
           {joining ? <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <>I&rsquo;m in <ArrowRight size={15} /></>}
         </button>
-        <div style={{ fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', textAlign: 'center', marginTop: '10px' }}>
-          {user ? 'you land in the plan’s room' : 'create your account · land in the plan’s room'}
+        <div style={{ fontFamily: FONT_MONO, fontSize: '8.5px', color: BONE_LOW, letterSpacing: '.14em', textTransform: 'uppercase', textAlign: 'center', marginTop: '10px', minHeight: '13px' }}>
+          {authLoading ? '' : user ? 'you land in the plan’s room' : 'create your account · land in the plan’s room'}
         </div>
         {err && <div style={{ fontFamily: FONT_MONO, fontSize: '9.5px', color: 'var(--warn)', textAlign: 'center', marginTop: '10px' }}>⚠ {err}</div>}
       </div>

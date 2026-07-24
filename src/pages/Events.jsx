@@ -229,7 +229,11 @@ export default function Events() {
                 cargan geo propia — Ley 11: no nombrar más allá del dato). */}
             {cityPlans.length > 0 && (
               <div style={{ marginTop: wide ? '44px' : '32px' }}>
-                <RowMarker label="HAPPENING NEAR YOU" kicker="plans from the community" />
+                {/* "IN THE CITY", no "NEAR YOU" (review catch, Ley 11): nada
+                    calcula proximidad personal todavía — la ciudad de cada
+                    fila es la del creador y se enseña. Cuando public_plans
+                    aprenda p_city (v18), el rótulo puede acercarse. */}
+                <RowMarker label="HAPPENING IN THE CITY" kicker="public plans from the community" />
                 <div style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', overflow: 'hidden' }}>
                   {cityPlans.slice(0, 8).map((p, i) => (
                     <button key={p.id} className={`pressable${entered ? '' : ' card-in'}`}

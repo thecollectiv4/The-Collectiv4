@@ -827,12 +827,13 @@ export default function Settings() {
   const [cityDraft, setCityDraft] = useState(null)
   const [citySaved, setCitySaved] = useState(false)
   const [cityBusy, setCityBusy] = useState(false)
+  const [cityErr, setCityErr] = useState('')
   const cityValue = cityDraft ?? (profile?.city || '')
   const saveCity = async () => {
     if (cityBusy || cityDraft === null) return
     const v = cityDraft.trim()
     if (v === (profile?.city || '')) { setCityDraft(null); return }
-    setCityBusy(true)
+    setCityBusy(true); setCityErr('')
     const { error } = await supabase.from('profiles').update({ city: v || null }).eq('id', user.id)
     setCityBusy(false)
     if (!error) {
@@ -840,6 +841,10 @@ export default function Settings() {
       setCityDraft(null)
       setCitySaved(true)
       setTimeout(() => setCitySaved(false), 2000)
+    } else {
+      // la fila no puede mentir (ley de esta pantalla): si el UPDATE no
+      // aterrizó se DICE — el draft se queda para reintentar sin reteclear
+      setCityErr("couldn't save — try again")
     }
   }
   // Una sola variable para las tres hojas: nunca hay dos abiertas, y con un
@@ -1217,23 +1222,29 @@ export default function Settings() {
               )}
             </Row>
             <Row label="Your city" hint="Where real life happens for you — it feeds who the universe puts near you. The builder asks once; change it here whenever it changes." last testId="settings-city-row">
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  value={cityValue}
-                  onChange={e => setCityDraft(e.target.value)}
-                  onBlur={saveCity}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveCity() } }}
-                  placeholder="Houston"
-                  maxLength={60}
-                  aria-label="Your city"
-                  data-testid="settings-city-input"
-                  style={{
-                    width: '130px', background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`,
-                    borderRadius: '8px', padding: '7px 10px', color: BONE, fontFamily: FONT_SANS,
-                    fontSize: '12.5px', outline: 'none', textAlign: 'right',
-                  }} />
-                {cityBusy ? <Loader2 size={12} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />
-                  : citySaved ? <Check size={12} style={{ color: SILVER }} /> : null}
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    value={cityValue}
+                    onChange={e => { setCityDraft(e.target.value); setCityErr('') }}
+                    onBlur={saveCity}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveCity() } }}
+                    placeholder="Houston"
+                    maxLength={60}
+                    aria-label="Your city"
+                    data-testid="settings-city-input"
+                    style={{
+                      width: '130px', background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`,
+                      borderRadius: '8px', padding: '7px 10px', color: BONE, fontFamily: FONT_SANS,
+                      fontSize: '12.5px', outline: 'none', textAlign: 'right',
+                    }} />
+                  {cityBusy ? <Loader2 size={12} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />
+                    : citySaved ? <Check size={12} style={{ color: SILVER }} /> : null}
+                </span>
+                {/* BONE_MID y no WARN: esta hoja reserva WARN para la única
+                    frase que protege dinero (ley documentada abajo), y
+                    BONE_LOW ya reprobó contraste para avisos (nota Pending) */}
+                {cityErr && <span role="alert" style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.04em' }}>⚠ {cityErr}</span>}
               </span>
             </Row>
           </Panel>
