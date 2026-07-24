@@ -66,6 +66,16 @@
   --star:       #E8E9ED;   /* STAR */
   --success:    #C7C9D1;
   --warn:       #E5A0A0;
+  /* ── EL ORO VIVO (v18) — la aurora de la nebulosa (198,170,118), la única
+     nota cálida que Cosmos admite (badgeColors.js la documenta). LA REGLA:
+     el oro marca EL DATO VIVO y nada más — (1) el CUÁNDO de lo que va a
+     pasar (fechas de eventos y planes próximos), (2) la pertenencia
+     verificada (VerifiedMark ya lo lleva), (3) un estado activo confirmado
+     (CONFIRMED, GOING). Máximo un elemento de oro por tarjeta además del
+     sello. Nunca headers, bordes, botones ni íconos decorativos. Si dudas,
+     no lleva oro. */
+  --gold-live:     #C6AA76;
+  --gold-live-rgb: 198,170,118;
 
   /* ---- LOS DOS CANALES (ver la nota larga arriba) ---- */
   --ink-rgb:    242,238,230;   /* el frente: hueso sobre vacío */
@@ -275,6 +285,11 @@
   --star:       #2A2C33;
   --success:    #4A4C55;
   --warn:       #A33B3B;
+  /* el oro vivo de día baja a BRONCE TINTA: 198,170,118 sobre papel es
+     ~2:1 — invisible. Este bronce da ~4.6:1 en el mono chico donde vive
+     (fechas, estados). Misma nota, registro de tinta. */
+  --gold-live:     #8A6C35;
+  --gold-live-rgb: 138,108,53;
 
   /* los canales se INTERCAMBIAN — ésta es la línea que voltea la app entera */
   --ink-rgb:    10,10,13;

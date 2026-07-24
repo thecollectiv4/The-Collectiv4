@@ -273,7 +273,8 @@ export default function Events() {
                         border: 'none', borderBottom: i === Math.min(cityPlans.length, 8) - 1 ? 'none' : `1px solid ${HAIR}`,
                         cursor: 'pointer', ...(entered ? {} : { animationDelay: `${Math.min(i, 8) * 50 + 150}ms` }),
                       }}>
-                      <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em', textTransform: 'uppercase', width: wide ? '110px' : '84px', flexShrink: 0 }}>
+                      {/* regla del oro (v18): el cuándo del plan es su dato vivo */}
+                      <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--gold-live)', letterSpacing: '.1em', textTransform: 'uppercase', width: wide ? '110px' : '84px', flexShrink: 0 }}>
                         {planWhen(p.starts_at)}
                       </span>
                       <span style={{ minWidth: 0, flex: 1 }}>
@@ -421,12 +422,17 @@ function FeaturedRoom({ e, live, attendees, count, wide, onEnter }) {
       {/* the facts + the door */}
       <div style={{ padding: wide ? '18px 28px 22px' : '14px 18px 18px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px', alignItems: 'center' }}>
-          {facts.map(([Icon, text], i) => (
-            <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <Icon size={12} strokeWidth={1.5} style={{ color: BONE }} />
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em' }}>{text}</span>
-            </span>
-          ))}
+          {/* regla del oro (v18): la FECHA es el dato vivo de un cuarto —
+              el único oro de esta tarjeta además del sello */}
+          {facts.map(([Icon, text], i) => {
+            const live = Icon === Calendar
+            return (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <Icon size={12} strokeWidth={1.5} style={{ color: live ? 'var(--gold-live)' : BONE }} />
+                <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: live ? 'var(--gold-live)' : BONE_MID, letterSpacing: '.06em' }}>{text}</span>
+              </span>
+            )
+          })}
           {/* the room's declared character — its light, not decoration (Ley 14) */}
           {vMeta && (
             <span className={vMeta.pulse === 'warm' ? 'temp-warm' : vMeta.pulse === 'electric' ? 'temp-electric' : undefined}
@@ -501,9 +507,10 @@ function RoomCard({ e, onOpen, pastRoom, wide }) {
       <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
         {/* the date lives on ONE line, always — the venue is the only text
             that absorbs truncation (panel catch) */}
+        {/* regla del oro (v18): la fecha es el dato vivo de la tarjeta */}
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-          <Calendar size={10} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{fmtDate(e.event_date)}</span>
+          <Calendar size={10} style={{ color: 'var(--gold-live)' }} />
+          <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--gold-live)', letterSpacing: '.06em', whiteSpace: 'nowrap' }}>{fmtDate(e.event_date)}</span>
         </span>
         {(e.venue || e.city) && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>

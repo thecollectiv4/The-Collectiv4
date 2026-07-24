@@ -469,8 +469,9 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontFamily: 'Bebas Neue', fontSize: '24px', color: BONE, letterSpacing: '.02em', lineHeight: .95 }}>{p.title}</div>
+          {/* regla del oro (v18): el cuándo es el dato vivo del plan */}
           <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.1em', marginTop: '7px' }}>
-            {(p.spot || 'spot tbd')} · {planWhen(p.starts_at)}
+            {(p.spot || 'spot tbd')} · <span style={{ color: 'var(--gold-live)' }}>{planWhen(p.starts_at)}</span>
           </div>
         </div>
         {canceled && (

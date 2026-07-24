@@ -369,9 +369,10 @@ export default function Profile() {
                 <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--cream-low)', letterSpacing: '.06em' }}>{fmtPrice(Number(ticket.price_paid))} PAID</div>
               )}
             </div>
-            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(var(--silver-rgb),.03)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--silver)', boxShadow: '0 0 6px rgba(var(--silver-rgb),.4)' }} />
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--silver)', letterSpacing: '.06em', fontWeight: 600 }}>CONFIRMED</span>
+            {/* regla del oro (v18): CONFIRMED es estado activo — oro vivo */}
+            <div style={{ padding: '14px 24px', borderTop: '1px dashed var(--border-hi)', background: 'rgba(var(--gold-live-rgb),.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--gold-live)', boxShadow: '0 0 6px rgba(var(--gold-live-rgb),.4)' }} />
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--gold-live)', letterSpacing: '.06em', fontWeight: 600 }}>CONFIRMED</span>
             </div>
           </div>
         ) : (

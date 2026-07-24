@@ -398,8 +398,9 @@ function EventCard({ ev, onOpen }) {
         )}
       </div>
       <div style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.01em', lineHeight: .95, color: BONE, marginTop: '10px' }}>{ev.title}</div>
+      {/* regla del oro (v18): la fecha es el dato vivo del cuarto */}
       <div style={{ fontFamily: 'DM Mono', fontSize: '9.5px', color: BONE_MID, letterSpacing: '.08em', marginTop: '8px' }}>
-        {fmtDate(ev.event_date)}{place ? ` · ${String(place).toUpperCase()}` : ''}
+        <span style={{ color: 'var(--gold-live)' }}>{fmtDate(ev.event_date)}</span>{place ? ` · ${String(place).toUpperCase()}` : ''}
       </div>
       {sounds.length > 0 && (
         <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '10px' }}>

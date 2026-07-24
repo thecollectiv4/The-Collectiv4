@@ -126,7 +126,8 @@ export default function PlanLanding() {
       <div className="rise rise-2" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '22px', padding: '16px', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', background: CARD }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <span style={{ fontFamily: FONT_MONO, fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase', width: '46px', flexShrink: 0 }}>when</span>
-          <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: BONE, letterSpacing: '.04em' }}>{planWhen(plan.starts_at)}</span>
+          {/* regla del oro (v18): el cuándo es el dato vivo del plan */}
+          <span style={{ fontFamily: FONT_MONO, fontSize: '12px', color: 'var(--gold-live)', letterSpacing: '.04em' }}>{planWhen(plan.starts_at)}</span>
         </div>
         {plan.spot && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

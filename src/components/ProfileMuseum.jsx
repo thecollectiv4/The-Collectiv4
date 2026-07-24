@@ -915,7 +915,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               style={{ display: 'flex', alignItems: 'baseline', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '15px 6px', cursor: 'pointer' }}
               onMouseOver={e => { e.currentTarget.style.borderColor = HAIR_HI }}
               onMouseOut={e => { e.currentTarget.style.borderColor = HAIR }}>
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.1em', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '52px' }}>{fmtSetDate(ev.event_date)}</span>
+              {/* regla del oro (v18): la fecha del set próximo es el dato vivo */}
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--gold-live)', letterSpacing: '.1em', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '52px' }}>{fmtSetDate(ev.event_date)}</span>
               <span style={{ flex: 1, minWidth: 0, fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.03em', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
               {(ev.venue || ev.city) && (
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '38%', flexShrink: 0 }}>{[ev.venue, ev.city].filter(Boolean).join(' · ')}</span>
@@ -1142,8 +1143,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                       <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city}</span>
                     </span>}
                     {ticket && (
+                      /* regla del oro (v18): GOING es estado activo — el punto va en oro */
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(var(--void-rgb),.45)', borderRadius: '100px', padding: '3px 10px', letterSpacing: '.1em' }}>
-                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(var(--star-rgb),.7)` }} />
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--gold-live)', boxShadow: `0 0 8px rgba(var(--gold-live-rgb),.7)` }} />
                         GOING{event?.editionNumber ? ` · ${event.editionNumber}` : ''}
                       </span>
                     )}
