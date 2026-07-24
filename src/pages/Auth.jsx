@@ -520,22 +520,54 @@ export default function Auth() {
           )}
         </div>
 
-        {/* ── the footer: the switch, then the terms ── */}
+        {/* ── the footer: the switch, then the terms ──
+            v18 — CREATE ACCOUNT CON PESO. Sign in sigue siendo el default
+            (decisión v17, intacta), pero para alguien NUEVO la puerta de
+            crear cuenta era un renglón de 13px subrayado al fondo. Ahora es
+            una cápsula real de ancho completo — el mismo material plano de
+            las puertas OAuth (GOOGLE_FLAT, sin backdrop-filter: vive dentro
+            de un wrapper rise() animado, la lección de v16). El switch de
+            regreso (desde signup) sigue siendo texto: quien ya tiene cuenta
+            sabe buscarlo. Los aria-label del e2e no se mueven. */}
         <div style={{ ...rise(440), marginTop: '34px', paddingTop: '24px', borderTop: `1px solid ${HAIR}`, textAlign: 'center' }}>
-          <button
-            type="button"
-            onClick={() => switchMode(signup ? 'signin' : 'signup')}
-            /* The e2e harness switches modes with
-               getByRole('button', { name: 'Sign In' }).first() — this explicit
-               label is what keeps that handle stable no matter how the visible
-               sentence is reworded later. */
-            aria-label={signup ? 'Sign In' : 'Sign Up'}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID }}>
-            {signup ? 'Already have an account? ' : 'New here? '}
-            <span style={{ color: BONE, textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-              {signup ? 'Sign in' : 'Sign up'}
-            </span>
-          </button>
+          {signup ? (
+            <button
+              type="button"
+              onClick={() => switchMode('signin')}
+              /* The e2e harness switches modes with
+                 getByRole('button', { name: 'Sign In' }).first() — this explicit
+                 label is what keeps that handle stable no matter how the visible
+                 sentence is reworded later. */
+              aria-label="Sign In"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', fontFamily: FONT_SANS, fontSize: '13px', color: BONE_MID }}>
+              Already have an account?{' '}
+              <span style={{ color: BONE, textDecoration: 'underline', textUnderlineOffset: '3px' }}>Sign in</span>
+            </button>
+          ) : (
+            <>
+              <div style={{ fontFamily: FONT_MONO, fontSize: '9px', letterSpacing: '.26em', textTransform: 'uppercase', color: BONE_LOW, marginBottom: '12px' }}>
+                New here?
+              </div>
+              <button
+                type="button"
+                onClick={() => switchMode('signup')}
+                aria-label="Sign Up"
+                className="glass-press"
+                style={{
+                  ...GOOGLE_FLAT,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '9px',
+                  width: '100%', borderRadius: '100px', padding: '15px 12px',
+                  color: BONE, fontFamily: FONT_MONO, fontSize: '11px',
+                  letterSpacing: '.22em', textTransform: 'uppercase', fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: `border-color .3s ${EASE_HOUSE}, color .3s ${EASE_HOUSE}`,
+                }}
+                onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.42)' }}
+                onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.22)' }}>
+                Create your account →
+              </button>
+            </>
+          )}
 
           {/* Real routes, both of them (App.jsx: /terms, /privacy). A new tab
               so a half-filled form is not thrown away to read a policy.

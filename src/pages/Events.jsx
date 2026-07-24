@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '@/api/supabase'
 import { useLiveEvent } from '@/lib/useLiveEvent'
 import { useWide } from '@/lib/useIsDesktop'
-import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive } from 'lucide-react'
+import { MapPin, Calendar, Clock, Ticket, ArrowUpRight, ArrowRight, Loader2, Archive, Link2, Check } from 'lucide-react'
+import { useAuth } from '@/lib/AuthContext'
 import { normVibe, vibeMeta } from '@/lib/match'
 import FoundersLine from '@/components/FoundersLine'
 import SeedPill from '@/components/SeedMark'
@@ -109,11 +110,29 @@ export default function Events() {
      superficie lista para el aggregation de v18: el tab ya es LA CIUDAD,
      no sólo nuestro calendario. */
   const [cityPlans, setCityPlans] = useState([])
+  // v18: null = todavía en vuelo — el estado vacío del rail no debe
+  // flashear mientras la respuesta viaja (loaded-empty ≠ not-yet-loaded)
+  const [plansLoaded, setPlansLoaded] = useState(false)
   useEffect(() => {
     let alive = true
-    publicPlans(30).then((ps) => { if (alive) setCityPlans(ps) })
+    publicPlans(30).then((ps) => { if (alive) { setCityPlans(ps); setPlansLoaded(true) } })
     return () => { alive = false }
   }, [])
+  // v18 — cada fila del rail carga su propio copy-link (regla de
+  // descubribilidad: el link del plan se copia donde el plan se VE)
+  const { user, loading: authLoading } = useAuth()
+  const [copiedPlan, setCopiedPlan] = useState(null)
+  const copyPlanLink = async (pid) => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${pid}`)
+      setCopiedPlan(pid)
+      setTimeout(() => setCopiedPlan((cur) => (cur === pid ? null : cur)), 2000)
+    } catch { /* clipboard denied — the button simply doesn't confirm */ }
+  }
+  const makeFirstPlan = () => {
+    if (authLoading) return
+    navigate(user ? '/messages?new=plan' : '/auth?mode=create&next=' + encodeURIComponent('/messages?new=plan'))
+  }
 
   // who's pulling up — real faces on the featured room (Leyes 6, 11)
   useEffect(() => {
@@ -227,18 +246,27 @@ export default function Events() {
                 plan es más ligero que un cuarto y no debe confundirse con
                 uno. La ciudad de cada fila es la del creador (los planes no
                 cargan geo propia — Ley 11: no nombrar más allá del dato). */}
-            {cityPlans.length > 0 && (
+            {plansLoaded && (
               <div style={{ marginTop: wide ? '44px' : '32px' }}>
                 {/* "IN THE CITY", no "NEAR YOU" (review catch, Ley 11): nada
                     calcula proximidad personal todavía — la ciudad de cada
                     fila es la del creador y se enseña. Cuando public_plans
-                    aprenda p_city (v18), el rótulo puede acercarse. */}
+                    aprenda p_city, el rótulo puede acercarse.
+                    v18 — el rail tiene PRESENCIA aunque esté vacío: un rail
+                    que desaparece cuando no hay planes es un feature que
+                    nadie descubre. El vacío invita a hacer el primero. */}
                 <RowMarker label="HAPPENING IN THE CITY" kicker="public plans from the community" />
+                {cityPlans.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', border: `1px solid ${HAIR_HI}`, borderRadius: '14px', overflow: 'hidden' }}>
                   {cityPlans.slice(0, 8).map((p, i) => (
-                    <button key={p.id} className={`pressable${entered ? '' : ' card-in'}`}
-                      data-testid={`city-plan-${p.id}`}
+                    /* div role=button, no <button>: la fila lleva un botón
+                       ANIDADO (copy-link) y un botón dentro de un botón es
+                       HTML inválido — la misma receta que WorldCard */
+                    <div key={p.id} className={`pressable${entered ? '' : ' card-in'}`}
+                      data-testid={`city-plan-${p.id}`} role="button" tabIndex={0}
+                      aria-label={`Open ${p.title}`}
                       onClick={() => navigate(`/p/${p.id}`)}
+                      onKeyDown={(ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && ev.target === ev.currentTarget) { ev.preventDefault(); navigate(`/p/${p.id}`) } }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left',
                         padding: wide ? '14px 18px' : '13px 14px', background: 'rgba(var(--ink-rgb),.02)',
@@ -257,10 +285,34 @@ export default function Events() {
                           by {p.creator?.name || p.creator?.username || 'a member'}{p.creator?.city ? ` · ${p.creator.city}` : ''}{p.spot ? ` · ${p.spot}` : ''}
                         </span>
                       </span>
+                      {/* v18 — el link del plan se copia AQUÍ, donde el plan se
+                          ve (antes vivía sólo dentro del room, y el propio
+                          fundador no lo encontró caminando) */}
+                      <button className="pressable" data-testid={`city-plan-copy-${p.id}`}
+                        aria-label={`Copy the link to ${p.title}`}
+                        title="Copy the door link"
+                        onClick={(e) => { e.stopPropagation(); copyPlanLink(p.id) }}
+                        style={{ background: 'transparent', border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '6px 9px', color: copiedPlan === p.id ? BONE : BONE_LOW, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', flexShrink: 0, transition: 'color .2s, border-color .2s' }}>
+                        {copiedPlan === p.id ? <Check size={11} /> : <Link2 size={11} />}
+                      </button>
                       <ArrowUpRight size={13} style={{ color: BONE_LOW, flexShrink: 0 }} />
-                    </button>
+                    </div>
                   ))}
                 </div>
+                ) : (
+                <div data-testid="city-plans-empty" style={{ border: `1px dashed ${HAIR_HI}`, borderRadius: '14px', padding: wide ? '26px 28px' : '22px 18px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: '220px' }}>
+                    <div style={{ fontFamily: 'Bebas Neue', fontSize: '22px', letterSpacing: '.03em', lineHeight: .95, color: BONE }}>NO PUBLIC PLANS YET</div>
+                    <p style={{ fontFamily: 'DM Sans', fontSize: '12.5px', color: BONE_MID, lineHeight: 1.6, margin: '8px 0 0', maxWidth: '380px' }}>
+                      A picnic, a gallery walk, a kickback — make a plan, flip it public, and it shows up here with its own shareable link.
+                    </p>
+                  </div>
+                  <button className="pressable" data-testid="city-plans-first" onClick={makeFirstPlan}
+                    style={{ background: BONE, border: 'none', borderRadius: '100px', padding: '12px 20px', color: VOID, fontFamily: 'DM Sans', fontSize: '12.5px', fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', flexShrink: 0 }}>
+                    Make the first plan <ArrowRight size={13} />
+                  </button>
+                </div>
+                )}
               </div>
             )}
 

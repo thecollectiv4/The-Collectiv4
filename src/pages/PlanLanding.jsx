@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowRight, Loader2, MapPin } from 'lucide-react'
+import { ArrowRight, Loader2, MapPin, Link2, Check } from 'lucide-react'
 import { useAuth } from '@/lib/AuthContext'
 import { publicPlan, joinPlan, planWhen } from '@/lib/social'
 import SeedPill from '@/components/SeedMark'
@@ -37,6 +37,17 @@ export default function PlanLanding() {
   const [plan, setPlan] = useState(undefined)   // undefined=loading · null=not found
   const [joining, setJoining] = useState(false)
   const [err, setErr] = useState('')
+  /* v18 — el copy-link sube a donde se ve (regla: un feature que nadie
+     encuentra no existe). Esta landing ES la página compartible: quien
+     llegó por el link puede re-tirarlo a su propio chat sin ser miembro. */
+  const [copied, setCopied] = useState(false)
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${id}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard denied — the button simply doesn't confirm */ }
+  }
 
   useEffect(() => {
     let alive = true
@@ -163,6 +174,14 @@ export default function PlanLanding() {
           {authLoading ? '' : user ? 'you land in the plan’s room' : 'create your account · land in the plan’s room'}
         </div>
         {err && <div style={{ fontFamily: FONT_MONO, fontSize: '9.5px', color: 'var(--warn)', textAlign: 'center', marginTop: '10px' }}>⚠ {err}</div>}
+        {/* the door link, right where the door is — drop it in any chat */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '14px' }}>
+          <button className="pressable" data-testid="landing-copy-link" onClick={copyLink}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '7px 14px', color: copied ? BONE : BONE_MID, cursor: 'pointer', fontFamily: FONT_MONO, fontSize: '8.5px', letterSpacing: '.14em', textTransform: 'uppercase' }}>
+            {copied ? <Check size={10} /> : <Link2 size={10} />}
+            {copied ? 'copied — drop it anywhere' : 'copy the door link'}
+          </button>
+        </div>
       </div>
     </div>
   )
