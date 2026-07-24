@@ -687,10 +687,15 @@ function CrewSheet({ friends, onClose, onCreated, onGoCommunity }) {
 /* WHO CAN SEE IT — the three tiers of v7 D5, finally a control (v9 D2).
    PÚBLICO / CONNECTIONS / CLOSE FRIENDS, default connections. A lit star means close
    (Ley 14 — light with meaning). Reused at create and on the plan card. */
+/* v18 — LEY PÚBLICO/PRIVADO (dictada por el fundador): el copy del
+   interruptor habla en términos humanos — qué significa CADA estado en
+   consecuencias, no en categorías. "Anyone with the link" es la frase que
+   explica qué acabas de abrir; "people you invite can always see it" es la
+   garantía que quita el miedo de cerrar. */
 const VIS_META = {
-  public: { icon: Globe, sub: 'anyone can find it' },
-  friends: { icon: Users, sub: 'your connections' },
-  close: { icon: Star, sub: 'your close friends only' },
+  public: { icon: Globe, sub: 'anyone with the link can see it — and it shows on the city rail' },
+  friends: { icon: Users, sub: 'your connections can find it · people you invite can always see it' },
+  close: { icon: Star, sub: 'only your close friends can find it · people you invite can always see it' },
 }
 function VisibilityPicker({ value, onChange, disabled, compact }) {
   return (
@@ -709,11 +714,13 @@ function VisibilityPicker({ value, onChange, disabled, compact }) {
           )
         })}
       </div>
-      {!compact && (
-        <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '7px' }}>
-          {VIS_META[value]?.sub}
-        </div>
-      )}
+      {/* v18: la línea humana acompaña SIEMPRE al interruptor — también en
+          la tarjeta del plan (compact), que es donde el creador decide de
+          verdad. Un interruptor sin consecuencias legibles no es una
+          decisión, es una adivinanza. */}
+      <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', lineHeight: 1.6, marginTop: '7px' }}>
+        {VIS_META[value]?.sub}
+      </div>
     </div>
   )
 }
