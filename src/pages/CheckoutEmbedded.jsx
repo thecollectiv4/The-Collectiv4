@@ -128,8 +128,11 @@ export default function CheckoutEmbedded() {
       if (!stripe || cancelled) { if (!cancelled) { setError('Payments aren’t available right now.'); setPhase('error') } return }
 
       try {
-        // API name moved across stripe-js versions; support both at runtime.
-        const initEmbedded = stripe.initEmbeddedCheckout || stripe.createEmbeddedCheckoutPage
+        // API name moved across Stripe.js versions. On this account's version
+        // stripe.initEmbeddedCheckout STILL EXISTS but THROWS "has been removed —
+        // use createEmbeddedCheckoutPage()". So prefer createEmbeddedCheckoutPage
+        // and only fall back to the legacy name for older Stripe.js.
+        const initEmbedded = stripe.createEmbeddedCheckoutPage || stripe.initEmbeddedCheckout
         checkout = await initEmbedded.call(stripe, { clientSecret })
         if (cancelled) { try { checkout.destroy() } catch { /* noop */ } return }
         if (!mountRef.current) { try { checkout.destroy() } catch { /* noop */ } return }
@@ -203,7 +206,7 @@ export default function CheckoutEmbedded() {
             )}
             {/* Stripe mounts here. Kept in the tree across loading so the ref is
                 live when mount() fires; the spinner sits on top until ready. */}
-            <div ref={mountRef} style={{ opacity: phase === 'ready' ? 1 : 0, transition: 'opacity .3s ease' }} />
+            <div ref={mountRef} data-testid="embedded-mount" style={{ opacity: phase === 'ready' ? 1 : 0, transition: 'opacity .3s ease' }} />
           </div>
         )}
 

@@ -213,10 +213,14 @@ test.describe('v19 · the purchase machine, end to end', () => {
     // green.) We stop at "the card form rendered on our domain"; typing card
     // 4242 into Stripe's cross-origin iframe stays out of scope, and the
     // payment itself is simulated in test B.
+    // Assert the iframe INSIDE our own mount container — NOT any stray
+    // js.stripe.com utility iframe (those attach to <body> whenever Stripe.js
+    // loads, even when the mount fails). Only the real embedded card form lands
+    // inside [data-testid="embedded-mount"].
     await expect(
-      page.locator('iframe[src*="stripe"], iframe[name*="Stripe"], iframe[title*="Secure"], iframe[name*="EmbeddedCheckout"]').first(),
-      'Stripe Embedded Checkout must mount its iframe on our /checkout surface'
-    ).toBeAttached({ timeout: 25000 })
+      page.locator('[data-testid="embedded-mount"] iframe').first(),
+      'Stripe Embedded Checkout must mount its card iframe inside our /checkout panel'
+    ).toBeVisible({ timeout: 25000 })
   })
 
   test('B · webhook → a real confirmed ticket that belongs to the buyer → /claim', async ({ page, request }) => {
