@@ -313,6 +313,19 @@ const onB = (e) => e.currentTarget.style.borderColor = HAIR_HI
 // star-chart marks, one per movement
 const MARKS = { gallery: 'dot', moments: 'star', offer: 'square', sound: 'ring', screen: 'triangle', influences: 'diamond', work: 'cross', taste: 'plus', sets: 'ring' }
 
+/* v18 — the meter's soft invitation, one human phrase per missing piece
+   (worldCompleteness's `missing` keys). Progressive curation speaks in
+   invitations, never in form-field names. */
+const MISSING_INVITE = {
+  craft: 'name what you make',
+  line: 'add your line',
+  work: 'hang three pieces',
+  links: 'add a door out — IG, portfolio, sound',
+  marquee: 'write your welcome',
+  skin: 'pick your skin',
+  face: 'add your face',
+}
+
 // SETS rows: the date as catalog mono — "AUG 28", never an invented time
 const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase() } catch { return '' } }
 
@@ -327,7 +340,7 @@ const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-
 // flash an invite over an unknown truth); `upcomingSets` — published rooms
 // this person hosts; `friendship` — { state, onRequest, onAccept, onRemove }
 // from the wrapper (0023), absent = the door doesn't render.
-export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onCurate, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, onEditPost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
+export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, onEditPost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const navigate = useNavigate()                       // SETS rows walk into their event rooms
   const reveal = useReveal()                           // scroll-reveal preset (reduced-motion aware)
@@ -902,7 +915,8 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               style={{ display: 'flex', alignItems: 'baseline', gap: '16px', width: '100%', textAlign: 'left', background: 'transparent', border: 'none', borderBottom: `1px solid ${HAIR}`, padding: '15px 6px', cursor: 'pointer' }}
               onMouseOver={e => { e.currentTarget.style.borderColor = HAIR_HI }}
               onMouseOut={e => { e.currentTarget.style.borderColor = HAIR }}>
-              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: SILVER, letterSpacing: '.1em', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '52px' }}>{fmtSetDate(ev.event_date)}</span>
+              {/* regla del oro (v18): la fecha del set próximo es el dato vivo */}
+              <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: 'var(--gold-live)', letterSpacing: '.1em', whiteSpace: 'nowrap', flexShrink: 0, minWidth: '52px' }}>{fmtSetDate(ev.event_date)}</span>
               <span style={{ flex: 1, minWidth: 0, fontFamily: 'Bebas Neue', fontSize: '23px', letterSpacing: '.03em', color: BONE, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ev.title}</span>
               {(ev.venue || ev.city) && (
                 <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.08em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '38%', flexShrink: 0 }}>{[ev.venue, ev.city].filter(Boolean).join(' · ')}</span>
@@ -1129,8 +1143,9 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                       <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.04em' }}>{data.city}</span>
                     </span>}
                     {ticket && (
+                      /* regla del oro (v18): GOING es estado activo — el punto va en oro */
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '9px', color: BONE, border: `1px solid ${HAIR_HI}`, background: 'rgba(var(--void-rgb),.45)', borderRadius: '100px', padding: '3px 10px', letterSpacing: '.1em' }}>
-                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: STAR, boxShadow: `0 0 8px rgba(var(--star-rgb),.7)` }} />
+                        <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--gold-live)', boxShadow: `0 0 8px rgba(var(--gold-live-rgb),.7)` }} />
                         GOING{event?.editionNumber ? ` · ${event.editionNumber}` : ''}
                       </span>
                     )}
@@ -1180,24 +1195,17 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
 
         {/* tagline — mobile keeps it here as the featured statement; on wide
             it's already composed into the hero */}
-        {!wide && (data.tagline ? (
+        {/* v18 — LA BYLINE DEJA DE APILAR INVITACIONES. Aquí vivían dos
+            invites sueltos ("Add a line…" en móvil y en wide) que se sumaban
+            a "+ add your links", a las bandas y al medidor: hasta seis piezas
+            de registros distintos antes de que el museo empezara — el "se ve
+            messy" del fundador, medido. El medidor (abajo) ya NOMBRA la
+            siguiente pieza que falta y abre el builder: una sola voz invita.
+            La tagline sólo se pinta cuando existe. */}
+        {!wide && data.tagline && (
           <p style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '17px', color: BONE, lineHeight: 1.5, margin: 0, maxWidth: '460px', letterSpacing: '.005em' }}>
             <span style={{ color: SILVER, fontStyle: 'normal', marginRight: '2px' }}>“</span>{data.tagline}<span style={{ color: SILVER, fontStyle: 'normal', marginLeft: '2px' }}>”</span>
           </p>
-        ) : (isOwner && !editing && (
-          /* ERA UN <p>: se veía clickeable y no hacía nada. Nada que parezca
-             interactivo puede estar muerto — es lo contrario del lujo. Ahora
-             abre el editor, que es a donde el texto ya prometía llevarte. */
-          <button className="pressable" onClick={startEdit} data-testid="add-tagline"
-            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
-            Add a line — what you're on, right now.
-          </button>
-        )))}
-        {wide && !data.tagline && isOwner && !editing && (
-          <button className="pressable" onClick={startEdit} data-testid="add-tagline-wide"
-            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '15px', color: BONE_LOW }}>
-            Add a line — what you're on, right now.
-          </button>
         )}
 
         {/* CONNECT — the social layer's face on the world (0017): follow +
@@ -1328,17 +1336,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
             ))}
           </div>
         )}
-        {isOwner && !editing && links.length === 0 && (
-          /* mismo caso que el de arriba: parecía botón, era un div */
-          <button className="pressable" onClick={startEdit} data-testid="add-links"
-            style={{ background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.1em' }}>
-            + add your links — IG, portfolio, sound
-          </button>
-        )}
+        {/* v18: el invite suelto de links murió con los de la tagline — el
+            medidor de abajo es la única voz que nombra lo que falta */}
         {upErr && <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: 'var(--warn)', letterSpacing: '.04em' }}>⚠ {upErr}</div>}
 
         {isOwner && !editing && !building && (
-          <div>
+          /* v18 — LA CONSOLA DEL DUEÑO ES UNA ZONA, NO BANDAS SUELTAS: una
+             costura hairline separa las herramientas (bandas de migración/
+             escucha, medidor, botones de curar) de la voz del mundo (tagline,
+             links). Orden y jerarquía, no idioma nuevo. */
+          <div style={{ borderTop: `1px solid ${HAIR}`, paddingTop: `${S.md}px` }}>
             {/* IN-UI CRAFT MIGRATION (D1): a legacy free-text discipline is
                 invited to become REAL crafts — recognition, not a form. The
                 band lives until the person chooses; nothing is rewritten
@@ -1358,11 +1365,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
               </button>
             )}
-            {/* THE LISTENING BAND (v6): a member with real crafts and zero
-                tastes is invited to brainstorm — the quiet layer that turns
-                the for-you on. Same grammar as the craft band, one register
-                quieter. tastes===null (still loading) never flashes it. */}
-            {tastes !== null && tastes.length === 0 && crafts.length > 0 && (
+            {/* THE LISTENING BAND (v6): a member with zero tastes is invited
+                to brainstorm — the quiet layer that turns the for-you on.
+                Same grammar as the craft band, one register quieter.
+                tastes===null (still loading) never flashes it.
+                v18: the express non-maker (no craft, no discipline) gets this
+                band too — taste is exactly the layer built for them, and with
+                the wall gone from the door, this is where it now invites.
+                A LEGACY free-text maker is excluded: their band is the craft
+                migration above, and two bands stacked is noise. */}
+            {tastes !== null && tastes.length === 0 && (crafts.length > 0 || !(data.discipline || '').trim()) && (
               <button data-testid="taste-invite" className="pressable" onClick={() => setBuilding(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'rgba(var(--silver-rgb),.03)', border: `1px solid ${HAIR_HI}`, borderRadius: '13px', padding: '12px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
                 onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.4)'}
@@ -1378,9 +1390,15 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '12px', color: SILVER, flexShrink: 0 }}>→</span>
               </button>
             )}
-            {/* the meter — how lit the world is, hairline not game */}
+            {/* the meter — how lit the world is, hairline not game.
+                v18 — CURACIÓN PROGRESIVA: the express door publishes the
+                minimum, so the meter now NAMES the next missing piece and
+                the whole block is a door into the builder ("tu mundo está
+                al 60% — agrega X", nunca un muro). One suggestion, not a
+                checklist: the first missing item in completeness order. */}
             {completeness.pct < 100 && (
-              <div style={{ maxWidth: '260px', marginBottom: '12px' }}>
+              <button className="pressable" data-testid="world-meter" onClick={() => setBuilding(true)}
+                style={{ display: 'block', width: '100%', maxWidth: '260px', marginBottom: '12px', background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>your world</span>
                   <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.1em' }}>{completeness.pct}%</span>
@@ -1388,7 +1406,24 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 <div style={{ height: '1px', background: HAIR, position: 'relative' }}>
                   <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', transform: `scaleX(${completeness.pct / 100})`, transformOrigin: 'left', background: SILVER, opacity: .7, transition: 'transform .5s var(--ease-house)' }} />
                 </div>
-              </div>
+                {(() => {
+                  /* review v18 — dos exclusiones de doctrina:
+                     · 'line' no invita: el builder profundo no tiene paso de
+                       línea (vive en el paso craft y en el editor) — invitar
+                       a algo que la puerta no puede tomar es una promesa rota.
+                     · 'craft' no invita al no-maker deliberado (sin crafts NI
+                       discipline): sería re-hablar la pared que v17 tiró. El
+                       maker legacy (discipline text) sí la recibe — es su
+                       puerta de migración. */
+                  const isDeliberateNonMaker = crafts.length === 0 && !(data.discipline || '').trim()
+                  const inviteKey = completeness.missing.find((k) => k !== 'line' && !(k === 'craft' && isDeliberateNonMaker))
+                  return inviteKey ? (
+                    <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '6px' }}>
+                      {MISSING_INVITE[inviteKey] || 'keep building'} →
+                    </div>
+                  ) : null
+                })()}
+              </button>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
               <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'background .2s, border-color .2s, transform .2s' }}
@@ -1674,7 +1709,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
           onUploadGallery={onUploadGallery}
           onCleanupImages={onCleanupImages}
-          onCurate={onCurate}
+          onUploadAvatar={onUploadAvatar}
           onClose={() => setBuilding(false)}
           onPublished={() => { setBuilding(false); setCelebrating(true) }}
         />,

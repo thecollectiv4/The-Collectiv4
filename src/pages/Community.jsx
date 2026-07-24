@@ -54,9 +54,23 @@ function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; le
 // pre-0005 fallback: known demo handles (the DB is_demo flag is authoritative)
 const DEMO_USERNAMES = new Set(['marcusreyes', 'jasminevcreates', 'devonmills', 'sofiamendez__', 'andrethompson', 'lilachen_film', 'djcarlosruiz', 'amaraosei'])
 
-const tasteCount = (t) => {
-  if (!t || typeof t !== 'object' || Array.isArray(t)) return 0
-  return (t.music?.length || 0) + (t.films?.length || 0) + (t.influences?.length || 0)
+/* v13 dejó a `Stat` fuera; v18 retira también `tasteCount` — sus últimos
+   consumidores (los contadores tc/wc de la tarjeta) murieron con v12.3 y
+   quedaban calculándose sin lector en cada render. */
+
+/* v18 — the card's social door: ONE link out of world_links (0014).
+   Instagram wins when it's there (the link creatives actually lead with);
+   otherwise the first valid door. Same http(s) whitelist as everywhere. */
+const safeHref = (raw) => (/^https?:\/\//i.test((raw || '').trim()) ? raw.trim() : '')
+function pickSocial(links) {
+  if (!Array.isArray(links)) return null
+  const valid = links.filter((l) => l && safeHref(l.url))
+  if (!valid.length) return null
+  const ig = valid.find((l) => /instagram\.com/i.test(l.url) || /^(ig|insta|instagram)$/i.test((l.label || '').trim()))
+  const pick = ig || valid[0]
+  let label = (pick.label || '').trim()
+  if (!label) { try { label = new URL(pick.url).hostname.replace(/^www\./, '') } catch { label = 'link' } }
+  return { url: safeHref(pick.url), label }
 }
 
 export default function Community() {
@@ -193,8 +207,15 @@ export default function Community() {
          también pidiera photos_completed_at (0054), fallaría por la misma
          columna que tumbó la query primaria y el directorio quedaría vacío.
          La columna nueva viaja sólo en la query primaria. */
+      /* v18 — world_links viaja a la tarjeta: el link de redes (IG, portfolio)
+         ya vivía en el perfil (0014, doors); la carta ahora lo enseña. Campo
+         existente, público por RLS de profiles — cero migración.
+         Viaja SOLO en la query primaria (review v18): el camino de rescate
+         existe para esquemas VIEJOS y cada columna que se le suma estrecha
+         su cobertura — en el rescate la carta simplemente no enseña link. */
       const FIELDS_BASE = 'id,full_name,username,discipline,city,avatar_url,cover_url,tagline,verified,taste,media'
-      const FIELDS = FIELDS_BASE + ',photos_completed_at'
+      const FIELDS_LINKS = FIELDS_BASE + ',world_links'
+      const FIELDS = FIELDS_LINKS + ',photos_completed_at'
       let rows = []
       // bounded: the directory pages later — an unbounded select with jsonb
       // columns won't survive a real community (review catch)
@@ -626,12 +647,16 @@ function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showS
   const avatar = safeImg(c.avatar_url)
   const name = c.full_name || 'Unnamed'
   const initial = name[0].toUpperCase()
-  const tc = tasteCount(c.taste)
-  const wc = Array.isArray(c.media) ? c.media.length : 0
+  const social = pickSocial(c.world_links)   // v18 — the card's one door out
 
   return (
     <div onClick={onOpen} className="disc-card pressable" role="button" tabIndex={0} aria-label={`Open ${name}'s world`}
-      onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
+      /* review v18: el guard target===currentTarget es obligatorio — sin él,
+         Enter sobre el link social (hijo <a>) burbujeaba hasta aquí, el
+         preventDefault cancelaba el link y onOpen() abría el mundo en vez
+         del IG. Sólo la tarjeta MISMA responde al teclado (la receta que el
+         rail de Events ya usa). */
+      onKeyDown={(ev) => { if (ev.target !== ev.currentTarget) return; if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onOpen() } }}
       /* v11: real glass, not a painted panel. cardGlass carries the
          translucent fill AND the backdrop blur, so the star field genuinely
          reads through the card — 14px, not the bar's 28: a view shows one bar
@@ -703,6 +728,9 @@ function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showS
             propagación — sin eso el click subiría y abriría el perfil en vez
             de hacer lo suyo. El +N despliega la lista completa; el craft
             filtra Community por él (la gente que comparte ese oficio). */}
+        {/* ── QUÉ HACES — the second beat of the half-second read (v18):
+            the craft line steps up from 8.5 to 9.5px. It is the answer to
+            "what you do" and it was whispering under the name. */}
         {crafts.length > 0 ? (
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '6px', minWidth: 0, overflow: 'hidden' }}>
             {(() => { const meta = categoryMeta(crafts[0].category); return (
@@ -710,7 +738,7 @@ function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showS
                 onClick={(e) => { e.stopPropagation(); onPickCraft?.(crafts[0].slug) }}
                 aria-label={`See other ${crafts[0].name}s`}
                 style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', minWidth: 0,
-                  fontFamily: 'DM Mono', fontSize: '8.5px', color: `rgb(${tintChannel(meta.tint)})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</button>
+                  fontFamily: 'DM Mono', fontSize: '9.5px', color: `rgb(${tintChannel(meta.tint)})`, letterSpacing: '.12em', textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{crafts[0].name}</button>
             ) })()}
             {crafts.length > 1 && (
               <MoreChip n={crafts.length - 1}
@@ -718,19 +746,40 @@ function WorldCard({ c, crafts = [], tastes = [], following, onOpen, wide, showS
                 label={`See all ${crafts.length} crafts`} />
             )}
           </div>
-        ) : c.discipline ? <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>
+        ) : c.discipline ? <div style={{ fontFamily: 'DM Mono', fontSize: '9.5px', color: SILVER, letterSpacing: '.12em', textTransform: 'uppercase', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.discipline}</div>
         /* v17 — el no-maker no queda fantasma: sin craft ni discipline, la
            tarjeta habla su taste (sólo lo público — la capa quiet nunca
-           sale de la DB). Minúsculas y sin tinte: es taste, no oficio. */
-        : tastes.length > 0 ? <div style={{ fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.08em', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tastes.slice(0, 3).map(t => t.toLowerCase()).join(' · ')}</div> : null}
+           sale de la DB). Minúsculas y sin tinte: es taste, no oficio.
+           v18 — y si tampoco hay taste todavía, la carta dice a qué vino:
+           here for the people. Dignidad, nunca un renglón vacío. */
+        : tastes.length > 0 ? <div style={{ fontFamily: 'DM Mono', fontSize: '9.5px', color: BONE_MID, letterSpacing: '.08em', marginTop: '6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{tastes.slice(0, 3).map(t => t.toLowerCase()).join(' · ')}</div>
+        : <div style={{ fontFamily: 'DM Mono', fontSize: '9.5px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '6px' }}>◇ here for the people</div>}
+        {/* la línea baja a UN renglón (v18): la tarjeta se lee en medio
+            segundo — la voz completa vive en el mundo, no en la carta */}
         {c.tagline && (
-          <div className="disc-reveal" style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '8px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div className="disc-reveal" style={{ fontFamily: 'DM Sans', fontStyle: 'italic', fontSize: '11.5px', color: BONE_MID, lineHeight: 1.45, marginTop: '8px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             “{c.tagline}”
           </div>
         )}
-        {c.city && <div style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '8px' }}>
-          <MapPin size={9} style={{ color: BONE_LOW }} />
-          <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
+        {/* ── DÓNDE ESTÁS + LA PUERTA AFUERA — city and the social door share
+            one row (v18): both are one-glance facts, neither needs a line of
+            its own. The link opens in a new tab and never navigates the card. */}
+        {(c.city || social) && <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '8px', minWidth: 0 }}>
+          {c.city && <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
+            <MapPin size={9} style={{ color: BONE_LOW }} />
+            <span style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW }}>{c.city}</span>
+          </span>}
+          {social && (
+            <a href={social.url} target="_blank" rel="noopener noreferrer" className="pressable"
+              data-testid="card-social-link" aria-label={`Open ${name}'s ${social.label}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', minWidth: 0, fontFamily: 'DM Mono', fontSize: '8.5px', color: BONE_MID, letterSpacing: '.1em', textTransform: 'uppercase', textDecoration: 'none', border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '3px 9px', transition: 'border-color .2s, color .2s' }}
+              onMouseOver={(e) => { e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.5)'; e.currentTarget.style.color = BONE }}
+              onMouseOut={(e) => { e.currentTarget.style.borderColor = HAIR; e.currentTarget.style.color = BONE_MID }}>
+              <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '110px' }}>{social.label}</span>
+              <ArrowUpRight size={9} style={{ color: SILVER, flexShrink: 0 }} />
+            </a>
+          )}
         </div>}
         {/* card anatomy parity (panel catch, Ley 4): every card closes with
             the same meter band — real stats, or the honest forming state —
