@@ -387,6 +387,7 @@ const ENVELOPE_HUMAN = {
   bad_visibility: 'pick public, friends, or close friends.',
   not_creator: 'only the person who made the plan can change who sees it.',
   no_event: "that event isn't reachable.",
+  plan_full: 'the plan is full — 40 is the room.',
 }
 
 /* one door-call: rpc → envelope checked → data (throws human sentences) */
@@ -592,4 +593,52 @@ export async function myPlans() {
     if (error || !data?.ok) return []
     return data.plans || []
   } catch { return [] }
+}
+
+/* the plan's when, human and honest — one voice for every surface that
+   speaks a plan's date (Messages, the Events rail, the /p/:id landing).
+   Lived inside Messages.jsx until v17 gave it three consumers. */
+export function planWhen(iso) {
+  if (!iso) return 'when tbd'
+  const d = new Date(iso)
+  if (isNaN(d)) return 'when tbd'
+  const now = new Date()
+  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate())
+  const days = Math.round((startOf(d) - startOf(now)) / 86400000)
+  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+  if (days === 0) return `today · ${time}`
+  if (days === 1) return `tomorrow · ${time}`
+  if (days === -1) return `yesterday · ${time}`
+  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`
+}
+
+/* ── v17 — LA CIUDAD ENCUENTRA SUS PLANES (0057) ──────────────────────────
+   Las dos lecturas son anon-safe por diseño (grant explícito, sólo campos
+   de tarjeta pública — nunca roster ni counts) y devuelven vacío/null en
+   cualquier falla: el rail y la landing degradan honesto, no truenan. */
+
+/* public live plans, city-dated, for the HAPPENING NEAR YOU rail. */
+export async function publicPlans(limit = 30) {
+  try {
+    const { data, error } = await supabase.rpc('public_plans', { p_limit: limit })
+    if (error || !data?.ok) return []
+    return data.plans || []
+  } catch { return [] }
+}
+
+/* one public plan, for the shareable landing /p/:id. Null when the plan
+   isn't findable — not-found, private, and canceled all answer the same. */
+export async function publicPlan(id) {
+  try {
+    const { data, error } = await supabase.rpc('public_plan', { p_id: id })
+    if (error || !data?.ok) return null
+    return data.plan || null
+  } catch { return null }
+}
+
+/* the stranger's "I'm in" (authenticated only — anon meets /auth first).
+   Idempotent: already-in returns the same doors. → { plan_id, thread_id } */
+export async function joinPlan(planId) {
+  const data = await callDoor('join_plan', { p_plan_id: planId })
+  return { plan_id: data.plan_id, thread_id: data.thread_id }
 }

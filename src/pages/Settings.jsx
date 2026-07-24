@@ -818,6 +818,35 @@ export default function Settings() {
      localStorage y no debe correr en cada render. */
   const [badgeKey, setBadgeKey] = useState(readBadgeColor)
   const pickBadge = (k) => { setBadgeKey(k); writeBadgeColor(k) }
+  /* v17 — LA CIUDAD SE GUARDA DE VERDAD. El stub "Save my city" mentía
+     ("needs a column and a policy that don't exist yet") — profiles.city
+     existe desde el arranque y profiles_self_update la cubre. Ésta es la
+     única escritura de perfil en esta pantalla: el builder pregunta la
+     ciudad al construir (v17 F3), y esta fila es el "editable después sin
+     cazar menús legacy" del mismo send-off. draft null = sin tocar. */
+  const [cityDraft, setCityDraft] = useState(null)
+  const [citySaved, setCitySaved] = useState(false)
+  const [cityBusy, setCityBusy] = useState(false)
+  const [cityErr, setCityErr] = useState('')
+  const cityValue = cityDraft ?? (profile?.city || '')
+  const saveCity = async () => {
+    if (cityBusy || cityDraft === null) return
+    const v = cityDraft.trim()
+    if (v === (profile?.city || '')) { setCityDraft(null); return }
+    setCityBusy(true); setCityErr('')
+    const { error } = await supabase.from('profiles').update({ city: v || null }).eq('id', user.id)
+    setCityBusy(false)
+    if (!error) {
+      setProfile(p => (p ? { ...p, city: v } : p))
+      setCityDraft(null)
+      setCitySaved(true)
+      setTimeout(() => setCitySaved(false), 2000)
+    } else {
+      // la fila no puede mentir (ley de esta pantalla): si el UPDATE no
+      // aterrizó se DICE — el draft se queda para reintentar sin reteclear
+      setCityErr("couldn't save — try again")
+    }
+  }
   // Una sola variable para las tres hojas: nunca hay dos abiertas, y con un
   // booleano por hoja sí podría haberlas si un render se cruza.
   const [sheet, setSheet] = useState(null)  // 'status' | 'card' | 'delete' | null
@@ -842,7 +871,7 @@ export default function Settings() {
        las tres. Es la MISMA fila y la misma lectura: una consulta más ancha,
        no una consulta más. Nada de lo nuevo se escribe nunca desde aquí. */
     supabase.from('profiles')
-      .select('id, full_name, username, avatar_url, is_demo, verified, created_at')
+      .select('id, full_name, username, avatar_url, is_demo, verified, created_at, city')
       .eq('id', user.id).maybeSingle()
       .then(({ data }) => { if (alive) { setProfile(data || null); setProfileReady(true) } },
             () => { if (alive) setProfileReady(true) })
@@ -1176,7 +1205,7 @@ export default function Settings() {
         {/* 04 — UBICACIÓN */}
         <section>
           <SectionHead n="04" mark="✕" title="Location"
-            note="For the map of rooms near you. The permission below is real and lives in your browser; nothing is stored anywhere yet." />
+            note="For the map of rooms near you. The permission below is real and lives in your browser; the only thing stored is the city you type yourself." />
           <Panel>
             <Row label="Location access" hint={geoHint}>
               <span style={{ fontFamily: FONT_MONO, fontSize: '10px', color: geo === 'granted' ? SILVER : BONE_LOW, letterSpacing: '.12em', textTransform: 'uppercase' }}>{geoLabel}</span>
@@ -1192,8 +1221,31 @@ export default function Settings() {
                 }}><MapPin size={10} /> Allow</button>
               )}
             </Row>
-            <Row label="Save my city" hint="Storing a location needs a column and a policy that don't exist yet." last>
-              <Pending />
+            <Row label="Your city" hint="Where real life happens for you — it feeds who the universe puts near you. The builder asks once; change it here whenever it changes." last testId="settings-city-row">
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <input
+                    value={cityValue}
+                    onChange={e => { setCityDraft(e.target.value); setCityErr('') }}
+                    onBlur={saveCity}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); saveCity() } }}
+                    placeholder="Houston"
+                    maxLength={60}
+                    aria-label="Your city"
+                    data-testid="settings-city-input"
+                    style={{
+                      width: '130px', background: 'rgba(var(--ink-rgb),.06)', border: `1px solid ${HAIR_HI}`,
+                      borderRadius: '8px', padding: '7px 10px', color: BONE, fontFamily: FONT_SANS,
+                      fontSize: '12.5px', outline: 'none', textAlign: 'right',
+                    }} />
+                  {cityBusy ? <Loader2 size={12} style={{ color: BONE_LOW, animation: 'spin 1s linear infinite' }} />
+                    : citySaved ? <Check size={12} style={{ color: SILVER }} /> : null}
+                </span>
+                {/* BONE_MID y no WARN: esta hoja reserva WARN para la única
+                    frase que protege dinero (ley documentada abajo), y
+                    BONE_LOW ya reprobó contraste para avisos (nota Pending) */}
+                {cityErr && <span role="alert" style={{ fontFamily: FONT_MONO, fontSize: '9px', color: BONE_MID, letterSpacing: '.04em' }}>⚠ {cityErr}</span>}
+              </span>
             </Row>
           </Panel>
         </section>

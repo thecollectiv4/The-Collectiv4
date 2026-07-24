@@ -55,7 +55,9 @@ const tabs = [
 // event's public room; /c4 is the HOUSE world — the flagship front door
 // when the domain points here, so a wall there would defeat its purpose).
 const PUBLIC_PATHS = ['/', '/community', '/c4']
-const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/') || path.startsWith('/e/')
+// /p/ — la landing compartible de un plan público (v17): el link del fucho
+// en el WhatsApp abre para gente SIN cuenta, o no es compartible de verdad.
+const isPublicPath = (path) => PUBLIC_PATHS.includes(path) || path.startsWith('/user/') || path.startsWith('/e/') || path.startsWith('/p/')
 
 // Routes with a real desktop composition — the 430px phone frame releases
 // here at >=1024px. Everything else keeps the centered phone frame under

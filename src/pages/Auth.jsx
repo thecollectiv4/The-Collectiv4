@@ -35,8 +35,9 @@ import { useWide } from '@/lib/useIsDesktop'
    and names the legal terms. Every pixel of the LOOK is ours.
 
    ── WHAT IS LOAD-BEARING HERE (do not "simplify" any of it) ─────────────
-   • mode defaults to SIGN IN when we arrived with ?next=, SIGN UP on a cold
-     visit. See the comment on the useState below — it is a real decision
+   • mode defaults to SIGN IN — always — and only ?mode=create (a join CTA
+     naming its intent) opens on Create Account. See the useState below —
+     it is a real decision
      about a real person, not a default.
    • `next` is guarded to a local path (/^\/(?!\/)/). It is the only thing
      standing between this screen and an open redirect.
@@ -72,17 +73,23 @@ const REDUCED = () => typeof window !== 'undefined'
    Field es module-scope, por qué 16px) viajaron con el código. */
 
 export default function Auth() {
-  /* v16 — DOS ESTADOS POR PESTILLO DE DISPOSITIVO (decisión de fundador).
-     c4:returning se escribe en AuthContext cuando CUALQUIER sesión nace o
-     rehidrata en este dispositivo. Con pestillo: la persona ya entró aquí
-     antes → SIGN IN. Sin pestillo: primera visita → CREATE ACCOUNT. La
-     heurística vieja (?next → signin) muere con esto: el comprador de
-     tickets rebotado de /claim que ya entró alguna vez trae el pestillo, y
-     el que nunca ha tenido cuenta necesita justamente la puerta de crear. */
-  const [mode, setMode] = useState(() => {
-    try { if (localStorage.getItem('c4:returning') === '1') return 'signin' } catch { /* sin storage → primera visita */ }
-    return 'signup'
-  })
+  /* v17 — AUTH POR INTENCIÓN (decisión de fundador, 23 jul 2026).
+     Default GLOBAL: SIGN IN. Siempre. CREATE ACCOUNT abre sólo cuando el
+     CTA de origen es una puerta de unirse y lo declara con ?mode=create
+     (Sign up / Claim your world / compra de ticket). La intención viaja
+     por query param — nunca por heurística de storage: el create-first de
+     v16 (pestillo c4:returning) dejaba a un miembro existente en un
+     dispositivo nuevo buscando el sign in. El pestillo sigue vivo, pero
+     ahora SOLO elige el headline (WELCOME BACK vs SEE WHO SHARES YOUR
+     TASTE) — nunca el modo. Crear cuenta sigue a un tap, en el footer. */
+  const [mode, setMode] = useState(() => (
+    new URLSearchParams(window.location.search).get('mode') === 'create' ? 'signup' : 'signin'
+  ))
+  /* El pestillo del dispositivo (escrito en AuthContext cuando cualquier
+     sesión nace o rehidrata aquí). Hoy decide el saludo, nunca la puerta. */
+  const returning = (() => {
+    try { return localStorage.getItem('c4:returning') === '1' } catch { return false }
+  })()
   /* v12 — LA PUERTA. The gate stands in front of SIGNUP only; sign-in is
      never gated (see EarlyAccessGate). `gate` is undefined until the flag
      resolves, so we render nothing rather than flashing the open signup
@@ -295,19 +302,24 @@ export default function Auth() {
         </div>
 
         {/* THE chrome moment. The ONLY one on this screen (Ley 8).
-            v16 copy (fundador): primera visita "SEE WHO SHARES YOUR TASTE",
-            regreso "WELCOME BACK". El headline largo baja un paso de escala
-            para vivir en dos líneas Bebas, nunca en tres. */}
+            v17: el headline lo elige el PESTILLO del dispositivo — regreso
+            "WELCOME BACK", primera vez "SEE WHO SHARES YOUR TASTE" — nunca
+            la pestaña. Coherencia (review catch): WELCOME BACK sólo es
+            verdad SOBRE el form de sign in — un regresado que llegó por
+            una puerta de unirse (?mode=create) lee el headline de taste,
+            que es coherente sobre ambos forms. El tamaño sigue al texto:
+            el headline largo baja un paso de escala para vivir en dos
+            líneas Bebas, nunca en tres. */}
         <div style={{ ...rise(80), textAlign: 'center' }}>
           <h1 style={{
             ...chromeText, fontFamily: FONT_DISPLAY, fontWeight: 400,
-            fontSize: signup
-              ? (wide ? 'clamp(38px, 3.6vw, 52px)' : 'clamp(29px, 8.6vw, 40px)')
-              : (wide ? 'clamp(46px, 4.6vw, 64px)' : 'clamp(34px, 10.5vw, 48px)'),
+            fontSize: (returning && !signup)
+              ? (wide ? 'clamp(46px, 4.6vw, 64px)' : 'clamp(34px, 10.5vw, 48px)')
+              : (wide ? 'clamp(38px, 3.6vw, 52px)' : 'clamp(29px, 8.6vw, 40px)'),
             lineHeight: 0.94, letterSpacing: '.02em', margin: wide ? '20px 0 0' : '16px 0 0',
             maxWidth: '14ch', marginInline: 'auto',
           }}>
-            {signup ? 'SEE WHO SHARES YOUR TASTE' : 'WELCOME BACK'}
+            {(returning && !signup) ? 'WELCOME BACK' : 'SEE WHO SHARES YOUR TASTE'}
           </h1>
         </div>
 

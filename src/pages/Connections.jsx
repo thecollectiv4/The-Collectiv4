@@ -56,10 +56,12 @@ export default function Connections() {
   const navigate = useNavigate()
   const wide = useWide()
 
-  /* el segmento vive en la URL (?seg=) — igual que en Messages. No es
-     cosmética: la campana de friend_request tiene que poder aterrizar en
-     REQUESTS, que es donde el handshake se cierra. Sin esto la campana
-     cumple a medias (Ley 9) — te deja en la puerta, no en el cuarto. */
+  /* el segmento vive en la URL (?seg=). No es cosmética: la campana de
+     friend_request tiene que poder aterrizar en REQUESTS, que es donde el
+     handshake se cierra. Sin esto la campana cumple a medias (Ley 9) — te
+     deja en la puerta, no en el cuarto. (v17: Messages mató sus tabs y su
+     ?seg=; esta página es hoy la única con esta gramática, y aquí sigue
+     ganándose su lugar por la campana.) */
   const [searchParams, setSearchParams] = useSearchParams()
   const rawSeg = searchParams.get('seg')
   const seg = SEGS.some((s) => s.key === rawSeg) ? rawSeg : 'connected'

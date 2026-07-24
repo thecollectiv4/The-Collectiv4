@@ -137,6 +137,11 @@ export default function Booked({ preview }) {
         This happened inside The Collectiv4 — the room where the city’s creatives live. Claim your world and the next booking finds you already in it.
       </p>
       <div className="rise rise-5" style={{ marginTop: '18px', display: 'flex' }}>
+        {/* v17 lo tocó y el review lo REVIRTIÓ: /booked está dentro del
+            freeze del Payment Layer ("cero cambios funcionales") y esa ley
+            gana. La fuga real sigue aquí — este claim pierde ?next y la
+            intención de unirse — pero abrirla es decisión de fundador
+            sobre una superficie congelada, no de un review. Pendiente v18. */}
         <button onClick={() => navigate('/auth')} style={{ ...cta, marginTop: 0, width: '100%' }} onMouseOver={hoverIn} onMouseOut={hoverOut}>
           Claim your world <ArrowRight size={18} />
         </button>

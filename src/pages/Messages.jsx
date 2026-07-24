@@ -7,36 +7,38 @@ import AuthResolving from '@/components/AuthResolving'
 import Mark from '@/components/Mark'
 import {
   socialReady, circleReady, fetchInbox, fetchThread, sendMessage, markThreadRead, subscribeThread, msgTime,
-  myCircle, respondFriend, createCrew, leaveCrew, createPlan, rsvpPlan, cancelPlan, leavePlan, myPlans,
-  addCloseFriend, removeCloseFriend, myCloseFriends,
-  setPlanVisibility, VIS_TIERS, VIS_LABEL,
+  myCircle, createCrew, leaveCrew, createPlan, rsvpPlan, cancelPlan, leavePlan, myPlans,
+  setPlanVisibility, VIS_TIERS, VIS_LABEL, planWhen,
 } from '@/lib/social'
-import { fetchCraftsForProfiles, categoryMeta } from '@/lib/crafts'
 import { useFocusTrap } from '@/lib/focusTrap'
 import { fetchSignals, markSignalsRead, markThreadSignalsRead, signalLine, signalTo } from '@/lib/signals'
 import SeedPill from '@/components/SeedMark'
-import PeopleSearch from '@/components/PeopleSearch'
-import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users, Bell } from 'lucide-react'
-import { tintChannel, closeStarStyle } from '@/lib/cosmos'
-import { glassSurface, glassControl, CHIP, WELL, CARD_TINT } from '@/lib/glass'
+import { Loader2, Send, ArrowLeft, Lock, MessagesSquare, CalendarDays, ArrowUpRight, X, Star, Globe, Users, Bell, Link2, Check } from 'lucide-react'
+import { glassSurface, glassControl, CARD_TINT } from '@/lib/glass'
 
 /* =========================================================================
    MESSAGES — the conversations that continue (D2: the Base44 chat rebuilt
-   native · D3: the heart — crews and plans on the same wire). One surface,
-   two registers:
-     /messages      → the inbox, in three segments:
-                        SIGNALS — DMs + event rooms (the original inbox)
-                        CREWS   — your circle (connections) + your group rooms
-                        PLANS   — the kickbacks: what/where/when, RSVP
+   native). v17 — UNA LISTA (decisión de fundador, 23 jul): los tres tabs
+   SIGNALS/CREWS/PLANS murieron. Si el fundador no podía explicarlos, un
+   usuario nuevo menos. Ahora:
+     /messages      → ONE list: every conversation and every room (dm,
+                      event, crew, plan), ordered by recent activity.
+                      The Bell keeps its panel, byte-identical.
      /messages/:id  → the thread: a DM pair, an event's room, a crew, or
-                      a plan's room
+                      a plan's room. A plan's room carries its PlanCard at
+                      the top — RSVP, visibility, the door link: managing
+                      the plan happens IN the plan's room, not in a tab.
+   What moved OUT of this page in v17:
+     · circle management (requests/roster/close friends) → /connections,
+       which already owned it (the CREWS block here was a duplicate)
+     · plan creation → CREATE (+) → ?new=plan handshake here
+     · plan discovery → the EVENTS tab rail + /p/:id (0057)
 
    RLS is the wall: participants-only reads/writes (0017/0023), and the
-   stream respects it too — the new kinds ride subscribeThread unchanged.
-   Doctrine: crews and plans are built FROM friendship — you bring YOUR
-   people. The circle is private; no public counts anywhere. Ley 6: names
-   and faces lead every row. Ley 11: pre-migration each layer says the
-   wires are going in — no dead composer, no fake inbox. Ley 14: starlight.
+   stream respects it too. The circle is private; no public counts
+   anywhere. Ley 6: names and faces lead every row. Ley 11: pre-migration
+   each layer says the wires are going in — no dead composer, no fake
+   inbox. Ley 14: starlight.
    ========================================================================= */
 
 const VOID = 'var(--bg)'
@@ -119,8 +121,6 @@ export default function Messages() {
 }
 
 /* ------------------------------- inbox ------------------------------- */
-const SEGS = ['signals', 'crews', 'plans']
-
 function Inbox({ me, wide }) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -128,33 +128,13 @@ function Inbox({ me, wide }) {
   const [threads, setThreads] = useState([])
   const [circle, setCircle] = useState(null)     // null = probing · true · false (0023 not live)
   const [circleData, setCircleData] = useState({ friends: [], pending_in: [], pending_out: [] })
-  const [plans, setPlans] = useState([])
-  const [plansLoading, setPlansLoading] = useState(true)
   const [crewSheet, setCrewSheet] = useState(false)
   const [planSheet, setPlanSheet] = useState(false)
-  const [reqBusy, setReqBusy] = useState(null)   // profile id mid-answer
-  const [segErr, setSegErr] = useState('')
-  const [newPlanId, setNewPlanId] = useState(null)   // the just-created plan card rises in (A-05)
-  const [closeSet, setCloseSet] = useState(() => new Set())   // curated close friends (0029)
-  const [craftsByFriend, setCraftsByFriend] = useState(new Map())
-  const [closeBusy, setCloseBusy] = useState(null)   // profile id mid-toggle
   const [bells, setBells] = useState({ unread: 0, signals: [] })   // LAS CAMPANAS (v10 D2)
   /* v16 — The Bell dejó de ser un bloque arriba de la lista: es un PANEL
      propio, abierto desde el ícono de campana del encabezado (badge con
      no-leídas). La lista queda limpia: solo conversaciones y salas. */
   const [bellOpen, setBellOpen] = useState(false)
-
-  // the segment lives in the URL (?seg=) so CREWS/PLANS are deep-linkable;
-  // pre-0023 everything honestly collapses to SIGNALS (no dead segments)
-  const rawSeg = searchParams.get('seg')
-  const seg = circle === true && SEGS.includes(rawSeg) ? rawSeg : 'signals'
-  const setSeg = (s) => { setSegErr(''); setSearchParams(s === 'signals' ? {} : { seg: s }, { replace: true }) }
-  // directional segment grammar at consumer register (plan 009 / Ley 13): the
-  // pane arrives from the side its tab lives on. SEGS already holds the order;
-  // the initial mount carries '' and does not animate.
-  const prevSeg = useRef(seg)
-  const segDir = SEGS.indexOf(seg) > SEGS.indexOf(prevSeg.current) ? 'os-slide-in-right' : SEGS.indexOf(seg) < SEGS.indexOf(prevSeg.current) ? 'os-slide-in-left' : ''
-  useEffect(() => { prevSeg.current = seg }, [seg])
 
   useEffect(() => {
     let alive = true
@@ -164,124 +144,35 @@ function Inbox({ me, wide }) {
     circleReady().then((r) => {
       if (!alive) return
       setCircle(r)
-      if (r) {
-        myCircle().then((c) => { if (alive) setCircleData(c) })
-        myCloseFriends().then((list) => { if (alive) setCloseSet(new Set(list.map((p) => p.id))) })
-        myPlans().then((ps) => { if (alive) { setPlans(ps); setPlansLoading(false) } })
-      } else setPlansLoading(false)
+      // friends feed the two composers (CrewSheet / PlanSheet) only — the
+      // circle-management UI itself lives in /connections since v17
+      if (r) myCircle().then((c) => { if (alive) setCircleData(c) })
     })
     return () => { alive = false }
   }, [me.id])
 
-  // craft "a un tap" (v9 D1): my_circle omits craft, so one grouped read
-  // fills each friend's primary craft for the roster — no per-row probe,
-  // re-runs when the circle grows (a request accepted from search)
-  const friendIds = circleData.friends.map((f) => f.id).join(',')
+  // ?new=plan (CREATE's door since v17 — the old ?seg=plans&new=1 handshake
+  // died with the tabs) opens the plan sheet ONCE, then the param is
+  // stripped — a reload doesn't re-open it
   useEffect(() => {
-    if (!friendIds) { setCraftsByFriend(new Map()); return undefined }
-    let alive = true
-    fetchCraftsForProfiles(friendIds.split(',')).then((m) => { if (alive) setCraftsByFriend(m) })
-    return () => { alive = false }
-  }, [friendIds])
-
-  // ?new=1&seg=plans (CreateCentral's door) opens the plan sheet ONCE,
-  // then the param is stripped — a reload doesn't re-open it
-  useEffect(() => {
-    if (searchParams.get('new') !== '1') return
+    if (searchParams.get('new') !== 'plan') return
     if (circle === null) return                     // wait for the probe
     const next = new URLSearchParams(searchParams)
     next.delete('new')
     setSearchParams(next, { replace: true })
-    if (circle === true && searchParams.get('seg') === 'plans') setPlanSheet(true)
+    if (circle === true) setPlanSheet(true)
   }, [circle, searchParams, setSearchParams])
 
-  const refreshPlans = useCallback(() => { myPlans().then(setPlans) }, [])
-  const refreshInbox = useCallback(() => { fetchInbox(me.id).then(setThreads) }, [me.id])
-
-  // accept / decline a friend request — per-row busy, honest error
-  const answerRequest = async (person, accept) => {
-    if (reqBusy) return
-    setReqBusy(person.id); setSegErr('')
-    try {
-      await respondFriend(person.id, accept)
-      setCircleData((c) => ({
-        ...c,
-        pending_in: c.pending_in.filter((p) => p.id !== person.id),
-        friends: accept ? [...c.friends, person] : c.friends,
-      }))
-    } catch (e) { setSegErr(e?.message || "couldn't answer — try again") }
-    finally { setReqBusy(null) }
-  }
-
-  // curate close friends (0029) — the Instagram model: a subset WITHIN your
-  // connections. Optimistic star, honest rollback with a voice (Ley 11).
-  const toggleClose = async (person) => {
-    if (closeBusy) return
-    const isClose = closeSet.has(person.id)
-    setCloseBusy(person.id); setSegErr('')
-    setCloseSet((prev) => { const n = new Set(prev); isClose ? n.delete(person.id) : n.add(person.id); return n })
-    try { isClose ? await removeCloseFriend(person.id) : await addCloseFriend(person.id) }
-    catch (e) {
-      setCloseSet((prev) => { const n = new Set(prev); isClose ? n.add(person.id) : n.delete(person.id); return n })
-      setSegErr(e?.message || "couldn't update close friends — try again")
-    } finally { setCloseBusy(null) }
-  }
-
-  // RSVP: optimistic flip + rollback on refusal (Ley 11 — the counts on
-  // screen are only ever real or immediately corrected)
-  const doRsvp = async (planId, status) => {
-    const prev = plans
-    setSegErr('')
-    setPlans((cur) => cur.map((p) => (p.id === planId ? withMyRsvp(p, me.id, status) : p)))
-    try { await rsvpPlan(planId, status) }
-    catch (e) { setPlans(prev); setSegErr(e?.message || "couldn't answer — try again") }
-  }
-
-  const doCancel = async (planId) => {
-    if (!window.confirm('Cancel this plan? Everyone in it sees it canceled — the room stays open.')) return
-    setSegErr('')
-    try {
-      await cancelPlan(planId)
-      setPlans((cur) => cur.map((p) => (p.id === planId ? { ...p, status: 'canceled' } : p)))
-    } catch (e) { setSegErr(e?.message || "couldn't cancel — try again") }
-  }
-
-  // an invitee walks out — leave_plan (0026), then the card disappears (refetch)
-  const doLeave = async (planId) => {
-    if (!window.confirm('¿salir del plan?')) return
-    setSegErr('')
-    try {
-      await leavePlan(planId)
-      refreshPlans()
-    } catch (e) { setSegErr(e?.message || "couldn't leave — try again") }
-  }
-
-  // the creator changes who sees it (v9 D2) — optimistic, honest rollback
-  const doVisibility = async (planId, tier) => {
-    // roll back ONLY this plan's tier on failure — snapshotting the whole
-    // list would silently revert a concurrent RSVP/cancel (review catch)
-    const prevTier = plans.find((p) => p.id === planId)?.visibility
-    setSegErr('')
-    setPlans((cur) => cur.map((p) => (p.id === planId ? { ...p, visibility: tier } : p)))
-    try { await setPlanVisibility(planId, tier) }
-    catch (e) {
-      setPlans((cur) => cur.map((p) => (p.id === planId ? { ...p, visibility: prevTier } : p)))
-      setSegErr(e?.message || "couldn't change who sees it — try again")
-    }
-  }
-
-  // plan rooms live under PLANS (behind each card's door) — SIGNALS and
-  // CREWS stay clean of kind='plan' threads
-  const signals = threads.filter((t) => t.kind === 'dm' || t.kind === 'event')
-  const crews = threads.filter((t) => t.kind === 'group')
+  /* v17 — UNA LISTA: every thread the wall lets you read, one wire, most
+     recent activity first (fetchInbox already sorts by last_message_at).
+     Plan rooms enter the list for the FIRST time here — before v17 they
+     hid behind each PlanCard's door in a tab nobody could explain. */
   const booting = loading || circle === null
-  const count = booting ? null : seg === 'signals' ? signals.length : seg === 'crews' ? crews.length : plans.length
+  const count = booting ? null : threads.length
 
   return (
     <Shell wide={wide}>
       <Header wide={wide} count={count} bellUnread={bells.unread} onBell={() => setBellOpen(true)} />
-
-      {circle === true && <SegRow seg={seg} onSeg={setSeg} />}
 
       {booting ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
@@ -289,104 +180,36 @@ function Inbox({ me, wide }) {
         </div>
       ) : (
         <div style={{ maxWidth: wide ? '720px' : undefined }}>
-          {segErr && <div role="alert" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '12px' }}>⚠ {segErr}</div>}
 
-          {/* the three segments share ONE keyed, direction-classed wrapper: a
-              swap slides in from the side its tab lives on (plan 009). The
-              initial mount carries '' and stays still. */}
-          <div key={seg} className={segDir}>
           {/* v16: aquí vivía el bloque TheBell — se mudó al panel de la
               campana (encabezado, arriba a la derecha). La lista respira. */}
-          {/* ---------------- SIGNALS — the original inbox ---------------- */}
-          {seg === 'signals' && (
-            signals.length === 0 ? (
-              <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
-                <MessagesSquare size={22} strokeWidth={1.3} style={{ color: SILVER, marginBottom: '14px' }} />
-                <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>NO CONVERSATIONS YET</h2>
-                <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '320px' }}>
-                  Walk into a world and say something — every creative's museum has a door.
-                </p>
-                <button className="pressable" onClick={() => navigate('/community')} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-                  Find your people <ArrowUpRight size={16} />
-                </button>
-              </div>
-            ) : (
-              <div style={{ marginTop: '14px' }}>
-                {signals.map((t, i) => (
-                  <InboxRow key={t.id} t={t} me={me} last={i === signals.length - 1} onOpen={() => navigate('/messages/' + t.id)} />
-                ))}
-              </div>
-            )
+          {/* ---------------- UNA LISTA — everything, most recent first ---------------- */}
+          {threads.length === 0 ? (
+            <div style={{ marginTop: '22px', padding: '42px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
+              <MessagesSquare size={22} strokeWidth={1.3} style={{ color: SILVER, marginBottom: '14px' }} />
+              <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '28px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>NO CONVERSATIONS YET</h2>
+              <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '14px auto 0', maxWidth: '320px' }}>
+                Walk into a world and say something — every creative's museum has a door.
+              </p>
+              <button className="pressable" onClick={() => navigate('/community')} style={{ marginTop: '22px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, border: 'none', borderRadius: '11px', padding: '13px 24px', color: VOID, fontFamily: 'DM Sans', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+                Find your people <ArrowUpRight size={16} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ marginTop: '14px' }}>
+              {threads.map((t, i) => (
+                <InboxRow key={t.id} t={t} me={me} last={i === threads.length - 1} onOpen={() => navigate('/messages/' + t.id)} />
+              ))}
+            </div>
           )}
 
-          {/* ---------------- CREWS — your people: find, add, curate ---------------- */}
-          {seg === 'crews' && (
-            <>
-              {/* the entry door from your own surface (v9 D1) — search anyone,
-                  send from the row; the world's + CONNECT is the other path */}
-              <PeopleSearch me={me} circle={circleData} onCircleChange={setCircleData}
-                onOpenWorld={(uid) => navigate('/user/' + uid)} />
-              <CircleBlock circle={circleData} busyId={reqBusy} onAnswer={answerRequest}
-                closeSet={closeSet} closeBusy={closeBusy} onToggleClose={toggleClose}
-                craftsByFriend={craftsByFriend} onOpenWorld={(uid) => navigate('/user/' + uid)}
-                onManage={() => navigate('/connections')} />
-              {crews.length > 0 && (
-                <div style={{ marginTop: '10px' }}>
-                  {crews.map((t, i) => (
-                    <InboxRow key={t.id} t={t} me={me} last={i === crews.length - 1} onOpen={() => navigate('/messages/' + t.id)} />
-                  ))}
-                </div>
-              )}
-              {circleData.friends.length > 0 ? (
-                <CreateRow testid="crew-create" title="START A CREW" kicker="your people, one room" onGo={() => setCrewSheet(true)} />
-              ) : (
-                <div style={{ marginTop: '20px', padding: '26px 24px', borderRadius: '16px', border: `1px solid ${HAIR}`, textAlign: 'center' }}>
-                  <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.65, margin: 0, maxWidth: '320px', display: 'inline-block' }}>
-                    a crew is made of your people — find and add connections above, or browse the community.
-                  </p>
-                  <div>
-                    <button className="pressable" onClick={() => navigate('/community')} style={{ marginTop: '14px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', minHeight: '40px', padding: '11px 20px', color: BONE_MID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
-                      browse the community <ArrowUpRight size={13} />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </>
+          {/* the one room-making act that still lives here: a crew is a
+              room of YOUR people, and Messages is where rooms live. Plans
+              are made from CREATE (+) since v17. Friendless = no door —
+              honest, not hidden: crews are built FROM friendship (0023). */}
+          {circle === true && circleData.friends.length > 0 && (
+            <CreateRow testid="crew-create" title="START A CREW" kicker="your people, one room" onGo={() => setCrewSheet(true)} />
           )}
-
-          {/* ---------------- PLANS — the kickbacks ---------------- */}
-          {seg === 'plans' && (
-            plansLoading ? (
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
-                <Loader2 size={20} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
-              </div>
-            ) : (
-              <>
-                {plans.length === 0 && (
-                  <div style={{ marginTop: '22px', padding: '38px 26px', borderRadius: '18px', border: `1px solid ${HAIR_HI}`, background: 'linear-gradient(150deg, rgba(var(--star-rgb),.05), rgba(var(--star-rgb),.01))', textAlign: 'center' }}>
-                    <Mark type="star" size={16} color={SILVER} style={{ marginBottom: '12px' }} />
-                    <h2 style={{ fontFamily: 'Bebas Neue', fontSize: '26px', letterSpacing: '.03em', lineHeight: .95, margin: 0, color: BONE }}>NO PLANS YET</h2>
-                    <p style={{ fontFamily: 'DM Sans', fontSize: '13.5px', color: BONE_MID, lineHeight: 1.65, margin: '12px auto 0', maxWidth: '300px' }}>
-                      a kickback, a roadtrip, fucho on saturday. make the first one.
-                    </p>
-                  </div>
-                )}
-                {plans.length > 0 && (
-                  <div style={{ marginTop: '16px' }}>
-                    {plans.map((p) => (
-                      <div key={p.id} className={p.id === newPlanId ? 'msg-in' : undefined}>
-                        <PlanCard p={p} meId={me.id}
-                          onRsvp={doRsvp} onCancel={doCancel} onLeave={doLeave} onVisibility={doVisibility}
-                          onRoom={() => p.thread_id && navigate('/messages/' + p.thread_id)} />
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <CreateRow testid="plan-create" title="MAKE A PLAN" kicker="what · where · when" onGo={() => setPlanSheet(true)} />
-              </>
-            )
-          )}
-          </div>
         </div>
       )}
 
@@ -418,7 +241,13 @@ function Inbox({ me, wide }) {
       )}
       {planSheet && (
         <PlanSheet friends={circleData.friends} onClose={() => setPlanSheet(false)}
-          onCreated={(plan_id) => { setPlanSheet(false); refreshPlans(); refreshInbox(); setSeg('plans'); setNewPlanId(plan_id) }} />
+          onCreated={(planId, threadId) => {
+            // v17: making a plan LANDS YOU IN ITS ROOM — the same door a
+            // stranger gets from /p/:id. No tab to return to; the room is
+            // the plan's home now.
+            setPlanSheet(false)
+            navigate(threadId ? '/messages/' + threadId : '/messages')
+          }} />
       )}
     </Shell>
   )
@@ -520,163 +349,10 @@ function BellPanel({ bells, onOpen, onMarkAll, onClose }) {
   )
 }
 
-/* the segmented row — SIGNALS · CREWS · PLANS.
-   v16: control segmentado de VIDRIO — pozo (WELL) de píldora con el panel
-   activo iluminado (CHIP), la misma gramática que la nav. Los subrayados
-   con puntos murieron. Gradientes, nunca un segundo blur (regla de
-   no-anidar de glass.js). */
-function SegRow({ seg, onSeg }) {
-  const items = [
-    { key: 'signals', label: 'SIGNALS' },
-    { key: 'crews', label: 'CREWS' },
-    { key: 'plans', label: 'PLANS' },
-  ]
-  return (
-    <div role="tablist" aria-label="Message registers"
-      style={{ display: 'flex', alignItems: 'stretch', marginTop: '16px', borderRadius: '100px', padding: '4px', gap: '4px', ...WELL }}>
-      {items.map((it) => {
-        const on = seg === it.key
-        return (
-          <button key={it.key} role="tab" aria-selected={on} className="pressable" data-testid={`inbox-seg-${it.key}`}
-            onClick={() => onSeg(it.key)}
-            style={{
-              flex: 1, minHeight: '36px', padding: '9px 8px',
-              background: 'transparent', border: '1px solid transparent', borderRadius: '100px',
-              color: on ? BONE : BONE_LOW,
-              fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.2em', textTransform: 'uppercase',
-              cursor: 'pointer', transition: 'color .2s, background .25s var(--ease-house), border-color .25s var(--ease-house), box-shadow .25s var(--ease-house)',
-              ...(on ? CHIP : null),
-            }}>
-            {it.label}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
-/* YOUR CIRCLE — requests waiting on you, then the real roster (v9 D1): who
-   your connections ARE, each with craft + a tap to their world, and a star to
-   curate close friends. The circle is intimate — nothing here is public. */
-function CircleBlock({ circle, busyId, onAnswer, closeSet, closeBusy, onToggleClose, craftsByFriend, onOpenWorld, onManage }) {
-  const { friends, pending_in } = circle
-  if (!pending_in.length && !friends.length) return null
-  const closeCount = friends.filter((f) => closeSet.has(f.id)).length
-  return (
-    <div style={{ marginTop: '18px' }}>
-      {/* requests waiting on you */}
-      {pending_in.length > 0 && (
-        <>
-          <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>○ wants in</div>
-          {pending_in.map((p) => {
-            const busy = busyId === p.id
-            const name = p.name || (p.username ? '@' + p.username : 'Member')
-            const avatar = safeImg(p.avatar_url)
-            return (
-              <div key={p.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderBottom: `1px solid ${HAIR}` }}>
-                {/* v12: la cara y el nombre de quien te pide entrar son PUERTA
-                    a su mundo — la fila de abajo (FriendRow) siempre lo fue, y
-                    ésta no. Justo aquí es donde más falta hace: para decidir
-                    si aceptas necesitas poder ver quién es. */}
-                <button className="pressable" onClick={() => onOpenWorld(p.id)} aria-label={`Open ${name}'s world`}
-                  style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, textAlign: 'left',
-                    background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}>
-                  <span style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {avatar
-                      ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
-                  </span>
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
-                      <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
-                      <SeedPill is_demo={p.is_demo} />
-                    </span>
-                    <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.16em', textTransform: 'uppercase', marginTop: '3px' }}>wants in your circle</span>
-                  </span>
-                </button>
-                <button className="pressable" data-testid={`circle-accept-${p.id}`} disabled={busy} onClick={() => onAnswer(p, true)}
-                  style={{ background: BONE, border: 'none', borderRadius: '100px', minHeight: '40px', padding: '10px 18px', color: VOID, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 500, cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0 }}>
-                  {busy ? '…' : 'accept'}
-                </button>
-                <button className="pressable" disabled={busy} onClick={() => onAnswer(p, false)} aria-label={`Decline ${name}`}
-                  style={{ background: 'transparent', border: `1px solid ${HAIR}`, borderRadius: '100px', minHeight: '40px', padding: '10px 14px', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.12em', textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0 }}>
-                  decline
-                </button>
-              </div>
-            )
-          })}
-        </>
-      )}
-
-      {/* the roster — the real circle, tappable, curatable */}
-      {friends.length > 0 && (
-        <>
-          {/* v13-polish: /connections existía y sólo se llegaba por Settings —
-              tres taps, escondido detrás de la palabra menos social de la app.
-              El roster es el lugar obvio: acá es donde ya estás mirando a tu
-              gente. */}
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: pending_in.length ? '18px' : 0 }}>
-            <div data-testid="circle-count" style={{ flex: 1, minWidth: 0, fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>
-              ○ your circle · {friends.length}{closeCount > 0 ? ` · ${closeCount} close` : ''}
-            </div>
-            <button className="pressable" data-testid="circle-manage" onClick={onManage}
-              style={{ flexShrink: 0, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', color: SILVER, letterSpacing: '.18em', textTransform: 'uppercase', textDecoration: 'underline', textUnderlineOffset: '3px' }}>
-              manage
-            </button>
-          </div>
-          {friends.map((f) => (
-            <FriendRow key={f.id} f={f} craft={(craftsByFriend.get(f.id) || [])[0]}
-              isClose={closeSet.has(f.id)} busy={closeBusy === f.id}
-              onToggleClose={() => onToggleClose(f)} onOpen={() => onOpenWorld(f.id)} />
-          ))}
-          <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '9px', lineHeight: 1.5 }}>
-            {/* el hint traía un ☆ de texto: un CUARTO dibujo de la estrella,
-                con otra forma que el control que está señalando. La palabra
-                apunta a la marca sin competir con ella. */}
-            tap the star for close friends — they see your close-only plans.
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-/* one connection in the roster: face + name + craft tap to their world; the
-   star curates close friends (Ley 14 — a lit star means something). */
-function FriendRow({ f, craft, isClose, busy, onToggleClose, onOpen }) {
-  const name = f.name || (f.username ? '@' + f.username : 'Member')
-  const avatar = safeImg(f.avatar_url)
-  const tint = craft ? categoryMeta(craft.category).tint : null
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '11px 2px', borderBottom: `1px solid ${HAIR}` }}>
-      <button className="pressable" onClick={onOpen} aria-label={`Open ${name}'s world`}
-        style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0, background: 'transparent', border: 'none', textAlign: 'left', cursor: 'pointer', padding: 0 }}>
-        <span style={{ width: '38px', height: '38px', borderRadius: '50%', overflow: 'hidden', border: `1px solid ${isClose ? 'rgba(var(--star-rgb),.5)' : HAIR_HI}`, background: CARD, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          {avatar
-            ? <img src={avatar} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontFamily: 'Bebas Neue', fontSize: '16px', color: BONE }}>{(name || '?')[0].toUpperCase()}</span>}
-        </span>
-        <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
-            <span style={{ fontFamily: 'Bebas Neue', fontSize: '18px', color: BONE, letterSpacing: '.02em', lineHeight: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{name}</span>
-            <SeedPill is_demo={f.is_demo} />
-          </span>
-          {craft
-            ? <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: `rgb(${tintChannel(tint)})`, letterSpacing: '.14em', textTransform: 'uppercase', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{craft.name}</span>
-            : (f.city && <span style={{ display: 'block', fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.1em', marginTop: '4px' }}>{f.city}</span>)}
-        </span>
-      </button>
-      <button className="pressable" data-testid={`circle-close-${f.id}`} disabled={busy} onClick={onToggleClose}
-        aria-pressed={isClose} aria-label={isClose ? `Remove ${name} from close friends` : `Add ${name} to close friends`}
-        title={isClose ? 'In close friends' : 'Add to close friends'}
-        style={{ background: 'transparent', border: 'none', minHeight: '40px', minWidth: '40px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: busy ? 'default' : 'pointer', opacity: busy ? .5 : 1, flexShrink: 0, padding: '6px' }}>
-        {/* fill stays STAR; state rides interpolable props so the star lights
-            up like a star, not a checkbox — interruptible on optimistic rollback (A-17) */}
-        <Star size={17} strokeWidth={1.6} fill={STAR} style={closeStarStyle(isClose)} />
-      </button>
-    </div>
-  )
-}
+/* v17 — aquí vivían SegRow (SIGNALS·CREWS·PLANS), CircleBlock y
+   FriendRow. Los tabs murieron (una lista); el manejo del círculo
+   (requests, roster, close friends) vive en /connections, que ya lo
+   tenía completo — esto era un duplicado. */
 
 /* the door rows — START A CREW / MAKE A PLAN, in the inbox row grammar */
 function CreateRow({ testid, title, kicker, onGo }) {
@@ -756,20 +432,8 @@ function relDay(iso) {
 
 /* ------------------------------- plans ------------------------------- */
 
-/* the plan's when, human and honest — relDay's cousin for the FUTURE */
-function planWhen(iso) {
-  if (!iso) return 'when tbd'
-  const d = new Date(iso)
-  if (isNaN(d)) return 'when tbd'
-  const now = new Date()
-  const startOf = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate())
-  const days = Math.round((startOf(d) - startOf(now)) / 86400000)
-  const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
-  if (days === 0) return `today · ${time}`
-  if (days === 1) return `tomorrow · ${time}`
-  if (days === -1) return `yesterday · ${time}`
-  return `${d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} · ${time}`
-}
+/* the plan's when — moved to src/lib/social.js in v17 (three consumers:
+   here, the Events rail, the /p/:id landing). Imported above. */
 
 /* my RSVP applied locally: roster is the source, counts recomputed from
    it — the optimistic card can never show a count the roster contradicts */
@@ -787,6 +451,18 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
   const canceled = p.status === 'canceled'
   const mine = p.creator?.id === meId
   const creatorName = p.creator?.name || (p.creator?.username ? '@' + p.creator.username : null)
+  /* v17 — el link compartible. Sólo planes PÚBLICOS lo enseñan (la landing
+     /p/:id responde not_found para cualquier otro tier — un link a un
+     cuarto invisible es una promesa rota). Cualquier miembro puede
+     copiarlo: el caso real es el link del fucho cayendo en un WhatsApp. */
+  const [copied, setCopied] = useState(false)
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/p/${p.id}`)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard denied — the button simply doesn't confirm */ }
+  }
   return (
     <div data-testid={`plan-card-${p.id}`}
       style={{ border: `1px solid ${HAIR_HI}`, borderRadius: '14px', padding: '16px 16px 12px', marginBottom: '12px', background: 'linear-gradient(150deg, rgba(var(--star-rgb),.04), rgba(var(--star-rgb),.01))', opacity: canceled ? .55 : 1 }}>
@@ -826,6 +502,16 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
         )
       )}
 
+      {/* v17 — the shareable door: public plans carry their own link. Drop
+          it in the group chat and it opens for people with no account. */}
+      {!canceled && p.visibility === 'public' && (
+        <button className="pressable" data-testid="plan-copy-link" onClick={copyLink}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', marginTop: '10px', background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR}`, borderRadius: '100px', padding: '6px 12px', color: copied ? BONE : BONE_MID, cursor: 'pointer', fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.14em', textTransform: 'uppercase' }}>
+          {copied ? <Check size={10} /> : <Link2 size={10} />}
+          {copied ? 'copied — drop it anywhere' : 'copy the door link'}
+        </button>
+      )}
+
       {!canceled && (
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
           <RsvpBtn testid="plan-rsvp-in" on={p.my_status === 'in'} label="in" mark="dot" onClick={() => onRsvp(p.id, 'in')} />
@@ -835,10 +521,14 @@ function PlanCard({ p, meId, onRsvp, onCancel, onLeave, onVisibility, onRoom }) 
       )}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginTop: '12px', borderTop: `1px solid ${HAIR}`, paddingTop: '4px' }}>
-        <button className="pressable" data-testid="plan-room-door" onClick={onRoom}
-          style={{ background: 'transparent', border: 'none', minHeight: '40px', padding: '10px 2px', color: SILVER, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
-          the room →
-        </button>
+        {/* v17: sin onRoom no hay puerta — la tarjeta ya vive DENTRO del
+            room y un "the room →" ahí sería una puerta a donde ya estás. */}
+        {onRoom && (
+          <button className="pressable" data-testid="plan-room-door" onClick={onRoom}
+            style={{ background: 'transparent', border: 'none', minHeight: '40px', padding: '10px 2px', color: SILVER, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.16em', textTransform: 'uppercase', cursor: 'pointer' }}>
+            the room →
+          </button>
+        )}
         {mine && !canceled && (
           <button className="pressable" onClick={() => onCancel(p.id)}
             style={{ background: 'transparent', border: 'none', minHeight: '40px', padding: '10px 2px', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '8.5px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer' }}>
@@ -1045,7 +735,7 @@ function PlanSheet({ friends, onClose, onCreated }) {
     setBusy(true); setErr('')
     try {
       const startsAt = when && !isNaN(new Date(when)) ? new Date(when).toISOString() : null
-      const { plan_id } = await createPlan({ title, spot, detail, startsAt, inviteeIds: [...sel] })
+      const { plan_id, thread_id } = await createPlan({ title, spot, detail, startsAt, inviteeIds: [...sel] })
       // the plan (and its room) now EXIST at the default 'friends'. Setting a
       // non-default tier is a best-effort SECOND step — a blip there must NOT
       // report "couldn't make the plan" (it was made) nor strand the sheet open
@@ -1054,7 +744,7 @@ function PlanSheet({ friends, onClose, onCreated }) {
       if (vis !== 'friends' && plan_id) {
         try { await setPlanVisibility(plan_id, vis) } catch { /* non-fatal — plan lives at 'friends' */ }
       }
-      onCreated(plan_id)
+      onCreated(plan_id, thread_id)
     } catch (e) { setErr(e?.message || "couldn't make the plan — try again"); setBusy(false) }
   }
 
@@ -1179,6 +869,54 @@ function Thread({ threadId, me, wide }) {
     } finally { setSending(false) }
   }
 
+  /* v17 — EL ROOM DEL PLAN CARGA SU PLAN. Los tabs murieron y con ellos la
+     lista de PlanCards: gestionar el plan (RSVP, quién lo ve, el link de
+     la puerta, cancelar/salir) pasa AQUÍ, en el cuarto del plan — a un tap
+     de la lista, nunca en un tab que nadie podía explicar. myPlans() sólo
+     se pide cuando el thread ES de plan. */
+  const [plan, setPlan] = useState(null)
+  const [planErr, setPlanErr] = useState('')
+  useEffect(() => {
+    if (thread?.kind !== 'plan') { setPlan(null); return undefined }
+    let alive = true
+    myPlans().then((ps) => { if (alive) setPlan(ps.find((p) => p.thread_id === threadId) || null) })
+    return () => { alive = false }
+  }, [thread?.kind, threadId])
+
+  // the plan handlers, single-card edition — optimistic + honest rollback,
+  // same discipline the old tab had (Ley 11)
+  const planRsvp = async (planId, status) => {
+    const prev = plan
+    setPlanErr('')
+    setPlan((p) => (p ? withMyRsvp(p, me.id, status) : p))
+    try { await rsvpPlan(planId, status) }
+    catch (e) { setPlan(prev); setPlanErr(e?.message || "couldn't answer — try again") }
+  }
+  const planCancel = async (planId) => {
+    if (!window.confirm('Cancel this plan? Everyone in it sees it canceled — the room stays open.')) return
+    setPlanErr('')
+    try { await cancelPlan(planId); setPlan((p) => (p ? { ...p, status: 'canceled' } : p)) }
+    catch (e) { setPlanErr(e?.message || "couldn't cancel — try again") }
+  }
+  const planLeave = async (planId) => {
+    if (!window.confirm('Leave this plan? You leave its room with it.')) return
+    setPlanErr('')
+    // leave_plan (0026) removes you from the plan AND its thread — the room
+    // is no longer yours to stand in, so the exit lands on the list
+    try { await leavePlan(planId); navigate('/messages') }
+    catch (e) { setPlanErr(e?.message || "couldn't leave — try again") }
+  }
+  const planVisibility = async (planId, tier) => {
+    const prevTier = plan?.visibility
+    setPlanErr('')
+    setPlan((p) => (p ? { ...p, visibility: tier } : p))
+    try { await setPlanVisibility(planId, tier) }
+    catch (e) {
+      setPlan((p) => (p ? { ...p, visibility: prevTier } : p))
+      setPlanErr(e?.message || "couldn't change who sees it — try again")
+    }
+  }
+
   // walk out of a crew — the room continues without you (groups only)
   const leave = async () => {
     if (leaving) return
@@ -1186,7 +924,7 @@ function Thread({ threadId, me, wide }) {
     setLeaving(true); setErr('')
     try {
       await leaveCrew(threadId)
-      navigate('/messages?seg=crews')
+      navigate('/messages')
     } catch (e) { setErr(e?.message || "couldn't leave — try again"); setLeaving(false) }
   }
 
@@ -1214,9 +952,8 @@ function Thread({ threadId, me, wide }) {
 
   const title = threadTitle(thread)
   const other = thread.kind === 'dm' ? thread.others?.[0] : null
-  // back lands on the segment this thread lives in (Ley 9 — the way back
-  // is the way you came)
-  const backTo = thread.kind === 'group' ? '/messages?seg=crews' : thread.kind === 'plan' ? '/messages?seg=plans' : '/messages'
+  // v17: one list — every way back is the same door
+  const backTo = '/messages'
 
   return (
     <div style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent', display: 'flex', flexDirection: 'column' }}>
@@ -1270,6 +1007,17 @@ function Thread({ threadId, me, wide }) {
 
       {/* the conversation */}
       <div style={{ position: 'relative', zIndex: 2, flex: 1, width: '100%', maxWidth: wide ? '720px' : undefined, margin: wide ? '0 auto' : undefined, padding: '18px 18px 150px' }}>
+        {/* v17 — the plan lives at the top of its own room: what/where/when,
+            RSVP, visibility, the shareable door link. onRoom is moot here
+            (you're standing in it) — it stays undefined and the card's room
+            door simply doesn't render. */}
+        {thread.kind === 'plan' && plan && (
+          <div style={{ marginBottom: '16px' }}>
+            <PlanCard p={plan} meId={me.id}
+              onRsvp={planRsvp} onCancel={planCancel} onLeave={planLeave} onVisibility={planVisibility} />
+            {planErr && <div role="alert" style={{ fontFamily: 'DM Mono', fontSize: '9px', color: WARN, marginTop: '6px' }}>⚠ {planErr}</div>}
+          </div>
+        )}
         {msgs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '46px 20px' }}>
             <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_LOW, letterSpacing: '.3em', textTransform: 'uppercase' }}>◇ the room is open</div>

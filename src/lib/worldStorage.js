@@ -24,6 +24,51 @@ export function validateImage(file) {
   return null
 }
 
+/* v17 — EL DOWNSCALE EN SUBIDA (fase 7). Las portadas llegaban a 3024×4032
+   (12MP, 3-6MB) y For You las decodificaba 4-8s sobre red real. Un canvas
+   client-side las baja a ~1920px de lado largo ANTES de subir — cero infra
+   nueva, independiente del plan de Supabase (render/image sigue 403 en
+   este tenant, ver img.js).
+
+   Alcance DELIBERADO: sólo avatar y cover lo llaman (Profile.jsx). El
+   choke point de subida alimenta seis flujos — gallery, moments, listings
+   y event covers NO se tocan en v17: la galería tiene un link "abrir
+   original" que un downscale degradaría, y esa decisión es de fundador.
+
+   Reglas duras:
+   · gif/avif pasan intactos (canvas mata la animación y no encode avif)
+   · jpeg re-encoda jpeg q.85; png Y webp salen png — webp también carga
+     alpha y a jpeg se hornea sobre negro (review catch v17). No se
+     re-encoda a webp: el toBlob de Safari no lo emite y produciría bytes
+     png con MIME webp — exactamente la mentira que este header prohíbe
+   · el File devuelto carga el MIME correcto — EXT y contentType derivan
+     de file.type y un blob renombrado subiría mentido (riesgo documentado)
+   · createImageBitmap con from-image: la foto de iPhone en portrait llega
+     con orientación EXIF y el canvas la hornea YA rotada
+   · cualquier falla devuelve el original — esto es una optimización,
+     nunca una pared. */
+export async function downscaleImage(file, maxEdge = 1920, quality = 0.85) {
+  if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) return file
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' })
+      .catch(() => createImageBitmap(file))
+    const scale = maxEdge / Math.max(bmp.width, bmp.height)
+    if (scale >= 1) { bmp.close?.(); return file }
+    const w = Math.round(bmp.width * scale)
+    const h = Math.round(bmp.height * scale)
+    const canvas = document.createElement('canvas')
+    canvas.width = w; canvas.height = h
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h)
+    bmp.close?.()
+    const type = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png'
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, type, quality))
+    // si el "óptimo" salió más pesado que el original, el original gana
+    if (!blob || blob.size >= file.size) return file
+    const name = (file.name || 'image').replace(/\.[a-z0-9]+$/i, '') + (type === 'image/png' ? '.png' : '.jpg')
+    return new File([blob], name, { type })
+  } catch { return file }
+}
+
 /* Upload one image into the caller's own folder. Returns { path, url }.
    Timestamped names: replacing never serves a stale CDN copy of the old
    object, and concurrent uploads never collide. */
