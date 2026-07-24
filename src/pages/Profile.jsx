@@ -256,22 +256,9 @@ export default function Profile() {
     setListings((ls) => ls.filter((x) => x.id !== l.id))
   }
 
-  // Builder v3: the conversational opening's polish layer (/api/curate).
-  // Returns null on ANY failure — the client-side decision tree already
-  // composed a full plan, so degradation is silent by design (Ley 15).
-  const onCurate = async ({ craft, feel, show }) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) return null
-      const res = await fetch('/api/curate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ craft, feel, show }),
-      })
-      if (!res.ok) return null
-      return await res.json()
-    } catch { return null }
-  }
+  /* v18 — onCurate se retiró con la conversación del builder v3: la entrada
+     exprés no compone planes, publica identidad. /api/curate sigue existiendo
+     en api/ (congelado por tree hash) pero ya nadie lo llama desde el cliente. */
 
   {/* v12 — AQUÍ HABÍA UN "SIGN OUT" Y AHORA HAY UNA PUERTA.
       Cerrar sesión se mudó a /settings, que es donde vive junto a todo lo
@@ -519,7 +506,6 @@ export default function Profile() {
       onUploadCover={onUploadCover}
       onUploadGallery={onUploadGallery}
       onCleanupImages={onCleanupImages}
-      onCurate={onCurate}
       onViewPublic={() => navigate(`/user/${user.id}`)}
       topBar={topBar}
       ownerExtras={ownerExtras}

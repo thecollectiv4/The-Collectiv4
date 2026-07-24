@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { Loader2, X, ImagePlus, Plus, ArrowLeft, ArrowRight } from 'lucide-react'
-import { THEMES, nameSkin, DEFAULT_MARQUEE, normGallery, normLinks, worldSafeUrl, worldCompleteness, chromeDisplayText, craftKindOf, CRAFT_STEPS, composeWorldPlan } from '@/lib/world'
+import { Loader2, X, ImagePlus, Plus, ArrowLeft, ArrowRight, Camera } from 'lucide-react'
+import { THEMES, nameSkin, DEFAULT_MARQUEE, normGallery, normLinks, worldSafeUrl, worldCompleteness, chromeDisplayText, craftKindOf, CRAFT_STEPS } from '@/lib/world'
 import { craftLine, kindOfCrafts, saveProfileCrafts } from '@/lib/crafts'
 import { saveTastes } from '@/lib/tastes'
 import CraftPicker from '@/components/CraftPicker'
@@ -8,26 +8,31 @@ import TasteBrainstorm from '@/components/TasteBrainstorm'
 import { useWide } from '@/lib/useIsDesktop'
 
 /* =========================================================================
-   WorldBuilder v3 — the builder KNOWS you before it asks you for anything
-   (Ley 15). A new world opens with a short conversation — three questions,
-   max — and the system COMPOSES the plan: step order, emphasis, a suggested
-   skin and welcome line. Then the guided steps run with everything already
-   arranged. Curated, never surveyed.
+   WorldBuilder v4 — LA ENTRADA EXPRÉS (v18). El único dato de usuario real
+   que no viene de los founders: un amigo de Pato intentó hacer su perfil y
+   dijo que "tardaba demasiado / era difícil". Si la puerta cuesta, nada de
+   lo de adentro importa.
 
-   THE CONVERSATION (new worlds only; returning members go straight to the
-   first unfinished step):
-     01 · what do you make?                     → discipline (persisted)
-     02 · what should entering your world feel like? → skin + marquee seeds
-     03 · what do you have ready to show today? → step order + emphasis
+   A NEW WORLD meets THREE BEATS, nothing else — the minimum to exist with
+   dignity in Community (name already came from signup):
+     01 · what do you make?    → craft (or "here for the people" / skip)
+     02 · your face, your city → avatar + city (the card's identity)
+     03 · your line            → tagline, then PUBLISH — you're in
 
-   The composition is a client-side decision tree (composeWorldPlan) that
-   ALWAYS works; /api/curate polishes the suggestions when the key is live
-   and degrades silently when it isn't. Suggestions are DRAFTS the member
-   edits or clears — nothing is saved as theirs without passing through
-   their own hands (data real o vacío honesto, Ley 11).
+   Every beat persists the moment it's answered; every beat is skippable.
+   Target: cero → "estoy adentro y visible" in under 60 seconds.
 
-   Everything below the conversation is the proven v2 machinery: per-step
-   persistence, the serial upload chain, drag/paste, guilt-free skips.
+   EVERYTHING ELSE IS CURATION, NOT THE DOOR. The v3 conversation (feel /
+   show → composed plan, /api/curate polish) was charged at the entrance
+   and is retired with v18 — its per-craft step ORDER survives below in
+   CRAFT_STEPS. Taste, work, doors, marquee, skin now live as progressive
+   curation: the museum invites ("your world · 60% — add X") and the deep
+   builder resumes at the first unfinished step, exactly as before.
+
+   The steps machinery below is the proven v2 kit: per-step persistence,
+   the serial upload chain, drag/paste, guilt-free skips. v17's legacy-maker
+   migration door (free-text discipline → real crafts) is intact — see
+   firstUnfinished.
    ========================================================================= */
 
 const VOID = 'var(--bg)'
@@ -47,26 +52,20 @@ const monoLabel = { fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.22e
 /* The reason this exists — shown on the first beat, verbatim guidance. */
 const WHY = 'Your world is your card in Discover, your museum — and soon, where you get booked.'
 
-/* The conversation — three questions, each with a reason to exist.
-   01 is the craft — from the CURATED taxonomy (0020), never free text:
-   the app recognizes you as you type (Ley 15), and the structured craft
-   is what turns the matching column on.
-   v17 — LA PARED CAE (decisión de fundador, 23 jul 2026): la 01 deja de
-   ser obligatoria. Un humano que no vende nada — la maestra, el del
-   fucho, la crowd — entra por "I'm here for the people" o por skip, y
-   ambos caen DIRECTO al taste brainstorm: la capa construida exactamente
-   para ellos, que vivía sellada detrás de esta pregunta. El audit del
-   16 jul midió el costo del required: 11 de 13 arquetipos rebotados en
-   la primera pregunta de la casa. */
-const MEET = [
-  { key: 'craft', kicker: 'question 01 · who you are', title: 'WHAT DO YOU MAKE?', why: `${WHY} Start with the craft — everything composes around it. You can be many at once.`, required: false },
-  { key: 'feel', kicker: 'question 02 · the door', title: 'WHEN SOMEONE STEPS IN — WHAT SHOULD THEY FEEL?', why: 'One phrase. It seeds your welcome line and how your name is set.', placeholder: 'like walking into a warm room · raw energy · timeless…', required: false },
-  { key: 'show', kicker: 'question 03 · today', title: 'WHAT DO YOU HAVE READY TO SHOW TODAY?', why: 'Only what exists — the world starts honest. What you have leads; the rest waits for you.', required: false },
-]
-const SHOW_OPTIONS = [
-  { key: 'images', label: 'images of my work' },
-  { key: 'links', label: 'links where my stuff lives' },
-  { key: 'words', label: "words I've written" },
+/* LA ENTRADA EXPRÉS — three beats, the minimum to be visible with dignity.
+   01 craft: from the CURATED taxonomy (0020), never free text — the
+   structured craft is what turns the matching column on. v17's wall-falls
+   doctrine holds: "I'm here for the people" and skip are first-class doors,
+   never a dead end (el audit del 16 jul midió el costo del required: 11 de
+   13 arquetipos rebotados en la primera pregunta de la casa).
+   02 face: the avatar was NEVER asked for in the old builder — the single
+   biggest dignity item on the card, only settable from the museum hero.
+   City rides here: one question, the matching engine's third signal.
+   03 line: one sentence in their voice, then publish. */
+const EXPRESS = [
+  { key: 'craft', kicker: 'question 01 · who you are', title: 'WHAT DO YOU MAKE?', why: `${WHY} Pick your craft — or walk in for the people. You can be many at once.` },
+  { key: 'face', kicker: 'question 02 · the card', title: 'YOUR FACE, YOUR CITY', why: 'The two things a card needs to feel like a person. The photo says you exist; the city says where real life happens.' },
+  { key: 'line', kicker: 'question 03 · in your voice', title: 'YOUR LINE', why: "One line under your name — what you're on right now. Then you're in." },
 ]
 
 /* Base copy per step — one cosmos line that says WHY, never a demand. */
@@ -96,6 +95,14 @@ const CRAFT_COPY = {
   },
 }
 
+/* A world that already carries identity data walked through the door on
+   purpose — the express beats persisted what its owner chose to answer. */
+const hasIdentity = (d) => !!((d?.tagline || '').trim() || (d?.city || '').trim() || (d?.avatar_url || '').trim())
+
+// only ever render trusted image sources (http(s) or an uploaded data URI) —
+// the same whitelist Community/ForYou/museum apply to avatars
+const safeAvatar = (raw) => (/^https?:\/\//i.test((raw || '').trim()) || (raw || '').startsWith('data:image/')) ? raw : ''
+
 /* Land on the first unfinished step of THIS order, not always at zero.
    The craft step counts as done only when REAL crafts are chosen — a legacy
    free-text discipline alone re-opens the step (the in-UI migration door).
@@ -106,12 +113,17 @@ const CRAFT_COPY = {
    structured crafts) keeps meeting the craft step even with tastes:
    that's the migration door that turns the matching column on (review
    catch v17 — the first cut exempted them by accident).
+   v18: the express non-maker (no craft, no tastes YET, but published
+   identity — tagline/city/avatar) also answered deliberately: hasIdentity
+   counts their craft as answered, or the deep builder re-traps them at
+   the wall v17 tore down. The legacy migration door is untouched — a
+   discipline text always re-opens the step.
    Taste counts as done only when ≥1 taste is held — a member with crafts
    but zero tastes re-enters at the brainstorm (the v6 door). */
 function firstUnfinished(steps, d, crafts, tastes) {
   for (let i = 0; i < steps.length; i++) {
     const k = steps[i]
-    if (k === 'craft' && !(crafts || []).length && ((d?.discipline || '').trim() || !(tastes || []).length)) return i
+    if (k === 'craft' && !(crafts || []).length && ((d?.discipline || '').trim() || (!(tastes || []).length && !hasIdentity(d)))) return i
     if (k === 'taste' && !(tastes || []).length) return i
     if (k === 'city' && !(d?.city || '').trim()) return i
     if (k === 'line' && !(d?.tagline || '').trim()) return i
@@ -123,16 +135,16 @@ function firstUnfinished(steps, d, crafts, tastes) {
   return steps.length - 1
 }
 
-export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes = null, onTastesSaved, onDraft, onCommit, onUploadGallery, onCleanupImages, onCurate, onClose, onPublished }) {
+export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes = null, onTastesSaved, onDraft, onCommit, onUploadGallery, onCleanupImages, onUploadAvatar, onClose, onPublished }) {
   const wide = useWide()
-  // A world with no craft yet meets the conversation; a returning member's
-  // world goes straight to its first unfinished step. v17: tastes count as
-  // a begun world too — the non-maker who brainstormed yesterday must not
-  // meet question 01 again tomorrow.
-  const isNew = !crafts.length && !(data?.discipline || '').trim() && normGallery(data?.gallery).length === 0 && !(tastes || []).length
-  const [stage, setStage] = useState(isNew ? 'meet' : 'steps')  // meet | compose | plan | steps
-  const [meetIdx, setMeetIdx] = useState(0)
-  const [answers, setAnswers] = useState({ craft: '', feel: '', show: [] })
+  // A truly blank world meets the EXPRESS beats; a world with anything in
+  // it — crafts, discipline, gallery, tastes, or identity (tagline/city/
+  // avatar, v18) — belongs to a returning member and goes straight to its
+  // first unfinished step. Without the identity check, the express-published
+  // non-maker re-entered the express on every open (isNew lied about them).
+  const isNew = !crafts.length && !(data?.discipline || '').trim() && normGallery(data?.gallery).length === 0 && !(tastes || []).length && !hasIdentity(data)
+  const [stage, setStage] = useState(isNew ? 'express' : 'steps')  // express | steps
+  const [expressIdx, setExpressIdx] = useState(0)
   // the chosen crafts — the picker's controlled state, seeded from what's
   // already saved (a returning member edits, never re-answers from zero)
   const [picked, setPicked] = useState(() => crafts.map((c) => ({ id: c.id, name: c.name, slug: c.slug, category: c.category })))
@@ -143,24 +155,16 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
   // is still loading (tastes === null) — the craftsReady discipline.
   const [tasteDraft, setTasteDraft] = useState(null)
   const tasteValue = tasteDraft ?? (tastes || []).map((t) => ({ domain: t.domain, label: t.label, is_public: !!t.is_public }))
-  const [plan, setPlan] = useState(null)          // { kind, steps, skin, marquee, line }
-  const [planSteps, setPlanSteps] = useState(null)
-  // compose() awaits network — if the member closes the sheet mid-composition
-  // the suggestions must NOT keep mutating the museum behind their back, and
-  // a double-tap must not run two compositions
-  const alive = useRef(true)
-  const composing = useRef(false)
-  // set true on EVERY mount pass — StrictMode double-invokes effects, and a
-  // cleanup-only effect leaves the ref false forever in dev (the compose
-  // beat silently bailed; caught by the v4 local gate)
-  useEffect(() => { alive.current = true; return () => { alive.current = false } }, [])
+  // the express face beat — avatar upload state (persists the moment it
+  // lands, same doctrine as the gallery chain)
+  const [avatarBusy, setAvatarBusy] = useState(false)
+  const avatarRef = useRef(null)
 
   // what leads this world: the chosen crafts' own category decides (0020);
   // a craft-less legacy world falls back to the old free-text sniff
   const craftsNow = picked.map((c) => ({ ...c, isPrimary: c.id === primaryId }))
-  const liveKind = kindOfCrafts(craftsNow) || craftKindOf(data?.discipline)
-  const kind = plan?.kind ?? liveKind
-  const steps = planSteps || CRAFT_STEPS[liveKind]
+  const kind = kindOfCrafts(craftsNow) || craftKindOf(data?.discipline)
+  const steps = CRAFT_STEPS[kind]
   const [step, setStep] = useState(() => (isNew ? 0 : firstUnfinished(CRAFT_STEPS[kindOfCrafts(crafts) || craftKindOf(data?.discipline)], data, crafts, tastes)))
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -198,77 +202,68 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
     await onCommit({ discipline: summary || null })
   }
 
-  /* ---- the conversation → the composed plan ---- */
-  const meetNext = async () => {
+  /* ---- LA ENTRADA EXPRÉS: three beats, each persisting as it's answered ---- */
+  const expressNext = async () => {
     setErr('')
-    const q = MEET[meetIdx]
+    const q = EXPRESS[expressIdx]
     if (q.key === 'craft') {
-      // the craft persists the moment it's spoken — nothing is ever lost
-      if (!picked.length) return
+      // the craft persists the moment it's spoken — nothing is ever lost.
+      // Zero crafts on Next is the same door as "here for the people".
+      if (picked.length) {
+        setBusy(true)
+        try { await commitCrafts() } catch (e) {
+          setErr(e?.message ? `Couldn't save — ${e.message}` : "Couldn't save — try again.")
+          setBusy(false); return
+        }
+        setBusy(false)
+      }
+      setExpressIdx(1); return
+    }
+    if (q.key === 'face') {
+      // avatar already persisted on upload; only the city commits here
+      const city = (data?.city || '').trim()
       setBusy(true)
-      try { await commitCrafts() } catch (e) {
+      try { await onCommit({ city: city || null }) } catch (e) {
         setErr(e?.message ? `Couldn't save — ${e.message}` : "Couldn't save — try again.")
         setBusy(false); return
       }
       setBusy(false)
+      setExpressIdx(2); return
     }
-    if (meetIdx < MEET.length - 1) { setMeetIdx(meetIdx + 1); return }
-    compose()
+    // line → PUBLISH. world_theme commits explicitly: the house default is
+    // a real composition, and the express world ships composed, not naked.
+    setBusy(true)
+    try {
+      await onCommit({ tagline: (data?.tagline || '').trim() || null, world_theme: data?.world_theme || 'chrome' })
+    } catch (e) {
+      setErr(e?.message ? `Couldn't save — ${e.message}` : "Couldn't save — try again.")
+      setBusy(false); return
+    }
+    setBusy(false)
+    onPublished()
   }
-  const meetSkip = () => {
-    // v17 — skipping the craft question is the same door as "I'm here for
-    // the people": straight to the brainstorm, never to a 0% dead end.
-    if (MEET[meetIdx].key === 'craft') { enterTasteFirst(); return }
-    if (meetIdx < MEET.length - 1) { setMeetIdx(meetIdx + 1); return }
-    compose()
+  // guilt-free — a skipped beat writes nothing and the door keeps moving.
+  // Skipping the LAST beat still publishes (the world exists either way).
+  const expressSkip = () => {
+    setErr('')
+    if (expressIdx < EXPRESS.length - 1) { setExpressIdx(expressIdx + 1); return }
+    onPublished()
   }
 
-  /* v17 — LA PARED CAE. The first-class non-maker path: no craft, no
-     conversation detour — the plan leads with taste (the layer built for
-     exactly this human) and every other step stays reachable + skippable.
-     No 'craft' step in this order: the wall doesn't reappear downstream. */
-  const enterTasteFirst = () => {
-    setPlanSteps(['taste', 'city', 'line', 'work', 'doors', 'marquee', 'skin'])
-    setStage('steps')
-    setStep(0)
-  }
-
-  const compose = async () => {
-    if (composing.current) return
-    composing.current = true
-    setStage('compose')
-    // the decision tree ALWAYS composes; /api/curate refines when it's live.
-    // The kind comes from the chosen crafts' own categories (0020) — the
-    // free-text sniff only serves craft-less legacy worlds.
-    const craftWords = craftLine(craftsNow) || data?.discipline || ''
-    const local = composeWorldPlan({ craft: craftWords, feel: answers.feel, show: answers.show, kind: kindOfCrafts(craftsNow) || undefined })
-    const beat = new Promise((r) => setTimeout(r, 900))   // the moment reads as composed, not instant
-    let refined = null
-    if (onCurate) {
-      refined = await Promise.race([
-        onCurate({ craft: craftWords, feel: answers.feel, show: answers.show }).catch(() => null),
-        new Promise((r) => setTimeout(() => r(null), 3500)),   // never hold the door for the polish
-      ])
-    }
-    await beat
-    if (!alive.current) { composing.current = false; return }   // sheet closed mid-composition — nothing mutates
-    const merged = {
-      ...local,
-      skin: refined?.skin && THEMES.some((t) => t.key === refined.skin) ? refined.skin : local.skin,
-      marquee: (refined?.marquee || '').trim() || local.marquee,
-      line: (refined?.line || '').trim() || null,
-    }
-    // suggestions land as DRAFTS in the live preview — the member walks each
-    // step and keeps, rewrites, or clears them before anything commits
-    const draft = { world_theme: merged.skin }
-    if (merged.marquee && data?.marquee_text == null) draft.marquee_text = merged.marquee
-    if (merged.line && !(data?.tagline || '').trim()) draft.tagline = merged.line
-    onDraft(draft)
-    setPlan(merged)
-    setPlanSteps(merged.steps)
-    setStep(0)
-    setStage('plan')
-    composing.current = false
+  // the face beat's upload — persists immediately via the parent (the same
+  // "saved the moment it's spoken" doctrine as crafts and the gallery)
+  const uploadAvatar = async (e) => {
+    const input = e.target
+    const file = input.files?.[0]
+    input.value = ''
+    if (!file || !onUploadAvatar) return
+    setErr(''); setAvatarBusy(true)
+    try {
+      const url = await onUploadAvatar(file)
+      if (url) onDraft({ avatar_url: url })
+    } catch (e2) {
+      setErr(e2?.message ? `Photo upload failed — ${e2.message}` : 'Photo upload failed — try again.')
+    } finally { setAvatarBusy(false) }
   }
 
   /* ---- per-step commit: persist, then advance (nothing is ever lost) ---- */
@@ -421,9 +416,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
   /* ------------------------- header (all stages) ------------------------- */
   const headerLine = stage === 'steps'
     ? `◇ build your world · ${String(safeStep + 1).padStart(2, '0')}/${String(steps.length).padStart(2, '0')}`
-    : stage === 'meet'
-      ? `◇ getting to know you · ${String(meetIdx + 1).padStart(2, '0')}/${String(MEET.length).padStart(2, '0')}`
-      : stage === 'plan' ? '◇ your world, composed' : '◇ composing your world'
+    : `◇ enter the universe · ${String(expressIdx + 1).padStart(2, '0')}/${String(EXPRESS.length).padStart(2, '0')}`
 
   return (
     // z 10000: ABOVE Layout's bottom nav (9999) — the nav must never cover
@@ -446,39 +439,30 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
         </div>
       </div>
 
-      {/* ======================= THE CONVERSATION ======================= */}
-      {stage === 'meet' && (() => {
-        const q = MEET[meetIdx]
-        // Next still needs a picked craft on Q01 (v17: the question is no
-        // longer required, but "continue as a maker" with zero crafts is a
-        // lie) — the non-maker doors are the people-option and skip below.
-        const canNext = !busy && (q.key === 'craft' ? picked.length > 0 : true)
+      {/* ======================= LA ENTRADA EXPRÉS ======================= */}
+      {stage === 'express' && (() => {
+        const q = EXPRESS[expressIdx]
+        const canNext = !busy && !avatarBusy
+        const last = expressIdx === EXPRESS.length - 1
         return (
           <>
             <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
-              {/* the transcript — what they already told us, quiet, above */}
-              {meetIdx > 0 && (
-                <div style={{ marginBottom: '14px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  {picked.length > 0 && <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>— you make · <span style={{ color: BONE_MID }}>{craftLine(craftsNow).toLowerCase()}</span></div>}
-                  {meetIdx > 1 && answers.feel.trim() && <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>— it should feel · <span style={{ color: BONE_MID }}>{answers.feel.trim()}</span></div>}
-                </div>
-              )}
-              {/* the beat — keyed on the question so each one surfaces on its
-                  own; the transcript above stays put and never re-animates */}
-              <div key={meetIdx} className="beat-in">
+              {/* the beat — keyed on the question so each one surfaces on its own */}
+              <div key={expressIdx} className="beat-in">
                 <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>{q.kicker}</div>
                 <div style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '30px' : '24px', letterSpacing: '.03em', lineHeight: 1.02, marginTop: '6px', ...chromeDisplayText }}>{q.title}</div>
                 <p style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 16px' }}>{q.why}</p>
 
-                {q.key === 'craft' ? (
+                {q.key === 'craft' && (
                   <>
                     <CraftPicker value={picked} primaryId={primaryId} autoFocus={wide}
                       onChange={(next, nextPrimary) => { setPicked(next); setPrimaryId(nextPrimary) }} />
                     {/* v17 — the first-class answer for the human who makes
                         nothing and shows up anyway. Only while no craft is
                         picked: the moment one is, they answered as a maker
-                        and this door would be noise. Same grammar as the
-                        SHOW_OPTIONS buttons — an option, not an apology. */}
+                        and this door would be noise. In the express it
+                        simply moves to the next beat — taste waits inside,
+                        as the first invitation, never as a wall. */}
                     {!picked.length && (
                       <div style={{ marginTop: '14px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: '0 0 10px' }}>
@@ -486,34 +470,60 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                           <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.22em', textTransform: 'uppercase' }}>or</span>
                           <div style={{ flex: 1, height: '1px', background: HAIR }} />
                         </div>
-                        <button onClick={enterTasteFirst} disabled={busy} className="pressable"
+                        <button onClick={() => { setErr(''); setExpressIdx(1) }} disabled={busy} className="pressable" data-testid="express-people-door"
                           style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: CARD, border: `1px solid ${HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'background .2s, border-color .2s' }}>
                           <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: BONE_LOW }}>◇</span>
                           <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                             <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE }}>I&rsquo;m here for the people</span>
-                            <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>no craft needed — your taste opens the world</span>
+                            <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em' }}>no craft needed — you belong anyway</span>
                           </span>
                         </button>
                       </div>
                     )}
                   </>
-                ) : q.key !== 'show' ? (
-                  <input autoFocus={wide} style={inp} value={answers[q.key]} placeholder={q.placeholder} maxLength={120}
-                    onChange={(e) => setAnswers(a => ({ ...a, [q.key]: e.target.value }))}
-                    onKeyDown={(e) => { if (e.key === 'Enter' && canNext) meetNext() }} />
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {SHOW_OPTIONS.map((o) => {
-                      const on = answers.show.includes(o.key)
-                      return (
-                        <button key={o.key} aria-pressed={on} onClick={() => setAnswers(a => ({ ...a, show: on ? a.show.filter(k => k !== o.key) : [...a.show, o.key] }))}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left', background: on ? 'rgba(var(--silver-rgb),.08)' : CARD, border: `1px solid ${on ? SILVER : HAIR_HI}`, borderRadius: '11px', padding: '12px 14px', cursor: 'pointer', transition: 'background .2s, border-color .2s' }}>
-                          <span aria-hidden style={{ fontFamily: 'DM Mono', fontSize: '11px', color: on ? BONE : BONE_LOW }}>{on ? '◆' : '◇'}</span>
-                          <span style={{ fontFamily: 'DM Sans', fontSize: '13px', color: on ? BONE : BONE_MID }}>{o.label}</span>
-                        </button>
-                      )
-                    })}
-                    <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '2px' }}>pick what's real today — or nothing, and the world waits with you.</div>
+                )}
+
+                {q.key === 'face' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* the face — tap the circle, that's the whole gesture */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                      <button onClick={() => avatarRef.current?.click()} disabled={avatarBusy} aria-label="Add your photo" className="pressable"
+                        style={{ position: 'relative', width: '72px', height: '72px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, background: CARD, border: `1px ${safeAvatar(data?.avatar_url) ? 'solid' : 'dashed'} ${safeAvatar(data?.avatar_url) ? SILVER : HAIR_HI}`, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                        {safeAvatar(data?.avatar_url)
+                          ? <img src={data.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <Camera size={18} style={{ color: BONE_LOW }} />}
+                        {avatarBusy && (
+                          <span style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(var(--void-rgb),.7)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Loader2 size={16} style={{ color: BONE_MID, animation: 'spin 1s linear infinite' }} />
+                          </span>
+                        )}
+                      </button>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE }}>{safeAvatar(data?.avatar_url) ? 'That’s you.' : 'Add your photo'}</div>
+                        <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.08em', marginTop: '3px' }}>
+                          {safeAvatar(data?.avatar_url) ? 'tap it to change' : 'the card reads as a person the moment it has a face'}
+                        </div>
+                      </div>
+                      <input ref={avatarRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadAvatar} />
+                    </div>
+                    <div>
+                      <label style={monoLabel}>YOUR CITY</label>
+                      <input style={inp} value={data?.city || ''} placeholder="Houston · Valencia · Katy…" maxLength={60}
+                        onChange={e => onDraft({ city: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && canNext) expressNext() }} />
+                      <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '8px' }}>
+                        the city you actually live in — it feeds who you meet.
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {q.key === 'line' && (
+                  <div>
+                    <label style={monoLabel}>YOUR LINE</label>
+                    <input autoFocus={wide} style={inp} value={data?.tagline || ''} placeholder="One line, your voice — what you're on right now." maxLength={120}
+                      onChange={e => onDraft({ tagline: e.target.value })}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && canNext) expressNext() }} />
                   </div>
                 )}
               </div>
@@ -521,82 +531,30 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
             </div>
             <div style={{ position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
               <div style={{ display: 'flex', gap: '10px' }}>
-                {meetIdx > 0 && (
-                  <button onClick={() => setMeetIdx(i => i - 1)} disabled={busy} aria-label="Back" className="pressable"
+                {expressIdx > 0 && (
+                  <button onClick={() => setExpressIdx(i => i - 1)} disabled={busy} aria-label="Back" className="pressable"
                     style={{ background: 'rgba(var(--ink-rgb),.04)', border: `1px solid ${HAIR}`, borderRadius: '10px', padding: '12px 16px', color: BONE_MID, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontFamily: 'DM Mono', fontSize: '10px', letterSpacing: '.1em', textTransform: 'uppercase' }}>
                     <ArrowLeft size={12} /> Back
                   </button>
                 )}
-                <button onClick={meetNext} disabled={!canNext} className="pressable"
+                <button onClick={expressNext} disabled={!canNext} className="pressable" data-testid="express-next"
                   style={{ flex: 1, background: BONE, border: 'none', borderRadius: '10px', padding: '13px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: canNext ? 'pointer' : 'default', fontFamily: 'DM Sans', opacity: canNext ? 1 : .5, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                   {busy ? <Loader2 size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                    : meetIdx === MEET.length - 1 ? 'COMPOSE MY WORLD'
+                    : last ? 'ENTER THE UNIVERSE'
                     : <>Next <ArrowRight size={13} /></>}
                 </button>
               </div>
-              {!q.required && (
-                <button onClick={meetSkip} disabled={busy} className="pressable"
-                  style={{ display: 'block', margin: '10px auto 0', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', padding: '2px 8px' }}>
-                  skip this one →
-                </button>
-              )}
+              {/* the guilt-free door — every beat is skippable, and skipping
+                  the last one still opens the universe (Ley 11: honest, never
+                  a trap; the world exists either way) */}
+              <button onClick={expressSkip} disabled={busy || avatarBusy} className="pressable"
+                style={{ display: 'block', margin: '10px auto 0', background: 'transparent', border: 'none', color: BONE_LOW, fontFamily: 'DM Mono', fontSize: '9px', letterSpacing: '.14em', textTransform: 'uppercase', cursor: 'pointer', padding: '2px 8px' }}>
+                skip this one →
+              </button>
             </div>
           </>
         )
       })()}
-
-      {/* ======================= THE COMPOSITION BEAT ======================= */}
-      {stage === 'compose' && (
-        <div style={{ padding: wide ? '40px 24px' : '32px 18px', position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '200px' }}>
-          {/* the wait is a beat too — it surfaces instead of cutting in, and
-              the plan that follows surfaces the same way (mounts once) */}
-          <div className="beat-in" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
-            <Loader2 size={18} style={{ color: SILVER, animation: 'spin 1s linear infinite' }} />
-            <div style={{ fontFamily: 'DM Mono', fontSize: '9px', color: BONE_MID, letterSpacing: '.24em', textTransform: 'uppercase' }}>composing your world…</div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================= THE PLAN, PRESENTED ======================= */}
-      {stage === 'plan' && plan && (
-        <>
-          <div className="no-scrollbar" style={{ padding: wide ? '22px 24px 20px' : '16px 18px 18px', overflowY: 'auto', position: 'relative', flex: 1, minHeight: 0 }}>
-            <div className="rise" style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>composed for you</div>
-            <div className="rise rise-1" style={{ fontFamily: 'Bebas Neue', fontSize: wide ? '32px' : '26px', letterSpacing: '.03em', lineHeight: 1, marginTop: '6px', ...chromeDisplayText }}>
-              {plan.kind === 'sound' ? 'A SOUND WORLD' : plan.kind === 'word' ? 'A WRITTEN WORLD' : plan.kind === 'visual' ? 'A VISUAL WORLD' : 'YOUR WORLD'}
-            </div>
-            <p className="rise rise-2" style={{ fontFamily: 'DM Sans', fontSize: '13px', color: BONE_MID, lineHeight: 1.6, margin: '10px 0 14px' }}>
-              {plan.kind === 'sound' ? 'Your sound leads — the links that play you come first, visuals behind them.'
-                : plan.kind === 'word' ? 'Your words lead — one piece opens the world, the wall hangs behind it.'
-                : plan.kind === 'visual' ? 'Your eye leads — the wall of work opens the world.'
-                : 'Your work opens the world — everything else composes around it.'}
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
-              {/* the rows assemble after the title settles — the world composing
-                  itself, one line at a time. Built as a list so the stagger stays
-                  contiguous when the optional rows aren't there. */}
-              {[
-                { label: 'the order', value: plan.steps.map((s) => (STEP_COPY[s]?.title || s).toLowerCase()).join(' → ') },
-                { label: 'suggested skin', value: plan.skin },
-                ...(plan.marquee ? [{ label: 'suggested welcome', value: `“${plan.marquee}”` }] : []),
-                ...(plan.line ? [{ label: 'suggested line', value: `“${plan.line}”` }] : []),
-              ].map((r, i) => <PlanRow key={r.label} label={r.label} value={r.value} i={i} />)}
-            </div>
-            <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', lineHeight: 1.6, marginTop: '14px' }}>
-              suggestions, not decisions — every one passes through your hands before it ships. look up: the skin is already on your name.
-            </div>
-          </div>
-          {/* the footer closes the procession — `rise` rides the CONTAINER,
-              never the button: a filled animation would outrank the button's
-              own press transform and kill it for good */}
-          <div className="rise" style={{ animationDelay: '520ms', position: 'relative', borderTop: `1px solid ${HAIR}`, padding: wide ? '14px 24px 18px' : '12px 18px calc(14px + env(safe-area-inset-bottom, 0px))' }}>
-            <button onClick={() => setStage('steps')}
-              style={{ width: '100%', background: BONE, border: 'none', borderRadius: '10px', padding: '13px', color: VOID, fontWeight: 600, fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans' }}>
-              START BUILDING →
-            </button>
-          </div>
-        </>
-      )}
 
       {/* ======================= THE STEPS (v2 machinery) ======================= */}
       {stage === 'steps' && (
@@ -652,11 +610,6 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
               <div>
                 <label style={monoLabel}>YOUR LINE</label>
                 <input style={inp} value={data.tagline || ''} placeholder="One line, your voice — what you're on right now." maxLength={120} onChange={e => onDraft({ tagline: e.target.value })} />
-                {plan?.line && (data.tagline || '') === plan.line && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '8px' }}>
-                    suggested from what you told us — rewrite it, or clear it and speak.
-                  </div>
-                )}
               </div>
             )}
 
@@ -717,9 +670,7 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                 <label style={monoLabel}>THE LINE THAT LOOPS</label>
                 <input style={inp} value={data.marquee_text ?? DEFAULT_MARQUEE} maxLength={80} placeholder={DEFAULT_MARQUEE} onChange={e => onDraft({ marquee_text: e.target.value })} />
                 <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '8px' }}>
-                  {plan?.marquee && (data.marquee_text ?? '') === plan.marquee
-                    ? 'seeded from what you want them to feel — look up, it\'s already running. make it yours.'
-                    : 'look up — it\'s already running.'}
+                  look up — it&rsquo;s already running.
                 </div>
               </div>
             )}
@@ -738,11 +689,6 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
                     )
                   })}
                 </div>
-                {plan?.skin && (data.world_theme || 'chrome') === plan.skin && (
-                  <div style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.06em', marginTop: '10px' }}>
-                    matched to the feel you described — switch it if it reads wrong.
-                  </div>
-                )}
               </div>
             )}
 
@@ -775,17 +721,6 @@ export default function WorldBuilder({ data, crafts = [], onCraftsSaved, tastes 
           </div>
         </>
       )}
-    </div>
-  )
-}
-
-/* `i` places the row in the composition's procession — it assembles after
-   the title settles, 60ms behind the row above it. */
-function PlanRow({ label, value, i = 0 }) {
-  return (
-    <div className="rise" style={{ animationDelay: `${280 + i * 60}ms`, display: 'flex', alignItems: 'baseline', gap: '10px', borderBottom: `1px solid ${HAIR}`, paddingBottom: '7px' }}>
-      <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.18em', textTransform: 'uppercase', flexShrink: 0, width: '110px' }}>{label}</span>
-      <span style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_MID, letterSpacing: '.03em', lineHeight: 1.5 }}>{value}</span>
     </div>
   )
 }
