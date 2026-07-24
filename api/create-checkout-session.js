@@ -55,11 +55,14 @@ export default async function handler(req, res) {
     const productName = `${event.title}${event.edition ? ' — ' + event.edition : ''} · ${tierData.name}`
 
     const session = await stripe.checkout.sessions.create({
-      // v20 — EL PAGO EN CASA. ui_mode:'embedded' keeps the card form on OUR
-      // domain (mounted inside /checkout), instead of sending the buyer to
-      // checkout.stripe.com. Everything below (price, tier, metadata, quantity,
-      // email) is byte-identical to the hosted flow — only the surface moved.
-      ui_mode: 'embedded',
+      // v20 — EL PAGO EN CASA. ui_mode 'embedded_page' keeps the card form on
+      // OUR domain (mounted inside /checkout via Stripe.js
+      // createEmbeddedCheckoutPage), instead of sending the buyer to
+      // checkout.stripe.com. (This account's API version — 2026-04-22.dahlia —
+      // renamed the old 'embedded' value to 'embedded_page'.) Everything below
+      // (price, tier, metadata, quantity, email) is byte-identical to the hosted
+      // flow — only the surface moved.
+      ui_mode: 'embedded_page',
       payment_method_types: ['card'],
       mode: 'payment',
       line_items: [{
