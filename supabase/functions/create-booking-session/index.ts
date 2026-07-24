@@ -26,9 +26,18 @@ Deno.serve(async (req) => {
   const b = body as {
     listingId?: string
     agreed?: boolean
+    embedded?: boolean
     client?: { name?: string; email?: string }
     request?: { brief?: string; date?: string; place?: string; links?: string }
   }
+
+  // v21 — BOOKING EN CASA. When the caller asks for the embedded page, the
+  // card form mounts INSIDE /book via Stripe.js instead of bouncing to
+  // checkout.stripe.com. Additive on purpose: a caller that omits the flag
+  // (current prod's BookService) still gets the hosted { url } byte-identical
+  // to before — so this deploys safely to the SHARED Supabase without breaking
+  // prod booking until the frontend merges.
+  const embedded = b.embedded === true
 
   const listingId = String(b.listingId || '').trim()
   const clientName = String(b.client?.name || '').trim().slice(0, 120)
@@ -105,11 +114,19 @@ Deno.serve(async (req) => {
   let session
   try {
     // payment_method_types deliberately omitted: Stripe shows card plus
-    // Apple Pay / Google Pay per the dashboard's payment-method config
-    session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+    // Apple Pay / Google Pay per the dashboard's payment-method config.
+    //
+    // Everything money-shaped (price read from the DB, line item, metadata) is
+    // IDENTICAL across both surfaces — only how the buyer reaches the card
+    // moves. Embedded uses ui_mode 'embedded_page' + return_url (Stripe mounts
+    // the card form in our page and redirects the top window home on
+    // completion); hosted uses success_url/cancel_url (the buyer bounces to
+    // checkout.stripe.com). This account's Stripe API — 2026-04-22.dahlia —
+    // renamed the embedded ui_mode value to 'embedded_page'.
+    const common = {
+      mode: 'payment' as const,
       customer_email: clientEmail,
-      billing_address_collection: 'auto',
+      billing_address_collection: 'auto' as const,
       line_items: [
         {
           quantity: 1,
@@ -132,9 +149,22 @@ Deno.serve(async (req) => {
         fee_bps: String(feeBps),
         client_name: clientName,
       },
-      success_url: `${origin}/booked?bid=${bookingRow.id}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/book/${listing.id}?cancelled=1`,
-    })
+    }
+
+    session = embedded
+      ? await stripe.checkout.sessions.create({
+          ...common,
+          ui_mode: 'embedded_page',
+          // embedded takes return_url ONLY — the SAME success surface as the
+          // hosted flow's success_url. /booked polls the DB (booking-status)
+          // for the paid row the webhook writes; the webhook stays the truth.
+          return_url: `${origin}/booked?bid=${bookingRow.id}&session_id={CHECKOUT_SESSION_ID}`,
+        })
+      : await stripe.checkout.sessions.create({
+          ...common,
+          success_url: `${origin}/booked?bid=${bookingRow.id}&session_id={CHECKOUT_SESSION_ID}`,
+          cancel_url: `${origin}/book/${listing.id}?cancelled=1`,
+        })
   } catch (e) {
     console.error('stripe session failed', e)
     await db.from('bookings').delete().eq('id', bookingRow.id).eq('status', 'pending')
@@ -149,5 +179,9 @@ Deno.serve(async (req) => {
     .eq('id', bookingRow.id)
   if (uerr) return json({ error: 'db_error' }, 500)
 
-  return json({ url: session.url })
+  // embedded mounts on our domain with the clientSecret; hosted redirects to
+  // the URL. bid rides the embedded answer so /booked can poll immediately.
+  return embedded
+    ? json({ clientSecret: session.client_secret, bid: bookingRow.id })
+    : json({ url: session.url })
 })

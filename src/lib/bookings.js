@@ -48,16 +48,22 @@ export async function fetchService(listingId) {
   return { listing, creative }
 }
 
-/* Ask the edge function for a Stripe Checkout URL. The price is read
-   server-side from the DB — nothing money-shaped leaves this client. */
+/* v21 — BOOKING EN CASA. Ask the edge function for an EMBEDDED Stripe session:
+   the card form mounts INSIDE /book (see lib/stripe.getBookingStripe) instead
+   of bouncing to checkout.stripe.com. The price is read server-side from the
+   DB — nothing money-shaped leaves this client. Returns { clientSecret, bid };
+   the return_url (with bid) is baked server-side, so /booked polls the truth.
+
+   The edge fn is additive: it still answers a hosted { url } when `embedded`
+   is omitted (backward compat / rollback). This client always goes embedded. */
 export async function createBookingSession({ listingId, client, request, agreed }) {
   const res = await fetch(`${FUNCTIONS_URL}/create-booking-session`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ listingId, client, request, agreed }),
+    body: JSON.stringify({ listingId, client, request, agreed, embedded: true }),
   })
   const data = await res.json().catch(() => ({}))
-  if (!res.ok || !data.url) {
+  if (!res.ok || !data.clientSecret) {
     const human = {
       payments_not_configured: 'payments aren’t switched on yet — nothing was charged.',
       service_not_available: 'this service isn’t available anymore.',
@@ -65,7 +71,7 @@ export async function createBookingSession({ listingId, client, request, agreed 
     }
     throw new Error(human[data.error] || 'couldn’t start the payment — nothing was charged. try again.')
   }
-  return data.url
+  return { clientSecret: data.clientSecret, bid: data.bid }
 }
 
 /* The success page polls the truth. (bid, session_id) both come from the
