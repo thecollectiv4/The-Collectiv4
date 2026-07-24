@@ -21,11 +21,14 @@ import path from 'node:path'
        registra, vuelve al plan, se une y cae al room. La campana del
        creador es cosa del server (0057) — aquí se verifica la puerta.
 
-   C · EL NO-MAKER CONSTRUYE — la misma cuenta B abre el builder: la 01
-       ya no es pared (skip visible + "I'm here for the people"), la
-       puerta cae DIRECTO al taste brainstorm, "fucho" aterriza verbatim,
-       una taste se hace SHOWN, la ciudad se pregunta (v17), y Community
-       abre en EVERYONE por default con búsqueda que habla taste.
+   C · EL NO-MAKER ENTRA — la misma cuenta B abre el builder: la 01 ya no
+       es pared (skip visible + "I'm here for the people"). ACTUALIZADO v19:
+       v18 reemplazó el flujo v17 (craft → brainstorm → ciudad) por LA
+       ENTRADA EXPRÉS de TRES BEATS (craft → face+city → line → publish);
+       el taste brainstorm se mudó a la curación (banda taste-invite del
+       museo). Este test camina los tres beats por la puerta del no-maker.
+       [NB v19: reescrito contra el código de WorldBuilder; falta una corrida
+        verde en un preview para confiarlo del todo — ver handback.]
 
    D · LA CIUDAD EN EVENTS — el rail HAPPENING NEAR YOU enseña el plan
        público a una sesión ANÓNIMA (0057 abierta a anon con criterio),
@@ -187,7 +190,7 @@ test('v17 · B — el link del plan abre sin cuenta, y unirse aterriza en el roo
   await ctx.close()
 })
 
-test('v17 · C — la pared cae: here for the people → brainstorm → ciudad → Everyone', async ({ browser }) => {
+test('v17 · C — la pared cae: el no-maker entra por LA ENTRADA EXPRÉS (v18, 3 beats)', async ({ browser }) => {
   test.skip(!B, 'sin cuenta B')
 
   const ctx = await browser.newContext()
@@ -200,50 +203,45 @@ test('v17 · C — la pared cae: here for the people → brainstorm → ciudad �
   await page.waitForURL('**/', { timeout: 25000 })
   await dismissOnboarding(page)
 
-  // el builder abre en la conversación — y la 01 ya no es pared
+  // el mundo vacío de B abre LA ENTRADA EXPRÉS (isNew → stage 'express'). En un
+  // contexto nuevo el builder auto-abre sobre un mundo recién nacido; si no,
+  // la puerta BUILD/START lo abre.
   await page.goto('/profile')
   await page.waitForTimeout(3000)
   await page.keyboard.press('Escape').catch(() => {})
-  const buildDoor = page.getByRole('button', { name: /BUILD|START/i }).first()
-  if (await buildDoor.isVisible().catch(() => false)) await buildDoor.click()
-  await expect(page.getByText('WHAT DO YOU MAKE?').first(), 'LA_01_NO_APARECE').toBeVisible({ timeout: 20000 })
+  const craftTitle = page.getByText('WHAT DO YOU MAKE?').first()
+  if (!(await craftTitle.isVisible().catch(() => false))) {
+    const buildDoor = page.getByRole('button', { name: /BUILD|START|Build your world/i }).first()
+    if (await buildDoor.isVisible().catch(() => false)) await buildDoor.click()
+  }
+
+  // BEAT 01 · craft — la 01 ya no es pared: "I'm here for the people" y skip
+  // son puertas de primera clase (la doctrina v17, viva dentro de la exprés)
+  await expect(craftTitle, 'LA_01_EXPRES_NO_APARECE').toBeVisible({ timeout: 20000 })
+  await expect(page.getByTestId('express-people-door'), 'NO_HAY_PUERTA_PARA_EL_NO_MAKER').toBeVisible({ timeout: 10000 })
   await expect(page.getByText(/skip this one/).first(), 'LA_01_SIGUE_SIN_SKIP — required no murió').toBeVisible({ timeout: 10000 })
-  const peopleDoor = page.getByRole('button', { name: /here for the people/i }).first()
-  await expect(peopleDoor, 'NO_HAY_PUERTA_PARA_EL_NO_MAKER').toBeVisible({ timeout: 10000 })
-  await shot(page, '08-craft-con-puerta')
+  await shot(page, '08-express-beat01-craft')
 
-  // la puerta cae DIRECTO al brainstorm — la capa construida para ellos
-  await peopleDoor.click()
-  await expect(page.getByText('BRAINSTORM YOUR TASTE').first(), 'LA_PUERTA_NO_CAE_AL_BRAINSTORM').toBeVisible({ timeout: 15000 })
-
-  // "fucho" aterriza verbatim (free text, primera clase) y una se enseña
-  const tasteInput = page.locator('input[placeholder*="house"], input[placeholder*="fucho"], input[placeholder*="interstellar"]').first()
-  await tasteInput.fill('cumbia')
-  await tasteInput.press('Enter')
-  await tasteInput.fill('fucho')
-  await tasteInput.press('Enter')
-  await page.getByLabel(/cumbia — quiet/i).click()   // SHOWN: la tarjeta de Community la va a hablar
-  await shot(page, '09-brainstorm-fucho')
-  await page.getByRole('button', { name: /^Next$|Next/ }).last().click()
-
-  // v17: la ciudad se pregunta — un tercio del score corría sobre vacío
-  await expect(page.getByText('YOUR CITY').first(), 'LA_CIUDAD_NO_SE_PREGUNTA').toBeVisible({ timeout: 15000 })
+  // la puerta del no-maker avanza AL BEAT 02 (face + city) — NO al brainstorm.
+  // El taste vive ahora en la curación (banda taste-invite del museo), fuera
+  // de la puerta: esa cobertura le toca a un test de curación, no a la entrada.
+  await page.getByTestId('express-people-door').click()
+  await expect(page.getByText('YOUR FACE, YOUR CITY').first(), 'EL_BEAT_02_NO_APARECE').toBeVisible({ timeout: 15000 })
   await page.getByPlaceholder(/Houston · Valencia/).fill('Houston')
-  await shot(page, '10-ciudad-en-el-builder')
-  await page.getByRole('button', { name: /^Next$|Next/ }).last().click()
-  await page.waitForTimeout(1500)
+  await shot(page, '09-express-beat02-face-city')
+  await page.getByTestId('express-next').click()
 
-  // Community: EVERYONE es el default, y la búsqueda habla taste
-  await page.goto('/community')
-  await page.waitForTimeout(2500)
-  const everyoneTab = page.getByTestId('everyone-toggle')
-  await expect(everyoneTab, 'NO_HAY_TAB_EVERYONE').toBeVisible({ timeout: 15000 })
-  // el grid de todos renderiza sin tocar ningún tab — Everyone ES el default
-  await expect(page.getByTestId('community-search'), 'EL_GRID_EVERYONE_NO_ES_DEFAULT').toBeVisible({ timeout: 15000 })
-  await page.getByTestId('community-search').fill('cumbia')
-  await page.waitForTimeout(1200)
-  await expect(page.getByText(/Karen QAv17/).first(), 'LA_BUSQUEDA_NO_HABLA_TASTE — cumbia no encuentra a la persona').toBeVisible({ timeout: 10000 })
-  await shot(page, '11-everyone-busca-cumbia')
+  // BEAT 03 · line — una frase, luego PUBLICAR
+  await expect(page.getByText('YOUR LINE').first(), 'EL_BEAT_03_NO_APARECE').toBeVisible({ timeout: 15000 })
+  await page.getByPlaceholder(/One line, your voice/).fill('here for the people')
+  await shot(page, '10-express-beat03-line')
+  await page.getByTestId('express-next').click()
+
+  // la ceremonia sobria: el mundo exprés está vivo (mismo diálogo que /profile)
+  const celebration = page.getByRole('dialog', { name: 'Your world is live' })
+  await expect(celebration, 'LA_ENTRADA_EXPRES_NO_PUBLICA').toBeVisible({ timeout: 20000 })
+  await expect(celebration.getByText('IS LIVE'), 'NO_HAY_CELEBRACION_DE_PUBLICADO').toBeVisible()
+  await shot(page, '11-express-publicado')
 
   await ctx.close()
 })

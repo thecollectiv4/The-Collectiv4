@@ -36,6 +36,12 @@ export default function Profile() {
   // WHOLE set, so the builder must never mount over a half-loaded one (the
   // same loaded-empty vs not-yet-loaded discipline as crafts)
   const [tastes, setTastes] = useState(null)
+  // Loading and error were BOTH null before (fetchMyTastes returns null on
+  // error on purpose — a []-seeded save would erase the set). That collapse
+  // made a failed fetch indistinguishable from "still loading", so the builder
+  // gate (tastes !== null) stayed shut forever and the curate button did
+  // nothing until a full reload. Name the error so the builder can retry.
+  const [tastesError, setTastesError] = useState(false)
   const [posts, setPosts] = useState([])
   const [listings, setListings] = useState([])
   // v11: OS left the tab bar and became a quiet door here. FOUNDERS ONLY —
@@ -110,6 +116,18 @@ export default function Profile() {
   // Cosmos holding state while identity resolves (or right before the redirect fires).
   if (authLoading || !user) return <AuthResolving />
 
+  // The quiet layer's load, factored out so the builder can RE-RUN it after a
+  // failed fetch instead of dead-ending. fetchMyTastes returns null ONLY on
+  // error; a real empty set is []. So null → raise tastesError (the builder
+  // shows an honest retry, never a silent dead button); an array → clear it.
+  const loadTastes = () => {
+    setTastesError(false)
+    return fetchMyTastes(user.id).then((t) => {
+      if (t === null) setTastesError(true)
+      else { setTastes(t); setTastesError(false) }
+    })
+  }
+
   const load = async () => {
     let { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
     if (!data) {
@@ -136,7 +154,7 @@ export default function Profile() {
     }
     setProfile(data)
     fetchProfileCrafts(user.id).then(setCrafts)  // the craft spine (0020)
-    fetchMyTastes(user.id).then(setTastes)    // the quiet layer (0022)
+    loadTastes()    // the quiet layer (0022) — retryable, sets tastesError on failure
     fetchWorldPosts(user.id).then(setPosts)   // the world's dated timeline (0016)
     fetchListings(user.id).then(setListings)  // the world's OFFER (0017)
     fetchUpcomingSets(user.id).then(setUpcomingSets)  // the SETS movement (v6)
@@ -500,6 +518,8 @@ export default function Profile() {
       craftsReady={crafts !== null}
       onCraftsSaved={setCrafts}
       tastes={tastes}
+      tastesError={tastesError}
+      onRetryTastes={loadTastes}
       onTastesSaved={setTastes}
       isOwner
       onSave={onSave}
