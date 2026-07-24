@@ -142,12 +142,23 @@ export default function CheckoutEmbedded() {
 
     run()
     return () => { cancelled = true; if (checkout) { try { checkout.destroy() } catch { /* noop */ } } }
-  }, [authLoading, user, slug, tier])
+    // Key on user?.id, NOT the whole `user` object. AuthContext replaces the
+    // user object on every onAuthStateChange (incl. TOKEN_REFRESHED, which fires
+    // on the autoRefresh tick + tab refocus). Keying on the object reference
+    // would tear down the mounted Stripe form and spawn a fresh session mid
+    // card-entry — wiping what the buyer typed. The id is stable across refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, user?.id, slug, tier])
 
   const goBack = () => {
-    // Back = the open-session path: return to the event with the tier intact.
-    const target = from ? decodeURIComponent(from) : (slug ? `/e/${slug}` : '/')
-    navigate(target)
+    // Back = the open-session path: return to the event with the tier intact
+    // AND the "no charge was made" reassurance (the banner that used to fire on
+    // the hosted cancel_url). `from` is already decoded by useSearchParams — do
+    // NOT decode again. Accept ONLY an internal path (single leading slash,
+    // never //host or an absolute URL) so a crafted link can't redirect away.
+    const safeFrom = from && from.startsWith('/') && !from.startsWith('//') ? from : (slug ? `/e/${slug}` : '/')
+    const sep = safeFrom.includes('?') ? '&' : '?'
+    navigate(`${safeFrom}${sep}ticket=cancelled`)
   }
 
   const priceLabel = display && typeof display.price === 'number' ? `$${Math.round(display.price / 100)}` : ''

@@ -368,7 +368,7 @@ export function EventShow({ live }) {
             onMouseOut={e=>{e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 20px rgba(var(--ink-rgb),.12)'}}>
             <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
               {checkingOut ? <Loader2 size={18} style={{color:'var(--bg)',animation:'spin 1s linear infinite'}} /> : <Ticket size={18} style={{color:'var(--bg)'}} />}
-              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'REDIRECTING...' : 'GET YOUR TICKET'}</span>
+              <span style={{fontFamily:'Bebas Neue',fontSize:'18px',color:'var(--bg)',letterSpacing:'.06em'}}>{checkingOut ? 'OPENING CHECKOUT…' : 'GET YOUR TICKET'}</span>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               {fromPrice != null && <span style={{fontSize:'12px',color:'rgba(var(--void-rgb),.55)',fontWeight:500}}>from ${fromPrice}</span>}
