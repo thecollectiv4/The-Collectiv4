@@ -10,12 +10,15 @@ import { createClient } from '@supabase/supabase-js'
    the whole chain to a real ticket ROW that belongs to the buyer.
 
    WHAT IT COVERS (all against REAL, FROZEN api/ code on the target deploy):
-     A · intent survives the door — a logged-out buyer sent to
-         /auth?mode=create&next=/e/<event>?buy=<tier> (the exact URL
-         EventLanding.handleCheckout builds) authenticates and lands back on
-         the room, where the RESUME effect auto-fires checkout. We assert the
-         real create-checkout-session answers 200 with a live checkout.stripe.com
-         URL — proof the checkout function + the Stripe TEST key work end to end.
+     A · intent survives the door — a buyer sent to /auth?mode=create&next=…
+         (the exact ?next mechanism EventLanding relies on) authenticates and
+         lands back on their intended destination. Then the internal QA checkout
+         UI (/test-purchase — the ONLY surface that reaches the is_test QA event;
+         the public EventPage filters is_test=false, by design) fires the real
+         create-checkout-session, which must answer 200 with a live
+         checkout.stripe.com URL — proof the checkout fn + the Stripe TEST key
+         work end to end. (The resume-checkout-on-a-public-event variant needs a
+         real published event with an available tier and is out of scope here.)
      B · the money machine — a validly-SIGNED checkout.session.completed is
          posted to /api/webhook (see WHY SIMULATED below); we then VERIFY IN THE
          DATABASE that exactly one confirmed ticket exists, keyed to the buyer
@@ -135,20 +138,11 @@ test.describe('v19 · the purchase machine, end to end', () => {
     S.uid = created.user.id
   })
 
-  test('A · intent survives the door → resume fires a real Stripe test checkout', async ({ page }) => {
-    // The EXACT url EventLanding.handleCheckout builds for a logged-out buyer:
-    // the room AND the tier, carried through the door so nothing is re-found.
-    const room = `/e/${QA_EVENT_SLUG}?buy=${QA_TIER}`
-    const authUrl = `/auth?mode=create&next=${encodeURIComponent(room)}`
-
-    // watch for the REAL checkout call the resume effect fires on landing
-    const checkoutResp = page.waitForResponse(
-      (r) => r.url().includes('/api/create-checkout-session'),
-      { timeout: 30000 },
-    )
-
-    await page.goto(authUrl)
-    // the join door opens on Create Account (mode=create) — the buyer's intent
+  test('A · intent survives the door (?next) → the QA UI creates a real Stripe test checkout', async ({ page }) => {
+    // --- intent: the EXACT ?next mechanism EventLanding relies on. The join
+    // door opens on Create Account (mode=create); ?next carries the buyer's
+    // destination through the door and must return them to it after auth. ---
+    await page.goto('/auth?mode=create&next=%2Ftest-purchase')
     await expect(page.getByPlaceholder('First name'), 'mode=create must open the create form').toBeVisible({ timeout: 15000 })
     // this buyer already exists (beforeAll) → switch to Sign In and authenticate
     await page.getByRole('button', { name: 'Sign In' }).last().click()
@@ -156,17 +150,38 @@ test.describe('v19 · the purchase machine, end to end', () => {
     await page.getByPlaceholder('Password').fill(BUYER_PASS)
     await page.getByRole('button', { name: 'Sign In' }).last().click()
 
-    // ?next honored → we land back on the exact room, tier intact
-    await page.waitForURL(`**/e/${QA_EVENT_SLUG}?buy=${QA_TIER}`, { timeout: 25000 })
-    expect(page.url(), 'the buyer must return to the room+tier they intended').toContain(`/e/${QA_EVENT_SLUG}?buy=${QA_TIER}`)
+    // ?next honored → the buyer returns to EXACTLY where they intended
+    await page.waitForURL('**/test-purchase', { timeout: 25000 })
+    expect(page.url(), 'the buyer must return to their intended destination (?next preserved)').toContain('/test-purchase')
 
-    // the resume effect auto-fires checkout → the REAL frozen function answers
-    const resp = await checkoutResp
-    expect(resp.status(), 'create-checkout-session must answer 200 (frozen fn + Stripe TEST key)').toBe(200)
-    const body = await resp.json()
-    expect(body.url, 'checkout must return a live Stripe URL').toContain('checkout.stripe.com')
-    expect(body.sessionId, 'checkout must return a session id').toBeTruthy()
-    S.sessionUrl = body.url
+    // a first-run onboarding coachmark can overlay the page and intercept the
+    // click — clear it, then force the click as belt-and-suspenders
+    await page.waitForTimeout(1200)
+    await page.keyboard.press('Escape').catch(() => {})
+    await page.waitForTimeout(500)
+
+    // --- checkout: the internal QA UI fires the REAL frozen fn on the TEST key.
+    // /test-purchase is the only surface that reaches the is_test QA event. ---
+    // We CAPTURE the checkout response inside a route handler — reading the body
+    // there, before the page does window.location.href=<stripe url> and tears
+    // down the network resource (a plain waitForResponse().json() races the
+    // unload and fails). The Stripe redirect itself is aborted so the page stays.
+    let checkoutStatus = null
+    let checkoutBody = null
+    await page.route('**/api/create-checkout-session', async (route) => {
+      const response = await route.fetch()
+      checkoutStatus = response.status()
+      const text = await response.text()
+      try { checkoutBody = JSON.parse(text) } catch { /* leave null */ }
+      await route.fulfill({ response, body: text })
+    })
+    await page.route(/checkout\.stripe\.com/, (route) => route.abort())
+    await page.getByRole('button', { name: /RUN TEST CHECKOUT/i }).click({ force: true })
+    await expect.poll(() => checkoutBody, { message: 'create-checkout-session never answered', timeout: 30000 }).toBeTruthy()
+    expect(checkoutStatus, 'create-checkout-session must answer 200 (frozen fn + Stripe TEST key)').toBe(200)
+    expect(checkoutBody.url, 'checkout must return a live Stripe URL').toContain('checkout.stripe.com')
+    expect(checkoutBody.sessionId, 'checkout must return a session id').toBeTruthy()
+    S.sessionUrl = checkoutBody.url
     // We deliberately do NOT drive checkout.stripe.com (cross-origin/brittle) —
     // the handoff is proven; the payment itself is simulated in test B.
   })
