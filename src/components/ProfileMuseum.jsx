@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
-import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, Tag as TagIcon } from 'lucide-react'
+import { Edit3, Camera, MapPin, Plus, X, Music2, Film, Sparkles, Loader2, Play, ImageOff, ArrowUpRight, ImagePlus, ArrowUp, ArrowDown, UserPlus, UserCheck, MessageCircle, RotateCcw, Tag as TagIcon } from 'lucide-react'
 import VerifiedMark from './VerifiedMark'
 import { CARD_TINT, cardGlass, glassControl } from '@/lib/glass'
 import WorldBuilder from '@/components/WorldBuilder'
@@ -340,7 +340,52 @@ const fmtSetDate = (iso) => { try { return new Date(iso).toLocaleDateString('en-
 // flash an invite over an unknown truth); `upcomingSets` — published rooms
 // this person hosts; `friendship` — { state, onRequest, onAccept, onRemove }
 // from the wrapper (0023), absent = the door doesn't render.
-export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, onEditPost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
+/* The builder's readiness gate, shown in the portal while the quiet layer
+   (tastes) settles — or when its fetch FAILED. Before v19 a failed fetch left
+   the portal rendering nothing, so the curate button was dead until a full
+   reload. This is the honest surface that replaced that silence: a spinner
+   while the set is still coming, and a NAMED error with a working Retry when
+   the fetch fell over. Same cosmos chrome as ClaimWorld's confirming/notfound
+   states, on purpose — it is the same disease (never a dead control) solved
+   the same way. The builder itself still never mounts over a null set (its
+   save replaces the whole set); this gate is what makes that safety visible
+   instead of mute. */
+function BuilderGate({ variant, onRetry, onClose }) {
+  const error = variant === 'error'
+  return (
+    <div role="dialog" aria-label={error ? "Couldn't load your world" : 'Opening your world'}
+      style={{ position: 'fixed', inset: 0, zIndex: 10010, background: `radial-gradient(120% 88% at 50% 8%, rgba(var(--silver-rgb),.08) 0%, transparent 55%), ${VOID}`, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 28px', animation: 'fadeIn .3s ease' }}>
+      <button type="button" onClick={onClose} aria-label="Close"
+        style={{ position: 'absolute', top: '18px', right: '18px', background: 'none', border: 'none', color: BONE_LOW, cursor: 'pointer', padding: '8px', display: 'flex' }}>
+        <X size={18} />
+      </button>
+      <div style={{ textAlign: 'center', maxWidth: '360px' }}>
+        {error ? (
+          <>
+            <div style={{ width: '52px', height: '52px', margin: '0 auto', borderRadius: '50%', border: '1px solid rgba(var(--ink-rgb),0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ fontFamily: 'DM Mono', fontSize: '20px', color: BONE_MID, lineHeight: 1 }} aria-hidden>△</span>
+            </div>
+            <h2 style={{ fontFamily: 'Bebas Neue', fontWeight: 400, fontSize: '30px', lineHeight: .95, margin: '18px 0 0', color: BONE }}>COULDN&rsquo;T LOAD YOUR WORLD</h2>
+            <p style={{ fontFamily: 'DM Sans', fontSize: '14px', color: BONE_MID, lineHeight: 1.6, margin: '14px auto 0' }}>
+              We couldn&rsquo;t reach your taste layer, so we&rsquo;re holding the builder rather than open it over a blank set and risk erasing what you&rsquo;ve saved. Check your connection and try again.
+            </p>
+            <button type="button" className="pressable" onClick={onRetry}
+              style={{ marginTop: '24px', display: 'inline-flex', alignItems: 'center', gap: '8px', background: BONE, color: VOID, border: 'none', borderRadius: '100px', padding: '14px 26px', fontFamily: 'DM Mono', fontSize: '11px', letterSpacing: '.2em', textTransform: 'uppercase', cursor: 'pointer' }}>
+              <RotateCcw size={14} /> Retry
+            </button>
+          </>
+        ) : (
+          <>
+            <Loader2 size={22} style={{ color: 'var(--silver)', animation: 'spin 1s linear infinite' }} />
+            <div style={{ fontFamily: 'DM Mono', fontSize: '10px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase', marginTop: '18px' }}>Opening your world&hellip;</div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default function ProfileMuseum({ profile, crafts = [], craftsReady = true, onCraftsSaved, tastes = null, tastesError = false, onRetryTastes, onTastesSaved, isOwner = false, onSave, onUploadAvatar, onUploadCover, onUploadGallery, onCleanupImages, onViewPublic, ticket, event, topBar, ownerExtras, posts = [], onDeletePost, onEditPost, listings = [], onDeleteListing, onSetListingStatus, social, selfView = false, onSelfCurate, onFollowToggle, onMessage, onDMSeller, publicTastes = null, upcomingSets = [], friendship = null }) {
   const wide = useWide()                               // >=1024px: the museum composes editorially
   const navigate = useNavigate()                       // SETS rows walk into their event rooms
   const reveal = useReveal()                           // scroll-reveal preset (reduced-motion aware)
@@ -420,6 +465,16 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
       setBuilding(true)
     }
   }, [isOwner, data?.id])
+
+  // Open the guided build. If the tastes fetch failed (tastes stuck at null
+  // with tastesError raised), kick a retry as we open — the sheet resolves
+  // into the builder the moment the set lands, instead of the click doing
+  // nothing until a full reload. The gate below renders loading/error while
+  // it settles, so the button ALWAYS does something visible.
+  const openBuilder = () => {
+    if (tastes === null && tastesError) onRetryTastes?.()
+    setBuilding(true)
+  }
 
   const startEdit = () => {
     // the edit form SNAPSHOTS the saved crafts — entering before they've
@@ -1351,7 +1406,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 band lives until the person chooses; nothing is rewritten
                 behind their back (Ley 11). */}
             {craftsReady && crafts.length === 0 && (data.discipline || '').trim() && (
-              <button data-testid="craft-migration" className="pressable" onClick={() => setBuilding(true)}
+              <button data-testid="craft-migration" className="pressable" onClick={openBuilder}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'linear-gradient(150deg, rgba(var(--silver-rgb),.07), rgba(var(--silver-rgb),.015))', border: `1px solid rgba(var(--silver-rgb),.3)`, borderRadius: '13px', padding: '13px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
                 onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.55)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.3)'}>
@@ -1375,7 +1430,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 A LEGACY free-text maker is excluded: their band is the craft
                 migration above, and two bands stacked is noise. */}
             {tastes !== null && tastes.length === 0 && (crafts.length > 0 || !(data.discipline || '').trim()) && (
-              <button data-testid="taste-invite" className="pressable" onClick={() => setBuilding(true)}
+              <button data-testid="taste-invite" className="pressable" onClick={openBuilder}
                 style={{ display: 'flex', alignItems: 'center', gap: '12px', width: '100%', maxWidth: '460px', textAlign: 'left', background: 'rgba(var(--silver-rgb),.03)', border: `1px solid ${HAIR_HI}`, borderRadius: '13px', padding: '12px 16px', cursor: 'pointer', marginBottom: '14px', transition: 'border-color .25s ease' }}
                 onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(var(--silver-rgb),.4)'}
                 onMouseOut={e => e.currentTarget.style.borderColor = HAIR_HI}>
@@ -1397,7 +1452,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
                 al 60% — agrega X", nunca un muro). One suggestion, not a
                 checklist: the first missing item in completeness order. */}
             {completeness.pct < 100 && (
-              <button className="pressable" data-testid="world-meter" onClick={() => setBuilding(true)}
+              <button className="pressable" data-testid="world-meter" onClick={openBuilder}
                 style={{ display: 'block', width: '100%', maxWidth: '260px', marginBottom: '12px', background: 'transparent', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: '6px' }}>
                   <span style={{ fontFamily: 'DM Mono', fontSize: '8px', color: BONE_LOW, letterSpacing: '.24em', textTransform: 'uppercase' }}>your world</span>
@@ -1426,7 +1481,7 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
               </button>
             )}
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              <button className="pressable" onClick={() => completeness.pct < 100 ? setBuilding(true) : startEdit()} style={{ background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'background .2s, border-color .2s, transform .2s' }}
+              <button className="pressable" onClick={() => completeness.pct < 100 ? openBuilder() : startEdit()} style={{ background: 'rgba(var(--ink-rgb),.05)', border: `1px solid ${HAIR_HI}`, borderRadius: '100px', padding: '9px 20px', color: BONE, fontSize: '11.5px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '7px', fontFamily: 'DM Sans', letterSpacing: '.03em', transition: 'background .2s, border-color .2s, transform .2s' }}
                 onMouseOver={e => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.11)'; e.currentTarget.style.borderColor = 'rgba(var(--ink-rgb),.34)' }}
                 onMouseOut={e => { e.currentTarget.style.background = 'rgba(var(--ink-rgb),.05)'; e.currentTarget.style.borderColor = HAIR_HI }}>
                 <Edit3 size={12} /> {completeness.pct < 100 ? 'Build your world →' : 'Curate your world'}
@@ -1698,21 +1753,35 @@ export default function ProfileMuseum({ profile, crafts = [], craftsReady = true
           member an empty picker for crafts they already chose. tastes !== null
           holds the same door for the quiet layer (0022): its save replaces
           the WHOLE set, so a null-seeded commit would erase a member's tastes */}
-      {building && craftsReady && tastes !== null && createPortal(
-        <WorldBuilder
-          data={data}
-          crafts={crafts}
-          onCraftsSaved={onCraftsSaved}
-          tastes={tastes}
-          onTastesSaved={onTastesSaved}
-          onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
-          onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
-          onUploadGallery={onUploadGallery}
-          onCleanupImages={onCleanupImages}
-          onUploadAvatar={onUploadAvatar}
-          onClose={() => setBuilding(false)}
-          onPublished={() => { setBuilding(false); setCelebrating(true) }}
-        />,
+      {/* The gate USED to be `building && craftsReady && tastes !== null` —
+          when the tastes fetch failed (tastes stuck at null), the whole portal
+          rendered NOTHING, so every curate button was dead until a reload. Now
+          `building` alone mounts the portal, and the readiness check chooses
+          WHAT to show: the builder when the set is in hand, an honest retry
+          when the fetch failed, a spinner while it's still coming. The
+          tastes !== null guard is preserved INSIDE the builder branch — its
+          save replaces the whole set, so it must never mount over a null. */}
+      {building && createPortal(
+        (craftsReady && tastes !== null) ? (
+          <WorldBuilder
+            data={data}
+            crafts={crafts}
+            onCraftsSaved={onCraftsSaved}
+            tastes={tastes}
+            onTastesSaved={onTastesSaved}
+            onDraft={(partial) => setData(d => ({ ...d, ...partial }))}
+            onCommit={async (patch) => { if (onSave) await onSave(patch); setData(d => ({ ...d, ...patch })) }}
+            onUploadGallery={onUploadGallery}
+            onCleanupImages={onCleanupImages}
+            onUploadAvatar={onUploadAvatar}
+            onClose={() => setBuilding(false)}
+            onPublished={() => { setBuilding(false); setCelebrating(true) }}
+          />
+        ) : (tastes === null && tastesError) ? (
+          <BuilderGate variant="error" onRetry={() => onRetryTastes?.()} onClose={() => setBuilding(false)} />
+        ) : (
+          <BuilderGate variant="loading" onClose={() => setBuilding(false)} />
+        ),
         document.body
       )}
 
