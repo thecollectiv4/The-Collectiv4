@@ -118,11 +118,19 @@ Deno.serve(async (req) => {
     //
     // Everything money-shaped (price read from the DB, line item, metadata) is
     // IDENTICAL across both surfaces — only how the buyer reaches the card
-    // moves. Embedded uses ui_mode 'embedded_page' + return_url (Stripe mounts
-    // the card form in our page and redirects the top window home on
-    // completion); hosted uses success_url/cancel_url (the buyer bounces to
-    // checkout.stripe.com). This account's Stripe API — 2026-04-22.dahlia —
-    // renamed the embedded ui_mode value to 'embedded_page'.
+    // moves. Embedded uses ui_mode 'embedded' + return_url (Stripe mounts the
+    // card form in our page and redirects the top window home on completion);
+    // hosted uses success_url/cancel_url (the buyer bounces to
+    // checkout.stripe.com).
+    //
+    // NB the value is 'embedded', NOT the ticket machine's 'embedded_page':
+    // this booking Stripe client PINS apiVersion 2024-06-20 (see
+    // _shared/booking.ts), where the embedded ui_mode is 'embedded'. The
+    // 'embedded_page' rename is a dahlia-only (2026-04-22) thing, which the
+    // ticket api/ picks up because it doesn't pin a version. Keeping the pin +
+    // 'embedded' avoids a cross-version bump that would also touch the booking
+    // webhook's event parsing. The clientSecret still mounts client-side via
+    // createEmbeddedCheckoutPage — that's a Stripe.js concern, version-independent.
     const common = {
       mode: 'payment' as const,
       customer_email: clientEmail,
@@ -154,7 +162,7 @@ Deno.serve(async (req) => {
     session = embedded
       ? await stripe.checkout.sessions.create({
           ...common,
-          ui_mode: 'embedded_page',
+          ui_mode: 'embedded',
           // embedded takes return_url ONLY — the SAME success surface as the
           // hosted flow's success_url. /booked polls the DB (booking-status)
           // for the paid row the webhook writes; the webhook stays the truth.
